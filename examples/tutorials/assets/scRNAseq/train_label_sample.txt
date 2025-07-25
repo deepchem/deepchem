@@ -1,0 +1,4000 @@
+tma_facs_14301	Monocyte
+tma_facs_4756	Endothelial cell
+tma_facs_14382	Monocyte
+tma_facs_423	B cell
+tma_facs_15612	Monocyte
+tma_facs_4729	Endothelial cell
+tma_facs_8174	Epithelial cell
+tma_facs_9855	Epithelial cell
+tma_facs_9055	Epithelial cell
+tma_facs_8668	Epithelial cell
+tma_facs_7963	Epithelial cell
+tma_facs_11736	Hepatocyte
+tma_facs_3635	Endothelial cell
+tma_facs_9294	Epithelial cell
+tma_facs_15036	Monocyte
+tma_facs_3167	B cell
+tma_facs_20417	T cell
+tma_facs_15906	NK cell
+tma_facs_865	B cell
+tma_facs_7246	Endothelial cell
+tma_facs_15231	Monocyte
+tma_facs_11704	Hepatocyte
+tma_facs_1579	B cell
+tma_facs_2352	B cell
+tma_facs_15690	Monocyte
+tma_facs_18156	Stromal cell
+tma_facs_1405	B cell
+tma_facs_20359	T cell
+tma_facs_14354	Monocyte
+tma_facs_11290	Granulocyte
+tma_facs_9640	Epithelial cell
+tma_facs_19641	T cell
+tma_facs_4908	Endothelial cell
+tma_facs_6894	Endothelial cell
+tma_facs_15782	NK cell
+tma_facs_20793	T cell
+tma_facs_3163	B cell
+tma_facs_17397	Stromal cell
+tma_facs_18194	Stromal cell
+tma_facs_14529	Monocyte
+tma_facs_17446	Stromal cell
+tma_facs_5324	Endothelial cell
+tma_facs_13235	Epidermis
+tma_facs_14526	Monocyte
+tma_facs_2670	B cell
+tma_facs_10901	Erythrocyte
+tma_facs_8941	Epithelial cell
+tma_facs_19042	T cell
+tma_facs_6284	Endothelial cell
+tma_facs_12252	Epidermis
+tma_facs_12038	Hepatocyte
+tma_facs_11104	Granulocyte
+tma_facs_18097	Stromal cell
+tma_facs_34	B cell
+tma_facs_5732	Endothelial cell
+tma_facs_15561	Monocyte
+tma_facs_1794	B cell
+tma_facs_16070	Stromal cell
+tma_facs_8840	Epithelial cell
+tma_facs_14714	Monocyte
+tma_facs_810	B cell
+tma_facs_15768	NK cell
+tma_facs_3887	Endothelial cell
+tma_facs_1911	B cell
+tma_facs_16918	Stromal cell
+tma_facs_600	B cell
+tma_facs_17492	Stromal cell
+tma_facs_10246	Epithelial cell
+tma_facs_20464	T cell
+tma_facs_9950	Epithelial cell
+tma_facs_15987	NK cell
+tma_facs_17742	Stromal cell
+tma_facs_2178	B cell
+tma_facs_15414	Monocyte
+tma_facs_20929	T cell
+tma_facs_71	B cell
+tma_facs_14799	Monocyte
+tma_facs_2119	B cell
+tma_facs_1491	B cell
+tma_facs_6265	Endothelial cell
+tma_facs_1968	B cell
+tma_facs_16777	Stromal cell
+tma_facs_17157	Stromal cell
+tma_facs_1972	B cell
+tma_facs_6393	Endothelial cell
+tma_facs_9520	Epithelial cell
+tma_facs_5777	Endothelial cell
+tma_facs_3229	B cell
+tma_facs_10757	Epithelial cell
+tma_facs_8173	Epithelial cell
+tma_facs_2064	B cell
+tma_facs_20760	T cell
+tma_facs_4112	Endothelial cell
+tma_facs_17281	Stromal cell
+tma_facs_3898	Endothelial cell
+tma_facs_10864	Erythrocyte
+tma_facs_10612	Epithelial cell
+tma_facs_2721	B cell
+tma_facs_16399	Stromal cell
+tma_facs_14994	Monocyte
+tma_facs_1512	B cell
+tma_facs_15845	NK cell
+tma_facs_3058	B cell
+tma_facs_12024	Hepatocyte
+tma_facs_16141	Stromal cell
+tma_facs_7576	Epithelial cell
+tma_facs_8039	Epithelial cell
+tma_facs_4444	Endothelial cell
+tma_facs_15714	Monocyte
+tma_facs_13370	Epidermis
+tma_facs_6276	Endothelial cell
+tma_facs_8797	Epithelial cell
+tma_facs_10402	Epithelial cell
+tma_facs_4332	Endothelial cell
+tma_facs_12052	Hepatocyte
+tma_facs_9673	Epithelial cell
+tma_facs_16457	Stromal cell
+tma_facs_16902	Stromal cell
+tma_facs_16025	Stromal cell
+tma_facs_4338	Endothelial cell
+tma_facs_15783	NK cell
+tma_facs_14954	Monocyte
+tma_facs_10691	Epithelial cell
+tma_facs_1544	B cell
+tma_facs_3751	Endothelial cell
+tma_facs_12350	Epidermis
+tma_facs_7643	Epithelial cell
+tma_facs_18018	Stromal cell
+tma_facs_1872	B cell
+tma_facs_11182	Granulocyte
+tma_facs_15205	Monocyte
+tma_facs_2680	B cell
+tma_facs_10150	Epithelial cell
+tma_facs_415	B cell
+tma_facs_18690	Stromal cell
+tma_facs_20732	T cell
+tma_facs_4781	Endothelial cell
+tma_facs_14357	Monocyte
+tma_facs_14288	Monocyte
+tma_facs_17556	Stromal cell
+tma_facs_11950	Hepatocyte
+tma_facs_189	B cell
+tma_facs_153	B cell
+tma_facs_13907	Epidermis
+tma_facs_1136	B cell
+tma_facs_14586	Monocyte
+tma_facs_17736	Stromal cell
+tma_facs_2180	B cell
+tma_facs_11122	Granulocyte
+tma_facs_1862	B cell
+tma_facs_11741	Hepatocyte
+tma_facs_5243	Endothelial cell
+tma_facs_18037	Stromal cell
+tma_facs_4868	Endothelial cell
+tma_facs_14409	Monocyte
+tma_facs_11021	Granulocyte
+tma_facs_11433	Granulocyte
+tma_facs_3349	B cell
+tma_facs_14063	Epidermis
+tma_facs_9528	Epithelial cell
+tma_facs_2769	B cell
+tma_facs_18495	Stromal cell
+tma_facs_8789	Epithelial cell
+tma_facs_611	B cell
+tma_facs_3059	B cell
+tma_facs_14009	Epidermis
+tma_facs_3262	B cell
+tma_facs_4237	Endothelial cell
+tma_facs_16626	Stromal cell
+tma_facs_12324	Epidermis
+tma_facs_20900	T cell
+tma_facs_2381	B cell
+tma_facs_19153	T cell
+tma_facs_13132	Epidermis
+tma_facs_1966	B cell
+tma_facs_9262	Epithelial cell
+tma_facs_7736	Epithelial cell
+tma_facs_13587	Epidermis
+tma_facs_11904	Hepatocyte
+tma_facs_10918	Erythrocyte
+tma_facs_16034	Stromal cell
+tma_facs_10090	Epithelial cell
+tma_facs_9163	Epithelial cell
+tma_facs_10077	Epithelial cell
+tma_facs_3365	B cell
+tma_facs_10786	Epithelial cell
+tma_facs_18232	Stromal cell
+tma_facs_19148	T cell
+tma_facs_7540	Epithelial cell
+tma_facs_15663	Monocyte
+tma_facs_8864	Epithelial cell
+tma_facs_13341	Epidermis
+tma_facs_12179	Epidermis
+tma_facs_15699	Monocyte
+tma_facs_14790	Monocyte
+tma_facs_6687	Endothelial cell
+tma_facs_6082	Endothelial cell
+tma_facs_5293	Endothelial cell
+tma_facs_8108	Epithelial cell
+tma_facs_5235	Endothelial cell
+tma_facs_17331	Stromal cell
+tma_facs_17384	Stromal cell
+tma_facs_13981	Epidermis
+tma_facs_8870	Epithelial cell
+tma_facs_18336	Stromal cell
+tma_facs_4474	Endothelial cell
+tma_facs_1081	B cell
+tma_facs_12062	Epidermis
+tma_facs_16192	Stromal cell
+tma_facs_17188	Stromal cell
+tma_facs_13939	Epidermis
+tma_facs_15469	Monocyte
+tma_facs_19151	T cell
+tma_facs_1950	B cell
+tma_facs_7475	Epithelial cell
+tma_facs_10185	Epithelial cell
+tma_facs_3084	B cell
+tma_facs_8378	Epithelial cell
+tma_facs_17108	Stromal cell
+tma_facs_14777	Monocyte
+tma_facs_10470	Epithelial cell
+tma_facs_10848	Erythrocyte
+tma_facs_18186	Stromal cell
+tma_facs_175	B cell
+tma_facs_4737	Endothelial cell
+tma_facs_4465	Endothelial cell
+tma_facs_7778	Epithelial cell
+tma_facs_12013	Hepatocyte
+tma_facs_163	B cell
+tma_facs_13097	Epidermis
+tma_facs_16434	Stromal cell
+tma_facs_19330	T cell
+tma_facs_17043	Stromal cell
+tma_facs_17838	Stromal cell
+tma_facs_443	B cell
+tma_facs_8923	Epithelial cell
+tma_facs_17709	Stromal cell
+tma_facs_6703	Endothelial cell
+tma_facs_6087	Endothelial cell
+tma_facs_280	B cell
+tma_facs_7372	Endothelial cell
+tma_facs_19407	T cell
+tma_facs_5735	Endothelial cell
+tma_facs_4003	Endothelial cell
+tma_facs_14513	Monocyte
+tma_facs_1043	B cell
+tma_facs_14769	Monocyte
+tma_facs_3055	B cell
+tma_facs_11358	Granulocyte
+tma_facs_13347	Epidermis
+tma_facs_3382	B cell
+tma_facs_18658	Stromal cell
+tma_facs_20720	T cell
+tma_facs_2463	B cell
+tma_facs_11573	Granulocyte
+tma_facs_4354	Endothelial cell
+tma_facs_7474	Epithelial cell
+tma_facs_3735	Endothelial cell
+tma_facs_13548	Epidermis
+tma_facs_5532	Endothelial cell
+tma_facs_4563	Endothelial cell
+tma_facs_10237	Epithelial cell
+tma_facs_6263	Endothelial cell
+tma_facs_15095	Monocyte
+tma_facs_5791	Endothelial cell
+tma_facs_13150	Epidermis
+tma_facs_7503	Epithelial cell
+tma_facs_13609	Epidermis
+tma_facs_12260	Epidermis
+tma_facs_15447	Monocyte
+tma_facs_16745	Stromal cell
+tma_facs_19691	T cell
+tma_facs_6858	Endothelial cell
+tma_facs_9687	Epithelial cell
+tma_facs_15812	NK cell
+tma_facs_11442	Granulocyte
+tma_facs_19108	T cell
+tma_facs_4640	Endothelial cell
+tma_facs_18728	Stromal cell
+tma_facs_3259	B cell
+tma_facs_966	B cell
+tma_facs_52	B cell
+tma_facs_5826	Endothelial cell
+tma_facs_4169	Endothelial cell
+tma_facs_19986	T cell
+tma_facs_16708	Stromal cell
+tma_facs_13845	Epidermis
+tma_facs_11066	Granulocyte
+tma_facs_12170	Epidermis
+tma_facs_16129	Stromal cell
+tma_facs_3803	Endothelial cell
+tma_facs_1259	B cell
+tma_facs_1118	B cell
+tma_facs_12406	Epidermis
+tma_facs_5382	Endothelial cell
+tma_facs_16069	Stromal cell
+tma_facs_5769	Endothelial cell
+tma_facs_8468	Epithelial cell
+tma_facs_8275	Epithelial cell
+tma_facs_4942	Endothelial cell
+tma_facs_4732	Endothelial cell
+tma_facs_17072	Stromal cell
+tma_facs_11238	Granulocyte
+tma_facs_19541	T cell
+tma_facs_13401	Epidermis
+tma_facs_6958	Endothelial cell
+tma_facs_20593	T cell
+tma_facs_12641	Epidermis
+tma_facs_2305	B cell
+tma_facs_18057	Stromal cell
+tma_facs_9731	Epithelial cell
+tma_facs_13691	Epidermis
+tma_facs_6882	Endothelial cell
+tma_facs_7261	Endothelial cell
+tma_facs_15299	Monocyte
+tma_facs_12934	Epidermis
+tma_facs_6079	Endothelial cell
+tma_facs_18003	Stromal cell
+tma_facs_13567	Epidermis
+tma_facs_12544	Epidermis
+tma_facs_14528	Monocyte
+tma_facs_14887	Monocyte
+tma_facs_5650	Endothelial cell
+tma_facs_15279	Monocyte
+tma_facs_8236	Epithelial cell
+tma_facs_11429	Granulocyte
+tma_facs_13099	Epidermis
+tma_facs_19300	T cell
+tma_facs_4142	Endothelial cell
+tma_facs_4606	Endothelial cell
+tma_facs_11817	Hepatocyte
+tma_facs_819	B cell
+tma_facs_18810	T cell
+tma_facs_167	B cell
+tma_facs_15923	NK cell
+tma_facs_5143	Endothelial cell
+tma_facs_1615	B cell
+tma_facs_2241	B cell
+tma_facs_13492	Epidermis
+tma_facs_4432	Endothelial cell
+tma_facs_10058	Epithelial cell
+tma_facs_20559	T cell
+tma_facs_14073	Epidermis
+tma_facs_16406	Stromal cell
+tma_facs_15984	NK cell
+tma_facs_17501	Stromal cell
+tma_facs_16971	Stromal cell
+tma_facs_2595	B cell
+tma_facs_3511	Cardiac Muscle
+tma_facs_10499	Epithelial cell
+tma_facs_3427	B cell
+tma_facs_4684	Endothelial cell
+tma_facs_9000	Epithelial cell
+tma_facs_10288	Epithelial cell
+tma_facs_20453	T cell
+tma_facs_2955	B cell
+tma_facs_20294	T cell
+tma_facs_12612	Epidermis
+tma_facs_1692	B cell
+tma_facs_12711	Epidermis
+tma_facs_16334	Stromal cell
+tma_facs_18413	Stromal cell
+tma_facs_2762	B cell
+tma_facs_16506	Stromal cell
+tma_facs_16459	Stromal cell
+tma_facs_17318	Stromal cell
+tma_facs_9108	Epithelial cell
+tma_facs_20211	T cell
+tma_facs_19716	T cell
+tma_facs_10154	Epithelial cell
+tma_facs_1992	B cell
+tma_facs_12684	Epidermis
+tma_facs_11729	Hepatocyte
+tma_facs_14430	Monocyte
+tma_facs_20822	T cell
+tma_facs_8952	Epithelial cell
+tma_facs_11493	Granulocyte
+tma_facs_11530	Granulocyte
+tma_facs_14364	Monocyte
+tma_facs_8184	Epithelial cell
+tma_facs_3101	B cell
+tma_facs_11759	Hepatocyte
+tma_facs_19004	T cell
+tma_facs_9483	Epithelial cell
+tma_facs_15784	NK cell
+tma_facs_9939	Epithelial cell
+tma_facs_5108	Endothelial cell
+tma_facs_9451	Epithelial cell
+tma_facs_13514	Epidermis
+tma_facs_5968	Endothelial cell
+tma_facs_18604	Stromal cell
+tma_facs_756	B cell
+tma_facs_7633	Epithelial cell
+tma_facs_4498	Endothelial cell
+tma_facs_6643	Endothelial cell
+tma_facs_18812	T cell
+tma_facs_1812	B cell
+tma_facs_8506	Epithelial cell
+tma_facs_292	B cell
+tma_facs_15348	Monocyte
+tma_facs_14663	Monocyte
+tma_facs_14699	Monocyte
+tma_facs_1147	B cell
+tma_facs_9634	Epithelial cell
+tma_facs_9892	Epithelial cell
+tma_facs_8925	Epithelial cell
+tma_facs_20497	T cell
+tma_facs_933	B cell
+tma_facs_2457	B cell
+tma_facs_2070	B cell
+tma_facs_3974	Endothelial cell
+tma_facs_19585	T cell
+tma_facs_1038	B cell
+tma_facs_4591	Endothelial cell
+tma_facs_19319	T cell
+tma_facs_3141	B cell
+tma_facs_7739	Epithelial cell
+tma_facs_13337	Epidermis
+tma_facs_11236	Granulocyte
+tma_facs_8530	Epithelial cell
+tma_facs_15448	Monocyte
+tma_facs_9819	Epithelial cell
+tma_facs_3911	Endothelial cell
+tma_facs_17933	Stromal cell
+tma_facs_2510	B cell
+tma_facs_20164	T cell
+tma_facs_12136	Epidermis
+tma_facs_19964	T cell
+tma_facs_17339	Stromal cell
+tma_facs_15215	Monocyte
+tma_facs_14399	Monocyte
+tma_facs_12322	Epidermis
+tma_facs_20360	T cell
+tma_facs_8686	Epithelial cell
+tma_facs_16536	Stromal cell
+tma_facs_13786	Epidermis
+tma_facs_9244	Epithelial cell
+tma_facs_7577	Epithelial cell
+tma_facs_3966	Endothelial cell
+tma_facs_1610	B cell
+tma_facs_4726	Endothelial cell
+tma_facs_12191	Epidermis
+tma_facs_4879	Endothelial cell
+tma_facs_11068	Granulocyte
+tma_facs_10375	Epithelial cell
+tma_facs_12006	Hepatocyte
+tma_facs_5356	Endothelial cell
+tma_facs_16413	Stromal cell
+tma_facs_1107	B cell
+tma_facs_13948	Epidermis
+tma_facs_6006	Endothelial cell
+tma_facs_11272	Granulocyte
+tma_facs_6677	Endothelial cell
+tma_facs_17895	Stromal cell
+tma_facs_20903	T cell
+tma_facs_17481	Stromal cell
+tma_facs_10410	Epithelial cell
+tma_facs_14761	Monocyte
+tma_facs_6163	Endothelial cell
+tma_facs_9093	Epithelial cell
+tma_facs_3160	B cell
+tma_facs_11594	Granulocyte
+tma_facs_17178	Stromal cell
+tma_facs_13884	Epidermis
+tma_facs_19169	T cell
+tma_facs_5800	Endothelial cell
+tma_facs_11171	Granulocyte
+tma_facs_7770	Epithelial cell
+tma_facs_12950	Epidermis
+tma_facs_3392	B cell
+tma_facs_14862	Monocyte
+tma_facs_15571	Monocyte
+tma_facs_4377	Endothelial cell
+tma_facs_11889	Hepatocyte
+tma_facs_5451	Endothelial cell
+tma_facs_15567	Monocyte
+tma_facs_5933	Endothelial cell
+tma_facs_19392	T cell
+tma_facs_9669	Epithelial cell
+tma_facs_8168	Epithelial cell
+tma_facs_1352	B cell
+tma_facs_5183	Endothelial cell
+tma_facs_13444	Epidermis
+tma_facs_9437	Epithelial cell
+tma_facs_9370	Epithelial cell
+tma_facs_5350	Endothelial cell
+tma_facs_9089	Epithelial cell
+tma_facs_241	B cell
+tma_facs_15819	NK cell
+tma_facs_18409	Stromal cell
+tma_facs_7151	Endothelial cell
+tma_facs_17025	Stromal cell
+tma_facs_4242	Endothelial cell
+tma_facs_14801	Monocyte
+tma_facs_11893	Hepatocyte
+tma_facs_1028	B cell
+tma_facs_15865	NK cell
+tma_facs_8567	Epithelial cell
+tma_facs_2103	B cell
+tma_facs_4986	Endothelial cell
+tma_facs_2405	B cell
+tma_facs_18802	T cell
+tma_facs_19895	T cell
+tma_facs_5228	Endothelial cell
+tma_facs_12906	Epidermis
+tma_facs_19184	T cell
+tma_facs_20139	T cell
+tma_facs_8166	Epithelial cell
+tma_facs_11823	Hepatocyte
+tma_facs_13128	Epidermis
+tma_facs_5089	Endothelial cell
+tma_facs_18419	Stromal cell
+tma_facs_15702	Monocyte
+tma_facs_4974	Endothelial cell
+tma_facs_7208	Endothelial cell
+tma_facs_4686	Endothelial cell
+tma_facs_1614	B cell
+tma_facs_19633	T cell
+tma_facs_15433	Monocyte
+tma_facs_6809	Endothelial cell
+tma_facs_6941	Endothelial cell
+tma_facs_11888	Hepatocyte
+tma_facs_6561	Endothelial cell
+tma_facs_17936	Stromal cell
+tma_facs_9871	Epithelial cell
+tma_facs_17069	Stromal cell
+tma_facs_6714	Endothelial cell
+tma_facs_4996	Endothelial cell
+tma_facs_19795	T cell
+tma_facs_15311	Monocyte
+tma_facs_5601	Endothelial cell
+tma_facs_11611	Granulocyte
+tma_facs_19722	T cell
+tma_facs_18467	Stromal cell
+tma_facs_18736	Stromal cell
+tma_facs_14897	Monocyte
+tma_facs_2029	B cell
+tma_facs_10504	Epithelial cell
+tma_facs_5656	Endothelial cell
+tma_facs_6734	Endothelial cell
+tma_facs_6715	Endothelial cell
+tma_facs_53	B cell
+tma_facs_9105	Epithelial cell
+tma_facs_17534	Stromal cell
+tma_facs_9657	Epithelial cell
+tma_facs_18513	Stromal cell
+tma_facs_8860	Epithelial cell
+tma_facs_15921	NK cell
+tma_facs_3161	B cell
+tma_facs_13138	Epidermis
+tma_facs_11336	Granulocyte
+tma_facs_8124	Epithelial cell
+tma_facs_11300	Granulocyte
+tma_facs_19803	T cell
+tma_facs_16341	Stromal cell
+tma_facs_10832	Epithelial cell
+tma_facs_17628	Stromal cell
+tma_facs_19326	T cell
+tma_facs_7007	Endothelial cell
+tma_facs_290	B cell
+tma_facs_1361	B cell
+tma_facs_12224	Epidermis
+tma_facs_2023	B cell
+tma_facs_17258	Stromal cell
+tma_facs_18632	Stromal cell
+tma_facs_13389	Epidermis
+tma_facs_20310	T cell
+tma_facs_6899	Endothelial cell
+tma_facs_8220	Epithelial cell
+tma_facs_19801	T cell
+tma_facs_2229	B cell
+tma_facs_16841	Stromal cell
+tma_facs_10431	Epithelial cell
+tma_facs_5465	Endothelial cell
+tma_facs_19088	T cell
+tma_facs_17443	Stromal cell
+tma_facs_7991	Epithelial cell
+tma_facs_14362	Monocyte
+tma_facs_8118	Epithelial cell
+tma_facs_8458	Epithelial cell
+tma_facs_17150	Stromal cell
+tma_facs_14605	Monocyte
+tma_facs_1722	B cell
+tma_facs_1106	B cell
+tma_facs_1030	B cell
+tma_facs_7174	Endothelial cell
+tma_facs_10874	Erythrocyte
+tma_facs_12955	Epidermis
+tma_facs_14251	Monocyte
+tma_facs_5680	Endothelial cell
+tma_facs_16849	Stromal cell
+tma_facs_7685	Epithelial cell
+tma_facs_16668	Stromal cell
+tma_facs_10274	Epithelial cell
+tma_facs_14090	Epidermis
+tma_facs_7538	Epithelial cell
+tma_facs_145	B cell
+tma_facs_15483	Monocyte
+tma_facs_4887	Endothelial cell
+tma_facs_15240	Monocyte
+tma_facs_8000	Epithelial cell
+tma_facs_10136	Epithelial cell
+tma_facs_6222	Endothelial cell
+tma_facs_6453	Endothelial cell
+tma_facs_17731	Stromal cell
+tma_facs_1054	B cell
+tma_facs_3449	Cardiac Muscle
+tma_facs_13632	Epidermis
+tma_facs_2459	B cell
+tma_facs_13856	Epidermis
+tma_facs_15235	Monocyte
+tma_facs_5120	Endothelial cell
+tma_facs_325	B cell
+tma_facs_7163	Endothelial cell
+tma_facs_18518	Stromal cell
+tma_facs_13228	Epidermis
+tma_facs_10401	Epithelial cell
+tma_facs_10300	Epithelial cell
+tma_facs_13532	Epidermis
+tma_facs_6485	Endothelial cell
+tma_facs_20112	T cell
+tma_facs_13949	Epidermis
+tma_facs_6948	Endothelial cell
+tma_facs_3239	B cell
+tma_facs_15559	Monocyte
+tma_facs_10089	Epithelial cell
+tma_facs_1963	B cell
+tma_facs_11848	Hepatocyte
+tma_facs_5334	Endothelial cell
+tma_facs_19501	T cell
+tma_facs_4079	Endothelial cell
+tma_facs_3023	B cell
+tma_facs_730	B cell
+tma_facs_3826	Endothelial cell
+tma_facs_13690	Epidermis
+tma_facs_4773	Endothelial cell
+tma_facs_11556	Granulocyte
+tma_facs_10669	Epithelial cell
+tma_facs_8625	Epithelial cell
+tma_facs_4302	Endothelial cell
+tma_facs_18864	T cell
+tma_facs_18707	Stromal cell
+tma_facs_19205	T cell
+tma_facs_6181	Endothelial cell
+tma_facs_5197	Endothelial cell
+tma_facs_16121	Stromal cell
+tma_facs_5676	Endothelial cell
+tma_facs_1955	B cell
+tma_facs_5036	Endothelial cell
+tma_facs_3607	Endothelial cell
+tma_facs_11877	Hepatocyte
+tma_facs_8730	Epithelial cell
+tma_facs_2024	B cell
+tma_facs_8837	Epithelial cell
+tma_facs_6235	Endothelial cell
+tma_facs_20856	T cell
+tma_facs_786	B cell
+tma_facs_17727	Stromal cell
+tma_facs_239	B cell
+tma_facs_7785	Epithelial cell
+tma_facs_20693	T cell
+tma_facs_20867	T cell
+tma_facs_4031	Endothelial cell
+tma_facs_20292	T cell
+tma_facs_16671	Stromal cell
+tma_facs_12625	Epidermis
+tma_facs_16000	Stromal cell
+tma_facs_8249	Epithelial cell
+tma_facs_3950	Endothelial cell
+tma_facs_19767	T cell
+tma_facs_14213	Monocyte
+tma_facs_17941	Stromal cell
+tma_facs_20040	T cell
+tma_facs_1293	B cell
+tma_facs_6138	Endothelial cell
+tma_facs_14202	Monocyte
+tma_facs_14075	Epidermis
+tma_facs_12811	Epidermis
+tma_facs_20192	T cell
+tma_facs_10098	Epithelial cell
+tma_facs_15680	Monocyte
+tma_facs_18689	Stromal cell
+tma_facs_8440	Epithelial cell
+tma_facs_15218	Monocyte
+tma_facs_14363	Monocyte
+tma_facs_20588	T cell
+tma_facs_431	B cell
+tma_facs_8266	Epithelial cell
+tma_facs_10282	Epithelial cell
+tma_facs_1515	B cell
+tma_facs_4201	Endothelial cell
+tma_facs_19328	T cell
+tma_facs_2025	B cell
+tma_facs_1767	B cell
+tma_facs_3796	Endothelial cell
+tma_facs_19498	T cell
+tma_facs_7718	Epithelial cell
+tma_facs_20537	T cell
+tma_facs_7002	Endothelial cell
+tma_facs_12375	Epidermis
+tma_facs_15658	Monocyte
+tma_facs_3317	B cell
+tma_facs_4918	Endothelial cell
+tma_facs_4738	Endothelial cell
+tma_facs_19667	T cell
+tma_facs_19173	T cell
+tma_facs_20674	T cell
+tma_facs_18193	Stromal cell
+tma_facs_16869	Stromal cell
+tma_facs_2606	B cell
+tma_facs_11816	Hepatocyte
+tma_facs_20944	T cell
+tma_facs_18738	Stromal cell
+tma_facs_403	B cell
+tma_facs_10698	Epithelial cell
+tma_facs_20421	T cell
+tma_facs_15860	NK cell
+tma_facs_8638	Epithelial cell
+tma_facs_18957	T cell
+tma_facs_9212	Epithelial cell
+tma_facs_11339	Granulocyte
+tma_facs_1256	B cell
+tma_facs_8191	Epithelial cell
+tma_facs_13722	Epidermis
+tma_facs_310	B cell
+tma_facs_8055	Epithelial cell
+tma_facs_8568	Epithelial cell
+tma_facs_11647	Granulocyte
+tma_facs_2196	B cell
+tma_facs_2060	B cell
+tma_facs_17421	Stromal cell
+tma_facs_14832	Monocyte
+tma_facs_18047	Stromal cell
+tma_facs_5862	Endothelial cell
+tma_facs_4985	Endothelial cell
+tma_facs_10043	Epithelial cell
+tma_facs_9301	Epithelial cell
+tma_facs_13223	Epidermis
+tma_facs_17073	Stromal cell
+tma_facs_20109	T cell
+tma_facs_15789	NK cell
+tma_facs_16316	Stromal cell
+tma_facs_20889	T cell
+tma_facs_4627	Endothelial cell
+tma_facs_13093	Epidermis
+tma_facs_11808	Hepatocyte
+tma_facs_3499	Cardiac Muscle
+tma_facs_12183	Epidermis
+tma_facs_2104	B cell
+tma_facs_14859	Monocyte
+tma_facs_19579	T cell
+tma_facs_4978	Endothelial cell
+tma_facs_5389	Endothelial cell
+tma_facs_3431	B cell
+tma_facs_2956	B cell
+tma_facs_777	B cell
+tma_facs_13015	Epidermis
+tma_facs_89	B cell
+tma_facs_11240	Granulocyte
+tma_facs_6464	Endothelial cell
+tma_facs_4389	Endothelial cell
+tma_facs_18548	Stromal cell
+tma_facs_19811	T cell
+tma_facs_18535	Stromal cell
+tma_facs_2822	B cell
+tma_facs_1207	B cell
+tma_facs_20000	T cell
+tma_facs_10400	Epithelial cell
+tma_facs_7829	Epithelial cell
+tma_facs_15472	Monocyte
+tma_facs_10021	Epithelial cell
+tma_facs_9891	Epithelial cell
+tma_facs_5076	Endothelial cell
+tma_facs_5715	Endothelial cell
+tma_facs_15331	Monocyte
+tma_facs_12851	Epidermis
+tma_facs_1428	B cell
+tma_facs_5730	Endothelial cell
+tma_facs_14275	Monocyte
+tma_facs_16945	Stromal cell
+tma_facs_2047	B cell
+tma_facs_5787	Endothelial cell
+tma_facs_13590	Epidermis
+tma_facs_13284	Epidermis
+tma_facs_10278	Epithelial cell
+tma_facs_930	B cell
+tma_facs_17935	Stromal cell
+tma_facs_5903	Endothelial cell
+tma_facs_13201	Epidermis
+tma_facs_5448	Endothelial cell
+tma_facs_8103	Epithelial cell
+tma_facs_2722	B cell
+tma_facs_10070	Epithelial cell
+tma_facs_8566	Epithelial cell
+tma_facs_11100	Granulocyte
+tma_facs_1042	B cell
+tma_facs_16373	Stromal cell
+tma_facs_4314	Endothelial cell
+tma_facs_9237	Epithelial cell
+tma_facs_4110	Endothelial cell
+tma_facs_8556	Epithelial cell
+tma_facs_2587	B cell
+tma_facs_863	B cell
+tma_facs_18042	Stromal cell
+tma_facs_3237	B cell
+tma_facs_4808	Endothelial cell
+tma_facs_13232	Epidermis
+tma_facs_9898	Epithelial cell
+tma_facs_11807	Hepatocyte
+tma_facs_6410	Endothelial cell
+tma_facs_19918	T cell
+tma_facs_11162	Granulocyte
+tma_facs_13050	Epidermis
+tma_facs_5436	Endothelial cell
+tma_facs_11919	Hepatocyte
+tma_facs_2284	B cell
+tma_facs_4765	Endothelial cell
+tma_facs_5066	Endothelial cell
+tma_facs_19271	T cell
+tma_facs_19015	T cell
+tma_facs_5420	Endothelial cell
+tma_facs_655	B cell
+tma_facs_20474	T cell
+tma_facs_12064	Epidermis
+tma_facs_15562	Monocyte
+tma_facs_11683	Hepatocyte
+tma_facs_3983	Endothelial cell
+tma_facs_3485	Cardiac Muscle
+tma_facs_9008	Epithelial cell
+tma_facs_20290	T cell
+tma_facs_15158	Monocyte
+tma_facs_14086	Epidermis
+tma_facs_5869	Endothelial cell
+tma_facs_2079	B cell
+tma_facs_4433	Endothelial cell
+tma_facs_13022	Epidermis
+tma_facs_16431	Stromal cell
+tma_facs_10453	Epithelial cell
+tma_facs_11696	Hepatocyte
+tma_facs_19149	T cell
+tma_facs_1908	B cell
+tma_facs_18950	T cell
+tma_facs_1993	B cell
+tma_facs_19099	T cell
+tma_facs_15488	Monocyte
+tma_facs_18834	T cell
+tma_facs_16871	Stromal cell
+tma_facs_11020	Granulocyte
+tma_facs_10980	Granulocyte
+tma_facs_19463	T cell
+tma_facs_14070	Epidermis
+tma_facs_890	B cell
+tma_facs_18952	T cell
+tma_facs_11844	Hepatocyte
+tma_facs_1616	B cell
+tma_facs_3811	Endothelial cell
+tma_facs_15132	Monocyte
+tma_facs_12843	Epidermis
+tma_facs_18916	T cell
+tma_facs_14058	Epidermis
+tma_facs_1507	B cell
+tma_facs_11597	Granulocyte
+tma_facs_10575	Epithelial cell
+tma_facs_2272	B cell
+tma_facs_20590	T cell
+tma_facs_12157	Epidermis
+tma_facs_9637	Epithelial cell
+tma_facs_247	B cell
+tma_facs_4152	Endothelial cell
+tma_facs_14824	Monocyte
+tma_facs_17674	Stromal cell
+tma_facs_10376	Epithelial cell
+tma_facs_332	B cell
+tma_facs_5760	Endothelial cell
+tma_facs_5856	Endothelial cell
+tma_facs_1666	B cell
+tma_facs_8734	Epithelial cell
+tma_facs_1012	B cell
+tma_facs_3115	B cell
+tma_facs_12903	Epidermis
+tma_facs_2378	B cell
+tma_facs_5216	Endothelial cell
+tma_facs_1310	B cell
+tma_facs_17269	Stromal cell
+tma_facs_2991	B cell
+tma_facs_17319	Stromal cell
+tma_facs_1129	B cell
+tma_facs_11720	Hepatocyte
+tma_facs_17740	Stromal cell
+tma_facs_20262	T cell
+tma_facs_18371	Stromal cell
+tma_facs_16632	Stromal cell
+tma_facs_6317	Endothelial cell
+tma_facs_19464	T cell
+tma_facs_10260	Epithelial cell
+tma_facs_17549	Stromal cell
+tma_facs_20370	T cell
+tma_facs_11060	Granulocyte
+tma_facs_7625	Epithelial cell
+tma_facs_3385	B cell
+tma_facs_11599	Granulocyte
+tma_facs_5536	Endothelial cell
+tma_facs_14995	Monocyte
+tma_facs_17517	Stromal cell
+tma_facs_9191	Epithelial cell
+tma_facs_17004	Stromal cell
+tma_facs_20401	T cell
+tma_facs_18981	T cell
+tma_facs_20094	T cell
+tma_facs_10602	Epithelial cell
+tma_facs_9044	Epithelial cell
+tma_facs_658	B cell
+tma_facs_6390	Endothelial cell
+tma_facs_17357	Stromal cell
+tma_facs_19994	T cell
+tma_facs_9226	Epithelial cell
+tma_facs_17552	Stromal cell
+tma_facs_3620	Endothelial cell
+tma_facs_9554	Epithelial cell
+tma_facs_14298	Monocyte
+tma_facs_12594	Epidermis
+tma_facs_4249	Endothelial cell
+tma_facs_20168	T cell
+tma_facs_3298	B cell
+tma_facs_4418	Endothelial cell
+tma_facs_11242	Granulocyte
+tma_facs_7134	Endothelial cell
+tma_facs_18319	Stromal cell
+tma_facs_15922	NK cell
+tma_facs_433	B cell
+tma_facs_15303	Monocyte
+tma_facs_13956	Epidermis
+tma_facs_19870	T cell
+tma_facs_3221	B cell
+tma_facs_13417	Epidermis
+tma_facs_10044	Epithelial cell
+tma_facs_16784	Stromal cell
+tma_facs_2051	B cell
+tma_facs_6635	Endothelial cell
+tma_facs_5832	Endothelial cell
+tma_facs_13342	Epidermis
+tma_facs_9988	Epithelial cell
+tma_facs_3325	B cell
+tma_facs_19298	T cell
+tma_facs_13269	Epidermis
+tma_facs_4548	Endothelial cell
+tma_facs_9867	Epithelial cell
+tma_facs_4023	Endothelial cell
+tma_facs_17862	Stromal cell
+tma_facs_13681	Epidermis
+tma_facs_9042	Epithelial cell
+tma_facs_10737	Epithelial cell
+tma_facs_3488	Cardiac Muscle
+tma_facs_19942	T cell
+tma_facs_17505	Stromal cell
+tma_facs_694	B cell
+tma_facs_11780	Hepatocyte
+tma_facs_16554	Stromal cell
+tma_facs_10170	Epithelial cell
+tma_facs_6525	Endothelial cell
+tma_facs_19636	T cell
+tma_facs_19387	T cell
+tma_facs_8852	Epithelial cell
+tma_facs_15543	Monocyte
+tma_facs_7997	Epithelial cell
+tma_facs_12017	Hepatocyte
+tma_facs_18354	Stromal cell
+tma_facs_11598	Granulocyte
+tma_facs_16673	Stromal cell
+tma_facs_11152	Granulocyte
+tma_facs_20135	T cell
+tma_facs_7430	Epithelial cell
+tma_facs_13554	Epidermis
+tma_facs_9945	Epithelial cell
+tma_facs_2230	B cell
+tma_facs_1175	B cell
+tma_facs_843	B cell
+tma_facs_2528	B cell
+tma_facs_10522	Epithelial cell
+tma_facs_7044	Endothelial cell
+tma_facs_8762	Epithelial cell
+tma_facs_6298	Endothelial cell
+tma_facs_18841	T cell
+tma_facs_19159	T cell
+tma_facs_11499	Granulocyte
+tma_facs_1427	B cell
+tma_facs_13421	Epidermis
+tma_facs_13358	Epidermis
+tma_facs_15678	Monocyte
+tma_facs_20412	T cell
+tma_facs_6193	Endothelial cell
+tma_facs_15239	Monocyte
+tma_facs_3425	B cell
+tma_facs_14343	Monocyte
+tma_facs_9218	Epithelial cell
+tma_facs_8738	Epithelial cell
+tma_facs_1135	B cell
+tma_facs_5052	Endothelial cell
+tma_facs_297	B cell
+tma_facs_9157	Epithelial cell
+tma_facs_3672	Endothelial cell
+tma_facs_7495	Epithelial cell
+tma_facs_17311	Stromal cell
+tma_facs_1499	B cell
+tma_facs_7715	Epithelial cell
+tma_facs_11660	Granulocyte
+tma_facs_13523	Epidermis
+tma_facs_6510	Endothelial cell
+tma_facs_5691	Endothelial cell
+tma_facs_9705	Epithelial cell
+tma_facs_20416	T cell
+tma_facs_8011	Epithelial cell
+tma_facs_17177	Stromal cell
+tma_facs_17381	Stromal cell
+tma_facs_5682	Endothelial cell
+tma_facs_10616	Epithelial cell
+tma_facs_1949	B cell
+tma_facs_3465	Cardiac Muscle
+tma_facs_19122	T cell
+tma_facs_13331	Epidermis
+tma_facs_6299	Endothelial cell
+tma_facs_1152	B cell
+tma_facs_11337	Granulocyte
+tma_facs_16726	Stromal cell
+tma_facs_8971	Epithelial cell
+tma_facs_6697	Endothelial cell
+tma_facs_17506	Stromal cell
+tma_facs_4939	Endothelial cell
+tma_facs_18478	Stromal cell
+tma_facs_9289	Epithelial cell
+tma_facs_5839	Endothelial cell
+tma_facs_9369	Epithelial cell
+tma_facs_6462	Endothelial cell
+tma_facs_20752	T cell
+tma_facs_11276	Granulocyte
+tma_facs_2128	B cell
+tma_facs_5053	Endothelial cell
+tma_facs_1764	B cell
+tma_facs_1753	B cell
+tma_facs_14643	Monocyte
+tma_facs_19241	T cell
+tma_facs_4962	Endothelial cell
+tma_facs_20800	T cell
+tma_facs_9015	Epithelial cell
+tma_facs_9987	Epithelial cell
+tma_facs_2169	B cell
+tma_facs_14315	Monocyte
+tma_facs_10631	Epithelial cell
+tma_facs_19005	T cell
+tma_facs_355	B cell
+tma_facs_5718	Endothelial cell
+tma_facs_15964	NK cell
+tma_facs_5955	Endothelial cell
+tma_facs_6781	Endothelial cell
+tma_facs_2489	B cell
+tma_facs_11462	Granulocyte
+tma_facs_15810	NK cell
+tma_facs_4293	Endothelial cell
+tma_facs_6148	Endothelial cell
+tma_facs_13470	Epidermis
+tma_facs_1619	B cell
+tma_facs_20300	T cell
+tma_facs_4062	Endothelial cell
+tma_facs_7181	Endothelial cell
+tma_facs_20298	T cell
+tma_facs_12963	Epidermis
+tma_facs_16781	Stromal cell
+tma_facs_17829	Stromal cell
+tma_facs_2397	B cell
+tma_facs_14126	Monocyte
+tma_facs_4941	Endothelial cell
+tma_facs_8599	Epithelial cell
+tma_facs_11803	Hepatocyte
+tma_facs_12304	Epidermis
+tma_facs_7588	Epithelial cell
+tma_facs_15910	NK cell
+tma_facs_15459	Monocyte
+tma_facs_16182	Stromal cell
+tma_facs_4066	Endothelial cell
+tma_facs_5081	Endothelial cell
+tma_facs_4561	Endothelial cell
+tma_facs_8899	Epithelial cell
+tma_facs_6994	Endothelial cell
+tma_facs_20284	T cell
+tma_facs_4772	Endothelial cell
+tma_facs_4742	Endothelial cell
+tma_facs_9880	Epithelial cell
+tma_facs_5901	Endothelial cell
+tma_facs_3703	Endothelial cell
+tma_facs_14447	Monocyte
+tma_facs_16520	Stromal cell
+tma_facs_18808	T cell
+tma_facs_5369	Endothelial cell
+tma_facs_7347	Endothelial cell
+tma_facs_16083	Stromal cell
+tma_facs_8575	Epithelial cell
+tma_facs_1675	B cell
+tma_facs_8805	Epithelial cell
+tma_facs_7950	Epithelial cell
+tma_facs_2567	B cell
+tma_facs_13151	Epidermis
+tma_facs_8126	Epithelial cell
+tma_facs_12401	Epidermis
+tma_facs_14519	Monocyte
+tma_facs_6012	Endothelial cell
+tma_facs_10841	Epithelial cell
+tma_facs_599	B cell
+tma_facs_1079	B cell
+tma_facs_5102	Endothelial cell
+tma_facs_4883	Endothelial cell
+tma_facs_480	B cell
+tma_facs_14856	Monocyte
+tma_facs_16688	Stromal cell
+tma_facs_17945	Stromal cell
+tma_facs_10003	Epithelial cell
+tma_facs_7524	Epithelial cell
+tma_facs_12766	Epidermis
+tma_facs_5737	Endothelial cell
+tma_facs_19518	T cell
+tma_facs_20163	T cell
+tma_facs_5078	Endothelial cell
+tma_facs_13925	Epidermis
+tma_facs_5148	Endothelial cell
+tma_facs_15566	Monocyte
+tma_facs_2338	B cell
+tma_facs_13728	Epidermis
+tma_facs_20327	T cell
+tma_facs_15074	Monocyte
+tma_facs_8498	Epithelial cell
+tma_facs_2620	B cell
+tma_facs_3602	Endothelial cell
+tma_facs_10472	Epithelial cell
+tma_facs_16189	Stromal cell
+tma_facs_3945	Endothelial cell
+tma_facs_6007	Endothelial cell
+tma_facs_279	B cell
+tma_facs_8651	Epithelial cell
+tma_facs_7623	Epithelial cell
+tma_facs_9604	Epithelial cell
+tma_facs_3380	B cell
+tma_facs_8742	Epithelial cell
+tma_facs_7124	Endothelial cell
+tma_facs_18944	T cell
+tma_facs_3614	Endothelial cell
+tma_facs_17219	Stromal cell
+tma_facs_10387	Epithelial cell
+tma_facs_1792	B cell
+tma_facs_2375	B cell
+tma_facs_18925	T cell
+tma_facs_20423	T cell
+tma_facs_10577	Epithelial cell
+tma_facs_19771	T cell
+tma_facs_9622	Epithelial cell
+tma_facs_3271	B cell
+tma_facs_3542	Cardiac Muscle
+tma_facs_17796	Stromal cell
+tma_facs_14481	Monocyte
+tma_facs_20184	T cell
+tma_facs_15553	Monocyte
+tma_facs_6180	Endothelial cell
+tma_facs_2700	B cell
+tma_facs_13700	Epidermis
+tma_facs_11147	Granulocyte
+tma_facs_18027	Stromal cell
+tma_facs_20792	T cell
+tma_facs_9951	Epithelial cell
+tma_facs_7714	Epithelial cell
+tma_facs_11296	Granulocyte
+tma_facs_20147	T cell
+tma_facs_19586	T cell
+tma_facs_10676	Epithelial cell
+tma_facs_7980	Epithelial cell
+tma_facs_13655	Epidermis
+tma_facs_11511	Granulocyte
+tma_facs_18558	Stromal cell
+tma_facs_20797	T cell
+tma_facs_11874	Hepatocyte
+tma_facs_6130	Endothelial cell
+tma_facs_2646	B cell
+tma_facs_568	B cell
+tma_facs_545	B cell
+tma_facs_5786	Endothelial cell
+tma_facs_4355	Endothelial cell
+tma_facs_16471	Stromal cell
+tma_facs_6683	Endothelial cell
+tma_facs_11725	Hepatocyte
+tma_facs_12107	Epidermis
+tma_facs_7318	Endothelial cell
+tma_facs_15725	Monocyte
+tma_facs_7758	Epithelial cell
+tma_facs_12402	Epidermis
+tma_facs_10534	Epithelial cell
+tma_facs_5401	Endothelial cell
+tma_facs_10876	Erythrocyte
+tma_facs_16321	Stromal cell
+tma_facs_11146	Granulocyte
+tma_facs_7030	Endothelial cell
+tma_facs_15292	Monocyte
+tma_facs_4500	Endothelial cell
+tma_facs_6328	Endothelial cell
+tma_facs_6694	Endothelial cell
+tma_facs_6852	Endothelial cell
+tma_facs_18432	Stromal cell
+tma_facs_9025	Epithelial cell
+tma_facs_7707	Epithelial cell
+tma_facs_1415	B cell
+tma_facs_556	B cell
+tma_facs_1019	B cell
+tma_facs_7001	Endothelial cell
+tma_facs_6977	Endothelial cell
+tma_facs_5132	Endothelial cell
+tma_facs_17424	Stromal cell
+tma_facs_7196	Endothelial cell
+tma_facs_8839	Epithelial cell
+tma_facs_13364	Epidermis
+tma_facs_12148	Epidermis
+tma_facs_4077	Endothelial cell
+tma_facs_13611	Epidermis
+tma_facs_5829	Endothelial cell
+tma_facs_3783	Endothelial cell
+tma_facs_16312	Stromal cell
+tma_facs_9625	Epithelial cell
+tma_facs_14877	Monocyte
+tma_facs_868	B cell
+tma_facs_9879	Epithelial cell
+tma_facs_11137	Granulocyte
+tma_facs_20337	T cell
+tma_facs_17532	Stromal cell
+tma_facs_14487	Monocyte
+tma_facs_9776	Epithelial cell
+tma_facs_10392	Epithelial cell
+tma_facs_811	B cell
+tma_facs_12040	Hepatocyte
+tma_facs_20736	T cell
+tma_facs_13597	Epidermis
+tma_facs_8435	Epithelial cell
+tma_facs_16133	Stromal cell
+tma_facs_17659	Stromal cell
+tma_facs_15801	NK cell
+tma_facs_9129	Epithelial cell
+tma_facs_11796	Hepatocyte
+tma_facs_13035	Epidermis
+tma_facs_6189	Endothelial cell
+tma_facs_2388	B cell
+tma_facs_15662	Monocyte
+tma_facs_17071	Stromal cell
+tma_facs_7854	Epithelial cell
+tma_facs_16589	Stromal cell
+tma_facs_17066	Stromal cell
+tma_facs_12484	Epidermis
+tma_facs_20355	T cell
+tma_facs_1583	B cell
+tma_facs_5484	Endothelial cell
+tma_facs_5004	Endothelial cell
+tma_facs_15492	Monocyte
+tma_facs_195	B cell
+tma_facs_6394	Endothelial cell
+tma_facs_4721	Endothelial cell
+tma_facs_1766	B cell
+tma_facs_2349	B cell
+tma_facs_17775	Stromal cell
+tma_facs_19892	T cell
+tma_facs_13896	Epidermis
+tma_facs_5297	Endothelial cell
+tma_facs_17325	Stromal cell
+tma_facs_4571	Endothelial cell
+tma_facs_10036	Epithelial cell
+tma_facs_12531	Epidermis
+tma_facs_19251	T cell
+tma_facs_5555	Endothelial cell
+tma_facs_20846	T cell
+tma_facs_9333	Epithelial cell
+tma_facs_486	B cell
+tma_facs_14950	Monocyte
+tma_facs_6375	Endothelial cell
+tma_facs_6897	Endothelial cell
+tma_facs_19778	T cell
+tma_facs_565	B cell
+tma_facs_17920	Stromal cell
+tma_facs_9589	Epithelial cell
+tma_facs_2248	B cell
+tma_facs_16203	Stromal cell
+tma_facs_1188	B cell
+tma_facs_3689	Endothelial cell
+tma_facs_3979	Endothelial cell
+tma_facs_9602	Epithelial cell
+tma_facs_20253	T cell
+tma_facs_19946	T cell
+tma_facs_11411	Granulocyte
+tma_facs_4763	Endothelial cell
+tma_facs_16583	Stromal cell
+tma_facs_16285	Stromal cell
+tma_facs_13413	Epidermis
+tma_facs_6567	Endothelial cell
+tma_facs_11975	Hepatocyte
+tma_facs_2020	B cell
+tma_facs_8197	Epithelial cell
+tma_facs_5210	Endothelial cell
+tma_facs_2006	B cell
+tma_facs_858	B cell
+tma_facs_15068	Monocyte
+tma_facs_8042	Epithelial cell
+tma_facs_18438	Stromal cell
+tma_facs_2692	B cell
+tma_facs_16984	Stromal cell
+tma_facs_20495	T cell
+tma_facs_3466	Cardiac Muscle
+tma_facs_5542	Endothelial cell
+tma_facs_1761	B cell
+tma_facs_5588	Endothelial cell
+tma_facs_12140	Epidermis
+tma_facs_11064	Granulocyte
+tma_facs_4534	Endothelial cell
+tma_facs_4306	Endothelial cell
+tma_facs_12830	Epidermis
+tma_facs_12923	Epidermis
+tma_facs_20201	T cell
+tma_facs_13438	Epidermis
+tma_facs_10830	Epithelial cell
+tma_facs_10889	Erythrocyte
+tma_facs_7255	Endothelial cell
+tma_facs_18955	T cell
+tma_facs_14270	Monocyte
+tma_facs_20348	T cell
+tma_facs_19525	T cell
+tma_facs_6974	Endothelial cell
+tma_facs_11506	Granulocyte
+tma_facs_1801	B cell
+tma_facs_15401	Monocyte
+tma_facs_20561	T cell
+tma_facs_10754	Epithelial cell
+tma_facs_9733	Epithelial cell
+tma_facs_19857	T cell
+tma_facs_17126	Stromal cell
+tma_facs_15309	Monocyte
+tma_facs_1638	B cell
+tma_facs_6002	Endothelial cell
+tma_facs_10350	Epithelial cell
+tma_facs_17634	Stromal cell
+tma_facs_11491	Granulocyte
+tma_facs_10615	Epithelial cell
+tma_facs_8957	Epithelial cell
+tma_facs_15733	NK cell
+tma_facs_68	B cell
+tma_facs_813	B cell
+tma_facs_2829	B cell
+tma_facs_11105	Granulocyte
+tma_facs_953	B cell
+tma_facs_18636	Stromal cell
+tma_facs_8867	Epithelial cell
+tma_facs_5321	Endothelial cell
+tma_facs_7185	Endothelial cell
+tma_facs_17084	Stromal cell
+tma_facs_257	B cell
+tma_facs_20063	T cell
+tma_facs_11980	Hepatocyte
+tma_facs_12810	Epidermis
+tma_facs_11046	Granulocyte
+tma_facs_19257	T cell
+tma_facs_15153	Monocyte
+tma_facs_13637	Epidermis
+tma_facs_9312	Epithelial cell
+tma_facs_20270	T cell
+tma_facs_20351	T cell
+tma_facs_7415	Endothelial cell
+tma_facs_894	B cell
+tma_facs_12618	Epidermis
+tma_facs_14826	Monocyte
+tma_facs_17218	Stromal cell
+tma_facs_15244	Monocyte
+tma_facs_10309	Epithelial cell
+tma_facs_986	B cell
+tma_facs_19235	T cell
+tma_facs_19763	T cell
+tma_facs_18249	Stromal cell
+tma_facs_19440	T cell
+tma_facs_14966	Monocyte
+tma_facs_2592	B cell
+tma_facs_10352	Epithelial cell
+tma_facs_10000	Epithelial cell
+tma_facs_2425	B cell
+tma_facs_9572	Epithelial cell
+tma_facs_11390	Granulocyte
+tma_facs_9375	Epithelial cell
+tma_facs_7337	Endothelial cell
+tma_facs_4002	Endothelial cell
+tma_facs_4393	Endothelial cell
+tma_facs_2294	B cell
+tma_facs_12306	Epidermis
+tma_facs_747	B cell
+tma_facs_2488	B cell
+tma_facs_10716	Epithelial cell
+tma_facs_17154	Stromal cell
+tma_facs_743	B cell
+tma_facs_9151	Epithelial cell
+tma_facs_10784	Epithelial cell
+tma_facs_19589	T cell
+tma_facs_5613	Endothelial cell
+tma_facs_3333	B cell
+tma_facs_5067	Endothelial cell
+tma_facs_15209	Monocyte
+tma_facs_12130	Epidermis
+tma_facs_20747	T cell
+tma_facs_20578	T cell
+tma_facs_15963	NK cell
+tma_facs_4669	Endothelial cell
+tma_facs_17137	Stromal cell
+tma_facs_12507	Epidermis
+tma_facs_1476	B cell
+tma_facs_13032	Epidermis
+tma_facs_12378	Epidermis
+tma_facs_17152	Stromal cell
+tma_facs_8395	Epithelial cell
+tma_facs_9371	Epithelial cell
+tma_facs_16503	Stromal cell
+tma_facs_15997	Stromal cell
+tma_facs_7155	Endothelial cell
+tma_facs_16723	Stromal cell
+tma_facs_13530	Epidermis
+tma_facs_18062	Stromal cell
+tma_facs_8270	Epithelial cell
+tma_facs_16035	Stromal cell
+tma_facs_3247	B cell
+tma_facs_18993	T cell
+tma_facs_20143	T cell
+tma_facs_8489	Epithelial cell
+tma_facs_17767	Stromal cell
+tma_facs_17010	Stromal cell
+tma_facs_13624	Epidermis
+tma_facs_15032	Monocyte
+tma_facs_2899	B cell
+tma_facs_17302	Stromal cell
+tma_facs_677	B cell
+tma_facs_17967	Stromal cell
+tma_facs_19608	T cell
+tma_facs_14809	Monocyte
+tma_facs_18262	Stromal cell
+tma_facs_20673	T cell
+tma_facs_17493	Stromal cell
+tma_facs_16311	Stromal cell
+tma_facs_19922	T cell
+tma_facs_8820	Epithelial cell
+tma_facs_6239	Endothelial cell
+tma_facs_8338	Epithelial cell
+tma_facs_18681	Stromal cell
+tma_facs_10370	Epithelial cell
+tma_facs_15707	Monocyte
+tma_facs_5179	Endothelial cell
+tma_facs_1133	B cell
+tma_facs_13536	Epidermis
+tma_facs_5352	Endothelial cell
+tma_facs_10662	Epithelial cell
+tma_facs_19013	T cell
+tma_facs_666	B cell
+tma_facs_15294	Monocyte
+tma_facs_1488	B cell
+tma_facs_15220	Monocyte
+tma_facs_8889	Epithelial cell
+tma_facs_3110	B cell
+tma_facs_20393	T cell
+tma_facs_991	B cell
+tma_facs_6832	Endothelial cell
+tma_facs_840	B cell
+tma_facs_5291	Endothelial cell
+tma_facs_4553	Endothelial cell
+tma_facs_8817	Epithelial cell
+tma_facs_13671	Epidermis
+tma_facs_1455	B cell
+tma_facs_8405	Epithelial cell
+tma_facs_14592	Monocyte
+tma_facs_7305	Endothelial cell
+tma_facs_8933	Epithelial cell
+tma_facs_17616	Stromal cell
+tma_facs_5433	Endothelial cell
+tma_facs_3612	Endothelial cell
+tma_facs_8201	Epithelial cell
+tma_facs_15212	Monocyte
+tma_facs_3552	Cardiac Muscle
+tma_facs_15133	Monocyte
+tma_facs_16856	Stromal cell
+tma_facs_20510	T cell
+tma_facs_411	B cell
+tma_facs_9872	Epithelial cell
+tma_facs_7040	Endothelial cell
+tma_facs_12632	Epidermis
+tma_facs_8856	Epithelial cell
+tma_facs_19762	T cell
+tma_facs_4069	Endothelial cell
+tma_facs_8660	Epithelial cell
+tma_facs_8345	Epithelial cell
+tma_facs_11010	Granulocyte
+tma_facs_16879	Stromal cell
+tma_facs_299	B cell
+tma_facs_13318	Epidermis
+tma_facs_7410	Endothelial cell
+tma_facs_14604	Monocyte
+tma_facs_14742	Monocyte
+tma_facs_10425	Epithelial cell
+tma_facs_7769	Epithelial cell
+tma_facs_5994	Endothelial cell
+tma_facs_7096	Endothelial cell
+tma_facs_17083	Stromal cell
+tma_facs_9092	Epithelial cell
+tma_facs_219	B cell
+tma_facs_14848	Monocyte
+tma_facs_17774	Stromal cell
+tma_facs_3275	B cell
+tma_facs_11937	Hepatocyte
+tma_facs_7159	Endothelial cell
+tma_facs_5362	Endothelial cell
+tma_facs_12823	Epidermis
+tma_facs_17751	Stromal cell
+tma_facs_347	B cell
+tma_facs_5002	Endothelial cell
+tma_facs_1843	B cell
+tma_facs_5313	Endothelial cell
+tma_facs_14211	Monocyte
+tma_facs_4144	Endothelial cell
+tma_facs_10358	Epithelial cell
+tma_facs_4536	Endothelial cell
+tma_facs_10915	Erythrocyte
+tma_facs_8352	Epithelial cell
+tma_facs_59	B cell
+tma_facs_13302	Epidermis
+tma_facs_16780	Stromal cell
+tma_facs_13979	Epidermis
+tma_facs_10962	Granulocyte
+tma_facs_20927	T cell
+tma_facs_9059	Epithelial cell
+tma_facs_7229	Endothelial cell
+tma_facs_4587	Endothelial cell
+tma_facs_10661	Epithelial cell
+tma_facs_18240	Stromal cell
+tma_facs_18937	T cell
+tma_facs_1353	B cell
+tma_facs_16242	Stromal cell
+tma_facs_2315	B cell
+tma_facs_3964	Endothelial cell
+tma_facs_14095	Epidermis
+tma_facs_13489	Epidermis
+tma_facs_6990	Endothelial cell
+tma_facs_8238	Epithelial cell
+tma_facs_12690	Epidermis
+tma_facs_13172	Epidermis
+tma_facs_17511	Stromal cell
+tma_facs_19347	T cell
+tma_facs_19146	T cell
+tma_facs_3390	B cell
+tma_facs_18994	T cell
+tma_facs_8616	Epithelial cell
+tma_facs_1538	B cell
+tma_facs_10617	Epithelial cell
+tma_facs_10780	Epithelial cell
+tma_facs_803	B cell
+tma_facs_11098	Granulocyte
+tma_facs_12718	Epidermis
+tma_facs_19520	T cell
+tma_facs_9182	Epithelial cell
+tma_facs_18776	Stromal cell
+tma_facs_5699	Endothelial cell
+tma_facs_2219	B cell
+tma_facs_14410	Monocyte
+tma_facs_12334	Epidermis
+tma_facs_2476	B cell
+tma_facs_3867	Endothelial cell
+tma_facs_17817	Stromal cell
+tma_facs_13839	Epidermis
+tma_facs_9394	Epithelial cell
+tma_facs_14793	Monocyte
+tma_facs_17644	Stromal cell
+tma_facs_830	B cell
+tma_facs_2422	B cell
+tma_facs_16659	Stromal cell
+tma_facs_12731	Epidermis
+tma_facs_2216	B cell
+tma_facs_11024	Granulocyte
+tma_facs_16936	Stromal cell
+tma_facs_8771	Epithelial cell
+tma_facs_1928	B cell
+tma_facs_439	B cell
+tma_facs_15217	Monocyte
+tma_facs_7606	Epithelial cell
+tma_facs_8691	Epithelial cell
+tma_facs_315	B cell
+tma_facs_13680	Epidermis
+tma_facs_19997	T cell
+tma_facs_16047	Stromal cell
+tma_facs_3567	Endothelial cell
+tma_facs_19134	T cell
+tma_facs_14332	Monocyte
+tma_facs_14558	Monocyte
+tma_facs_17921	Stromal cell
+tma_facs_19630	T cell
+tma_facs_3657	Endothelial cell
+tma_facs_2217	B cell
+tma_facs_14850	Monocyte
+tma_facs_18415	Stromal cell
+tma_facs_7947	Epithelial cell
+tma_facs_10473	Epithelial cell
+tma_facs_17076	Stromal cell
+tma_facs_16739	Stromal cell
+tma_facs_5697	Endothelial cell
+tma_facs_17716	Stromal cell
+tma_facs_12915	Epidermis
+tma_facs_15421	Monocyte
+tma_facs_1573	B cell
+tma_facs_10897	Erythrocyte
+tma_facs_8371	Epithelial cell
+tma_facs_450	B cell
+tma_facs_12972	Epidermis
+tma_facs_1841	B cell
+tma_facs_6886	Endothelial cell
+tma_facs_1358	B cell
+tma_facs_5847	Endothelial cell
+tma_facs_12494	Epidermis
+tma_facs_14602	Monocyte
+tma_facs_6692	Endothelial cell
+tma_facs_15667	Monocyte
+tma_facs_10094	Epithelial cell
+tma_facs_6450	Endothelial cell
+tma_facs_10828	Epithelial cell
+tma_facs_16579	Stromal cell
+tma_facs_13091	Epidermis
+tma_facs_11467	Granulocyte
+tma_facs_4372	Endothelial cell
+tma_facs_11809	Hepatocyte
+tma_facs_13180	Epidermis
+tma_facs_150	B cell
+tma_facs_14785	Monocyte
+tma_facs_8142	Epithelial cell
+tma_facs_15337	Monocyte
+tma_facs_11372	Granulocyte
+tma_facs_17632	Stromal cell
+tma_facs_13533	Epidermis
+tma_facs_18136	Stromal cell
+tma_facs_2740	B cell
+tma_facs_13596	Epidermis
+tma_facs_15289	Monocyte
+tma_facs_1833	B cell
+tma_facs_7782	Epithelial cell
+tma_facs_14477	Monocyte
+tma_facs_15657	Monocyte
+tma_facs_8677	Epithelial cell
+tma_facs_14478	Monocyte
+tma_facs_17690	Stromal cell
+tma_facs_13702	Epidermis
+tma_facs_5105	Endothelial cell
+tma_facs_3320	B cell
+tma_facs_18357	Stromal cell
+tma_facs_9209	Epithelial cell
+tma_facs_3959	Endothelial cell
+tma_facs_12305	Epidermis
+tma_facs_15353	Monocyte
+tma_facs_7251	Endothelial cell
+tma_facs_2404	B cell
+tma_facs_14816	Monocyte
+tma_facs_16592	Stromal cell
+tma_facs_17360	Stromal cell
+tma_facs_16768	Stromal cell
+tma_facs_5136	Endothelial cell
+tma_facs_18061	Stromal cell
+tma_facs_252	B cell
+tma_facs_603	B cell
+tma_facs_17804	Stromal cell
+tma_facs_18458	Stromal cell
+tma_facs_14775	Monocyte
+tma_facs_6828	Endothelial cell
+tma_facs_5273	Endothelial cell
+tma_facs_10954	Granulocyte
+tma_facs_16130	Stromal cell
+tma_facs_880	B cell
+tma_facs_16343	Stromal cell
+tma_facs_12184	Epidermis
+tma_facs_14811	Monocyte
+tma_facs_5222	Endothelial cell
+tma_facs_15603	Monocyte
+tma_facs_9909	Epithelial cell
+tma_facs_14997	Monocyte
+tma_facs_15994	Stromal cell
+tma_facs_6489	Endothelial cell
+tma_facs_20214	T cell
+tma_facs_16567	Stromal cell
+tma_facs_316	B cell
+tma_facs_8988	Epithelial cell
+tma_facs_18378	Stromal cell
+tma_facs_7804	Epithelial cell
+tma_facs_6811	Endothelial cell
+tma_facs_12166	Epidermis
+tma_facs_19952	T cell
+tma_facs_8746	Epithelial cell
+tma_facs_13463	Epidermis
+tma_facs_359	B cell
+tma_facs_15537	Monocyte
+tma_facs_6844	Endothelial cell
+tma_facs_300	B cell
+tma_facs_7499	Epithelial cell
+tma_facs_1534	B cell
+tma_facs_7687	Epithelial cell
+tma_facs_8318	Epithelial cell
+tma_facs_20802	T cell
+tma_facs_13748	Epidermis
+tma_facs_4948	Endothelial cell
+tma_facs_5331	Endothelial cell
+tma_facs_16090	Stromal cell
+tma_facs_1724	B cell
+tma_facs_18440	Stromal cell
+tma_facs_11862	Hepatocyte
+tma_facs_20639	T cell
+tma_facs_9318	Epithelial cell
+tma_facs_12009	Hepatocyte
+tma_facs_14658	Monocyte
+tma_facs_3201	B cell
+tma_facs_508	B cell
+tma_facs_4991	Endothelial cell
+tma_facs_5776	Endothelial cell
+tma_facs_8214	Epithelial cell
+tma_facs_16273	Stromal cell
+tma_facs_19455	T cell
+tma_facs_7440	Epithelial cell
+tma_facs_17520	Stromal cell
+tma_facs_19095	T cell
+tma_facs_2629	B cell
+tma_facs_4712	Endothelial cell
+tma_facs_18917	T cell
+tma_facs_7675	Epithelial cell
+tma_facs_4623	Endothelial cell
+tma_facs_14522	Monocyte
+tma_facs_766	B cell
+tma_facs_3927	Endothelial cell
+tma_facs_18322	Stromal cell
+tma_facs_4931	Endothelial cell
+tma_facs_20195	T cell
+tma_facs_3865	Endothelial cell
+tma_facs_5765	Endothelial cell
+tma_facs_15976	NK cell
+tma_facs_13210	Epidermis
+tma_facs_9305	Epithelial cell
+tma_facs_5995	Endothelial cell
+tma_facs_11840	Hepatocyte
+tma_facs_15284	Monocyte
+tma_facs_10330	Epithelial cell
+tma_facs_19310	T cell
+tma_facs_14732	Monocyte
+tma_facs_5221	Endothelial cell
+tma_facs_10068	Epithelial cell
+tma_facs_2093	B cell
+tma_facs_17912	Stromal cell
+tma_facs_15913	NK cell
+tma_facs_18509	Stromal cell
+tma_facs_17610	Stromal cell
+tma_facs_8431	Epithelial cell
+tma_facs_17058	Stromal cell
+tma_facs_8707	Epithelial cell
+tma_facs_4076	Endothelial cell
+tma_facs_18208	Stromal cell
+tma_facs_13819	Epidermis
+tma_facs_434	B cell
+tma_facs_7607	Epithelial cell
+tma_facs_12543	Epidermis
+tma_facs_7482	Epithelial cell
+tma_facs_16032	Stromal cell
+tma_facs_371	B cell
+tma_facs_2982	B cell
+tma_facs_6402	Endothelial cell
+tma_facs_16255	Stromal cell
+tma_facs_19304	T cell
+tma_facs_3725	Endothelial cell
+tma_facs_1736	B cell
+tma_facs_19473	T cell
+tma_facs_3597	Endothelial cell
+tma_facs_9011	Epithelial cell
+tma_facs_9100	Epithelial cell
+tma_facs_14450	Monocyte
+tma_facs_5928	Endothelial cell
+tma_facs_1652	B cell
+tma_facs_18682	Stromal cell
+tma_facs_20309	T cell
+tma_facs_6593	Endothelial cell
+tma_facs_16134	Stromal cell
+tma_facs_8743	Epithelial cell
+tma_facs_7249	Endothelial cell
+tma_facs_14839	Monocyte
+tma_facs_14559	Monocyte
+tma_facs_20812	T cell
+tma_facs_5154	Endothelial cell
+tma_facs_15755	NK cell
+tma_facs_9534	Epithelial cell
+tma_facs_10489	Epithelial cell
+tma_facs_267	B cell
+tma_facs_8603	Epithelial cell
+tma_facs_12469	Epidermis
+tma_facs_10648	Epithelial cell
+tma_facs_15300	Monocyte
+tma_facs_18462	Stromal cell
+tma_facs_6355	Endothelial cell
+tma_facs_5425	Endothelial cell
+tma_facs_8230	Epithelial cell
+tma_facs_757	B cell
+tma_facs_20819	T cell
+tma_facs_15101	Monocyte
+tma_facs_103	B cell
+tma_facs_4843	Endothelial cell
+tma_facs_15800	NK cell
+tma_facs_2185	B cell
+tma_facs_17252	Stromal cell
+tma_facs_17547	Stromal cell
+tma_facs_14582	Monocyte
+tma_facs_9480	Epithelial cell
+tma_facs_4151	Endothelial cell
+tma_facs_19707	T cell
+tma_facs_14452	Monocyte
+tma_facs_9618	Epithelial cell
+tma_facs_5716	Endothelial cell
+tma_facs_15732	NK cell
+tma_facs_2485	B cell
+tma_facs_19531	T cell
+tma_facs_14786	Monocyte
+tma_facs_12142	Epidermis
+tma_facs_7553	Epithelial cell
+tma_facs_15093	Monocyte
+tma_facs_6657	Endothelial cell
+tma_facs_20811	T cell
+tma_facs_10579	Epithelial cell
+tma_facs_17175	Stromal cell
+tma_facs_20471	T cell
+tma_facs_6644	Endothelial cell
+tma_facs_11756	Hepatocyte
+tma_facs_16185	Stromal cell
+tma_facs_5205	Endothelial cell
+tma_facs_10379	Epithelial cell
+tma_facs_12092	Epidermis
+tma_facs_12120	Epidermis
+tma_facs_13280	Epidermis
+tma_facs_2454	B cell
+tma_facs_16291	Stromal cell
+tma_facs_6372	Endothelial cell
+tma_facs_5129	Endothelial cell
+tma_facs_2197	B cell
+tma_facs_18200	Stromal cell
+tma_facs_17964	Stromal cell
+tma_facs_16862	Stromal cell
+tma_facs_3379	B cell
+tma_facs_20612	T cell
+tma_facs_606	B cell
+tma_facs_9996	Epithelial cell
+tma_facs_16789	Stromal cell
+tma_facs_4583	Endothelial cell
+tma_facs_12524	Epidermis
+tma_facs_16798	Stromal cell
+tma_facs_13491	Epidermis
+tma_facs_13935	Epidermis
+tma_facs_5449	Endothelial cell
+tma_facs_15748	NK cell
+tma_facs_11323	Granulocyte
+tma_facs_12668	Epidermis
+tma_facs_13486	Epidermis
+tma_facs_14051	Epidermis
+tma_facs_16534	Stromal cell
+tma_facs_184	B cell
+tma_facs_17485	Stromal cell
+tma_facs_17234	Stromal cell
+tma_facs_2213	B cell
+tma_facs_2068	B cell
+tma_facs_4352	Endothelial cell
+tma_facs_11870	Hepatocyte
+tma_facs_3187	B cell
+tma_facs_2926	B cell
+tma_facs_11124	Granulocyte
+tma_facs_17507	Stromal cell
+tma_facs_11438	Granulocyte
+tma_facs_9579	Epithelial cell
+tma_facs_2803	B cell
+tma_facs_7387	Endothelial cell
+tma_facs_11013	Granulocyte
+tma_facs_18918	T cell
+tma_facs_10869	Erythrocyte
+tma_facs_5878	Endothelial cell
+tma_facs_64	B cell
+tma_facs_2586	B cell
+tma_facs_4212	Endothelial cell
+tma_facs_13478	Epidermis
+tma_facs_9647	Epithelial cell
+tma_facs_12754	Epidermis
+tma_facs_4260	Endothelial cell
+tma_facs_8418	Epithelial cell
+tma_facs_7537	Epithelial cell
+tma_facs_3874	Endothelial cell
+tma_facs_19629	T cell
+tma_facs_8873	Epithelial cell
+tma_facs_18129	Stromal cell
+tma_facs_9395	Epithelial cell
+tma_facs_10449	Epithelial cell
+tma_facs_17286	Stromal cell
+tma_facs_14367	Monocyte
+tma_facs_7118	Endothelial cell
+tma_facs_1887	B cell
+tma_facs_20158	T cell
+tma_facs_12153	Epidermis
+tma_facs_9414	Epithelial cell
+tma_facs_8049	Epithelial cell
+tma_facs_1396	B cell
+tma_facs_440	B cell
+tma_facs_1272	B cell
+tma_facs_7497	Epithelial cell
+tma_facs_32	B cell
+tma_facs_13882	Epidermis
+tma_facs_10563	Epithelial cell
+tma_facs_5233	Endothelial cell
+tma_facs_19329	T cell
+tma_facs_11138	Granulocyte
+tma_facs_12102	Epidermis
+tma_facs_14394	Monocyte
+tma_facs_17454	Stromal cell
+tma_facs_13474	Epidermis
+tma_facs_8320	Epithelial cell
+tma_facs_12502	Epidermis
+tma_facs_16278	Stromal cell
+tma_facs_19962	T cell
+tma_facs_8060	Epithelial cell
+tma_facs_5418	Endothelial cell
+tma_facs_10560	Epithelial cell
+tma_facs_18049	Stromal cell
+tma_facs_4616	Endothelial cell
+tma_facs_12780	Epidermis
+tma_facs_16326	Stromal cell
+tma_facs_17411	Stromal cell
+tma_facs_11804	Hepatocyte
+tma_facs_13225	Epidermis
+tma_facs_17344	Stromal cell
+tma_facs_16270	Stromal cell
+tma_facs_8307	Epithelial cell
+tma_facs_16970	Stromal cell
+tma_facs_1809	B cell
+tma_facs_13825	Epidermis
+tma_facs_8212	Epithelial cell
+tma_facs_19145	T cell
+tma_facs_12686	Epidermis
+tma_facs_1074	B cell
+tma_facs_17314	Stromal cell
+tma_facs_6935	Endothelial cell
+tma_facs_8246	Epithelial cell
+tma_facs_18781	Stromal cell
+tma_facs_12327	Epidermis
+tma_facs_10513	Epithelial cell
+tma_facs_15146	Monocyte
+tma_facs_7729	Epithelial cell
+tma_facs_7024	Endothelial cell
+tma_facs_6144	Endothelial cell
+tma_facs_3291	B cell
+tma_facs_9617	Epithelial cell
+tma_facs_7911	Epithelial cell
+tma_facs_17886	Stromal cell
+tma_facs_16380	Stromal cell
+tma_facs_8427	Epithelial cell
+tma_facs_12927	Epidermis
+tma_facs_12578	Epidermis
+tma_facs_14507	Monocyte
+tma_facs_6845	Endothelial cell
+tma_facs_8300	Epithelial cell
+tma_facs_94	B cell
+tma_facs_20853	T cell
+tma_facs_9013	Epithelial cell
+tma_facs_1748	B cell
+tma_facs_2511	B cell
+tma_facs_409	B cell
+tma_facs_7708	Epithelial cell
+tma_facs_12861	Epidermis
+tma_facs_9004	Epithelial cell
+tma_facs_16041	Stromal cell
+tma_facs_3518	Cardiac Muscle
+tma_facs_2751	B cell
+tma_facs_12436	Epidermis
+tma_facs_4401	Endothelial cell
+tma_facs_17026	Stromal cell
+tma_facs_4734	Endothelial cell
+tma_facs_6126	Endothelial cell
+tma_facs_9859	Epithelial cell
+tma_facs_13266	Epidermis
+tma_facs_13092	Epidermis
+tma_facs_6430	Endothelial cell
+tma_facs_2416	B cell
+tma_facs_11617	Granulocyte
+tma_facs_6873	Endothelial cell
+tma_facs_6497	Endothelial cell
+tma_facs_17543	Stromal cell
+tma_facs_20634	T cell
+tma_facs_5864	Endothelial cell
+tma_facs_19785	T cell
+tma_facs_6896	Endothelial cell
+tma_facs_14852	Monocyte
+tma_facs_5813	Endothelial cell
+tma_facs_3743	Endothelial cell
+tma_facs_7859	Epithelial cell
+tma_facs_7401	Endothelial cell
+tma_facs_19549	T cell
+tma_facs_12476	Epidermis
+tma_facs_18220	Stromal cell
+tma_facs_14325	Monocyte
+tma_facs_2995	B cell
+tma_facs_19471	T cell
+tma_facs_1139	B cell
+tma_facs_2835	B cell
+tma_facs_18263	Stromal cell
+tma_facs_8439	Epithelial cell
+tma_facs_15589	Monocyte
+tma_facs_6671	Endothelial cell
+tma_facs_20574	T cell
+tma_facs_15629	Monocyte
+tma_facs_2038	B cell
+tma_facs_11292	Granulocyte
+tma_facs_2576	B cell
+tma_facs_4213	Endothelial cell
+tma_facs_10587	Epithelial cell
+tma_facs_3279	B cell
+tma_facs_5408	Endothelial cell
+tma_facs_20798	T cell
+tma_facs_8917	Epithelial cell
+tma_facs_10584	Epithelial cell
+tma_facs_3646	Endothelial cell
+tma_facs_8749	Epithelial cell
+tma_facs_14542	Monocyte
+tma_facs_3884	Endothelial cell
+tma_facs_3130	B cell
+tma_facs_15296	Monocyte
+tma_facs_7793	Epithelial cell
+tma_facs_5430	Endothelial cell
+tma_facs_8264	Epithelial cell
+tma_facs_19309	T cell
+tma_facs_8072	Epithelial cell
+tma_facs_20189	T cell
+tma_facs_11920	Hepatocyte
+tma_facs_13715	Epidermis
+tma_facs_5476	Endothelial cell
+tma_facs_18201	Stromal cell
+tma_facs_4694	Endothelial cell
+tma_facs_185	B cell
+tma_facs_12094	Epidermis
+tma_facs_6240	Endothelial cell
+tma_facs_15041	Monocyte
+tma_facs_6652	Endothelial cell
+tma_facs_19912	T cell
+tma_facs_2611	B cell
+tma_facs_1475	B cell
+tma_facs_197	B cell
+tma_facs_13988	Epidermis
+tma_facs_12300	Epidermis
+tma_facs_17430	Stromal cell
+tma_facs_17005	Stromal cell
+tma_facs_12266	Epidermis
+tma_facs_11520	Granulocyte
+tma_facs_19761	T cell
+tma_facs_16642	Stromal cell
+tma_facs_16324	Stromal cell
+tma_facs_10329	Epithelial cell
+tma_facs_7426	Epithelial cell
+tma_facs_20726	T cell
+tma_facs_12089	Epidermis
+tma_facs_19937	T cell
+tma_facs_16912	Stromal cell
+tma_facs_13412	Epidermis
+tma_facs_18190	Stromal cell
+tma_facs_3535	Cardiac Muscle
+tma_facs_12704	Epidermis
+tma_facs_1781	B cell
+tma_facs_9384	Epithelial cell
+tma_facs_17526	Stromal cell
+tma_facs_12362	Epidermis
+tma_facs_3228	B cell
+tma_facs_15112	Monocyte
+tma_facs_3734	Endothelial cell
+tma_facs_2311	B cell
+tma_facs_5073	Endothelial cell
+tma_facs_7041	Endothelial cell
+tma_facs_4592	Endothelial cell
+tma_facs_8052	Epithelial cell
+tma_facs_6116	Endothelial cell
+tma_facs_16528	Stromal cell
+tma_facs_7821	Epithelial cell
+tma_facs_14906	Monocyte
+tma_facs_7592	Epithelial cell
+tma_facs_10549	Epithelial cell
+tma_facs_458	B cell
+tma_facs_1	B cell
+tma_facs_8091	Epithelial cell
+tma_facs_10164	Epithelial cell
+tma_facs_2293	B cell
+tma_facs_6533	Endothelial cell
+tma_facs_1504	B cell
+tma_facs_17766	Stromal cell
+tma_facs_14408	Monocyte
+tma_facs_2339	B cell
+tma_facs_15533	Monocyte
+tma_facs_5857	Endothelial cell
+tma_facs_4299	Endothelial cell
+tma_facs_5275	Endothelial cell
+tma_facs_4560	Endothelial cell
+tma_facs_7271	Endothelial cell
+tma_facs_12804	Epidermis
+tma_facs_1787	B cell
+tma_facs_8188	Epithelial cell
+tma_facs_9646	Epithelial cell
+tma_facs_11678	Hepatocyte
+tma_facs_12114	Epidermis
+tma_facs_10135	Epithelial cell
+tma_facs_11110	Granulocyte
+tma_facs_20307	T cell
+tma_facs_7646	Epithelial cell
+tma_facs_20028	T cell
+tma_facs_11903	Hepatocyte
+tma_facs_7712	Epithelial cell
+tma_facs_9860	Epithelial cell
+tma_facs_13046	Epidermis
+tma_facs_13704	Epidermis
+tma_facs_17214	Stromal cell
+tma_facs_9783	Epithelial cell
+tma_facs_15937	NK cell
+tma_facs_110	B cell
+tma_facs_18657	Stromal cell
+tma_facs_15366	Monocyte
+tma_facs_5395	Endothelial cell
+tma_facs_1727	B cell
+tma_facs_14265	Monocyte
+tma_facs_7382	Endothelial cell
+tma_facs_3918	Endothelial cell
+tma_facs_7445	Epithelial cell
+tma_facs_7781	Epithelial cell
+tma_facs_2685	B cell
+tma_facs_5500	Endothelial cell
+tma_facs_2402	B cell
+tma_facs_13204	Epidermis
+tma_facs_17453	Stromal cell
+tma_facs_5441	Endothelial cell
+tma_facs_10132	Epithelial cell
+tma_facs_10139	Epithelial cell
+tma_facs_1289	B cell
+tma_facs_6718	Endothelial cell
+tma_facs_1994	B cell
+tma_facs_15380	Monocyte
+tma_facs_10683	Epithelial cell
+tma_facs_5113	Endothelial cell
+tma_facs_16251	Stromal cell
+tma_facs_7259	Endothelial cell
+tma_facs_17545	Stromal cell
+tma_facs_4366	Endothelial cell
+tma_facs_4608	Endothelial cell
+tma_facs_10119	Epithelial cell
+tma_facs_9445	Epithelial cell
+tma_facs_10723	Epithelial cell
+tma_facs_4339	Endothelial cell
+tma_facs_230	B cell
+tma_facs_6888	Endothelial cell
+tma_facs_17670	Stromal cell
+tma_facs_15373	Monocyte
+tma_facs_17541	Stromal cell
+tma_facs_16149	Stromal cell
+tma_facs_9841	Epithelial cell
+tma_facs_13579	Epidermis
+tma_facs_17461	Stromal cell
+tma_facs_20039	T cell
+tma_facs_17640	Stromal cell
+tma_facs_5170	Endothelial cell
+tma_facs_11127	Granulocyte
+tma_facs_20173	T cell
+tma_facs_2506	B cell
+tma_facs_9047	Epithelial cell
+tma_facs_943	B cell
+tma_facs_15752	NK cell
+tma_facs_16007	Stromal cell
+tma_facs_11113	Granulocyte
+tma_facs_13837	Epidermis
+tma_facs_6507	Endothelial cell
+tma_facs_176	B cell
+tma_facs_681	B cell
+tma_facs_7900	Epithelial cell
+tma_facs_2826	B cell
+tma_facs_17620	Stromal cell
+tma_facs_7608	Epithelial cell
+tma_facs_11711	Hepatocyte
+tma_facs_17121	Stromal cell
+tma_facs_18103	Stromal cell
+tma_facs_7686	Epithelial cell
+tma_facs_11357	Granulocyte
+tma_facs_1290	B cell
+tma_facs_6134	Endothelial cell
+tma_facs_7414	Endothelial cell
+tma_facs_20018	T cell
+tma_facs_6110	Endothelial cell
+tma_facs_33	B cell
+tma_facs_4833	Endothelial cell
+tma_facs_11613	Granulocyte
+tma_facs_1456	B cell
+tma_facs_15242	Monocyte
+tma_facs_17172	Stromal cell
+tma_facs_528	B cell
+tma_facs_1919	B cell
+tma_facs_14416	Monocyte
+tma_facs_5635	Endothelial cell
+tma_facs_19107	T cell
+tma_facs_18920	T cell
+tma_facs_2224	B cell
+tma_facs_19222	T cell
+tma_facs_7816	Epithelial cell
+tma_facs_13539	Epidermis
+tma_facs_2998	B cell
+tma_facs_1095	B cell
+tma_facs_1117	B cell
+tma_facs_11923	Hepatocyte
+tma_facs_16354	Stromal cell
+tma_facs_18149	Stromal cell
+tma_facs_204	B cell
+tma_facs_848	B cell
+tma_facs_15086	Monocyte
+tma_facs_1420	B cell
+tma_facs_4720	Endothelial cell
+tma_facs_7156	Endothelial cell
+tma_facs_9249	Epithelial cell
+tma_facs_326	B cell
+tma_facs_1212	B cell
+tma_facs_10625	Epithelial cell
+tma_facs_1654	B cell
+tma_facs_16695	Stromal cell
+tma_facs_12758	Epidermis
+tma_facs_10836	Epithelial cell
+tma_facs_7665	Epithelial cell
+tma_facs_7102	Endothelial cell
+tma_facs_8169	Epithelial cell
+tma_facs_6463	Endothelial cell
+tma_facs_9553	Epithelial cell
+tma_facs_18261	Stromal cell
+tma_facs_10324	Epithelial cell
+tma_facs_4646	Endothelial cell
+tma_facs_8966	Epithelial cell
+tma_facs_472	B cell
+tma_facs_16237	Stromal cell
+tma_facs_11149	Granulocyte
+tma_facs_12646	Epidermis
+tma_facs_16418	Stromal cell
+tma_facs_4612	Endothelial cell
+tma_facs_8877	Epithelial cell
+tma_facs_12389	Epidermis
+tma_facs_20684	T cell
+tma_facs_18334	Stromal cell
+tma_facs_16660	Stromal cell
+tma_facs_20727	T cell
+tma_facs_18040	Stromal cell
+tma_facs_17494	Stromal cell
+tma_facs_20199	T cell
+tma_facs_18259	Stromal cell
+tma_facs_832	B cell
+tma_facs_2583	B cell
+tma_facs_142	B cell
+tma_facs_13089	Epidermis
+tma_facs_9486	Epithelial cell
+tma_facs_14501	Monocyte
+tma_facs_5600	Endothelial cell
+tma_facs_12359	Epidermis
+tma_facs_14610	Monocyte
+tma_facs_19255	T cell
+tma_facs_19818	T cell
+tma_facs_6637	Endothelial cell
+tma_facs_8600	Epithelial cell
+tma_facs_2154	B cell
+tma_facs_2011	B cell
+tma_facs_17093	Stromal cell
+tma_facs_15139	Monocyte
+tma_facs_4644	Endothelial cell
+tma_facs_8578	Epithelial cell
+tma_facs_19645	T cell
+tma_facs_7601	Epithelial cell
+tma_facs_6040	Endothelial cell
+tma_facs_16280	Stromal cell
+tma_facs_1738	B cell
+tma_facs_8854	Epithelial cell
+tma_facs_10218	Epithelial cell
+tma_facs_11842	Hepatocyte
+tma_facs_394	B cell
+tma_facs_13367	Epidermis
+tma_facs_9839	Epithelial cell
+tma_facs_6395	Endothelial cell
+tma_facs_13148	Epidermis
+tma_facs_1611	B cell
+tma_facs_8455	Epithelial cell
+tma_facs_14129	Monocyte
+tma_facs_10576	Epithelial cell
+tma_facs_9746	Epithelial cell
+tma_facs_2914	B cell
+tma_facs_6826	Endothelial cell
+tma_facs_4272	Endothelial cell
+tma_facs_10806	Epithelial cell
+tma_facs_18216	Stromal cell
+tma_facs_16670	Stromal cell
+tma_facs_4759	Endothelial cell
+tma_facs_9147	Epithelial cell
+tma_facs_13361	Epidermis
+tma_facs_3048	B cell
+tma_facs_7187	Endothelial cell
+tma_facs_1746	B cell
+tma_facs_13327	Epidermis
+tma_facs_7326	Endothelial cell
+tma_facs_13094	Epidermis
+tma_facs_12815	Epidermis
+tma_facs_12227	Epidermis
+tma_facs_7080	Endothelial cell
+tma_facs_4641	Endothelial cell
+tma_facs_15794	NK cell
+tma_facs_13678	Epidermis
+tma_facs_6408	Endothelial cell
+tma_facs_5759	Endothelial cell
+tma_facs_13870	Epidermis
+tma_facs_11643	Granulocyte
+tma_facs_2971	B cell
+tma_facs_8695	Epithelial cell
+tma_facs_11439	Granulocyte
+tma_facs_3470	Cardiac Muscle
+tma_facs_9302	Epithelial cell
+tma_facs_16046	Stromal cell
+tma_facs_15423	Monocyte
+tma_facs_17483	Stromal cell
+tma_facs_4329	Endothelial cell
+tma_facs_13512	Epidermis
+tma_facs_20239	T cell
+tma_facs_13767	Epidermis
+tma_facs_2575	B cell
+tma_facs_14702	Monocyte
+tma_facs_17105	Stromal cell
+tma_facs_12572	Epidermis
+tma_facs_11308	Granulocyte
+tma_facs_3085	B cell
+tma_facs_5050	Endothelial cell
+tma_facs_15874	NK cell
+tma_facs_6242	Endothelial cell
+tma_facs_6500	Endothelial cell
+tma_facs_5200	Endothelial cell
+tma_facs_8901	Epithelial cell
+tma_facs_4848	Endothelial cell
+tma_facs_8785	Epithelial cell
+tma_facs_13706	Epidermis
+tma_facs_941	B cell
+tma_facs_17695	Stromal cell
+tma_facs_12131	Epidermis
+tma_facs_14818	Monocyte
+tma_facs_20815	T cell
+tma_facs_9897	Epithelial cell
+tma_facs_11646	Granulocyte
+tma_facs_1035	B cell
+tma_facs_11999	Hepatocyte
+tma_facs_1058	B cell
+tma_facs_19656	T cell
+tma_facs_4021	Endothelial cell
+tma_facs_5234	Endothelial cell
+tma_facs_15190	Monocyte
+tma_facs_16214	Stromal cell
+tma_facs_13124	Epidermis
+tma_facs_6905	Endothelial cell
+tma_facs_10016	Epithelial cell
+tma_facs_11313	Granulocyte
+tma_facs_18296	Stromal cell
+tma_facs_14765	Monocyte
+tma_facs_16352	Stromal cell
+tma_facs_4303	Endothelial cell
+tma_facs_2865	B cell
+tma_facs_6050	Endothelial cell
+tma_facs_818	B cell
+tma_facs_692	B cell
+tma_facs_5679	Endothelial cell
+tma_facs_10867	Erythrocyte
+tma_facs_9877	Epithelial cell
+tma_facs_18830	T cell
+tma_facs_2648	B cell
+tma_facs_13756	Epidermis
+tma_facs_4984	Endothelial cell
+tma_facs_77	B cell
+tma_facs_12034	Hepatocyte
+tma_facs_19109	T cell
+tma_facs_6135	Endothelial cell
+tma_facs_20939	T cell
+tma_facs_13889	Epidermis
+tma_facs_6648	Endothelial cell
+tma_facs_8387	Epithelial cell
+tma_facs_679	B cell
+tma_facs_17968	Stromal cell
+tma_facs_6386	Endothelial cell
+tma_facs_16828	Stromal cell
+tma_facs_14239	Monocyte
+tma_facs_11549	Granulocyte
+tma_facs_6984	Endothelial cell
+tma_facs_1104	B cell
+tma_facs_2643	B cell
+tma_facs_20636	T cell
+tma_facs_15431	Monocyte
+tma_facs_12087	Epidermis
+tma_facs_9800	Epithelial cell
+tma_facs_14916	Monocyte
+tma_facs_791	B cell
+tma_facs_20449	T cell
+tma_facs_18475	Stromal cell
+tma_facs_5590	Endothelial cell
+tma_facs_4832	Endothelial cell
+tma_facs_14925	Monocyte
+tma_facs_13888	Epidermis
+tma_facs_16268	Stromal cell
+tma_facs_19939	T cell
+tma_facs_4856	Endothelial cell
+tma_facs_6620	Endothelial cell
+tma_facs_121	B cell
+tma_facs_18081	Stromal cell
+tma_facs_15278	Monocyte
+tma_facs_4135	Endothelial cell
+tma_facs_8386	Epithelial cell
+tma_facs_14973	Monocyte
+tma_facs_8690	Epithelial cell
+tma_facs_7972	Epithelial cell
+tma_facs_4531	Endothelial cell
+tma_facs_12078	Epidermis
+tma_facs_12821	Epidermis
+tma_facs_17353	Stromal cell
+tma_facs_5544	Endothelial cell
+tma_facs_7282	Endothelial cell
+tma_facs_18489	Stromal cell
+tma_facs_19593	T cell
+tma_facs_11209	Granulocyte
+tma_facs_906	B cell
+tma_facs_9320	Epithelial cell
+tma_facs_14067	Epidermis
+tma_facs_2788	B cell
+tma_facs_11619	Granulocyte
+tma_facs_14393	Monocyte
+tma_facs_17088	Stromal cell
+tma_facs_2298	B cell
+tma_facs_4475	Endothelial cell
+tma_facs_19084	T cell
+tma_facs_2574	B cell
+tma_facs_10764	Epithelial cell
+tma_facs_16964	Stromal cell
+tma_facs_19406	T cell
+tma_facs_15796	NK cell
+tma_facs_737	B cell
+tma_facs_9730	Epithelial cell
+tma_facs_7828	Epithelial cell
+tma_facs_7237	Endothelial cell
+tma_facs_11964	Hepatocyte
+tma_facs_1558	B cell
+tma_facs_9915	Epithelial cell
+tma_facs_424	B cell
+tma_facs_16600	Stromal cell
+tma_facs_16202	Stromal cell
+tma_facs_16445	Stromal cell
+tma_facs_1868	B cell
+tma_facs_2659	B cell
+tma_facs_2494	B cell
+tma_facs_15368	Monocyte
+tma_facs_20640	T cell
+tma_facs_3018	B cell
+tma_facs_18237	Stromal cell
+tma_facs_20689	T cell
+tma_facs_16930	Stromal cell
+tma_facs_3639	Endothelial cell
+tma_facs_12622	Epidermis
+tma_facs_11766	Hepatocyte
+tma_facs_6224	Endothelial cell
+tma_facs_12528	Epidermis
+tma_facs_4607	Endothelial cell
+tma_facs_8035	Epithelial cell
+tma_facs_13449	Epidermis
+tma_facs_4100	Endothelial cell
+tma_facs_20108	T cell
+tma_facs_12962	Epidermis
+tma_facs_179	B cell
+tma_facs_18433	Stromal cell
+tma_facs_1075	B cell
+tma_facs_13913	Epidermis
+tma_facs_1221	B cell
+tma_facs_17907	Stromal cell
+tma_facs_4496	Endothelial cell
+tma_facs_13042	Epidermis
+tma_facs_19894	T cell
+tma_facs_6863	Endothelial cell
+tma_facs_4254	Endothelial cell
+tma_facs_7111	Endothelial cell
+tma_facs_19777	T cell
+tma_facs_15563	Monocyte
+tma_facs_4191	Endothelial cell
+tma_facs_19530	T cell
+tma_facs_11833	Hepatocyte
+tma_facs_13543	Epidermis
+tma_facs_17334	Stromal cell
+tma_facs_16501	Stromal cell
+tma_facs_16887	Stromal cell
+tma_facs_7750	Epithelial cell
+tma_facs_19081	T cell
+tma_facs_1685	B cell
+tma_facs_19557	T cell
+tma_facs_19624	T cell
+tma_facs_8532	Epithelial cell
+tma_facs_17744	Stromal cell
+tma_facs_1810	B cell
+tma_facs_14552	Monocyte
+tma_facs_15	B cell
+tma_facs_12365	Epidermis
+tma_facs_20865	T cell
+tma_facs_31	B cell
+tma_facs_9969	Epithelial cell
+tma_facs_15957	NK cell
+tma_facs_17885	Stromal cell
+tma_facs_6139	Endothelial cell
+tma_facs_3885	Endothelial cell
+tma_facs_11150	Granulocyte
+tma_facs_10853	Erythrocyte
+tma_facs_14041	Epidermis
+tma_facs_12695	Epidermis
+tma_facs_5265	Endothelial cell
+tma_facs_15234	Monocyte
+tma_facs_12470	Epidermis
+tma_facs_9327	Epithelial cell
+tma_facs_13607	Epidermis
+tma_facs_10955	Granulocyte
+tma_facs_2766	B cell
+tma_facs_6745	Endothelial cell
+tma_facs_9620	Epithelial cell
+tma_facs_507	B cell
+tma_facs_20576	T cell
+tma_facs_11351	Granulocyte
+tma_facs_6216	Endothelial cell
+tma_facs_1158	B cell
+tma_facs_9948	Epithelial cell
+tma_facs_3514	Cardiac Muscle
+tma_facs_20428	T cell
+tma_facs_15106	Monocyte
+tma_facs_6934	Endothelial cell
+tma_facs_552	B cell
+tma_facs_16327	Stromal cell
+tma_facs_16409	Stromal cell
+tma_facs_10562	Epithelial cell
+tma_facs_15178	Monocyte
+tma_facs_5075	Endothelial cell
+tma_facs_6418	Endothelial cell
+tma_facs_5748	Endothelial cell
+tma_facs_4309	Endothelial cell
+tma_facs_17371	Stromal cell
+tma_facs_2918	B cell
+tma_facs_574	B cell
+tma_facs_2674	B cell
+tma_facs_1351	B cell
+tma_facs_19147	T cell
+tma_facs_2896	B cell
+tma_facs_12540	Epidermis
+tma_facs_11232	Granulocyte
+tma_facs_17327	Stromal cell
+tma_facs_10959	Granulocyte
+tma_facs_19292	T cell
+tma_facs_15978	NK cell
+tma_facs_1445	B cell
+tma_facs_13994	Epidermis
+tma_facs_3685	Endothelial cell
+tma_facs_8053	Epithelial cell
+tma_facs_10958	Granulocyte
+tma_facs_5460	Endothelial cell
+tma_facs_6579	Endothelial cell
+tma_facs_18877	T cell
+tma_facs_2556	B cell
+tma_facs_3640	Endothelial cell
+tma_facs_10623	Epithelial cell
+tma_facs_1162	B cell
+tma_facs_19405	T cell
+tma_facs_8428	Epithelial cell
+tma_facs_10640	Epithelial cell
+tma_facs_19056	T cell
+tma_facs_18789	Stromal cell
+tma_facs_16868	Stromal cell
+tma_facs_2887	B cell
+tma_facs_16029	Stromal cell
+tma_facs_3129	B cell
+tma_facs_10696	Epithelial cell
+tma_facs_2623	B cell
+tma_facs_14963	Monocyte
+tma_facs_11397	Granulocyte
+tma_facs_13766	Epidermis
+tma_facs_15594	Monocyte
+tma_facs_3788	Endothelial cell
+tma_facs_16146	Stromal cell
+tma_facs_4816	Endothelial cell
+tma_facs_19401	T cell
+tma_facs_19733	T cell
+tma_facs_11969	Hepatocyte
+tma_facs_7243	Endothelial cell
+tma_facs_3299	B cell
+tma_facs_18820	T cell
+tma_facs_18345	Stromal cell
+tma_facs_18546	Stromal cell
+tma_facs_5755	Endothelial cell
+tma_facs_14630	Monocyte
+tma_facs_20579	T cell
+tma_facs_9303	Epithelial cell
+tma_facs_3096	B cell
+tma_facs_1624	B cell
+tma_facs_4394	Endothelial cell
+tma_facs_8552	Epithelial cell
+tma_facs_14520	Monocyte
+tma_facs_613	B cell
+tma_facs_4568	Endothelial cell
+tma_facs_1424	B cell
+tma_facs_2649	B cell
+tma_facs_6716	Endothelial cell
+tma_facs_5366	Endothelial cell
+tma_facs_1905	B cell
+tma_facs_4709	Endothelial cell
+tma_facs_11810	Hepatocyte
+tma_facs_8172	Epithelial cell
+tma_facs_8582	Epithelial cell
+tma_facs_13307	Epidermis
+tma_facs_2969	B cell
+tma_facs_16461	Stromal cell
+tma_facs_5587	Endothelial cell
+tma_facs_4289	Endothelial cell
+tma_facs_11319	Granulocyte
+tma_facs_17464	Stromal cell
+tma_facs_6709	Endothelial cell
+tma_facs_9248	Epithelial cell
+tma_facs_19609	T cell
+tma_facs_14040	Epidermis
+tma_facs_8866	Epithelial cell
+tma_facs_3556	Cardiac Muscle
+tma_facs_10984	Granulocyte
+tma_facs_19322	T cell
+tma_facs_5399	Endothelial cell
+tma_facs_7021	Endothelial cell
+tma_facs_15479	Monocyte
+tma_facs_9677	Epithelial cell
+tma_facs_15945	NK cell
+tma_facs_12585	Epidermis
+tma_facs_622	B cell
+tma_facs_13961	Epidermis
+tma_facs_6921	Endothelial cell
+tma_facs_12325	Epidermis
+tma_facs_18544	Stromal cell
+tma_facs_10820	Epithelial cell
+tma_facs_14867	Monocyte
+tma_facs_20431	T cell
+tma_facs_7417	Endothelial cell
+tma_facs_1174	B cell
+tma_facs_5793	Endothelial cell
+tma_facs_3443	Cardiac Muscle
+tma_facs_12859	Epidermis
+tma_facs_2813	B cell
+tma_facs_17859	Stromal cell
+tma_facs_20611	T cell
+tma_facs_18161	Stromal cell
+tma_facs_20316	T cell
+tma_facs_19394	T cell
+tma_facs_15268	Monocyte
+tma_facs_17604	Stromal cell
+tma_facs_13317	Epidermis
+tma_facs_16797	Stromal cell
+tma_facs_19715	T cell
+tma_facs_9064	Epithelial cell
+tma_facs_16200	Stromal cell
+tma_facs_4445	Endothelial cell
+tma_facs_3973	Endothelial cell
+tma_facs_2541	B cell
+tma_facs_11168	Granulocyte
+tma_facs_7100	Endothelial cell
+tma_facs_12935	Epidermis
+tma_facs_16207	Stromal cell
+tma_facs_9793	Epithelial cell
+tma_facs_14517	Monocyte
+tma_facs_479	B cell
+tma_facs_4280	Endothelial cell
+tma_facs_2644	B cell
+tma_facs_5641	Endothelial cell
+tma_facs_15265	Monocyte
+tma_facs_839	B cell
+tma_facs_19621	T cell
+tma_facs_240	B cell
+tma_facs_19094	T cell
+tma_facs_14179	Monocyte
+tma_facs_9232	Epithelial cell
+tma_facs_6719	Endothelial cell
+tma_facs_17021	Stromal cell
+tma_facs_17122	Stromal cell
+tma_facs_9024	Epithelial cell
+tma_facs_20810	T cell
+tma_facs_13306	Epidermis
+tma_facs_14417	Monocyte
+tma_facs_19138	T cell
+tma_facs_16818	Stromal cell
+tma_facs_18594	Stromal cell
+tma_facs_9131	Epithelial cell
+tma_facs_9272	Epithelial cell
+tma_facs_3306	B cell
+tma_facs_14971	Monocyte
+tma_facs_16926	Stromal cell
+tma_facs_9269	Epithelial cell
+tma_facs_18053	Stromal cell
+tma_facs_9242	Epithelial cell
+tma_facs_12429	Epidermis
+tma_facs_17227	Stromal cell
+tma_facs_17048	Stromal cell
+tma_facs_2098	B cell
+tma_facs_13891	Epidermis
+tma_facs_2340	B cell
+tma_facs_1653	B cell
+tma_facs_3539	Cardiac Muscle
+tma_facs_8893	Epithelial cell
+tma_facs_4443	Endothelial cell
+tma_facs_12723	Epidermis
+tma_facs_19032	T cell
+tma_facs_5893	Endothelial cell
+tma_facs_16832	Stromal cell
+tma_facs_3280	B cell
+tma_facs_13794	Epidermis
+tma_facs_12900	Epidermis
+tma_facs_11677	Hepatocyte
+tma_facs_20513	T cell
+tma_facs_14227	Monocyte
+tma_facs_8663	Epithelial cell
+tma_facs_17874	Stromal cell
+tma_facs_10033	Epithelial cell
+tma_facs_6421	Endothelial cell
+tma_facs_8433	Epithelial cell
+tma_facs_20376	T cell
+tma_facs_14805	Monocyte
+tma_facs_14468	Monocyte
+tma_facs_1658	B cell
+tma_facs_14563	Monocyte
+tma_facs_3116	B cell
+tma_facs_5821	Endothelial cell
+tma_facs_3051	B cell
+tma_facs_6817	Endothelial cell
+tma_facs_20695	T cell
+tma_facs_13843	Epidermis
+tma_facs_177	B cell
+tma_facs_7676	Epithelial cell
+tma_facs_14692	Monocyte
+tma_facs_18835	T cell
+tma_facs_13366	Epidermis
+tma_facs_5173	Endothelial cell
+tma_facs_19017	T cell
+tma_facs_6599	Endothelial cell
+tma_facs_4508	Endothelial cell
+tma_facs_3585	Endothelial cell
+tma_facs_2710	B cell
+tma_facs_12353	Epidermis
+tma_facs_8974	Epithelial cell
+tma_facs_9094	Epithelial cell
+tma_facs_14930	Monocyte
+tma_facs_14334	Monocyte
+tma_facs_19711	T cell
+tma_facs_8908	Epithelial cell
+tma_facs_15033	Monocyte
+tma_facs_20166	T cell
+tma_facs_15885	NK cell
+tma_facs_7132	Endothelial cell
+tma_facs_11061	Granulocyte
+tma_facs_18402	Stromal cell
+tma_facs_502	B cell
+tma_facs_14163	Monocyte
+tma_facs_12657	Epidermis
+tma_facs_81	B cell
+tma_facs_7088	Endothelial cell
+tma_facs_16641	Stromal cell
+tma_facs_13618	Epidermis
+tma_facs_17091	Stromal cell
+tma_facs_812	B cell
+tma_facs_18988	T cell
+tma_facs_17515	Stromal cell
+tma_facs_6614	Endothelial cell
+tma_facs_9337	Epithelial cell
+tma_facs_13345	Epidermis
+tma_facs_3515	Cardiac Muscle
+tma_facs_5126	Endothelial cell
+tma_facs_17730	Stromal cell
+tma_facs_17288	Stromal cell
+tma_facs_12427	Epidermis
+tma_facs_15974	NK cell
+tma_facs_2718	B cell
+tma_facs_12465	Epidermis
+tma_facs_16524	Stromal cell
+tma_facs_14017	Epidermis
+tma_facs_3062	B cell
+tma_facs_10654	Epithelial cell
+tma_facs_7943	Epithelial cell
+tma_facs_6757	Endothelial cell
+tma_facs_12537	Epidermis
+tma_facs_6246	Endothelial cell
+tma_facs_533	B cell
+tma_facs_289	B cell
+tma_facs_3418	B cell
+tma_facs_20062	T cell
+tma_facs_6031	Endothelial cell
+tma_facs_3603	Endothelial cell
+tma_facs_11821	Hepatocyte
+tma_facs_16830	Stromal cell
+tma_facs_12647	Epidermis
+tma_facs_7140	Endothelial cell
+tma_facs_8145	Epithelial cell
+tma_facs_4229	Endothelial cell
+tma_facs_2999	B cell
+tma_facs_597	B cell
+tma_facs_11436	Granulocyte
+tma_facs_9515	Epithelial cell
+tma_facs_196	B cell
+tma_facs_2859	B cell
+tma_facs_17614	Stromal cell
+tma_facs_9910	Epithelial cell
+tma_facs_19425	T cell
+tma_facs_12909	Epidermis
+tma_facs_2968	B cell
+tma_facs_20233	T cell
+tma_facs_18073	Stromal cell
+tma_facs_264	B cell
+tma_facs_14350	Monocyte
+tma_facs_10967	Granulocyte
+tma_facs_11533	Granulocyte
+tma_facs_11794	Hepatocyte
+tma_facs_18267	Stromal cell
+tma_facs_9569	Epithelial cell
+tma_facs_10506	Epithelial cell
+tma_facs_17022	Stromal cell
+tma_facs_1814	B cell
+tma_facs_11294	Granulocyte
+tma_facs_13741	Epidermis
+tma_facs_6855	Endothelial cell
+tma_facs_13349	Epidermis
+tma_facs_16995	Stromal cell
+tma_facs_9220	Epithelial cell
+tma_facs_15738	NK cell
+tma_facs_10304	Epithelial cell
+tma_facs_20843	T cell
+tma_facs_19125	T cell
+tma_facs_5781	Endothelial cell
+tma_facs_13171	Epidermis
+tma_facs_18063	Stromal cell
+tma_facs_10725	Epithelial cell
+tma_facs_8241	Epithelial cell
+tma_facs_1838	B cell
+tma_facs_12212	Epidermis
+tma_facs_14159	Monocyte
+tma_facs_4951	Endothelial cell
+tma_facs_8545	Epithelial cell
+tma_facs_17768	Stromal cell
+tma_facs_16842	Stromal cell
+tma_facs_17893	Stromal cell
+tma_facs_6136	Endothelial cell
+tma_facs_17516	Stromal cell
+tma_facs_8900	Epithelial cell
+tma_facs_14244	Monocyte
+tma_facs_908	B cell
+tma_facs_2470	B cell
+tma_facs_13038	Epidermis
+tma_facs_10633	Epithelial cell
+tma_facs_4741	Endothelial cell
+tma_facs_46	B cell
+tma_facs_1386	B cell
+tma_facs_12207	Epidermis
+tma_facs_12697	Epidermis
+tma_facs_12681	Epidermis
+tma_facs_10186	Epithelial cell
+tma_facs_5741	Endothelial cell
+tma_facs_806	B cell
+tma_facs_7630	Epithelial cell
+tma_facs_11521	Granulocyte
+tma_facs_11196	Granulocyte
+tma_facs_11948	Hepatocyte
+tma_facs_12837	Epidermis
+tma_facs_17801	Stromal cell
+tma_facs_8283	Epithelial cell
+tma_facs_12511	Epidermis
+tma_facs_15134	Monocyte
+tma_facs_20691	T cell
+tma_facs_6985	Endothelial cell
+tma_facs_20027	T cell
+tma_facs_13733	Epidermis
+tma_facs_6194	Endothelial cell
+tma_facs_9245	Epithelial cell
+tma_facs_15751	NK cell
+tma_facs_45	B cell
+tma_facs_16176	Stromal cell
+tma_facs_12495	Epidermis
+tma_facs_15203	Monocyte
+tma_facs_16478	Stromal cell
+tma_facs_1526	B cell
+tma_facs_11302	Granulocyte
+tma_facs_17176	Stromal cell
+tma_facs_16263	Stromal cell
+tma_facs_12510	Epidermis
+tma_facs_18325	Stromal cell
+tma_facs_20690	T cell
+tma_facs_3817	Endothelial cell
+tma_facs_9342	Epithelial cell
+tma_facs_20855	T cell
+tma_facs_11353	Granulocyte
+tma_facs_11590	Granulocyte
+tma_facs_7776	Epithelial cell
+tma_facs_4912	Endothelial cell
+tma_facs_5725	Endothelial cell
+tma_facs_11297	Granulocyte
+tma_facs_9884	Epithelial cell
+tma_facs_19749	T cell
+tma_facs_11255	Granulocyte
+tma_facs_17187	Stromal cell
+tma_facs_12355	Epidermis
+tma_facs_15126	Monocyte
+tma_facs_7244	Endothelial cell
+tma_facs_13921	Epidermis
+tma_facs_5892	Endothelial cell
+tma_facs_12744	Epidermis
+tma_facs_17347	Stromal cell
+tma_facs_8358	Epithelial cell
+tma_facs_6337	Endothelial cell
+tma_facs_487	B cell
+tma_facs_4526	Endothelial cell
+tma_facs_3266	B cell
+tma_facs_7887	Epithelial cell
+tma_facs_14960	Monocyte
+tma_facs_15004	Monocyte
+tma_facs_18502	Stromal cell
+tma_facs_178	B cell
+tma_facs_558	B cell
+tma_facs_3344	B cell
+tma_facs_14788	Monocyte
+tma_facs_16530	Stromal cell
+tma_facs_13836	Epidermis
+tma_facs_7000	Endothelial cell
+tma_facs_9755	Epithelial cell
+tma_facs_18569	Stromal cell
+tma_facs_2708	B cell
+tma_facs_13381	Epidermis
+tma_facs_4621	Endothelial cell
+tma_facs_1554	B cell
+tma_facs_19975	T cell
+tma_facs_10310	Epithelial cell
+tma_facs_6943	Endothelial cell
+tma_facs_882	B cell
+tma_facs_12771	Epidermis
+tma_facs_5209	Endothelial cell
+tma_facs_15054	Monocyte
+tma_facs_926	B cell
+tma_facs_10204	Epithelial cell
+tma_facs_20788	T cell
+tma_facs_5472	Endothelial cell
+tma_facs_14469	Monocyte
+tma_facs_16301	Stromal cell
+tma_facs_12424	Epidermis
+tma_facs_6036	Endothelial cell
+tma_facs_18184	Stromal cell
+tma_facs_12855	Epidermis
+tma_facs_4647	Endothelial cell
+tma_facs_6434	Endothelial cell
+tma_facs_19668	T cell
+tma_facs_7745	Epithelial cell
+tma_facs_18659	Stromal cell
+tma_facs_19825	T cell
+tma_facs_1897	B cell
+tma_facs_8087	Epithelial cell
+tma_facs_20667	T cell
+tma_facs_20830	T cell
+tma_facs_8539	Epithelial cell
+tma_facs_20628	T cell
+tma_facs_3920	Endothelial cell
+tma_facs_11928	Hepatocyte
+tma_facs_12450	Epidermis
+tma_facs_8330	Epithelial cell
+tma_facs_20770	T cell
+tma_facs_16666	Stromal cell
+tma_facs_870	B cell
+tma_facs_6820	Endothelial cell
+tma_facs_3181	B cell
+tma_facs_4827	Endothelial cell
+tma_facs_13113	Epidermis
+tma_facs_2233	B cell
+tma_facs_5006	Endothelial cell
+tma_facs_4422	Endothelial cell
+tma_facs_14380	Monocyte
+tma_facs_16704	Stromal cell
+tma_facs_9383	Epithelial cell
+tma_facs_595	B cell
+tma_facs_4419	Endothelial cell
+tma_facs_7004	Endothelial cell
+tma_facs_19160	T cell
+tma_facs_7790	Epithelial cell
+tma_facs_14782	Monocyte
+tma_facs_5306	Endothelial cell
+tma_facs_18556	Stromal cell
+tma_facs_2695	B cell
+tma_facs_8753	Epithelial cell
+tma_facs_16881	Stromal cell
+tma_facs_11502	Granulocyte
+tma_facs_7930	Epithelial cell
+tma_facs_6514	Endothelial cell
+tma_facs_9224	Epithelial cell
+tma_facs_17673	Stromal cell
+tma_facs_451	B cell
+tma_facs_8946	Epithelial cell
+tma_facs_7314	Endothelial cell
+tma_facs_11394	Granulocyte
+tma_facs_16451	Stromal cell
+tma_facs_1377	B cell
+tma_facs_16284	Stromal cell
+tma_facs_11191	Granulocyte
+tma_facs_12997	Epidermis
+tma_facs_5166	Endothelial cell
+tma_facs_20808	T cell
+tma_facs_18030	Stromal cell
+tma_facs_11577	Granulocyte
+tma_facs_15689	Monocyte
+tma_facs_20463	T cell
+tma_facs_16402	Stromal cell
+tma_facs_18020	Stromal cell
+tma_facs_16736	Stromal cell
+tma_facs_10977	Granulocyte
+tma_facs_10053	Epithelial cell
+tma_facs_11325	Granulocyte
+tma_facs_8725	Epithelial cell
+tma_facs_5507	Endothelial cell
+tma_facs_8128	Epithelial cell
+tma_facs_10480	Epithelial cell
+tma_facs_11596	Granulocyte
+tma_facs_5763	Endothelial cell
+tma_facs_5226	Endothelial cell
+tma_facs_3938	Endothelial cell
+tma_facs_20776	T cell
+tma_facs_14330	Monocyte
+tma_facs_4461	Endothelial cell
+tma_facs_13321	Epidermis
+tma_facs_5782	Endothelial cell
+tma_facs_8622	Epithelial cell
+tma_facs_11019	Granulocyte
+tma_facs_20133	T cell
+tma_facs_4600	Endothelial cell
+tma_facs_938	B cell
+tma_facs_11770	Hepatocyte
+tma_facs_12233	Epidermis
+tma_facs_11273	Granulocyte
+tma_facs_7056	Endothelial cell
+tma_facs_16651	Stromal cell
+tma_facs_13713	Epidermis
+tma_facs_4057	Endothelial cell
+tma_facs_13506	Epidermis
+tma_facs_4316	Endothelial cell
+tma_facs_10496	Epithelial cell
+tma_facs_18743	Stromal cell
+tma_facs_4120	Endothelial cell
+tma_facs_17585	Stromal cell
+tma_facs_14084	Epidermis
+tma_facs_12169	Epidermis
+tma_facs_17100	Stromal cell
+tma_facs_7960	Epithelial cell
+tma_facs_19511	T cell
+tma_facs_13231	Epidermis
+tma_facs_4277	Endothelial cell
+tma_facs_16489	Stromal cell
+tma_facs_2237	B cell
+tma_facs_9434	Epithelial cell
+tma_facs_9914	Epithelial cell
+tma_facs_3457	Cardiac Muscle
+tma_facs_6365	Endothelial cell
+tma_facs_18608	Stromal cell
+tma_facs_14351	Monocyte
+tma_facs_5319	Endothelial cell
+tma_facs_9605	Epithelial cell
+tma_facs_20887	T cell
+tma_facs_9054	Epithelial cell
+tma_facs_12910	Epidermis
+tma_facs_946	B cell
+tma_facs_5248	Endothelial cell
+tma_facs_11252	Granulocyte
+tma_facs_1745	B cell
+tma_facs_6743	Endothelial cell
+tma_facs_3455	Cardiac Muscle
+tma_facs_20429	T cell
+tma_facs_5648	Endothelial cell
+tma_facs_16857	Stromal cell
+tma_facs_9490	Epithelial cell
+tma_facs_4052	Endothelial cell
+tma_facs_4629	Endothelial cell
+tma_facs_10396	Epithelial cell
+tma_facs_3433	B cell
+tma_facs_12807	Epidermis
+tma_facs_6251	Endothelial cell
+tma_facs_4704	Endothelial cell
+tma_facs_7936	Epithelial cell
+tma_facs_417	B cell
+tma_facs_12376	Epidermis
+tma_facs_19486	T cell
+tma_facs_18110	Stromal cell
+tma_facs_7882	Epithelial cell
+tma_facs_16655	Stromal cell
+tma_facs_20615	T cell
+tma_facs_14626	Monocyte
+tma_facs_1589	B cell
+tma_facs_5524	Endothelial cell
+tma_facs_4104	Endothelial cell
+tma_facs_13645	Epidermis
+tma_facs_12490	Epidermis
+tma_facs_18614	Stromal cell
+tma_facs_2350	B cell
+tma_facs_6609	Endothelial cell
+tma_facs_18769	Stromal cell
+tma_facs_18565	Stromal cell
+tma_facs_17134	Stromal cell
+tma_facs_12360	Epidermis
+tma_facs_7066	Endothelial cell
+tma_facs_18714	Stromal cell
+tma_facs_19753	T cell
+tma_facs_18695	Stromal cell
+tma_facs_14145	Monocyte
+tma_facs_2756	B cell
+tma_facs_3319	B cell
+tma_facs_15684	Monocyte
+tma_facs_2409	B cell
+tma_facs_12039	Hepatocyte
+tma_facs_5109	Endothelial cell
+tma_facs_3995	Endothelial cell
+tma_facs_17865	Stromal cell
+tma_facs_11691	Hepatocyte
+tma_facs_8878	Epithelial cell
+tma_facs_11939	Hepatocyte
+tma_facs_9531	Epithelial cell
+tma_facs_17417	Stromal cell
+tma_facs_7861	Epithelial cell
+tma_facs_13403	Epidermis
+tma_facs_19766	T cell
+tma_facs_14289	Monocyte
+tma_facs_9282	Epithelial cell
+tma_facs_1463	B cell
+tma_facs_3249	B cell
+tma_facs_19905	T cell
+tma_facs_8484	Epithelial cell
+tma_facs_11144	Granulocyte
+tma_facs_135	B cell
+tma_facs_3293	B cell
+tma_facs_6378	Endothelial cell
+tma_facs_14803	Monocyte
+tma_facs_1533	B cell
+tma_facs_7197	Endothelial cell
+tma_facs_680	B cell
+tma_facs_15653	Monocyte
+tma_facs_9479	Epithelial cell
+tma_facs_7458	Epithelial cell
+tma_facs_12063	Epidermis
+tma_facs_15542	Monocyte
+tma_facs_4038	Endothelial cell
+tma_facs_18767	Stromal cell
+tma_facs_323	B cell
+tma_facs_16636	Stromal cell
+tma_facs_7152	Endothelial cell
+tma_facs_4708	Endothelial cell
+tma_facs_2010	B cell
+tma_facs_14525	Monocyte
+tma_facs_20837	T cell
+tma_facs_15620	Monocyte
+tma_facs_10509	Epithelial cell
+tma_facs_9756	Epithelial cell
+tma_facs_9934	Epithelial cell
+tma_facs_6862	Endothelial cell
+tma_facs_17414	Stromal cell
+tma_facs_20468	T cell
+tma_facs_9454	Epithelial cell
+tma_facs_14201	Monocyte
+tma_facs_5558	Endothelial cell
+tma_facs_18159	Stromal cell
+tma_facs_6445	Endothelial cell
+tma_facs_13334	Epidermis
+tma_facs_14719	Monocyte
+tma_facs_13365	Epidermis
+tma_facs_8447	Epithelial cell
+tma_facs_10478	Epithelial cell
+tma_facs_12150	Epidermis
+tma_facs_11674	Hepatocyte
+tma_facs_17902	Stromal cell
+tma_facs_16586	Stromal cell
+tma_facs_17570	Stromal cell
+tma_facs_8297	Epithelial cell
+tma_facs_12911	Epidermis
+tma_facs_13874	Epidermis
+tma_facs_19646	T cell
+tma_facs_20157	T cell
+tma_facs_15091	Monocyte
+tma_facs_6910	Endothelial cell
+tma_facs_3606	Endothelial cell
+tma_facs_11309	Granulocyte
+tma_facs_5478	Endothelial cell
+tma_facs_2758	B cell
+tma_facs_20273	T cell
+tma_facs_3645	Endothelial cell
+tma_facs_11535	Granulocyte
+tma_facs_5412	Endothelial cell
+tma_facs_496	B cell
+tma_facs_20553	T cell
+tma_facs_5238	Endothelial cell
+tma_facs_5673	Endothelial cell
+tma_facs_3616	Endothelial cell
+tma_facs_7433	Epithelial cell
+tma_facs_2491	B cell
+tma_facs_4001	Endothelial cell
+tma_facs_765	B cell
+tma_facs_20225	T cell
+tma_facs_11001	Granulocyte
+tma_facs_13929	Epidermis
+tma_facs_1197	B cell
+tma_facs_17466	Stromal cell
+tma_facs_555	B cell
+tma_facs_10831	Epithelial cell
+tma_facs_19343	T cell
+tma_facs_17721	Stromal cell
+tma_facs_8259	Epithelial cell
+tma_facs_18266	Stromal cell
+tma_facs_6936	Endothelial cell
+tma_facs_18185	Stromal cell
+tma_facs_10029	Epithelial cell
+tma_facs_17467	Stromal cell
+tma_facs_20450	T cell
+tma_facs_3682	Endothelial cell
+tma_facs_11936	Hepatocyte
+tma_facs_15183	Monocyte
+tma_facs_3545	Cardiac Muscle
+tma_facs_388	B cell
+tma_facs_13144	Epidermis
+tma_facs_10949	Granulocyte
+tma_facs_4811	Endothelial cell
+tma_facs_6468	Endothelial cell
+tma_facs_14536	Monocyte
+tma_facs_3307	B cell
+tma_facs_13169	Epidermis
+tma_facs_6288	Endothelial cell
+tma_facs_6191	Endothelial cell
+tma_facs_18078	Stromal cell
+tma_facs_4499	Endothelial cell
+tma_facs_10318	Epithelial cell
+tma_facs_7260	Endothelial cell
+tma_facs_19335	T cell
+tma_facs_15395	Monocyte
+tma_facs_10800	Epithelial cell
+tma_facs_20267	T cell
+tma_facs_4308	Endothelial cell
+tma_facs_3033	B cell
+tma_facs_15325	Monocyte
+tma_facs_158	B cell
+tma_facs_212	B cell
+tma_facs_5624	Endothelial cell
+tma_facs_17251	Stromal cell
+tma_facs_15191	Monocyte
+tma_facs_19156	T cell
+tma_facs_19906	T cell
+tma_facs_7585	Epithelial cell
+tma_facs_8454	Epithelial cell
+tma_facs_10175	Epithelial cell
+tma_facs_19819	T cell
+tma_facs_13516	Epidermis
+tma_facs_20193	T cell
+tma_facs_4590	Endothelial cell
+tma_facs_10354	Epithelial cell
+tma_facs_7986	Epithelial cell
+tma_facs_4972	Endothelial cell
+tma_facs_255	B cell
+tma_facs_8758	Epithelial cell
+tma_facs_14019	Epidermis
+tma_facs_13336	Epidermis
+tma_facs_1150	B cell
+tma_facs_3562	Cardiac Muscle
+tma_facs_15829	NK cell
+tma_facs_7240	Endothelial cell
+tma_facs_13127	Epidermis
+tma_facs_18578	Stromal cell
+tma_facs_9908	Epithelial cell
+tma_facs_140	B cell
+tma_facs_17017	Stromal cell
+tma_facs_3829	Endothelial cell
+tma_facs_4523	Endothelial cell
+tma_facs_8491	Epithelial cell
+tma_facs_5989	Endothelial cell
+tma_facs_13011	Epidermis
+tma_facs_18777	Stromal cell
+tma_facs_8633	Epithelial cell
+tma_facs_18965	T cell
+tma_facs_15949	NK cell
+tma_facs_19399	T cell
+tma_facs_10337	Epithelial cell
+tma_facs_3745	Endothelial cell
+tma_facs_7184	Endothelial cell
+tma_facs_15108	Monocyte
+tma_facs_1559	B cell
+tma_facs_14483	Monocyte
+tma_facs_6807	Endothelial cell
+tma_facs_20857	T cell
+tma_facs_10863	Erythrocyte
+tma_facs_7307	Endothelial cell
+tma_facs_1492	B cell
+tma_facs_9376	Epithelial cell
+tma_facs_9503	Epithelial cell
+tma_facs_6151	Endothelial cell
+tma_facs_271	B cell
+tma_facs_6013	Endothelial cell
+tma_facs_11201	Granulocyte
+tma_facs_17386	Stromal cell
+tma_facs_713	B cell
+tma_facs_8225	Epithelial cell
+tma_facs_7446	Epithelial cell
+tma_facs_18762	Stromal cell
+tma_facs_11449	Granulocyte
+tma_facs_6411	Endothelial cell
+tma_facs_12541	Epidermis
+tma_facs_4391	Endothelial cell
+tma_facs_8503	Epithelial cell
+tma_facs_18670	Stromal cell
+tma_facs_2058	B cell
+tma_facs_18307	Stromal cell
+tma_facs_18640	Stromal cell
+tma_facs_14139	Monocyte
+tma_facs_13622	Epidermis
+tma_facs_16968	Stromal cell
+tma_facs_20186	T cell
+tma_facs_8907	Epithelial cell
+tma_facs_18811	T cell
+tma_facs_15631	Monocyte
+tma_facs_2555	B cell
+tma_facs_18175	Stromal cell
+tma_facs_20850	T cell
+tma_facs_16699	Stromal cell
+tma_facs_20308	T cell
+tma_facs_18850	T cell
+tma_facs_1957	B cell
+tma_facs_7472	Epithelial cell
+tma_facs_3157	B cell
+tma_facs_7527	Epithelial cell
+tma_facs_16414	Stromal cell
+tma_facs_10718	Epithelial cell
+tma_facs_20923	T cell
+tma_facs_2579	B cell
+tma_facs_8074	Epithelial cell
+tma_facs_18	B cell
+tma_facs_3225	B cell
+tma_facs_13897	Epidermis
+tma_facs_15154	Monocyte
+tma_facs_4320	Endothelial cell
+tma_facs_3847	Endothelial cell
+tma_facs_1023	B cell
+tma_facs_9040	Epithelial cell
+tma_facs_1437	B cell
+tma_facs_10436	Epithelial cell
+tma_facs_3667	Endothelial cell
+tma_facs_16296	Stromal cell
+tma_facs_9570	Epithelial cell
+tma_facs_14110	Epidermis
+tma_facs_248	B cell
+tma_facs_7508	Epithelial cell
+tma_facs_872	B cell
+tma_facs_3739	Endothelial cell
+tma_facs_19930	T cell
+tma_facs_8778	Epithelial cell
+tma_facs_20664	T cell
+tma_facs_4197	Endothelial cell
+tma_facs_10104	Epithelial cell
+tma_facs_19510	T cell
+tma_facs_11083	Granulocyte
+tma_facs_6067	Endothelial cell
+tma_facs_19174	T cell
+tma_facs_7956	Epithelial cell
+tma_facs_12381	Epidermis
+tma_facs_7794	Epithelial cell
+tma_facs_12558	Epidermis
+tma_facs_9125	Epithelial cell
+tma_facs_15798	NK cell
+tma_facs_19956	T cell
+tma_facs_20772	T cell
+tma_facs_13749	Epidermis
+tma_facs_18301	Stromal cell
+tma_facs_27	B cell
+tma_facs_20592	T cell
+tma_facs_18914	T cell
+tma_facs_20272	T cell
+tma_facs_14923	Monocyte
+tma_facs_12201	Epidermis
+tma_facs_6866	Endothelial cell
+tma_facs_13823	Epidermis
+tma_facs_8739	Epithelial cell
+tma_facs_15585	Monocyte
+tma_facs_16305	Stromal cell
+tma_facs_4813	Endothelial cell
+tma_facs_10432	Epithelial cell
+tma_facs_1770	B cell
+tma_facs_16443	Stromal cell
+tma_facs_14424	Monocyte
+tma_facs_10503	Epithelial cell
+tma_facs_7050	Endothelial cell
+tma_facs_7394	Endothelial cell
+tma_facs_5251	Endothelial cell
+tma_facs_9488	Epithelial cell
+tma_facs_20777	T cell
+tma_facs_20707	T cell
+tma_facs_10142	Epithelial cell
+tma_facs_17625	Stromal cell
+tma_facs_1452	B cell
+tma_facs_14661	Monocyte
+tma_facs_17145	Stromal cell
+tma_facs_19921	T cell
+tma_facs_9467	Epithelial cell
+tma_facs_11927	Hepatocyte
+tma_facs_3190	B cell
+tma_facs_7235	Endothelial cell
+tma_facs_16911	Stromal cell
+tma_facs_799	B cell
+tma_facs_9524	Epithelial cell
+tma_facs_15424	Monocyte
+tma_facs_13943	Epidermis
+tma_facs_11048	Granulocyte
+tma_facs_3805	Endothelial cell
+tma_facs_16899	Stromal cell
+tma_facs_1755	B cell
+tma_facs_15525	Monocyte
+tma_facs_9966	Epithelial cell
+tma_facs_17089	Stromal cell
+tma_facs_15565	Monocyte
+tma_facs_1986	B cell
+tma_facs_13515	Epidermis
+tma_facs_12262	Epidermis
+tma_facs_1489	B cell
+tma_facs_20422	T cell
+tma_facs_13916	Epidermis
+tma_facs_4208	Endothelial cell
+tma_facs_16521	Stromal cell
+tma_facs_13912	Epidermis
+tma_facs_11454	Granulocyte
+tma_facs_20030	T cell
+tma_facs_12895	Epidermis
+tma_facs_1651	B cell
+tma_facs_18004	Stromal cell
+tma_facs_16080	Stromal cell
+tma_facs_14256	Monocyte
+tma_facs_17498	Stromal cell
+tma_facs_9155	Epithelial cell
+tma_facs_2116	B cell
+tma_facs_14384	Monocyte
+tma_facs_18006	Stromal cell
+tma_facs_3707	Endothelial cell
+tma_facs_2431	B cell
+tma_facs_15943	NK cell
+tma_facs_7920	Epithelial cell
+tma_facs_4241	Endothelial cell
+tma_facs_16898	Stromal cell
+tma_facs_12202	Epidermis
+tma_facs_6210	Endothelial cell
+tma_facs_20860	T cell
+tma_facs_19740	T cell
+tma_facs_14249	Monocyte
+tma_facs_11164	Granulocyte
+tma_facs_11602	Granulocyte
+tma_facs_14233	Monocyte
+tma_facs_9861	Epithelial cell
+tma_facs_2003	B cell
+tma_facs_1922	B cell
+tma_facs_2610	B cell
+tma_facs_10604	Epithelial cell
+tma_facs_2935	B cell
+tma_facs_13219	Epidermis
+tma_facs_19362	T cell
+tma_facs_19142	T cell
+tma_facs_13310	Epidermis
+tma_facs_15059	Monocyte
+tma_facs_7846	Epithelial cell
+tma_facs_10083	Epithelial cell
+tma_facs_18672	Stromal cell
+tma_facs_9403	Epithelial cell
+tma_facs_9726	Epithelial cell
+tma_facs_14967	Monocyte
+tma_facs_2177	B cell
+tma_facs_10248	Epithelial cell
+tma_facs_20333	T cell
+tma_facs_2467	B cell
+tma_facs_9080	Epithelial cell
+tma_facs_7764	Epithelial cell
+tma_facs_5835	Endothelial cell
+tma_facs_19951	T cell
+tma_facs_4380	Endothelial cell
+tma_facs_5361	Endothelial cell
+tma_facs_16247	Stromal cell
+tma_facs_18551	Stromal cell
+tma_facs_17639	Stromal cell
+tma_facs_1826	B cell
+tma_facs_4663	Endothelial cell
+tma_facs_1124	B cell
+tma_facs_9748	Epithelial cell
+tma_facs_5589	Endothelial cell
+tma_facs_8012	Epithelial cell
+tma_facs_19600	T cell
+tma_facs_4588	Endothelial cell
+tma_facs_15868	NK cell
+tma_facs_15717	Monocyte
+tma_facs_3102	B cell
+tma_facs_16821	Stromal cell
+tma_facs_8882	Epithelial cell
+tma_facs_8078	Epithelial cell
+tma_facs_12803	Epidermis
+tma_facs_13435	Epidermis
+tma_facs_5328	Endothelial cell
+tma_facs_11970	Hepatocyte
+tma_facs_19854	T cell
+tma_facs_15061	Monocyte
+tma_facs_16847	Stromal cell
+tma_facs_20311	T cell
+tma_facs_3631	Endothelial cell
+tma_facs_13603	Epidermis
+tma_facs_12970	Epidermis
+tma_facs_6454	Endothelial cell
+tma_facs_6572	Endothelial cell
+tma_facs_13143	Epidermis
+tma_facs_671	B cell
+tma_facs_11256	Granulocyte
+tma_facs_20069	T cell
+tma_facs_19879	T cell
+tma_facs_18726	Stromal cell
+tma_facs_3733	Endothelial cell
+tma_facs_10707	Epithelial cell
+tma_facs_3661	Endothelial cell
+tma_facs_1676	B cell
+tma_facs_9775	Epithelial cell
+tma_facs_3313	B cell
+tma_facs_193	B cell
+tma_facs_5537	Endothelial cell
+tma_facs_3437	B cell
+tma_facs_19352	T cell
+tma_facs_20171	T cell
+tma_facs_13098	Epidermis
+tma_facs_15045	Monocyte
+tma_facs_2124	B cell
+tma_facs_7203	Endothelial cell
+tma_facs_7931	Epithelial cell
+tma_facs_11494	Granulocyte
+tma_facs_8400	Epithelial cell
+tma_facs_180	B cell
+tma_facs_5852	Endothelial cell
+tma_facs_20624	T cell
+tma_facs_14644	Monocyte
+tma_facs_7620	Epithelial cell
+tma_facs_3495	Cardiac Muscle
+tma_facs_2334	B cell
+tma_facs_5882	Endothelial cell
+tma_facs_1447	B cell
+tma_facs_7574	Epithelial cell
+tma_facs_296	B cell
+tma_facs_18853	T cell
+tma_facs_706	B cell
+tma_facs_18172	Stromal cell
+tma_facs_2621	B cell
+tma_facs_16422	Stromal cell
+tma_facs_6472	Endothelial cell
+tma_facs_9638	Epithelial cell
+tma_facs_643	B cell
+tma_facs_9391	Epithelial cell
+tma_facs_1627	B cell
+tma_facs_3289	B cell
+tma_facs_13246	Epidermis
+tma_facs_577	B cell
+tma_facs_8527	Epithelial cell
+tma_facs_10498	Epithelial cell
+tma_facs_11306	Granulocyte
+tma_facs_5387	Endothelial cell
+tma_facs_464	B cell
+tma_facs_9188	Epithelial cell
+tma_facs_14632	Monocyte
+tma_facs_2799	B cell
+tma_facs_6348	Endothelial cell
+tma_facs_16509	Stromal cell
+tma_facs_125	B cell
+tma_facs_8332	Epithelial cell
+tma_facs_1000	B cell
+tma_facs_7810	Epithelial cell
+tma_facs_20354	T cell
+tma_facs_19233	T cell
+tma_facs_2156	B cell
+tma_facs_14214	Monocyte
+tma_facs_17747	Stromal cell
+tma_facs_7379	Endothelial cell
+tma_facs_1378	B cell
+tma_facs_17998	Stromal cell
+tma_facs_2712	B cell
+tma_facs_10230	Epithelial cell
+tma_facs_7073	Endothelial cell
+tma_facs_12607	Epidermis
+tma_facs_5897	Endothelial cell
+tma_facs_4901	Endothelial cell
+tma_facs_18775	Stromal cell
+tma_facs_16499	Stromal cell
+tma_facs_444	B cell
+tma_facs_1048	B cell
+tma_facs_12061	Epidermis
+tma_facs_13852	Epidermis
+tma_facs_11431	Granulocyte
+tma_facs_16825	Stromal cell
+tma_facs_10263	Epithelial cell
+tma_facs_18054	Stromal cell
+tma_facs_20828	T cell
+tma_facs_3653	Endothelial cell
+tma_facs_6279	Endothelial cell
+tma_facs_10286	Epithelial cell
+tma_facs_8149	Epithelial cell
+tma_facs_6595	Endothelial cell
+tma_facs_17112	Stromal cell
+tma_facs_20160	T cell
+tma_facs_539	B cell
+tma_facs_10382	Epithelial cell
+tma_facs_1732	B cell
+tma_facs_12680	Epidermis
+tma_facs_2091	B cell
+tma_facs_3742	Endothelial cell
+tma_facs_3969	Endothelial cell
+tma_facs_19350	T cell
+tma_facs_10220	Epithelial cell
+tma_facs_2087	B cell
+tma_facs_20916	T cell
+tma_facs_17434	Stromal cell
+tma_facs_18408	Stromal cell
+tma_facs_2903	B cell
+tma_facs_11651	Granulocyte
+tma_facs_12981	Epidermis
+tma_facs_1741	B cell
+tma_facs_4282	Endothelial cell
+tma_facs_18098	Stromal cell
+tma_facs_258	B cell
+tma_facs_13952	Epidermis
+tma_facs_11872	Hepatocyte
+tma_facs_4653	Endothelial cell
+tma_facs_11188	Granulocyte
+tma_facs_7053	Endothelial cell
+tma_facs_14219	Monocyte
+tma_facs_10651	Epithelial cell
+tma_facs_19759	T cell
+tma_facs_10591	Epithelial cell
+tma_facs_6649	Endothelial cell
+tma_facs_20407	T cell
+tma_facs_8362	Epithelial cell
+tma_facs_9977	Epithelial cell
+tma_facs_1553	B cell
+tma_facs_7507	Epithelial cell
+tma_facs_9825	Epithelial cell
+tma_facs_6542	Endothelial cell
+tma_facs_14128	Monocyte
+tma_facs_20413	T cell
+tma_facs_11220	Granulocyte
+tma_facs_3481	Cardiac Muscle
+tma_facs_17694	Stromal cell
+tma_facs_412	B cell
+tma_facs_8178	Epithelial cell
+tma_facs_9597	Epithelial cell
+tma_facs_19652	T cell
+tma_facs_13598	Epidermis
+tma_facs_13105	Epidermis
+tma_facs_19469	T cell
+tma_facs_16241	Stromal cell
+tma_facs_18239	Stromal cell
+tma_facs_5531	Endothelial cell
+tma_facs_17656	Stromal cell
+tma_facs_11841	Hepatocyte
+tma_facs_1109	B cell
+tma_facs_6665	Endothelial cell
+tma_facs_19047	T cell
+tma_facs_1232	B cell
+tma_facs_15557	Monocyte
+tma_facs_15942	NK cell
+tma_facs_19581	T cell
+tma_facs_16143	Stromal cell
+tma_facs_16938	Stromal cell
+tma_facs_14258	Monocyte
+tma_facs_9494	Epithelial cell
+tma_facs_6124	Endothelial cell
+tma_facs_20268	T cell
+tma_facs_14898	Monocyte
+tma_facs_3698	Endothelial cell
+tma_facs_5941	Endothelial cell
+tma_facs_12968	Epidermis
+tma_facs_18101	Stromal cell
+tma_facs_17601	Stromal cell
+tma_facs_10311	Epithelial cell
+tma_facs_16889	Stromal cell
+tma_facs_3002	B cell
+tma_facs_6964	Endothelial cell
+tma_facs_18197	Stromal cell
+tma_facs_8403	Epithelial cell
+tma_facs_275	B cell
+tma_facs_11322	Granulocyte
+tma_facs_8642	Epithelial cell
+tma_facs_2242	B cell
+tma_facs_7274	Endothelial cell
+tma_facs_10597	Epithelial cell
+tma_facs_10580	Epithelial cell
+tma_facs_12743	Epidermis
+tma_facs_20322	T cell
+tma_facs_4075	Endothelial cell
+tma_facs_9614	Epithelial cell
+tma_facs_12667	Epidermis
+tma_facs_14448	Monocyte
+tma_facs_8747	Epithelial cell
+tma_facs_13730	Epidermis
+tma_facs_8551	Epithelial cell
+tma_facs_7422	Endothelial cell
+tma_facs_13847	Epidermis
+tma_facs_13369	Epidermis
+tma_facs_17726	Stromal cell
+tma_facs_16093	Stromal cell
+tma_facs_6300	Endothelial cell
+tma_facs_13534	Epidermis
+tma_facs_18809	T cell
+tma_facs_5363	Endothelial cell
+tma_facs_10153	Epithelial cell
+tma_facs_3070	B cell
+tma_facs_10081	Epithelial cell
+tma_facs_15249	Monocyte
+tma_facs_11814	Hepatocyte
+tma_facs_9194	Epithelial cell
+tma_facs_1236	B cell
+tma_facs_15196	Monocyte
+tma_facs_11074	Granulocyte
+tma_facs_18943	T cell
+tma_facs_19267	T cell
+tma_facs_9235	Epithelial cell
+tma_facs_11119	Granulocyte
+tma_facs_16633	Stromal cell
+tma_facs_20893	T cell
+tma_facs_4966	Endothelial cell
+tma_facs_1002	B cell
+tma_facs_2884	B cell
+tma_facs_10601	Epithelial cell
+tma_facs_18880	T cell
+tma_facs_2481	B cell
+tma_facs_9113	Epithelial cell
+tma_facs_18915	T cell
+tma_facs_1733	B cell
+tma_facs_11468	Granulocyte
+tma_facs_7838	Epithelial cell
+tma_facs_5482	Endothelial cell
+tma_facs_18582	Stromal cell
+tma_facs_171	B cell
+tma_facs_8514	Epithelial cell
+tma_facs_2882	B cell
+tma_facs_1412	B cell
+tma_facs_16755	Stromal cell
+tma_facs_12925	Epidermis
+tma_facs_14235	Monocyte
+tma_facs_6161	Endothelial cell
+tma_facs_7598	Epithelial cell
+tma_facs_18503	Stromal cell
+tma_facs_18279	Stromal cell
+tma_facs_888	B cell
+tma_facs_5219	Endothelial cell
+tma_facs_3627	Endothelial cell
+tma_facs_10268	Epithelial cell
+tma_facs_7709	Epithelial cell
+tma_facs_14509	Monocyte
+tma_facs_7560	Epithelial cell
+tma_facs_19547	T cell
+tma_facs_12603	Epidermis
+tma_facs_6777	Endothelial cell
+tma_facs_1836	B cell
+tma_facs_7725	Epithelial cell
+tma_facs_18750	Stromal cell
+tma_facs_8939	Epithelial cell
+tma_facs_15888	NK cell
+tma_facs_4034	Endothelial cell
+tma_facs_16340	Stromal cell
+tma_facs_19661	T cell
+tma_facs_18373	Stromal cell
+tma_facs_5012	Endothelial cell
+tma_facs_15941	NK cell
+tma_facs_5198	Endothelial cell
+tma_facs_12546	Epidermis
+tma_facs_19333	T cell
+tma_facs_2811	B cell
+tma_facs_16085	Stromal cell
+tma_facs_10953	Granulocyte
+tma_facs_14903	Monocyte
+tma_facs_18592	Stromal cell
+tma_facs_11589	Granulocyte
+tma_facs_10471	Epithelial cell
+tma_facs_7663	Epithelial cell
+tma_facs_10176	Epithelial cell
+tma_facs_4751	Endothelial cell
+tma_facs_7301	Endothelial cell
+tma_facs_12110	Epidermis
+tma_facs_20935	T cell
+tma_facs_9895	Epithelial cell
+tma_facs_215	B cell
+tma_facs_12849	Epidermis
+tma_facs_369	B cell
+tma_facs_8760	Epithelial cell
+tma_facs_16538	Stromal cell
+tma_facs_6429	Endothelial cell
+tma_facs_19027	T cell
+tma_facs_16322	Stromal cell
+tma_facs_6898	Endothelial cell
+tma_facs_18766	Stromal cell
+tma_facs_8380	Epithelial cell
+tma_facs_5134	Endothelial cell
+tma_facs_1867	B cell
+tma_facs_17524	Stromal cell
+tma_facs_19313	T cell
+tma_facs_16419	Stromal cell
+tma_facs_17304	Stromal cell
+tma_facs_12197	Epidermis
+tma_facs_13467	Epidermis
+tma_facs_18826	T cell
+tma_facs_8822	Epithelial cell
+tma_facs_20584	T cell
+tma_facs_8727	Epithelial cell
+tma_facs_7221	Endothelial cell
+tma_facs_17471	Stromal cell
+tma_facs_8363	Epithelial cell
+tma_facs_5614	Endothelial cell
+tma_facs_2286	B cell
+tma_facs_322	B cell
+tma_facs_6978	Endothelial cell
+tma_facs_18831	T cell
+tma_facs_15960	NK cell
+tma_facs_174	B cell
+tma_facs_1193	B cell
+tma_facs_2684	B cell
+tma_facs_2461	B cell
+tma_facs_5493	Endothelial cell
+tma_facs_19908	T cell
+tma_facs_15912	NK cell
+tma_facs_5008	Endothelial cell
+tma_facs_5690	Endothelial cell
+tma_facs_15103	Monocyte
+tma_facs_13033	Epidermis
+tma_facs_3947	Endothelial cell
+tma_facs_7386	Endothelial cell
+tma_facs_17456	Stromal cell
+tma_facs_632	B cell
+tma_facs_18473	Stromal cell
+tma_facs_10847	Erythrocyte
+tma_facs_3432	B cell
+tma_facs_7939	Epithelial cell
+tma_facs_8803	Epithelial cell
+tma_facs_11623	Granulocyte
+tma_facs_17531	Stromal cell
+tma_facs_16792	Stromal cell
+tma_facs_18773	Stromal cell
+tma_facs_19423	T cell
+tma_facs_13039	Epidermis
+tma_facs_579	B cell
+tma_facs_19439	T cell
+tma_facs_6761	Endothelial cell
+tma_facs_7622	Epithelial cell
+tma_facs_4650	Endothelial cell
+tma_facs_7779	Epithelial cell
+tma_facs_18947	T cell
+tma_facs_6164	Endothelial cell
+tma_facs_16878	Stromal cell
+tma_facs_808	B cell
+tma_facs_760	B cell
+tma_facs_18687	Stromal cell
+tma_facs_5021	Endothelial cell
+tma_facs_7395	Endothelial cell
+tma_facs_6808	Endothelial cell
+tma_facs_1713	B cell
+tma_facs_13538	Epidermis
+tma_facs_18979	T cell
+tma_facs_13720	Epidermis
+tma_facs_18822	T cell
+tma_facs_19961	T cell
+tma_facs_5568	Endothelial cell
+tma_facs_12016	Hepatocyte
+tma_facs_14580	Monocyte
+tma_facs_6382	Endothelial cell
+tma_facs_14628	Monocyte
+tma_facs_8858	Epithelial cell
+tma_facs_10360	Epithelial cell
+tma_facs_12467	Epidermis
+tma_facs_5159	Endothelial cell
+tma_facs_6356	Endothelial cell
+tma_facs_9428	Epithelial cell
+tma_facs_3570	Endothelial cell
+tma_facs_12819	Epidermis
+tma_facs_18487	Stromal cell
+tma_facs_10681	Epithelial cell
+tma_facs_17782	Stromal cell
+tma_facs_372	B cell
+tma_facs_5206	Endothelial cell
+tma_facs_8375	Epithelial cell
+tma_facs_4281	Endothelial cell
+tma_facs_13101	Epidermis
+tma_facs_16303	Stromal cell
+tma_facs_3622	Endothelial cell
+tma_facs_6291	Endothelial cell
+tma_facs_15286	Monocyte
+tma_facs_14228	Monocyte
+tma_facs_2645	B cell
+tma_facs_333	B cell
+tma_facs_15501	Monocyte
+tma_facs_7672	Epithelial cell
+tma_facs_20400	T cell
+tma_facs_5377	Endothelial cell
+tma_facs_7019	Endothelial cell
+tma_facs_17982	Stromal cell
+tma_facs_512	B cell
+tma_facs_20287	T cell
+tma_facs_14911	Monocyte
+tma_facs_2309	B cell
+tma_facs_13207	Epidermis
+tma_facs_14185	Monocyte
+tma_facs_1331	B cell
+tma_facs_12650	Epidermis
+tma_facs_5023	Endothelial cell
+tma_facs_529	B cell
+tma_facs_14748	Monocyte
+tma_facs_20042	T cell
+tma_facs_3133	B cell
+tma_facs_11464	Granulocyte
+tma_facs_14344	Monocyte
+tma_facs_16226	Stromal cell
+tma_facs_344	B cell
+tma_facs_17170	Stromal cell
+tma_facs_20395	T cell
+tma_facs_7803	Epithelial cell
+tma_facs_6947	Endothelial cell
+tma_facs_3799	Endothelial cell
+tma_facs_4954	Endothelial cell
+tma_facs_10418	Epithelial cell
+tma_facs_20177	T cell
+tma_facs_5881	Endothelial cell
+tma_facs_13301	Epidermis
+tma_facs_4351	Endothelial cell
+tma_facs_6833	Endothelial cell
+tma_facs_10621	Epithelial cell
+tma_facs_1715	B cell
+tma_facs_1335	B cell
+tma_facs_14921	Monocyte
+tma_facs_1004	B cell
+tma_facs_16468	Stromal cell
+tma_facs_16996	Stromal cell
+tma_facs_13234	Epidermis
+tma_facs_18669	Stromal cell
+tma_facs_18258	Stromal cell
+tma_facs_7875	Epithelial cell
+tma_facs_9734	Epithelial cell
+tma_facs_19336	T cell
+tma_facs_3524	Cardiac Muscle
+tma_facs_18356	Stromal cell
+tma_facs_7528	Epithelial cell
+tma_facs_13012	Epidermis
+tma_facs_782	B cell
+tma_facs_14246	Monocyte
+tma_facs_14797	Monocyte
+tma_facs_26	B cell
+tma_facs_9446	Epithelial cell
+tma_facs_10463	Epithelial cell
+tma_facs_12473	Epidermis
+tma_facs_17445	Stromal cell
+tma_facs_19784	T cell
+tma_facs_13090	Epidermis
+tma_facs_12229	Epidermis
+tma_facs_8231	Epithelial cell
+tma_facs_14223	Monocyte
+tma_facs_14033	Epidermis
+tma_facs_9989	Epithelial cell
+tma_facs_17544	Stromal cell
+tma_facs_10467	Epithelial cell
+tma_facs_1269	B cell
+tma_facs_14885	Monocyte
+tma_facs_3324	B cell
+tma_facs_860	B cell
+tma_facs_19191	T cell
+tma_facs_1072	B cell
+tma_facs_6823	Endothelial cell
+tma_facs_13027	Epidermis
+tma_facs_11662	Granulocyte
+tma_facs_6550	Endothelial cell
+tma_facs_719	B cell
+tma_facs_4429	Endothelial cell
+tma_facs_15478	Monocyte
+tma_facs_462	B cell
+tma_facs_6306	Endothelial cell
+tma_facs_12942	Epidermis
+tma_facs_18169	Stromal cell
+tma_facs_12244	Epidermis
+tma_facs_5407	Endothelial cell
+tma_facs_2005	B cell
+tma_facs_6207	Endothelial cell
+tma_facs_10019	Epithelial cell
+tma_facs_8402	Epithelial cell
+tma_facs_18313	Stromal cell
+tma_facs_19105	T cell
+tma_facs_16514	Stromal cell
+tma_facs_10542	Epithelial cell
+tma_facs_14296	Monocyte
+tma_facs_7942	Epithelial cell
+tma_facs_6115	Endothelial cell
+tma_facs_19390	T cell
+tma_facs_5970	Endothelial cell
+tma_facs_6119	Endothelial cell
+tma_facs_9999	Epithelial cell
+tma_facs_5182	Endothelial cell
+tma_facs_19106	T cell
+tma_facs_11386	Granulocyte
+tma_facs_14006	Epidermis
+tma_facs_7477	Epithelial cell
+tma_facs_15352	Monocyte
+tma_facs_1314	B cell
+tma_facs_2172	B cell
+tma_facs_1625	B cell
+tma_facs_12420	Epidermis
