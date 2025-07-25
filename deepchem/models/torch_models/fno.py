@@ -235,7 +235,7 @@ class FNO(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         if x.ndim != self.dims + 2:
             raise ValueError(
-                f"Expected tensor with {self.dims + 2} dims (batch, *spatial_dims, in_channels), got {x.ndim}"
+                f"Expected tensor with {self.dims + 2} dims (batch, channels/features, *spatial_dims), got {x.ndim}"
             )
 
         x = self._ensure_channel_first(x)
@@ -249,7 +249,7 @@ class FNO(nn.Module):
                 self.input_normalizer.to(x.device)
             x = self.input_normalizer.transform(x)
 
-        # Reshape for lifting layer: (batch, *spatial, channels) -> (batch * spatial, channels)
+        # Lifting: permute to channels-last, apply lifting, permute back
         x = x.permute(0, *range(2, x.ndim), 1).contiguous()
         x = self.lifting(x)
 
@@ -258,25 +258,21 @@ class FNO(nn.Module):
         x = x.permute(*perm_back).contiguous()
         x = self.fno_blocks(x)
 
-        # Reshape for projection layer: (batch, *spatial, channels) -> (batch * spatial, channels)
+        # Projection: permute to channels-last, apply projection
         x = x.permute(0, *range(2, x.ndim), 1).contiguous()
         x = self.projection(x)
 
-        if self.normalize_output and self.output_normalizer and self.output_normalizer.fitted:
+        # Always permute to channels-first for consistency
+        x = x.permute(0, -1, *range(1, x.ndim - 1)).contiguous()
+
+        # During inference, apply denormalization if output normalization was used during training
+        if not self.training and self.normalize_output and self.output_normalizer and self.output_normalizer.fitted:
             if self.output_normalizer.mean is not None and self.output_normalizer.mean.device != x.device:
                 self.output_normalizer.to(x.device)
+            # The model learned to produce normalized outputs, so denormalize for inference
+            x = self.output_normalizer.inverse_transform(x)
 
-            # Permute to channels-first for normalization
-            x = x.permute(0, -1, *range(1, x.ndim - 1)).contiguous()
-
-            if not self.training:
-                # During inference, denormalize the model output to original scale
-                x = self.output_normalizer.inverse_transform(x)
-            # During training, keep the model output as-is (it should be in normalized space)
-        else:
-            # Permute to channels-first for label compatibility if not normalizing
-            x = x.permute(0, -1, *range(1, x.ndim - 1)).contiguous()
-
+        # During training, keep the model output as-is (it should be in normalized space)
         return x
 
     def state_dict(self):
