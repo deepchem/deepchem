@@ -461,3 +461,4 @@ class LSTMGenerator(TorchModel):
                                                      temperature=temperature)
             results.append(generated_sequence)
         return results
+ 
