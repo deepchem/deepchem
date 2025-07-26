@@ -141,6 +141,8 @@ class LSTMGenerator(TorchModel):
             Directory to save the model files.
         device: torch.device, default None
             Device to use for training the model.
+        allow_custom_init_texts: bool, default False
+            Whether to allow the generator to generate with initial text tokens.
         """
 
         self.tokenizer = BertTokenizer.from_pretrained(
@@ -410,6 +412,8 @@ class LSTMGenerator(TorchModel):
             Maximum length of the generated sequence.
         temperature: float, default 1.0
             Temperature to use for sampling.
+        init_texts: str, optional
+            Initial text to start the generation with. If None, starts with the CLS token.
 
         Returns
         -------
@@ -460,6 +464,8 @@ class LSTMGenerator(TorchModel):
             Maximum length of the generated sequence.
         temperature: float, default 1.0
             Temperature to use for sampling.
+        init_texts: str | None, optional
+            Initial text to start the generation with. If None, starts with the CLS token.
         Returns
         -------
         List[str]
