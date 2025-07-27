@@ -423,7 +423,7 @@ class LSTMGenerator(TorchModel):
         generated_sequence: list = [self.tokenizer.cls_token_id]
         if init_texts:
             assert self.allow_custom_init_texts is True, "You need to allow the generator to generate with initial text tokens while initializing the class"
-            tokens = self.tokenizer.encode(list(init_texts)
+            tokens = self.tokenizer.encode(list(init_texts),
                                            add_special_tokens=False)
             generated_sequence.extend(tokens)
         # print("Generated sequence: ", generated_sequence)
