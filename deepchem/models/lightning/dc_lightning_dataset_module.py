@@ -100,7 +100,7 @@ class DCLightningDatasetModule(L.LightningDataModule):
             self.collate_fn = collate_fn
             self.DDP_ONLY_WORKFLOW = True
             logger.warning(
-                "Using deprecated workflow. Please provide the respective deepchem model to use the new workflow, this will be removed in future versions."
+                "Using DDP-only compatible workflow. Please provide the respective deepchem model to use the new workflow, that is compatible with both FSDP and DDP."
             )
         else:
             self._dataset = dc.data._TorchIndexDiskDataset(
