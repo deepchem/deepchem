@@ -78,6 +78,7 @@ class DCLightningModule(L.LightningModule):
         self.save_hyperparameters(ignore=['dc_model'])
         self.dc_model = dc_model
         self.pt_model = dc_model.model
+        self.loss = dc_model._loss_fn
         self.loss_mod = dc_model.loss
         self.optimizer = dc_model.optimizer
         self.output_types = dc_model.output_types
@@ -85,7 +86,6 @@ class DCLightningModule(L.LightningModule):
         self._loss_outputs = dc_model._loss_outputs
         self._variance_outputs = dc_model._variance_outputs
         self._other_outputs = dc_model._other_outputs
-        self._loss_fn = dc_model._loss_fn
         self.uncertainty = getattr(dc_model, 'uncertainty', False)
         self.learning_rate = dc_model.learning_rate
         self._transformers: List[Transformer] = []
@@ -143,11 +143,11 @@ class DCLightningModule(L.LightningModule):
 
             if self.dc_model._loss_outputs is not None:
                 outputs = [outputs[i] for i in self.dc_model._loss_outputs]
-            loss = self._loss_fn(outputs, labels, weights)
+            loss = self.loss(outputs, labels, weights)
 
         self.log(
             "train_loss",
-            loss.item(),
+            loss,
             on_epoch=True,
             sync_dist=True,
             reduce_fx="mean",
@@ -161,6 +161,9 @@ class DCLightningModule(L.LightningModule):
         """Perform a prediction step with optional support for uncertainty estimates and data transformations.
 
         This method was copied from TorchModel._predict and adapted for Lightning's predict_step interface.
+
+        Changes include:
+        - removed the `self.dc_model._prepare_batch` call since `batch` is already prepared.
 
         Parameters
         ----------
