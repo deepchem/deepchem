@@ -733,3 +733,8 @@ DistributedTrainer
 
 .. autoclass:: deepchem.trainer.DistributedTrainer
   :members:
+
+ChemCeption
+----------------
+.. autoclass:: deepchem.models.torch_models.ChemCeption.ChemCeption
+  :members:
