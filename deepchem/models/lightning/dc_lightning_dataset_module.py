@@ -105,6 +105,9 @@ class DCLightningDatasetModule(L.LightningDataModule):
         else:
             self._dataset = dc.data._TorchIndexDiskDataset(
                 dataset)  # type: ignore[arg-type]
+
+            # Since the model argument is provided, we assume that the user wants to use the FSDP-DDP compatible workflow, and hence replace the default generator-based collate function (collate_dataset_wrapper)
+            # with one that uses an indexable collate function (collate_dataset_fn).
             if collate_fn == collate_dataset_wrapper:
                 collate_fn = collate_dataset_fn
             self.collate_fn = lambda batch: collate_fn(batch_data=batch,
@@ -133,7 +136,8 @@ class DCLightningDatasetModule(L.LightningDataModule):
         DataLoader
             train dataloader to be used with DCLightningModule.
         """
-        # In the newer workflow, batching is handles by DataLoader.
+        # In the fsdp-ddp compatible workflow, batching and shuffling is handled by torch.utils.data.DataLoader.
+        # In the DDP-only workflow, we set batch_size to None and shuffle to False, since both are handled by the _TorchDiskDataset(deepchem's iterative pytorch datalaoder).
         if self.DDP_ONLY_WORKFLOW:
             batch_size = None
             shuffle = False
@@ -168,7 +172,6 @@ class DCLightningDatasetModule(L.LightningDataModule):
             batch_size=batch_size,
             collate_fn=self.collate_fn,
             shuffle=False,  # Critical: never shuffle during prediction
-            num_workers=self.num_workers,
-            drop_last=True)
+            num_workers=self.num_workers)
 
         return dataloader
