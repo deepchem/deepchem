@@ -338,6 +338,11 @@ def load_sdf_files(input_files: List[str],
                     raw_df.reset_index(drop=True)
                 ],
                                             axis=1)
+                if any(concatenated_df[raw_df.columns].isna().any(axis=1)):
+                    logger.warning(
+                        "NaNs detected in the tasks/labels. This error may occur"
+                        " if tasks/label values are missing in the task csv file for"
+                        " one or more corresponding molecules in SDF file")
                 concatenated_df = concatenated_df.dropna(
                     subset=['mol'])  # remove invalid mols
                 yield concatenated_df
