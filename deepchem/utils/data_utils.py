@@ -251,7 +251,7 @@ def load_sdf_files(input_files: List[str],
     except ModuleNotFoundError:
         raise ImportError("This function requires RDKit to be installed.")
 
-    df_rows = []
+    df_rows: Any = []
     for input_file in input_files:
         # Tasks are either in .sdf.csv file or in the .sdf file itself for QM9 dataset
         has_csv = os.path.isfile(input_file + ".csv")
