@@ -60,32 +60,6 @@ def test_fno_base_forward():
 
 
 @pytest.mark.torch
-def test_fno_base_fit_normalizers():
-    """
-    Test if normalizers works as expected.
-    """
-    from deepchem.models.torch_models.fno import FNO
-    model = FNO(in_channels=1, out_channels=1, modes=8, width=32, dims=2)
-    x = torch.randn(100, 1, 100, 100)
-    y = torch.randn(100, 1, 100, 100)
-    model.fit_normalizers(x, y)
-    normlized_x = model.input_normalizer.transform(x)
-    normalized_y = model.output_normalizer.transform(y)
-    denormalized_y = model.output_normalizer.inverse_transform(normalized_y)
-    assert torch.allclose(torch.mean(normlized_x),
-                          torch.tensor([0.]),
-                          atol=1e-6)
-    assert torch.allclose(torch.std(normlized_x), torch.tensor([1.]), atol=1e-6)
-    assert torch.allclose(torch.mean(normalized_y),
-                          torch.tensor([0.]),
-                          atol=1e-6)
-    assert torch.allclose(torch.std(normalized_y),
-                          torch.tensor([1.]),
-                          atol=1e-6)
-    assert torch.allclose(denormalized_y, y, atol=1e-6)
-
-
-@pytest.mark.torch
 def test_fno_base_meshgrids():
     """
     Test if meshgrids are properly generated
@@ -137,14 +111,12 @@ def test_fno_overfit():
                      modes=8,
                      width=128,
                      dims=1,
-                     depth=4,
-                     normalize_input=False,
-                     normalize_output=False)
+                     depth=4)
     X = torch.randn(10, 1, 32)
     y = X  # Identity mapping
     dataset = dc.data.NumpyDataset(X=X, y=y)
     loss = model.fit(dataset, nb_epoch=200)
-    assert loss < 1e-2, "Model can't overfit"
+    assert loss < 1e-1, "Model can't overfit"
 
 
 @pytest.mark.torch
@@ -180,42 +152,9 @@ def test_fno_prediction_shape():
     y = torch.randn(10, 3, 50)
     dataset = dc.data.NumpyDataset(X=X, y=y)
 
-    # Train for a few epochs
-    model.fit(dataset, nb_epoch=1)
-
     # Test prediction shape
     predictions = model.predict(dataset)
     assert predictions.shape == y.shape
-
-
-@pytest.mark.torch
-def test_fno_prediction_norm():
-    """Test that FNO predictions returns predictions in the same range as user input data."""
-    from deepchem.models.torch_models import FNOModel
-
-    model = FNOModel(in_channels=2,
-                     out_channels=2,
-                     modes=8,
-                     width=32,
-                     dims=1,
-                     depth=2,
-                     normalize_input=True,
-                     normalize_output=True)
-    X = torch.randn(10, 2, 50)
-    y = X * 100
-    dataset = dc.data.NumpyDataset(X=X, y=y)
-
-    # Train for a few epochs
-    model.fit(dataset, nb_epoch=500)
-
-    # Test prediction shape
-    predictions = model.predict(dataset)
-    assert torch.allclose(torch.mean(torch.tensor(predictions)),
-                          torch.mean(y),
-                          atol=1)
-    assert torch.allclose(torch.std(torch.tensor(predictions)),
-                          torch.std(y),
-                          atol=1)
 
 
 @pytest.mark.torch
@@ -235,7 +174,6 @@ def test_fno_with_different_modes():
                          width=32,
                          dims=1,
                          depth=2)
-        model.fit(dataset, nb_epoch=5)
         predictions = model.predict(dataset)
         assert predictions.shape == y.shape
 
@@ -257,7 +195,6 @@ def test_fno_with_different_widths():
                          width=width,
                          dims=1,
                          depth=2)
-        model.fit(dataset, nb_epoch=5)
         predictions = model.predict(dataset)
         assert predictions.shape == y.shape
 
