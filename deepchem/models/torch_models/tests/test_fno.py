@@ -59,32 +59,6 @@ def test_fno_base_forward():
 
 
 @pytest.mark.torch
-def test_fno_base_fit_normalizers():
-    """
-    Test if normalizers works as expected.
-    """
-    from deepchem.models.torch_models.fno import FNO
-    model = FNO(in_channels=1, out_channels=1, modes=8, width=32, dims=2)
-    x = torch.rand(100, 1, 100, 100)
-    y = torch.rand(100, 1, 100, 100)
-    model.fit_normalizers(x, y)
-    normlized_x = model.input_normalizer.transform(x)
-    normalized_y = model.output_normalizer.transform(y)
-    denormalized_y = model.output_normalizer.inverse_transform(normalized_y)
-    assert torch.allclose(torch.mean(normlized_x),
-                          torch.tensor([0.]),
-                          atol=1e-6)
-    assert torch.allclose(torch.std(normlized_x), torch.tensor([1.]), atol=1e-6)
-    assert torch.allclose(torch.mean(normalized_y),
-                          torch.tensor([0.]),
-                          atol=1e-6)
-    assert torch.allclose(torch.std(normalized_y),
-                          torch.tensor([1.]),
-                          atol=1e-6)
-    assert torch.allclose(denormalized_y, y, atol=1e-6)
-
-
-@pytest.mark.torch
 def test_fno_base_meshgrids():
     """
     Test if meshgrids are properly generated

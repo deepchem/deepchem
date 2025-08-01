@@ -2,8 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from deepchem.models.torch_models.layers import SpectralConv
-from typing import Union, Tuple, Optional, List
-from deepchem.utils.fno_utils import GaussianNormalizer
+from typing import Union, Tuple
 
 
 class FNOBlock(nn.Module):
@@ -119,10 +118,7 @@ class FNO(nn.Module):
                  width: int,
                  dims: int,
                  depth: int = 4,
-                 positional_encoding: bool = False,
-                 normalize_input: bool = True,
-                 normalize_output: bool = True,
-                 normalization_dims: Optional[List[int]] = None) -> None:
+                 positional_encoding: bool = False) -> None:
         """Initialize the FNO base model.
 
         Parameters
@@ -141,12 +137,6 @@ class FNO(nn.Module):
             Number of FNO blocks to stack
         positional_encoding: bool, default False
             When enabled, uses meshgrids as positional encodings. If custom positional encodings, must be set to False.
-        normalize_input: bool, default True
-            When enabled, normalizes input data
-        normalize_output: bool, default True
-            When enabled, normalizes output data
-        normalization_dims: List[int], optional
-            Dimensions to normalize over. If None, defaults to batch + spatial dimensions, preserving channels.
         """
         super().__init__()
         self.dims = dims
@@ -154,20 +144,6 @@ class FNO(nn.Module):
         self.out_channels = out_channels
         self.width = width
         self.positional_encoding = positional_encoding
-        self.normalize_input = normalize_input
-        self.normalize_output = normalize_output
-
-        # Default normalization dimensions: batch + spatial dimensions, preserve channels
-        # for channels-first format (batch, channels, *spatial_dims)
-        if normalization_dims is None:
-            self.normalization_dims = [0] + list(range(2, dims + 2))
-        else:
-            self.normalization_dims = normalization_dims
-
-        self.input_normalizer = GaussianNormalizer(
-            dim=self.normalization_dims) if normalize_input else None
-        self.output_normalizer = GaussianNormalizer(
-            dim=self.normalization_dims) if normalize_output else None
 
         self.lifting = nn.Sequential(nn.Linear(self.in_channels, 2 * width),
                                      nn.GELU(), nn.Linear(2 * width, width))
@@ -177,46 +153,6 @@ class FNO(nn.Module):
 
         self.projection = nn.Sequential(nn.Linear(width, 2 * width), nn.GELU(),
                                         nn.Linear(2 * width, out_channels))
-
-    def fit_normalizers(self,
-                        x_train: torch.Tensor,
-                        y_train: Optional[torch.Tensor] = None) -> None:
-        """
-        Fit normalizers on training data. Called by the fit method of the FNOModel class.
-
-        Parameters
-        ----------
-        x_train: torch.Tensor
-            Training input data
-        y_train: torch.Tensor, optional
-            Training output data. If None, only input data is normalized.
-
-        Returns
-        -------
-        None
-        """
-        if self.normalize_input and self.input_normalizer:
-            self.input_normalizer.fit(x_train)
-        if self.normalize_output and self.output_normalizer and y_train is not None:
-            self.output_normalizer.fit(y_train)
-
-    def set_normalizers_device(self, device: torch.device) -> None:
-        """
-        Move normalizers to specified device. Called by the fit method of the FNOModel class.
-
-        Parameters
-        ----------
-        device: torch.device
-            Device to move normalizers to
-
-        Returns
-        -------
-        None
-        """
-        if self.input_normalizer:
-            self.input_normalizer.to(device)
-        if self.output_normalizer:
-            self.output_normalizer.to(device)
 
     def _ensure_channel_first(self, x: torch.Tensor) -> torch.Tensor:
         """Ensure input tensor has channels in the correct position.
@@ -277,11 +213,6 @@ class FNO(nn.Module):
             grid = self._generate_meshgrid(x)
             x = torch.cat([x, grid], dim=1)
 
-        if self.normalize_input and self.input_normalizer and self.input_normalizer.fitted:
-            if self.input_normalizer.mean is not None and self.input_normalizer.mean.device != x.device:
-                self.input_normalizer.to(x.device)
-            x = self.input_normalizer.transform(x)
-
         # Reshape for lifting layer: (batch, *spatial, channels) -> (batch * spatial, channels)
         x = x.permute(0, *range(2, x.ndim), 1).contiguous()
         x = self.lifting(x)
@@ -295,19 +226,7 @@ class FNO(nn.Module):
         x = x.permute(0, *range(2, x.ndim), 1).contiguous()
         x = self.projection(x)
 
-        if self.normalize_output and self.output_normalizer and self.output_normalizer.fitted:
-            if self.output_normalizer.mean is not None and self.output_normalizer.mean.device != x.device:
-                self.output_normalizer.to(x.device)
-
-            # Permute to channels-first for normalization
-            x = x.permute(0, -1, *range(1, x.ndim - 1)).contiguous()
-
-            if not self.training:
-                # During inference, denormalize the model output to original scale
-                x = self.output_normalizer.inverse_transform(x)
-            # During training, keep the model output as-is (it should be in normalized space)
-        else:
-            # Permute to channels-first for label compatibility if not normalizing
-            x = x.permute(0, -1, *range(1, x.ndim - 1)).contiguous()
+        # Permute to channels-first for output
+        x = x.permute(0, -1, *range(1, x.ndim - 1)).contiguous()
 
         return x
