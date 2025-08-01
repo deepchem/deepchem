@@ -2,9 +2,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from deepchem.models.torch_models.layers import SpectralConv
-from typing import Union, Tuple, Optional, List
-from deepchem.utils.fno_utils import GaussianNormalizer
 from deepchem.models.torch_models.torch_model import TorchModel
+from typing import Union, Tuple, Optional, List
 
 
 class FNOBlock(nn.Module):
@@ -120,11 +119,9 @@ class FNO(nn.Module):
                  width: int,
                  dims: int,
                  depth: int = 4,
-                 positional_encoding: bool = False,
-                 normalize_input: bool = True,
-                 normalize_output: bool = True,
-                 normalization_dims: Optional[List[int]] = None) -> None:
+                 positional_encoding: bool = False) -> None:
         """Initialize the FNO base model.
+
         Parameters
         ----------
         in_channels: int
@@ -141,87 +138,60 @@ class FNO(nn.Module):
             Number of FNO blocks to stack
         positional_encoding: bool, default False
             When enabled, uses meshgrids as positional encodings. If custom positional encodings, must be set to False.
-        normalize_input: bool, default True
-            When enabled, normalizes input data
-        normalize_output: bool, default True
-            When enabled, normalizes output data
-        normalization_dims: List[int], optional
-            Dimensions to normalize over. If None, defaults to batch + spatial dimensions, preserving channels.
         """
         super().__init__()
         self.dims = dims
         self.in_channels = in_channels + dims if positional_encoding else in_channels
         self.out_channels = out_channels
-        self.modes = modes
         self.width = width
-        self.dims = dims
-        self.depth = depth
         self.positional_encoding = positional_encoding
-        self.normalize_input = normalize_input
-        self.normalize_output = normalize_output
-
-        # Default normalization dimensions: batch + spatial dimensions, preserve channels
-        # for channels-first format (batch, channels, *spatial_dims)
-        if normalization_dims is None:
-            self.normalization_dims = [0] + list(range(2, dims + 2))
-        else:
-            self.normalization_dims = normalization_dims
-
-        self.input_normalizer = GaussianNormalizer(
-            dim=self.normalization_dims) if normalize_input else None
-        self.output_normalizer = GaussianNormalizer(
-            dim=self.normalization_dims) if normalize_output else None
 
         self.lifting = nn.Sequential(nn.Linear(self.in_channels, 2 * width),
                                      nn.GELU(), nn.Linear(2 * width, width))
 
-        self.fno_blocks = nn.Sequential(*[
-            FNOBlock(self.width, self.modes, dims=self.dims)
-            for _ in range(self.depth)
-        ])
+        self.fno_blocks = nn.Sequential(
+            *[FNOBlock(width, modes, dims=dims) for _ in range(depth)])
 
         self.projection = nn.Sequential(nn.Linear(width, 2 * width), nn.GELU(),
                                         nn.Linear(2 * width, out_channels))
 
-    def fit_normalizers(self,
-                        x_train: torch.Tensor,
-                        y_train: Optional[torch.Tensor] = None,
-                        device: Optional[torch.device] = None) -> None:
-        """Fit normalizers on training data. Called by the fit method of the FNOModel class."""
-        x_train = self._ensure_channel_first(x_train)
-        if y_train is not None:
-            y_train = self._ensure_channel_first(y_train, is_output=True)
+    def _ensure_channel_first(self, x: torch.Tensor) -> torch.Tensor:
+        """Ensure input tensor has channels in the correct position.
 
-        if self.normalize_input and self.input_normalizer:
-            self.input_normalizer.fit(x_train)
-            if device is not None:
-                self.input_normalizer.to(device)
-        if self.normalize_output and self.output_normalizer and y_train is not None:
-            self.output_normalizer.fit(y_train)
-            if device is not None:
-                self.output_normalizer.to(device)
+        Parameters
+        ----------
+        x: torch.Tensor
+            Input tensor
 
-    def _ensure_channel_first(self,
-                              x: torch.Tensor,
-                              is_output: bool = False) -> torch.Tensor:
-        """Ensure input tensor has channels in the correct position."""
-        if is_output:
-            ch = self.out_channels
-        else:
-            ch = self.in_channels - self.dims if self.positional_encoding else self.in_channels
-
-        if x.shape[-1] == ch:
+        Returns
+        -------
+        torch.Tensor
+            Input tensor with channels in the correct position
+        """
+        in_ch = self.in_channels - self.dims if self.positional_encoding else self.in_channels
+        if x.shape[-1] == in_ch:
             perm = (0, -1) + tuple(range(1, self.dims + 1))
             return x.permute(*perm).contiguous()
-        elif x.shape[1] == ch:
+        elif x.shape[1] == in_ch:
             return x
         else:
             raise ValueError(
-                f"Expected either (batch, {ch}, *spatial_dims) or "
-                f"(batch, *spatial_dims, {ch}), got {tuple(x.shape)}")
+                f"Expected either (batch, {in_ch}, *spatial_dims) or "
+                f"(batch, *spatial_dims, {in_ch}), got {tuple(x.shape)}")
 
     def _generate_meshgrid(self, x: torch.Tensor) -> torch.Tensor:
-        """Generate meshgrid of coordinates for positional encoding."""
+        """Generate meshgrid of coordinates for positional encoding.
+
+        Parameters
+        ----------
+        x: torch.Tensor
+            Input tensor
+
+        Returns
+        -------
+        torch.Tensor
+            Meshgrid of coordinates for positional encoding
+        """
         batch_size = x.shape[0]
         spatial = x.shape[2:]
         coords = [
@@ -235,7 +205,7 @@ class FNO(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         if x.ndim != self.dims + 2:
             raise ValueError(
-                f"Expected tensor with {self.dims + 2} dims (batch, channels/features, *spatial_dims), got {x.ndim}"
+                f"Expected tensor with {self.dims + 2} dims (batch, *spatial_dims, in_channels), got {x.ndim}"
             )
 
         x = self._ensure_channel_first(x)
@@ -244,12 +214,7 @@ class FNO(nn.Module):
             grid = self._generate_meshgrid(x)
             x = torch.cat([x, grid], dim=1)
 
-        if self.normalize_input and self.input_normalizer and self.input_normalizer.fitted:
-            if self.input_normalizer.mean is not None and self.input_normalizer.mean.device != x.device:
-                self.input_normalizer.to(x.device)
-            x = self.input_normalizer.transform(x)
-
-        # Lifting: permute to channels-last, apply lifting, permute back
+        # Reshape for lifting layer: (batch, *spatial, channels) -> (batch * spatial, channels)
         x = x.permute(0, *range(2, x.ndim), 1).contiguous()
         x = self.lifting(x)
 
@@ -258,62 +223,14 @@ class FNO(nn.Module):
         x = x.permute(*perm_back).contiguous()
         x = self.fno_blocks(x)
 
-        # Projection: permute to channels-last, apply projection
+        # Reshape for projection layer: (batch, *spatial, channels) -> (batch * spatial, channels)
         x = x.permute(0, *range(2, x.ndim), 1).contiguous()
         x = self.projection(x)
 
-        # Always permute to channels-first for consistency
+        # Permute to channels-first for output
         x = x.permute(0, -1, *range(1, x.ndim - 1)).contiguous()
 
-        # During inference, apply denormalization if output normalization was used during training
-        if not self.training and self.normalize_output and self.output_normalizer and self.output_normalizer.fitted:
-            if self.output_normalizer.mean is not None and self.output_normalizer.mean.device != x.device:
-                self.output_normalizer.to(x.device)
-            # The model learned to produce normalized outputs, so denormalize for inference
-            x = self.output_normalizer.inverse_transform(x)
-
-        # During training, keep the model output as-is (it should be in normalized space)
         return x
-
-    def state_dict(self):
-        """Override state_dict to include normalizer statistics."""
-        state = super().state_dict()
-
-        if self.input_normalizer:
-            state['input_normalizer_mean'] = self.input_normalizer.mean
-            state['input_normalizer_std'] = self.input_normalizer.std
-            state['input_normalizer_fitted'] = self.input_normalizer.fitted
-
-        if self.output_normalizer:
-            state['output_normalizer_mean'] = self.output_normalizer.mean
-            state['output_normalizer_std'] = self.output_normalizer.std
-            state['output_normalizer_fitted'] = self.output_normalizer.fitted
-
-        return state
-
-    def load_state_dict(self, state_dict, strict=True):
-        """Override load_state_dict to restore normalizer statistics."""
-        input_normalizer_mean = state_dict.pop('input_normalizer_mean', None)
-        input_normalizer_std = state_dict.pop('input_normalizer_std', None)
-        input_normalizer_fitted = state_dict.pop('input_normalizer_fitted',
-                                                 False)
-
-        output_normalizer_mean = state_dict.pop('output_normalizer_mean', None)
-        output_normalizer_std = state_dict.pop('output_normalizer_std', None)
-        output_normalizer_fitted = state_dict.pop('output_normalizer_fitted',
-                                                  False)
-
-        super().load_state_dict(state_dict, strict)
-
-        if self.input_normalizer and input_normalizer_mean is not None:
-            self.input_normalizer.mean = input_normalizer_mean
-            self.input_normalizer.std = input_normalizer_std
-            self.input_normalizer.fitted = input_normalizer_fitted
-
-        if self.output_normalizer and output_normalizer_mean is not None:
-            self.output_normalizer.mean = output_normalizer_mean
-            self.output_normalizer.std = output_normalizer_std
-            self.output_normalizer.fitted = output_normalizer_fitted
 
 
 class FNOModel(TorchModel):
@@ -352,9 +269,6 @@ class FNOModel(TorchModel):
                  dims: int,
                  depth: int = 4,
                  positional_encoding: bool = False,
-                 normalize_input: bool = True,
-                 normalize_output: bool = True,
-                 normalization_dims: Optional[List[int]] = None,
                  **kwargs) -> None:
         """Initialize the FNO model.
         Parameters
@@ -374,43 +288,16 @@ class FNOModel(TorchModel):
             Number of FNO blocks to stack. More blocks can learn more complex mappings
         positional_encoding: bool, default False
             When enabled, uses meshgrids as positional encodings
-        normalize_input: bool, default True
-            When enabled, normalizes input data
-        normalize_output: bool, default True
-            When enabled, normalizes output data
-        normalization_dims: List[int], optional
-            Dimensions to normalize over. If None, defaults to batch + spatial dimensions, preserving channels.
         **kwargs: dict
             Additional arguments passed to TorchModel constructor
         """
 
         model = FNO(in_channels, out_channels, modes, width, dims, depth,
-                    positional_encoding, normalize_input, normalize_output,
-                    normalization_dims)
-
-        self._normalize_input = normalize_input
-        self._normalize_output = normalize_output
-        self._normalizers_fitted = False
+                    positional_encoding)
 
         super(FNOModel, self).__init__(model=model,
                                        loss=self._loss_fn,
                                        **kwargs)
-
-    def fit(self, dataset, nb_epoch=1, **kwargs):
-        """Fit the model with automatic normalizer fitting."""
-        if (self._normalize_input or
-                self._normalize_output) and not self._normalizers_fitted:
-            self._fit_normalizers_from_dataset(dataset)
-            self._normalizers_fitted = True
-
-        return super().fit(dataset, nb_epoch, **kwargs)
-
-    def _fit_normalizers_from_dataset(self, dataset):
-        """Extract data from dataset and fit normalizers."""
-
-        X_all = torch.tensor(dataset.X, dtype=torch.float32)
-        y_all = torch.tensor(dataset.y, dtype=torch.float32)
-        self.model.fit_normalizers(X_all, y_all, device=self.device)
 
     def _loss_fn(self,
                  outputs: List[torch.Tensor],
@@ -419,13 +306,5 @@ class FNOModel(TorchModel):
         """Compute the loss for training."""
         labels_tensor: torch.Tensor = labels[0]
         outputs_tensor: torch.Tensor = outputs[0]
-
-        if self._normalizers_fitted and self.model.output_normalizer is not None:
-            # Ensure labels are channels-first before transforming
-            labels_tensor = self.model._ensure_channel_first(labels_tensor,
-                                                             is_output=True)
-            labels_tensor = self.model.output_normalizer.transform(
-                labels_tensor)
-
         loss = nn.MSELoss()(outputs_tensor, labels_tensor)
         return loss
