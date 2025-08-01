@@ -128,8 +128,8 @@ class DCLightningModule(L.LightningModule):
         """
         if hasattr(batch, 'batch_list'):
             # If batch is a DCLightningDatasetBatch, extract the batch list.
-            batch = batch.batch_list  # type: ignore
-            inputs, labels, weights = self.dc_model._prepare_batch(batch)
+            batch_list = batch.batch_list  # type: ignore
+            inputs, labels, weights = self.dc_model._prepare_batch(batch_list)
         else:
             inputs, labels, weights = batch
 
