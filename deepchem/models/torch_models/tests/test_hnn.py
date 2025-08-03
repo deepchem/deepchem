@@ -125,16 +125,25 @@ def test_hnnmodel_overfit():
 @pytest.mark.skipif(not has_torch, reason="PyTorch is not installed")
 def test_mass_spring_energy_conservation():
     """
-        -> mass-spring equation
+        Test case of energy conservation in a simple mass-spring experiment
+        tested on a small dataset.
+
+        Mass-spring equation:
         H(q, p) = (p**2 / 2 * m) + (0.5 k * q**2)
 
-        -> the partial derivatives are
+        where:
+            'q' is position
+            'p' is momentum
+            'm' is mass constant
+            'k' is spring constant
+
+        Assuming m and k values as 1
+
+        The partial derivatives are:
         dq/dt -> ∂H/∂p = p/m
         dp/dt -> ∂H/∂q = -kq
 
-        -> assuming m and k values as 1
-
-        -> final values
+        Final values:
         dq/dt = p
         dp/dt = -q
 
