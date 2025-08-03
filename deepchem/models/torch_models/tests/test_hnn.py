@@ -150,7 +150,7 @@ def test_mass_spring_energy_conservation():
         [[0.0, -1.0], [-1.0, 0.0], [0.0, 1.0], [1.0, 0.0], [0.0, -1.0]],
         dtype=np.float32)
 
-    from hnn import HNNModel
+    from deepchem.models.torch_models import HNNModel
 
     dataset = dc.data.NumpyDataset(x_train, dx_train)
 
@@ -161,8 +161,6 @@ def test_mass_spring_energy_conservation():
                            dtype=np.float32)
 
     energies = model.predict_hamiltonian(test_points)
-    print(energies)
     energy_std = np.std(energies)
 
-    print(f"Energy conservation test - std: {energy_std:.4f}")
     assert energy_std < 0.1, f"Energy not conserved: std = {energy_std}"
