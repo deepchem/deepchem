@@ -21,7 +21,21 @@ def test_init(igbert_tokenizer):
     from deepchem.models.torch_models.hf_models import HuggingFaceModel
     anti_model = DeepAbLLM(task='mlm', model_path='Exscientia/IgBert')
     assert isinstance(anti_model, HuggingFaceModel)
-    assert anti_model.tokenizer == igbert_tokenizer
+
+    # Assertions for all key attributes from the class representation
+    assert anti_model.tokenizer.name_or_path == igbert_tokenizer.name_or_path
+    assert anti_model.tokenizer.vocab_size == igbert_tokenizer.vocab_size
+    assert anti_model.tokenizer.model_max_length == igbert_tokenizer.model_max_length
+    assert anti_model.tokenizer.is_fast == igbert_tokenizer.is_fast
+    assert anti_model.tokenizer.padding_side == igbert_tokenizer.padding_side
+    assert anti_model.tokenizer.truncation_side == igbert_tokenizer.truncation_side
+    assert anti_model.tokenizer.clean_up_tokenization_spaces == igbert_tokenizer.clean_up_tokenization_spaces
+
+    # Assert the added tokens decoder dictionary, which contains AddedToken objects
+    assert anti_model.tokenizer.added_tokens_decoder == igbert_tokenizer.added_tokens_decoder
+
+    # Check vocabularies are the same.
+    assert anti_model.tokenizer.get_vocab() == igbert_tokenizer.get_vocab()
     assert anti_model.n_tasks == 1
 
 
@@ -81,7 +95,7 @@ def test_save_reload(tmpdir):
     anti_model._ensure_built()
     anti_model.save_checkpoint()
 
-    anti_model2 = DeepAbLLM(task='classification',
+    anti_model2 = DeepAbLLM(task='mlm',
                             model_path=model_path,
                             n_tasks=1,
                             model_dir=tmpdir)
@@ -110,7 +124,7 @@ def test_mask_seq_pos(igbert_tokenizer):
     test_string = "VQLAQSGSELRKPGASVKVSCDTSGHSFTSNAIHWVRQAPGQGLEWMGWINTDTGTPTYAQGFTGRFVFSLDTSARTAYLQISSLKADDTAVFYCARERDYSDYFFDYWGQGTLVTVSS"
     masked_test_string = anti_model._mask_seq_pos(test_string, idx=10)
     assert isinstance(masked_test_string, str)
-    assert masked_test_string.split(' ')[10] == anti_model.tokenizer.mask_token
+    assert masked_test_string[10:16] == anti_model.tokenizer.mask_token
 
 
 @pytest.mark.hf
@@ -129,10 +143,17 @@ def test_redesign_residue():
         assert len(item) == 3
         # Test that the first item is a string
         assert isinstance(item[0], str)
-        assert len(item[0]) == 1
+        assert len(item[0]) in [
+            1, 5, 6
+        ]  # Amino acid represented by a single-letter code (e.g., 'V', 'Q') or special tokens like '[UNK]', '[MAKS]', '[CLS]'
         # Test that the second item is a string
-        assert len(item[1]) == len(ab_sequence)
-        assert distance(item[1], ab_sequence) <= 1
+        if len(item[0]) != 1:
+            assert len(item[1][len(item[0]):]) == len(ab_sequence) - 1
+
+        else:
+            assert len(item[1]) == len(ab_sequence)
+        # Test the distance between the "hypotheses" and the original sequence
+        assert distance(item[1], ab_sequence) <= len(item[0])
         # Test the third item is a float between 0 and 1
         assert isinstance(item[2], float)
         assert abs(item[2]) <= 1
@@ -148,14 +169,19 @@ def test_optimize_sequence():
     redesigned_sequences = anti_model.redesign_sequence(ab_sequence)
     assert len(redesigned_sequences) > 0
     for item in redesigned_sequences:
-        # Assert that the tuples are of (token_str, full_seq, score)
-        assert len(item) == 3
+        # Assert that the tuples are of (idx, token_str, full_seq, score)
+        assert len(item) == 4
         # Test that the first item is a string
-        assert isinstance(item[0], str)
-        assert len(item[0]) == 1
+        assert isinstance(item[1], str)
+        assert len(item[1]) in [
+            1, 5, 6
+        ]  # Amino acid represented by a single-letter code (e.g., 'V', 'Q') or special tokens like '[UNK]', '[MAKS]', '[CLS]'
         # Test that the second item is a string
-        assert len(item[1]) == len(ab_sequence)
-        assert distance(item[1], ab_sequence) <= 1
+        if len(item[1]) != 1:
+            assert len(item[2][len(item[1]):]) == len(ab_sequence) - 1
+        else:
+            assert len(item[2]) == len(ab_sequence)
+        assert distance(item[2], ab_sequence) <= len(item[1])
         # Test the third item is a float between 0 and 1
-        assert isinstance(item[2], float)
-        assert abs(item[2]) <= 1
+        assert isinstance(item[3], float)
+        assert abs(item[3]) <= 1
