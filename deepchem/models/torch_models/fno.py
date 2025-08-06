@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from deepchem.models.torch_models.layers import SpectralConv
 from deepchem.models.torch_models.torch_model import TorchModel
-from typing import Union, Tuple, Optional, List
+from typing import Union, Tuple
 
 
 class FNOBlock(nn.Module):
@@ -296,15 +296,5 @@ class FNOModel(TorchModel):
                     positional_encoding)
 
         super(FNOModel, self).__init__(model=model,
-                                       loss=self._loss_fn,
+                                       loss=self.loss,
                                        **kwargs)
-
-    def _loss_fn(self,
-                 outputs: List[torch.Tensor],
-                 labels: List[torch.Tensor],
-                 weights: Optional[List[torch.Tensor]] = None) -> torch.Tensor:
-        """Compute the loss for training."""
-        labels_tensor: torch.Tensor = labels[0]
-        outputs_tensor: torch.Tensor = outputs[0]
-        loss = nn.MSELoss()(outputs_tensor, labels_tensor)
-        return loss
