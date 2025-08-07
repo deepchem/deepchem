@@ -295,6 +295,4 @@ class FNOModel(TorchModel):
         model = FNO(in_channels, out_channels, modes, width, dims, depth,
                     positional_encoding)
 
-        super(FNOModel, self).__init__(model=model,
-                                       loss=self.loss,
-                                       **kwargs)
+        super(FNOModel, self).__init__(model=model, loss=self.loss, **kwargs)
