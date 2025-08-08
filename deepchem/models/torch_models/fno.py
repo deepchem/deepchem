@@ -4,8 +4,6 @@ import torch.nn.functional as F
 from deepchem.models.torch_models.layers import SpectralConv
 from deepchem.models.torch_models.torch_model import TorchModel
 from typing import Union, Tuple, Optional, List
-from deepchem.models.losses import Loss
-from deepchem.utils.typing import LossFn
 
 
 class FNOBlock(nn.Module):
