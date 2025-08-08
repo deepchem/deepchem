@@ -7,6 +7,7 @@ from typing import Union, Tuple
 from deepchem.models.losses import Loss
 from deepchem.utils.typing import LossFn
 
+
 class FNOBlock(nn.Module):
     """A single Fourier Neural Operator block.
 
@@ -268,9 +269,9 @@ class FNOModel(TorchModel):
                  modes: Union[int, Tuple[int, ...]],
                  width: int,
                  dims: int,
+                 loss: Union[Loss, LossFn] = nn.MSELoss(),
                  depth: int = 4,
                  positional_encoding: bool = False,
-                 loss: Union[Loss, LossFn] = nn.MSELoss(),
                  **kwargs) -> None:
         """Initialize the FNO model.
         Parameters
