@@ -15,3 +15,4 @@ Introduction to PROTACs,Introduction_to_PROTACs.ipynb
 Introduction to Antibody Drug Conjugates,Introduction_to_Antibody_Drug_Conjugates.ipynb
 Druggability Assessment of Protein Drug Targets with Fpocket and Machine Learning,Druggablity_Assessment_with_Fpocket_and_Machine_Learning.ipynb
 Fine-tuning ESM-2 for binding sites prediction,Fine-tuning_ESM-2_for_Binding_Sites_Prediction.ipynb
+Introduction to ADCNet: Predicting ADC Activity with DeepChem,Introduction_to_ADCNet.ipynb
