@@ -4,7 +4,8 @@ import torch.nn.functional as F
 from deepchem.models.torch_models.layers import SpectralConv
 from deepchem.models.torch_models.torch_model import TorchModel
 from typing import Union, Tuple
-
+from deepchem.models.losses import Loss
+from deepchem.utils.typing import LossFn
 
 class FNOBlock(nn.Module):
     """A single Fourier Neural Operator block.
@@ -269,6 +270,7 @@ class FNOModel(TorchModel):
                  dims: int,
                  depth: int = 4,
                  positional_encoding: bool = False,
+                 loss: Union[Loss, LossFn] = nn.MSELoss(),
                  **kwargs) -> None:
         """Initialize the FNO model.
         Parameters
@@ -295,4 +297,4 @@ class FNOModel(TorchModel):
         model = FNO(in_channels, out_channels, modes, width, dims, depth,
                     positional_encoding)
 
-        super(FNOModel, self).__init__(model=model, loss=self.loss, **kwargs)
+        super(FNOModel, self).__init__(model=model, loss=loss, **kwargs)
