@@ -307,7 +307,19 @@ class FNOModel(TorchModel):
                  outputs: List[torch.Tensor],
                  labels: List[torch.Tensor],
                  weights: Optional[List[torch.Tensor]] = None) -> torch.Tensor:
-        """Compute the loss for training."""
+        """Overrides the default loss function for training.
+
+        Computes the loss for training.
+
+        Parameters
+        ----------
+        outputs: List[torch.Tensor]
+            List of output tensors from the model
+        labels: List[torch.Tensor]
+            List of label tensors
+        weights: Optional[List[torch.Tensor]], default None
+            List of weight tensors
+        """
         labels_tensor: torch.Tensor = labels[0]
         outputs_tensor: torch.Tensor = outputs[0]
         loss = self.loss_fn(labels_tensor, outputs_tensor)
