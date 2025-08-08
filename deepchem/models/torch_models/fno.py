@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from deepchem.models.torch_models.layers import SpectralConv
 from deepchem.models.torch_models.torch_model import TorchModel
-from typing import Union, Tuple
+from typing import Union, Tuple, Optional, List
 from deepchem.models.losses import Loss
 from deepchem.utils.typing import LossFn
 
@@ -201,7 +201,8 @@ class FNO(nn.Module):
         ]
         mesh = torch.meshgrid(*coords, indexing='ij')
         grid = torch.stack(mesh, dim=0)  # shape (dims, *spatial)
-        grid = grid.unsqueeze(0).repeat(batch_size, 1, *([1] * self.dims))
+        # Repeat for batch dimension and add spatial dimensions
+        grid = grid.unsqueeze(0).expand(batch_size, -1, *spatial)
         return grid
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -259,7 +260,7 @@ class FNOModel(TorchModel):
     >>> x = torch.randn(1, 16, 16, 1)
     >>> dataset = dc.data.NumpyDataset(X=x, y=x)
     >>> model = FNOModel(in_channels=1, out_channels=1, modes=8, width=32, dims=2)
-    >>> loss = model.fit(dataset)
+    >>> model.fit(dataset)
     >>> predictions = model.predict(dataset)
     """
 
@@ -269,9 +270,9 @@ class FNOModel(TorchModel):
                  modes: Union[int, Tuple[int, ...]],
                  width: int,
                  dims: int,
-                 loss: Union[Loss, LossFn] = nn.MSELoss(),
                  depth: int = 4,
                  positional_encoding: bool = False,
+                 loss: nn.Module = nn.MSELoss(),
                  **kwargs) -> None:
         """Initialize the FNO model.
         Parameters
@@ -291,11 +292,25 @@ class FNOModel(TorchModel):
             Number of FNO blocks to stack. More blocks can learn more complex mappings
         positional_encoding: bool, default False
             When enabled, uses meshgrids as positional encodings
+        loss: Union[Loss, LossFn], default nn.MSELoss()
+            Loss function to use for training.
         **kwargs: dict
             Additional arguments passed to TorchModel constructor
         """
-
+        self.loss_fn = loss
         model = FNO(in_channels, out_channels, modes, width, dims, depth,
                     positional_encoding)
 
-        super(FNOModel, self).__init__(model=model, loss=loss, **kwargs)
+        super(FNOModel, self).__init__(model=model,
+                                       loss=self._loss_fn,
+                                       **kwargs)
+
+    def _loss_fn(self,
+                 outputs: List[torch.Tensor],
+                 labels: List[torch.Tensor],
+                 weights: Optional[List[torch.Tensor]] = None) -> torch.Tensor:
+        """Compute the loss for training."""
+        labels_tensor: torch.Tensor = labels[0]
+        outputs_tensor: torch.Tensor = outputs[0]
+        loss = self.loss_fn(labels_tensor, outputs_tensor)
+        return loss
