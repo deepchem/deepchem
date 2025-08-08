@@ -119,3 +119,57 @@ def test_hnnmodel_overfit():
     score = regression_metric.compute_metric(dx, pred)
 
     assert score < 0.06, "HNNModel failed to overfit small dataset"
+
+
+@pytest.mark.torch
+@pytest.mark.skipif(not has_torch, reason="PyTorch is not installed")
+def test_mass_spring_energy_conservation():
+    """
+        Test case of energy conservation in a simple mass-spring experiment
+        tested on a small dataset.
+
+        Mass-spring equation:
+        H(q, p) = (p**2 / 2 * m) + (0.5 k * q**2)
+
+        where:
+            'q' is position
+            'p' is momentum
+            'm' is mass constant
+            'k' is spring constant
+
+        Assuming m and k values as 1
+
+        The partial derivatives are:
+        dq/dt -> ∂H/∂p = p/m
+        dp/dt -> ∂H/∂q = -kq
+
+        Final values:
+        dq/dt = p
+        dp/dt = -q
+
+        """
+
+    # (q, p) value pairs
+    x_train = np.array(
+        [[1.0, 0.0], [0.0, -1.0], [-1.0, 0.0], [0.0, 1.0], [1.0, 0.0]],
+        dtype=np.float32)
+
+    # calculated dq/dt and dp/dt
+    dx_train = np.array(
+        [[0.0, -1.0], [-1.0, 0.0], [0.0, 1.0], [1.0, 0.0], [0.0, -1.0]],
+        dtype=np.float32)
+
+    from deepchem.models.torch_models import HNNModel
+
+    dataset = dc.data.NumpyDataset(x_train, dx_train)
+
+    model = HNNModel(d_hidden=(32, 32))
+    model.fit(dataset, nb_epoch=2000)
+
+    test_points = np.array([[1.0, 0.0], [0.0, 1.0], [-1.0, 0.0], [0.0, -1.0]],
+                           dtype=np.float32)
+
+    energies = model.predict_hamiltonian(test_points)
+    energy_std = np.std(energies)
+
+    assert energy_std < 0.1, f"Energy not conserved: std = {energy_std}"
