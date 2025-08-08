@@ -234,8 +234,9 @@ def test_fno_loss_function():
                      depth=2)
 
     # Test loss function directly
-    outputs = [torch.randn(10, 32, 1)]
-    labels = [torch.randn(10, 32, 1)]
+    # Outputs and labels should have shape (batch, channels, spatial_dims)
+    outputs = [torch.randn(10, 1, 32)]
+    labels = [torch.randn(10, 1, 32)]
 
     loss_value = model._loss_fn(outputs, labels)
     assert isinstance(loss_value, torch.Tensor)
