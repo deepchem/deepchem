@@ -12,3 +12,4 @@ SeqToSeq,`ref <https://arxiv.org/abs/1409.3215>`_,,,PyTorch,fit method: :code:`f
 WGAN,`ref <https://arxiv.org/abs/1701.07875>`_,Adversarial,,Keras,fit method: :code:`fit_gan`
 UNet, `ref <https://arxiv.org/abs/1505.04597v1>`_,Classifier/ Regressor,,PyTorch,
 PINNModel, `ref <https://arxiv.org/abs/1711.10561>`_,Classifier/Regressor,,PyTorch,
+FNOModel, `ref <https://arxiv.org/abs/2010.08895>`_,Classifier/Regressor,,PyTorch,
