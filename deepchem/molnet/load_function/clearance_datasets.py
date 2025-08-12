@@ -47,7 +47,7 @@ def load_clearance(
     The raw data csv file contains columns below:
 
     - "id" - CHEMBL ID of molecule
-    - "p_np" - (float) rate at which the human body removes circulating, unbound drug from the blood
+    - "target" - (float) rate at which the human body removes circulating, unbound drug from the blood
     - "smiles" - SMILES representation of the molecular structure
     
 
