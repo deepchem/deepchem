@@ -36,6 +36,21 @@ def load_clearance(
     """
     Load clearance datasets.
 
+    This is the rate at which the human body removes circulating, unbound drug from the blood.
+    This is one of the key in vitro parameters used to predict drug residency time in the patient.
+    In drug discovery, this property is assessed by measuring the metabolic stability of drugs in either human liver microsomes or hepatocytes.
+    
+    This data set includes 1102 examples of intrinsic clearance measured in human liver microsomes (muL min–1 mg–1 protein) following incubation at 37 °C.
+
+    Scaffold splitting is recommended for this dataset.
+
+    The raw data csv file contains columns below:
+
+    - "id" - CHEMBL ID of molecule
+    - "p_np" - (float) rate at which the human body removes circulating, unbound drug from the blood
+    - "smiles" - SMILES representation of the molecular structure
+    
+
     Parameters
     ----------
     featurizer: Featurizer or str
