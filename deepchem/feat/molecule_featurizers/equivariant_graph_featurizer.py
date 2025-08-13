@@ -53,7 +53,8 @@ class EquivariantGraphFeaturizer(MolecularFeaturizer):
     def __init__(self,
                  fully_connected: bool = False,
                  weight_bins: Optional[List[Any]] = None,
-                 embeded: bool = False):
+                 embeded: bool = False,
+                 degree: int = 3):
         """
         Parameters
         ----------
@@ -69,9 +70,11 @@ class EquivariantGraphFeaturizer(MolecularFeaturizer):
         self.weight_bins = weight_bins if weight_bins is not None else [
             1.0, 2.0, 3.0, 4.0
         ]
+        self.degree = degree
 
     def _featurize(self, datapoint: RDKitMol, **kwargs) -> GraphData:
-        """Featurizes molecules into GraphData objects.
+        """
+        Featurizes molecules into GraphData objects.
 
         Parameters
         ----------
@@ -93,24 +96,25 @@ class EquivariantGraphFeaturizer(MolecularFeaturizer):
         positions = np.array(positions, dtype=np.float32)
 
         if self.fully_connected:
-            src, dst, edge_features, edge_weights = self._get_fully_connected_edges(
+            src, dst, _, edge_weights = self._get_fully_connected_edges(
                 positions)
         else:
-            src, dst, edge_features, edge_weights = self._get_bonded_edges(
-                datapoint, positions)
+            src, dst, _, edge_weights = self._get_bonded_edges(datapoint)
 
-        edge_weights = self._discretize_and_one_hot(edge_weights)
+        edge_features = positions[src] - positions[dst]
+
         node_features = np.array(node_features, dtype=np.float32)
         edge_features = np.array(edge_features, dtype=np.float32)
 
         return GraphData(node_features=node_features,
                          edge_index=np.array([src, dst]),
                          edge_features=edge_features,
-                         edge_weights=edge_weights,
-                         positions=positions)
+                         edge_weights=edge_weights.reshape(-1, 4),
+                         node_pos_features=positions)
 
     def _get_node_features(self, mol: RDKitMol) -> Tuple[ArrayLike, ArrayLike]:
-        """Generates node features and positions.
+        """
+        Generates node features and positions.
 
         Parameters
         ----------
@@ -122,7 +126,8 @@ class EquivariantGraphFeaturizer(MolecularFeaturizer):
         tuple
             A tuple of node features (np.ndarray) and positions (np.ndarray).
         """
-        atom_features, positions = [], []
+        atom_features = []
+        positions: np.ndarray[Any, Any] = np.empty((0, 2), dtype=np.float64)
 
         for atom in mol.GetAtoms():
             atomic_number = atom.GetAtomicNum()
@@ -130,48 +135,69 @@ class EquivariantGraphFeaturizer(MolecularFeaturizer):
                                     [1, 6, 7, 8, 9])  # H, C, N, O, F
             additional_features = [atomic_number]
             atom_features.append(one_hot + additional_features)
-            pos = mol.GetConformer().GetAtomPosition(atom.GetIdx())
-            positions.append([pos.x, pos.y, pos.z])
+
+            conf = mol.GetConformer()
+            coords = []
+            for i in range(mol.GetNumAtoms()):
+                pos = conf.GetAtomPosition(i)
+                coords.append([pos.x, pos.y, pos.z])
+            positions = np.array(coords)
 
         return atom_features, positions
 
-    def _get_bonded_edges(
-        self, mol: RDKitMol, positions: np.ndarray
-    ) -> Tuple[ArrayLike, ArrayLike, ArrayLike, ArrayLike]:
-        """Generates edges based on bonds.
+    def _get_bonded_edges(self, mol: RDKitMol):
+        """
+        Generates edges, edge features, and edge weights for bonded atoms in a molecule.
 
         Parameters
         ----------
         mol : rdkit.Chem.rdchem.Mol
-            RDKit Mol object.
-        positions : np.ndarray
-            Atomic positions.
+            RDKit Mol object representing the molecule.
 
         Returns
         -------
         tuple
-            A tuple of source indices, destination indices, edge features, and edge weights.
+            A tuple containing:
+            - source (np.ndarray): Indices of source atoms for each edge.
+            - destination (np.ndarray): Indices of destination atoms for each edge.
+            - edge_features (np.ndarray): Array of edge features (currently empty).
+            - edge_weights (np.ndarray): One-hot encoded bond type features for each edge,
+            concatenated to account for both directions of the bond.
         """
-        src, dst, edge_features, edge_weights = [], [], [], []
+        Chem.Kekulize(mol, clearAromaticFlags=True)
+
+        BOND_TYPE_TO_INT = {
+            Chem.rdchem.BondType.SINGLE: 0,
+            Chem.rdchem.BondType.DOUBLE: 1,
+            Chem.rdchem.BondType.TRIPLE: 2,
+        }
+        NUM_BOND_TYPES = 4
+
+        edge_features: list[float] = []
+        edge_weights: list[np.ndarray] = []
+        src, dst = [], []
 
         for bond in mol.GetBonds():
-            i, j = bond.GetBeginAtomIdx(), bond.GetEndAtomIdx()
-            src += [i, j]
-            dst += [j, i]
+            i = bond.GetBeginAtomIdx()
+            j = bond.GetEndAtomIdx()
+            src += [i]
+            dst += [j]
 
-            dist = positions[j] - positions[i]
-            edge_features.append(dist)
-            edge_features.append(-dist)
-            edge_weights.append([np.linalg.norm(dist)])
-            edge_weights.append([np.linalg.norm(dist)])
+            bond_type = bond.GetBondType()
+            bond_class = BOND_TYPE_TO_INT.get(bond_type, 0)
+            one_hot = np.eye(NUM_BOND_TYPES)[bond_class]
+            edge_weights.append(one_hot)
 
-        return np.array(src), np.array(dst), np.array(edge_features), np.array(
-            edge_weights)
+        edge_weights_np = np.array(edge_weights)
+        edge_weights_np = np.append(edge_weights_np, edge_weights_np, axis=0)
+        source = src + dst
+        destination = dst + src
+        return np.array(source), np.array(destination), np.array(
+            edge_features), np.array(edge_weights)
 
-    def _get_fully_connected_edges(
-        self, positions: np.ndarray
-    ) -> Tuple[ArrayLike, ArrayLike, ArrayLike, ArrayLike]:
-        """Generates fully connected edges.
+    def _get_fully_connected_edges(self, positions: np.ndarray):
+        """
+        Generates fully connected edges with one-hot encoded edge weights based on distance bins.
 
         Parameters
         ----------
@@ -183,23 +209,38 @@ class EquivariantGraphFeaturizer(MolecularFeaturizer):
         tuple
             A tuple of source indices, destination indices, edge features, and edge weights.
         """
+        NUM_BOND_TYPES = 4  # here: 4 distance bins
         num_atoms = len(positions)
-        src, dst, edge_features, edge_weights = [], [], [], []
+        src: List[int] = []
+        dst: List[int] = []
+        edge_features: list[float] = []
 
         for i in range(num_atoms):
             for j in range(num_atoms):
                 if i != j:
                     src.append(i)
                     dst.append(j)
-                    dist = positions[j] - positions[i]
-                    edge_features.append(dist)
-                    edge_weights.append([np.linalg.norm(dist)])
 
-        return np.array(src), np.array(dst), np.array(edge_features), np.array(
-            edge_weights)
+        source: np.ndarray = np.array(src)
+        dest: np.ndarray = np.array(dst)
+
+        # Compute distance vectors and norms
+        dist_vectors = positions[source] - positions[dest]
+        distances = np.linalg.norm(dist_vectors, axis=1)
+
+        # Define distance bins (customize as needed)
+        bins = np.linspace(0, np.max(distances), NUM_BOND_TYPES + 1)
+        bin_indices = np.digitize(distances, bins) - 1
+        bin_indices = np.clip(bin_indices, 0, NUM_BOND_TYPES - 1)
+
+        # One-hot encode the distance bins
+        edge_weights = np.eye(NUM_BOND_TYPES)[bin_indices]
+
+        return source, dest, np.array(edge_features), edge_weights
 
     def _discretize_and_one_hot(self, edge_weights: ArrayLike) -> np.ndarray:
-        """Discretizes edge weights into bins and converts to one-hot encoding.
+        """
+        Discretizes edge weights into bins and converts to one-hot encoding.
 
         Parameters
         ----------
@@ -219,7 +260,8 @@ class EquivariantGraphFeaturizer(MolecularFeaturizer):
         return one_hot_weights
 
     def _one_hot(self, value: int, allowable_set: List) -> List[int]:
-        """Generates a one-hot encoding for a value.
+        """
+        Generates a one-hot encoding for a value.
 
         Parameters
         ----------
