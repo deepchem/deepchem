@@ -202,6 +202,18 @@ class FNO(nn.Module):
         return grid
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """Forward pass through the FNO model.
+
+        Parameters
+        ----------
+        x: torch.Tensor
+            Input tensor
+
+        Returns
+        -------
+        torch.Tensor
+            Output tensor
+        """
         if x.ndim != self.dims + 2:
             raise ValueError(
                 f"Expected tensor with {self.dims + 2} dims (batch, *spatial_dims, in_channels), got {x.ndim}"
