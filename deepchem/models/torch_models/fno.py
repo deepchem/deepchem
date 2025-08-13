@@ -303,7 +303,7 @@ class FNOModel(TorchModel):
         positional_encoding: bool, default False
             When enabled, uses meshgrids as positional encodings
         loss: Union[Loss, LossFn], default nn.MSELoss()
-            Loss function to use for training.
+            Loss function to use for training
         **kwargs: dict
             Additional arguments passed to TorchModel constructor
         """
