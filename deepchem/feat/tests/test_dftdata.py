@@ -2,7 +2,7 @@ import pytest
 try:
     from deepchem.feat.dft_data import DFTEntry
     from dqc.qccalc.ks import KS
-    from deepchem.utils.dftutils import KSCalc
+    from deepchem.utils.dftutils import KSCalc, BaseGrid
     import torch
     has_dqc = True
 except:

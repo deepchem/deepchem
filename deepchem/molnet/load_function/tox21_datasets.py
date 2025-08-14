@@ -21,22 +21,28 @@ class _Tox21Loader(_MolnetLoader):
         if not os.path.exists(dataset_file):
             dc.utils.data_utils.download_url(url=TOX21_URL,
                                              dest_dir=self.data_dir)
+
+        featurizer = self.featurizer
+        if isinstance(featurizer, str):
+            featurizer = self.featurizer
+        assert isinstance(featurizer, dc.feat.Featurizer)
+
         loader = dc.data.CSVLoader(tasks=self.tasks,
                                    feature_field="smiles",
-                                   featurizer=self.featurizer)
+                                   featurizer=featurizer)
         return loader.create_dataset(dataset_file, shard_size=8192)
 
 
 def load_tox21(
-    featurizer: Union[dc.feat.Featurizer, str] = 'ECFP',
-    splitter: Union[dc.splits.Splitter, str, None] = 'scaffold',
-    transformers: List[Union[TransformerGenerator, str]] = ['balancing'],
+    featurizer: Union["dc.feat.Featurizer", str] = 'ECFP',
+    splitter: Union["dc.splits.Splitter", str, None] = 'scaffold',
+    transformers: List[Union["TransformerGenerator", str]] = ['balancing'],
     reload: bool = True,
     data_dir: Optional[str] = None,
     save_dir: Optional[str] = None,
     tasks: List[str] = TOX21_TASKS,
     **kwargs
-) -> Tuple[List[str], Tuple[Dataset, ...], List[dc.trans.Transformer]]:
+) -> Tuple[List[str], Tuple["Dataset", ...], List["dc.trans.Transformer"]]:
     """Load Tox21 dataset
 
     The "Toxicology in the 21st Century" (Tox21) initiative created a public

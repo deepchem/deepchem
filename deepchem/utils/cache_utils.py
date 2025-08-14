@@ -42,7 +42,7 @@ class Cache(object):
 
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the cache object."""
         self._cacheable_pnames: List[str] = []
         self._fname: Optional[str] = None

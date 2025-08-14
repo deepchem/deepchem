@@ -201,7 +201,7 @@ class MolGraphConvFeaturizer(MolecularFeaturizer):
                 # If partial charges were not computed
                 try:
                     from rdkit.Chem import AllChem
-                    AllChem.ComputeGasteigerCharges(datapoint)
+                    AllChem.ComputeGasteigerCharges(datapoint)# type: ignore
                 except ModuleNotFoundError:
                     raise ImportError(
                         "This class requires RDKit to be installed.")
