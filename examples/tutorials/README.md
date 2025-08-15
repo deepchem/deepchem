@@ -72,6 +72,7 @@ tutorials discuss about using DeepChem for specific applications.
 * [11 Generating Molecules with MolGAN](Generating_molecules_with_MolGAN.ipynb)
 * [12 Introduction to GROVER](Introduction_to_GROVER.ipynb)
 * [13 Introduction to Antibody Drug Conjugates(ADCs)](Introduction_to_Antibody_Drug_Conjugates.ipynb)
+* [14 Introduction to ADCNet: Predicting ADC Activity with DeepChem](Introduction_to_ADCNet.ipynb)
 
 ### Modeling Proteins
 * [1 Protein Deep Learning](Protein_Deep_Learning.ipynb)
