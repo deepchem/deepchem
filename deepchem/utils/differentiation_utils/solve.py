@@ -1148,7 +1148,15 @@ def dot(r: torch.Tensor, z: torch.Tensor) -> torch.Tensor:
         The dot product of r and z. Shape: (`*BR`, 1, nc)
 
     """
-    return torch.einsum("...rc,...rc->...c", r.conj(), z).unsqueeze(-2)
+    if torch.is_complex(r):
+        # manual real/imag multiply-accumulate is often faster than einsum for large complex tensors
+        res = (r.real * z.real + r.imag * z.imag).sum(dim=-2, keepdim=True) \
+              + 1j * (r.real * z.imag - r.imag * z.real).sum(dim=-2, keepdim=True)
+        return res
+    else:
+        # real-valued fast path
+        return (r * z).sum(dim=-2, keepdim=True)
+
 
 
 # rootfinder-based
