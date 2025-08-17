@@ -10,7 +10,7 @@ except ImportError:
 
 try:
     import lightning as L
-    from deepchem.models.lightning.trainer import DeepChemLightningTrainer
+    from deepchem.models.lightning.trainer import LightningTorchModel
     PYTORCH_LIGHTNING_IMPORT_FAILED = False
 except ImportError:
     PYTORCH_LIGHTNING_IMPORT_FAILED = True
@@ -37,14 +37,14 @@ def test_multitask_classifier_reload_correctness():
                                           device="cpu",
                                           batch_size=16)
 
-    trainer = DeepChemLightningTrainer(model=model,
-                                       batch_size=16,
-                                       max_epochs=30,
-                                       accelerator="cuda",
-                                       devices=-1,
-                                       log_every_n_steps=1,
-                                       strategy="fsdp",
-                                       fast_dev_run=True)
+    trainer = LightningTorchModel(model=model,
+                                  batch_size=16,
+                                  max_epochs=30,
+                                  accelerator="cuda",
+                                  devices=-1,
+                                  log_every_n_steps=1,
+                                  strategy="fsdp",
+                                  fast_dev_run=True)
 
     trainer.fit(valid_dataset)
     # get a some 10 weights for assertion
@@ -61,16 +61,15 @@ def test_multitask_classifier_reload_correctness():
                                                  device="cpu",
                                                  batch_size=16)
 
-    trainer = DeepChemLightningTrainer.load_checkpoint(
-        "multitask_classifier.ckpt",
-        model=reload_model,
-        batch_size=16,
-        max_epochs=10,
-        accelerator="cuda",
-        devices=-1,
-        log_every_n_steps=1,
-        strategy="fsdp",
-        fast_dev_run=True)
+    trainer = LightningTorchModel.load_checkpoint("multitask_classifier.ckpt",
+                                                  model=reload_model,
+                                                  batch_size=16,
+                                                  max_epochs=10,
+                                                  accelerator="cuda",
+                                                  devices=-1,
+                                                  log_every_n_steps=1,
+                                                  strategy="fsdp",
+                                                  fast_dev_run=True)
 
     # get a some 10 weights for assertion
     reloaded_weights = trainer.model.model.layers[0].weight[0][:10].detach(
@@ -97,14 +96,14 @@ def test_gcn_model_reload_correctness():
                                learning_rate=0.001,
                                device="cpu")
 
-    trainer = DeepChemLightningTrainer(model=model,
-                                       batch_size=16,
-                                       max_epochs=10,
-                                       accelerator="cuda",
-                                       devices=-1,
-                                       log_every_n_steps=1,
-                                       strategy="fsdp",
-                                       fast_dev_run=True)
+    trainer = LightningTorchModel(model=model,
+                                  batch_size=16,
+                                  max_epochs=10,
+                                  accelerator="cuda",
+                                  devices=-1,
+                                  log_every_n_steps=1,
+                                  strategy="fsdp",
+                                  fast_dev_run=True)
 
     trainer.fit(valid_dataset)
 
@@ -121,14 +120,14 @@ def test_gcn_model_reload_correctness():
                                       learning_rate=0.001,
                                       device="cpu")
 
-    trainer = DeepChemLightningTrainer.load_checkpoint("gcn_model.ckpt",
-                                                       model=reload_model,
-                                                       batch_size=16,
-                                                       max_epochs=10,
-                                                       accelerator="cuda",
-                                                       devices=-1,
-                                                       log_every_n_steps=1,
-                                                       fast_dev_run=True)
+    trainer = LightningTorchModel.load_checkpoint("gcn_model.ckpt",
+                                                  model=reload_model,
+                                                  batch_size=16,
+                                                  max_epochs=10,
+                                                  accelerator="cuda",
+                                                  devices=-1,
+                                                  log_every_n_steps=1,
+                                                  fast_dev_run=True)
 
     # get a some 10 weights for assertion
     reloaded_weights = trainer.model.model.model.gnn.gnn_layers[
@@ -170,7 +169,7 @@ def test_gcn_overfit_with_lightning_trainer():
         device='cpu',
     )
 
-    lightning_trainer = DeepChemLightningTrainer(
+    lightning_trainer = LightningTorchModel(
         model=gcn_model,
         batch_size=10,
         max_epochs=70,
@@ -184,7 +183,7 @@ def test_gcn_overfit_with_lightning_trainer():
     # Train the model
     lightning_trainer.fit(dataset)
 
-    # After training, create a new DeepChemLightningTrainer instance for prediction and load the best checkpoint
+    # After training, create a new LightningTorchModel instance for prediction and load the best checkpoint
     # Find the latest checkpoint
     lightning_trainer.save_checkpoint("best_model.ckpt")
 
@@ -199,7 +198,7 @@ def test_gcn_overfit_with_lightning_trainer():
     )
 
     # Load weights from checkpoint
-    lightning_trainer_pred = DeepChemLightningTrainer.load_checkpoint(
+    lightning_trainer_pred = LightningTorchModel.load_checkpoint(
         "best_model.ckpt",
         devices=1,
         model=gcn_model_pred,
