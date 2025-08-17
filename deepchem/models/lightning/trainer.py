@@ -16,7 +16,7 @@ rdBase.DisableLog('rdApp.warning')
 logger = logging.getLogger(__name__)
 
 
-class DeepChemLightningTrainer:
+class LightningTorchModel:
     """A wrapper class that handles the training and inference of DeepChem models using Lightning.
 
     This class provides a high-level interface for training and running inference
@@ -32,12 +32,13 @@ class DeepChemLightningTrainer:
         Batch size for training and prediction data loaders.
     **trainer_kwargs
         Additional keyword arguments passed to the Lightning Trainer.
+        For all available options, see: https://lightning.ai/docs/pytorch/stable/common/trainer.html#init
 
     Examples
     --------
     >>> import deepchem as dc
     >>> import lightning as L
-    >>> from deepchem.models.lightning.trainer2 import DeepChemLightningTrainer
+    >>> from deepchem.models.lightning.trainer import LightningTorchModel
     >>> tasks, datasets, _ = dc.molnet.load_clintox()
     >>> _, valid_dataset, _ = datasets
     >>> model = dc.models.MultitaskClassifier(
@@ -49,7 +50,7 @@ class DeepChemLightningTrainer:
     ...     device="cpu",
     ...     batch_size=16
     ... )
-    >>> trainer = DeepChemLightningTrainer(
+    >>> trainer = LightningTorchModel(
     ...     model=model,
     ...     batch_size=16,
     ...     max_epochs=30,
@@ -61,7 +62,7 @@ class DeepChemLightningTrainer:
     >>> predictions = trainer.predict(valid_dataset)
     >>> trainer.save_checkpoint("model.ckpt")
     >>> # To reload:
-    >>> trainer2 = DeepChemLightningTrainer.load_checkpoint("model.ckpt", model=model)
+    >>> trainer2 = LightningTorchModel.load_checkpoint("model.ckpt", model=model)
     """
 
     def __init__(self,
@@ -161,8 +162,9 @@ class DeepChemLightningTrainer:
         """
         Evaluate model performance on a dataset using Lightning for multi-GPU support.
 
-        This method provides a Lightning-compatible version of the standard Evaluator
-        functionality, enabling distributed evaluation across multiple GPUs.
+        Changes compared to the original `evaluate` method:
+        - Uses `LightningTorchModel's` predict method to get predictions.
+        - Performs additional concatenation of predictions to ensure correct shape.
 
         This method refers to the `evaluate` method in the `Evaluator` class
 
@@ -234,10 +236,15 @@ class DeepChemLightningTrainer:
     def save_checkpoint(self, filepath: str):
         """Save model checkpoint using Lightning's native checkpointing.
 
+        This method saves a complete checkpoint containing the model state,
+        optimizer state, learning rate scheduler state (if any schedulers are
+        configured), current training epoch, step counts, and other training
+        related metadata.
+
         Parameters
         ----------
         filepath: str
-            Path to save the checkpoint file.
+            Path to save the checkpoint file (.ckpt extension recommended).
         """
 
         self.trainer.save_checkpoint(filepath)
@@ -247,7 +254,21 @@ class DeepChemLightningTrainer:
                         model: TorchModel,
                         batch_size: int = 32,
                         **trainer_kwargs):
-        """Load model from checkpoint and create a new trainer instance.
+        """Create a new trainer instance with the loaded model weights.
+
+        This method creates a new instance of `LightningTorchModel` and loads
+        the model weights and trainer state from the specified checkpoint file.
+        It restores the complete training state including model parameters,
+        optimizer state, learning rate scheduler state, epoch count, step count,
+        and other metadata.
+
+        This is designed to create a new instance instead of reloading on the same
+        instance to avoid shape-mismatch errors that can occur when restoring
+        weights on the same instance after fitting the model, using FSDP.
+
+        Note:
+        This is a static method, meaning it should be called on the class directly,
+        not on an instance of the class.
 
         Parameters
         ----------
@@ -259,16 +280,23 @@ class DeepChemLightningTrainer:
             Batch size for the trainer/model.
         **trainer_kwargs
             Additional trainer arguments.
+            For all available options, see: https://lightning.ai/docs/pytorch/stable/common/trainer.html#init
 
         Returns
         -------
-        DeepChemLightningTrainer
+        LightningTorchModel
             New trainer instance with loaded model.
+
+        Examples
+        --------
+        >>> # Call as a static method on the class
+        >>> trainer = LightningTorchModel.load_checkpoint("model.ckpt", model=my_model)
+        >>> # NOT: trainer.load_checkpoint("model.ckpt", model=my_model)
         """
         # Create trainer first
-        trainer = DeepChemLightningTrainer(model=model,
-                                           batch_size=batch_size,
-                                           **trainer_kwargs)
+        trainer = LightningTorchModel(model=model,
+                                      batch_size=batch_size,
+                                      **trainer_kwargs)
 
         # Load the checkpoint
         trainer.lightning_model = DCLightningModule.load_from_checkpoint(
