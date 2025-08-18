@@ -12,6 +12,10 @@ BANDGAP_TASKS = ['experimental_bandgap']
 
 
 class _BandgapLoader(_MolnetLoader):
+    def __init__(self, featurizer, *args, **kwargs):
+        super(_BandgapLoader, self).__init__(*args, **kwargs)
+        self.featurizer = featurizer
+            
 
     def create_dataset(self) -> Dataset:
         dataset_file = os.path.join(self.data_dir, 'expt_gap.json')
@@ -21,23 +25,28 @@ class _BandgapLoader(_MolnetLoader):
                 dc.utils.data_utils.download_url(url=BANDGAP_URL,
                                                  dest_dir=self.data_dir)
             dc.utils.data_utils.untargz_file(targz_file, self.data_dir)
+        featurizer = self.featurizer
+        if isinstance(featurizer, str):
+            featurizer = self.featurizer
+        assert isinstance(featurizer, dc.feat.Featurizer) 
+    
         loader = dc.data.JsonLoader(tasks=self.tasks,
                                     feature_field="composition",
                                     label_field="experimental_bandgap",
-                                    featurizer=self.featurizer)
+                                    featurizer=featurizer)
         return loader.create_dataset(dataset_file)
 
 
 def load_bandgap(
-    featurizer: Union[dc.feat.Featurizer,
-                      str] = dc.feat.ElementPropertyFingerprint(),
-    splitter: Union[dc.splits.Splitter, str, None] = 'random',
-    transformers: List[Union[TransformerGenerator, str]] = ['normalization'],
+    featurizer: Union["dc.feat.Featurizer",
+                      str] = "dc.feat.ElementPropertyFingerprint()",
+    splitter: Union["dc.splits.Splitter", str, None] = 'random',
+    transformers: List[Union["TransformerGenerator", str]] = ['normalization'],
     reload: bool = True,
     data_dir: Optional[str] = None,
     save_dir: Optional[str] = None,
     **kwargs
-) -> Tuple[List[str], Tuple[Dataset, ...], List[dc.trans.Transformer]]:
+) -> Tuple[List[str], Tuple["Dataset", ...], List["dc.trans.Transformer"]]:
     """Load band gap dataset.
 
     Contains 4604 experimentally measured band gaps for inorganic

@@ -19,7 +19,7 @@ except ModuleNotFoundError:
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_DIR = dc.utils.data_utils.get_data_dir()
+# DEFAULT_DIR = dc.utils.data_utils.get_data_dir()
 
 USPTO_MIT_URL = "https://deepchemdata.s3.us-west-1.amazonaws.com/datasets/USPTO_MIT.csv"
 USPTO_STEREO_URL = "https://deepchemdata.s3.us-west-1.amazonaws.com/datasets/USPTO_STEREO.csv"
@@ -65,24 +65,29 @@ class _USPTOLoader(_MolnetLoader):
                                              dest_dir=self.data_dir)
             logger.info("Dataset download complete.")
 
+        featurizer = self.featurizer
+        if isinstance(featurizer, str):
+            featurizer = self.featurizer
+        assert isinstance(featurizer, dc.feat.Featurizer)
+
         loader = dc.data.CSVLoader(tasks=self.tasks,
                                    feature_field="reactions",
-                                   featurizer=self.featurizer)
+                                   featurizer=featurizer)
 
         return loader.create_dataset(dataset_file, shard_size=8192)
 
 
 def load_uspto(
-    featurizer: Union[dc.feat.Featurizer, str] = "RxnFeaturizer",
-    splitter: Union[dc.splits.Splitter, str, None] = None,
-    transformers: List[Union[TransformerGenerator, str]] = [],
+    featurizer: Union["dc.feat.Featurizer", str] = "RxnFeaturizer",
+    splitter: Union["dc.splits.Splitter", str, None] = None,
+    transformers: List[Union["TransformerGenerator", str]] = [],
     reload: bool = True,
     data_dir: Optional[str] = None,
     save_dir: Optional[str] = None,
     subset: str = "MIT",
     sep_reagent: bool = True,
     **kwargs
-) -> Tuple[List[str], Tuple[Dataset, ...], List[dc.trans.Transformer]]:
+) -> Tuple[List[str], Tuple["Dataset", ...], List["dc.trans.Transformer"]]:
     """Load USPTO Datasets.
 
     The USPTO dataset consists of over 1.8 Million organic chemical reactions

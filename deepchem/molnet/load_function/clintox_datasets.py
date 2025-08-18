@@ -13,12 +13,17 @@ CLINTOX_TASKS = ['FDA_APPROVED', 'CT_TOX']
 
 
 class _ClintoxLoader(_MolnetLoader):
+    def __init__(self, featurizer, *args, **kwargs):
+        super(_ClintoxLoader, self).__init__(*args, **kwargs)
+        self.featurizer = featurizer
+            
 
     def create_dataset(self) -> Dataset:
         dataset_file = os.path.join(self.data_dir, "clintox.csv.gz")
         if not os.path.exists(dataset_file):
             dc.utils.data_utils.download_url(url=CLINTOX_URL,
                                              dest_dir=self.data_dir)
+                                  
         loader = dc.data.CSVLoader(tasks=self.tasks,
                                    feature_field="smiles",
                                    featurizer=self.featurizer)
@@ -26,14 +31,14 @@ class _ClintoxLoader(_MolnetLoader):
 
 
 def load_clintox(
-    featurizer: Union[dc.feat.Featurizer, str] = 'ECFP',
-    splitter: Union[dc.splits.Splitter, str, None] = 'scaffold',
-    transformers: List[Union[TransformerGenerator, str]] = ['balancing'],
+    featurizer: Union["dc.feat.Featurizer", str] = 'ECFP',
+    splitter: Union["dc.splits.Splitter", str, None] = 'scaffold',
+    transformers: List[Union["TransformerGenerator", str]] = ['balancing'],
     reload: bool = True,
     data_dir: Optional[str] = None,
     save_dir: Optional[str] = None,
     **kwargs
-) -> Tuple[List[str], Tuple[Dataset, ...], List[dc.trans.Transformer]]:
+) -> Tuple[List[str], Tuple["Dataset", ...], List["dc.trans.Transformer"]]:
     """Load ClinTox dataset
 
     The ClinTox dataset compares drugs approved by the FDA and

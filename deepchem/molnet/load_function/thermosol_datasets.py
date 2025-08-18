@@ -12,6 +12,10 @@ THERMOSOL_TASKS = ["target"]  # Task is solubility in pH 7.4 buffer
 
 
 class _ThermosolLoader(_MolnetLoader):
+    def __init__(self, featurizer, *args, **kwargs):
+        super(_ThermosolLoader, self).__init__(*args, **kwargs)
+        self.featurizer = featurizer
+            
 
     def create_dataset(self) -> Dataset:
         dataset_file = os.path.join(self.data_dir, "thermosol.csv")
@@ -25,14 +29,14 @@ class _ThermosolLoader(_MolnetLoader):
 
 
 def load_thermosol(
-    featurizer: Union[dc.feat.Featurizer, str] = 'ECFP',
-    splitter: Union[dc.splits.Splitter, str, None] = 'scaffold',
-    transformers: List[Union[TransformerGenerator, str]] = [],
+    featurizer: Union["dc.feat.Featurizer", str] = 'ECFP',
+    splitter: Union["dc.splits.Splitter", str, None] = 'scaffold',
+    transformers: List[Union["TransformerGenerator", str]] = [],
     reload: bool = True,
     data_dir: Optional[str] = None,
     save_dir: Optional[str] = None,
     **kwargs
-) -> Tuple[List[str], Tuple[Dataset, ...], List[dc.trans.Transformer]]:
+) -> Tuple[List[str], Tuple["Dataset", ...], List["dc.trans.Transformer"]]:
     """Loads the thermodynamic solubility datasets.
 
     Parameters

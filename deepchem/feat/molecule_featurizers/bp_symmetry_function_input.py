@@ -3,8 +3,7 @@ import numpy as np
 from deepchem.utils.typing import RDKitMol
 from deepchem.utils.data_utils import pad_array
 from deepchem.feat.base_classes import MolecularFeaturizer
-from deepchem.feat.molecule_featurizers.atomic_coordinates import AtomicCoordinates
-
+from deepchem.feat.complex_featurizers.molecule_featurizers.atomic_coordinates import AtomicCoordinates
 
 class BPSymmetryFunctionInput(MolecularFeaturizer):
     """Calculate symmetry function for each atom in the molecules

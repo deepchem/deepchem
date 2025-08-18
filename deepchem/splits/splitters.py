@@ -1118,7 +1118,8 @@ class MaxMinSplitter(Splitter):
             all_mols.append(Chem.MolFromSmiles(smiles))
 
         fps = [
-            AllChem.GetMorganFingerprintAsBitVect(x, 2, 1024) for x in all_mols
+            AllChem.GetMorganFingerprintAsBitVect(x, #type: ignore
+             2, 1024) for x in all_mols
         ]
 
         def distance(i, j):
@@ -1239,7 +1240,8 @@ class ButinaSplitter(Splitter):
         mols = []
         for ind, smiles in enumerate(dataset.ids):
             mols.append(Chem.MolFromSmiles(smiles))
-        fps = [AllChem.GetMorganFingerprintAsBitVect(x, 2, 1024) for x in mols]
+        fps = [AllChem.GetMorganFingerprintAsBitVect(x, #type: ignore
+         2, 1024) for x in mols]
 
         # calcaulate scaffold sets
         # (ytz): this is directly copypasta'd from Greg Landrum's clustering example.
@@ -1400,7 +1402,8 @@ class FingerprintSplitter(Splitter):
         # Compute fingerprints for all molecules.
 
         mols = [Chem.MolFromSmiles(smiles) for smiles in dataset.ids]
-        fps = [AllChem.GetMorganFingerprintAsBitVect(x, 2, 1024) for x in mols]
+        fps = [AllChem.GetMorganFingerprintAsBitVect(x, #type: ignore
+         2, 1024) for x in mols]
 
         # Split into two groups: training set and everything else.
 
@@ -1470,9 +1473,9 @@ def _split_fingerprints(fps: List, size1: int,
 
         similarity = DataStructs.BulkTanimotoSimilarity(fp, remaining_fp)
         max_similarity_to_group[group] = np.delete(
-            np.maximum(similarity, max_similarity_to_group[group]), i)
+            np.maximum(similarity, max_similarity_to_group[group]), i).tolist()
         max_similarity_to_group[1 - group] = np.delete(
-            max_similarity_to_group[1 - group], i)
+            max_similarity_to_group[1 - group], i).tolist()
         del remaining_fp[i]
         del remaining_indices[i]
     return indices_in_group

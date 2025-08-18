@@ -55,7 +55,12 @@ class _PDBBindLoader(_MolnetLoader):
         protein_files, ligand_files, labels, pdbs = self._process_pdbs()
 
         # load and featurize each complex
-        features = self.featurizer.featurize(
+        featurizer = self.featurizer
+        if isinstance(featurizer, str):
+            featurizer = self.featurizer
+        assert isinstance(featurizer, dc.feat.Featurizer) 
+
+        features = featurizer.featurize(
             list(zip(ligand_files, protein_files)))
         dataset = dc.data.DiskDataset.from_numpy(features, y=labels, ids=pdbs)
 
@@ -114,16 +119,16 @@ class _PDBBindLoader(_MolnetLoader):
 
 
 def load_pdbbind(
-    featurizer: dc.feat.ComplexFeaturizer,
-    splitter: Union[dc.splits.Splitter, str, None] = 'random',
-    transformers: List[Union[TransformerGenerator, str]] = ['normalization'],
+    featurizer: "dc.feat.ComplexFeaturizer",
+    splitter: Union["dc.splits.Splitter", str, None] = 'random',
+    transformers: List[Union["TransformerGenerator", str]] = ['normalization'],
     reload: bool = True,
     data_dir: Optional[str] = None,
     save_dir: Optional[str] = None,
     pocket: bool = True,
     set_name: str = 'core',
     **kwargs
-) -> Tuple[List[str], Tuple[Dataset, ...], List[dc.trans.Transformer]]:
+) -> Tuple[List[str], Tuple["Dataset", ...], List["dc.trans.Transformer"]]:
     """Load PDBBind dataset.
 
     The PDBBind dataset includes experimental binding affinity data

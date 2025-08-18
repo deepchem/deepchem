@@ -13,17 +13,18 @@ BACE_CLASSIFICATION_TASKS = ["Class"]
 
 
 class _BaceLoader(_MolnetLoader):
+    def __init__(self, featurizer, *args, **kwargs):
+        super(_BaceLoader, self).__init__(*args, **kwargs)
+        self.featurizer = featurizer 
 
     def create_dataset(self) -> Dataset:
         dataset_file = os.path.join(self.data_dir, "bace.csv")
         if not os.path.exists(dataset_file):
-            dc.utils.data_utils.download_url(url=BACE_URL,
-                                             dest_dir=self.data_dir)
+            dc.utils.data_utils.download_url(url=BACE_URL, dest_dir=self.data_dir)
         loader = dc.data.CSVLoader(tasks=self.tasks,
-                                   feature_field="mol",
-                                   featurizer=self.featurizer)
+                                   feature_field="smiles",
+                                   featurizer=self.featurizer) 
         return loader.create_dataset(dataset_file, shard_size=8192)
-
 
 def load_bace_regression(
     featurizer: Union[dc.feat.Featurizer, str] = 'ECFP',

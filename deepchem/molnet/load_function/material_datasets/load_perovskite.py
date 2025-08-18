@@ -12,6 +12,10 @@ PEROVSKITE_TASKS = ['formation_energy']
 
 
 class _PerovskiteLoader(_MolnetLoader):
+    def __init__(self, featurizer, *args, **kwargs):
+        super(_PerovskiteLoader, self).__init__(*args, **kwargs)
+        self.featurizer = featurizer
+            
 
     def create_dataset(self) -> Dataset:
         dataset_file = os.path.join(self.data_dir, 'perovskite.json')
@@ -21,22 +25,27 @@ class _PerovskiteLoader(_MolnetLoader):
                 dc.utils.data_utils.download_url(url=PEROVSKITE_URL,
                                                  dest_dir=self.data_dir)
             dc.utils.data_utils.untargz_file(targz_file, self.data_dir)
+        featurizer = self.featurizer
+        if isinstance(featurizer, str):
+            featurizer = self.featurizer
+        assert isinstance(featurizer, dc.feat.Featurizer) 
+    
         loader = dc.data.JsonLoader(tasks=self.tasks,
                                     feature_field="structure",
                                     label_field="formation_energy",
-                                    featurizer=self.featurizer)
+                                    featurizer=featurizer)
         return loader.create_dataset(dataset_file)
 
 
 def load_perovskite(
-    featurizer: Union[dc.feat.Featurizer, str] = dc.feat.DummyFeaturizer(),
-    splitter: Union[dc.splits.Splitter, str, None] = 'random',
-    transformers: List[Union[TransformerGenerator, str]] = ['normalization'],
+    featurizer: Union["dc.feat.Featurizer", str] = "dc.feat.DummyFeaturizer()",
+    splitter: Union["dc.splits.Splitter", str, None] = 'random',
+    transformers: List[Union["TransformerGenerator", str]] = ['normalization'],
     reload: bool = True,
     data_dir: Optional[str] = None,
     save_dir: Optional[str] = None,
     **kwargs
-) -> Tuple[List[str], Tuple[Dataset, ...], List[dc.trans.Transformer]]:
+) -> Tuple[List[str], Tuple["Dataset", ...], List["dc.trans.Transformer"]]:
     """Load perovskite dataset.
 
     Contains 18928 perovskite structures and their formation energies.

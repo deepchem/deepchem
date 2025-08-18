@@ -40,21 +40,26 @@ class _Chembl25Loader(_MolnetLoader):
         if not os.path.exists(dataset_file):
             dc.utils.data_utils.download_url(url=CHEMBL25_URL,
                                              dest_dir=self.data_dir)
+
+        featurizer = self.featurizer
+        if isinstance(featurizer, str):
+            featurizer = self.featurizer
+        assert isinstance(featurizer, dc.feat.Featurizer)
         loader = dc.data.CSVLoader(tasks=self.tasks,
                                    feature_field="smiles",
-                                   featurizer=self.featurizer)
+                                   featurizer=featurizer)
         return loader.create_dataset(dataset_file, shard_size=8192)
 
 
 def load_chembl25(
-    featurizer: Union[dc.feat.Featurizer, str] = 'ECFP',
-    splitter: Union[dc.splits.Splitter, str, None] = 'scaffold',
-    transformers: List[Union[TransformerGenerator, str]] = ['normalization'],
+    featurizer: Union["dc.feat.Featurizer", str] = 'ECFP',
+    splitter: Union["dc.splits.Splitter", str, None] = 'scaffold',
+    transformers: List[Union["TransformerGenerator", str]] = ['normalization'],
     reload: bool = True,
     data_dir: Optional[str] = None,
     save_dir: Optional[str] = None,
     **kwargs
-) -> Tuple[List[str], Tuple[Dataset, ...], List[dc.trans.Transformer]]:
+) -> Tuple[List[str], Tuple["Dataset", ...], List["dc.trans.Transformer"]]:
     """Loads the ChEMBL25 dataset, featurizes it, and does a split.
 
     Parameters

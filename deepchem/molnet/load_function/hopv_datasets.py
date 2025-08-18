@@ -15,6 +15,10 @@ HOPV_TASKS = [
 
 
 class _HOPVLoader(_MolnetLoader):
+    def __init__(self, featurizer, *args, **kwargs):
+        super(_HOPVLoader, self).__init__(*args, **kwargs)
+        self.featurizer = featurizer
+            
 
     def create_dataset(self) -> Dataset:
         dataset_file = os.path.join(self.data_dir, "hopv.csv")
@@ -23,21 +27,26 @@ class _HOPVLoader(_MolnetLoader):
                                              dest_dir=self.data_dir)
             dc.utils.data_utils.untargz_file(
                 os.path.join(self.data_dir, 'hopv.tar.gz'), self.data_dir)
+        featurizer = self.featurizer
+        if isinstance(featurizer, str):
+            featurizer = self.featurizer
+        assert isinstance(featurizer, dc.feat.Featurizer) 
+       
         loader = dc.data.CSVLoader(tasks=self.tasks,
                                    feature_field="smiles",
-                                   featurizer=self.featurizer)
+                                   featurizer=featurizer)
         return loader.create_dataset(dataset_file, shard_size=8192)
 
 
 def load_hopv(
-    featurizer: Union[dc.feat.Featurizer, str] = 'ECFP',
-    splitter: Union[dc.splits.Splitter, str, None] = 'scaffold',
-    transformers: List[Union[TransformerGenerator, str]] = ['normalization'],
+    featurizer: Union["dc.feat.Featurizer", str] = 'ECFP',
+    splitter: Union["dc.splits.Splitter", str, None] = 'scaffold',
+    transformers: List[Union["TransformerGenerator", str]] = ['normalization'],
     reload: bool = True,
     data_dir: Optional[str] = None,
     save_dir: Optional[str] = None,
     **kwargs
-) -> Tuple[List[str], Tuple[Dataset, ...], List[dc.trans.Transformer]]:
+) -> Tuple[List[str], Tuple["Dataset", ...], List["dc.trans.Transformer"]]:
     """Load HOPV datasets. Does not do train/test split
 
     The HOPV datasets consist of the "Harvard Organic

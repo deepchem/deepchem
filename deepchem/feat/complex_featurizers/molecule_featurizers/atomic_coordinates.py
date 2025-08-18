@@ -71,7 +71,7 @@ class AtomicCoordinates(MolecularFeaturizer):
         num_confs = len(datapoint.GetConformers())
         if num_confs == 0:
             datapoint = Chem.AddHs(datapoint)
-            AllChem.EmbedMolecule(datapoint, AllChem.ETKDG())
+            AllChem.EmbedMolecule(datapoint, AllChem.ETKDG())# type: ignore
             datapoint = Chem.RemoveHs(datapoint)
 
         N = datapoint.GetNumAtoms()

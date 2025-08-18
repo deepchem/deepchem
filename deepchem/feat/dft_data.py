@@ -253,7 +253,7 @@ class _EntryDens(DFTEntry):
     Entry for density profile (dens), compared with CCSD calculation
     """
 
-    def __init__(self, e_type, true_val, systems, weight):
+    def __init__(self, e_type: str, true_val: str, systems: List[Dict], weight: float) -> None:
         """
         Parameters
         ----------
@@ -263,10 +263,10 @@ class _EntryDens(DFTEntry):
         systems: List[Dict]
         """
         super().__init__(e_type, true_val, systems)
-        self.true_val = true_val
+        self.true_val: str = true_val
         assert len(self.get_systems()) == 1
         self._grid: Optional[BaseGrid] = None
-        self._weight = weight
+        self._weight: float = weight
 
     @property
     def entry_type(self) -> str:
