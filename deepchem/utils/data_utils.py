@@ -251,7 +251,7 @@ def load_sdf_files(input_files: List[str],
     except ModuleNotFoundError:
         raise ImportError("This function requires RDKit to be installed.")
 
-    df_rows: Any = []
+    df_rows: List[List[Any]] = []
     for input_file in input_files:
         # Tasks are either in .sdf.csv file or in the .sdf file itself for QM9 dataset
         has_csv = os.path.isfile(input_file + ".csv")
@@ -272,7 +272,7 @@ def load_sdf_files(input_files: List[str],
                 logger.warning(
                     f"Molecule on index (1-based) {ind+1} in {input_file} failed to load."
                 )
-                df_row = [ind, None, None]
+                df_row: List[Any] = [ind, None, None]
                 if not has_csv:
                     df_row = df_row + [None] * len(tasks)
                 df_row = df_row + [None] * 3
