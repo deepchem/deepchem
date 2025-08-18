@@ -38,22 +38,16 @@ class TestEquivarianceUtils(unittest.TestCase):
 
     def setUp(self):
         """Set up test fixtures."""
-        import dgl
         from rdkit import Chem
         # Create a sample graph for testing
         # Load molecule and featurize
         mol = Chem.MolFromSmiles("CCO")
-        featurizer = dc.feat.EquivariantGraphFeaturizer(fully_connected=True,
+        featurizer = dc.feat.EquivariantGraphFeaturizer(fully_connected=False,
                                                         embeded=True)
         mol_graph = featurizer.featurize([mol])[0]
 
-        self.G = dgl.graph((mol_graph.edge_index[0], mol_graph.edge_index[1]))
-        self.G.ndata['f'] = torch.tensor(mol_graph.node_features,
-                                         dtype=torch.float32).unsqueeze(-1)
-        self.G.ndata['x'] = torch.tensor(
-            mol_graph.positions, dtype=torch.float32)  # Atomic positions
-        self.G.edata['d'] = torch.tensor(mol_graph.edge_features,
-                                         dtype=torch.float32)
+        self.G = mol_graph.to_dgl_graph()
+
         self.G.edata['w'] = torch.tensor(mol_graph.edge_weights,
                                          dtype=torch.float32)
 
@@ -478,19 +472,15 @@ class TestEquivarianceUtils(unittest.TestCase):
 
     def sample_graph(self):
         """Create a test graph with SE(3) features using the SMILES 'CCO'."""
-        import dgl
         from rdkit import Chem
         import deepchem as dc
 
         mol = Chem.MolFromSmiles("CCO")
-        featurizer = dc.feat.EquivariantGraphFeaturizer(fully_connected=True,
+        featurizer = dc.feat.EquivariantGraphFeaturizer(fully_connected=False,
                                                         embeded=True)
         features = featurizer.featurize([mol])[0]
 
-        G = dgl.graph((features.edge_index[0], features.edge_index[1]),
-                      num_nodes=len(features.node_features))
-        G.ndata['x'] = torch.tensor(features.positions, dtype=torch.float32)
-        G.edata['d'] = G.ndata['x'][G.edges()[1]] - G.ndata['x'][G.edges()[0]]
+        G = features.to_dgl_graph()
 
         return G
 
@@ -505,9 +495,10 @@ class TestEquivarianceUtils(unittest.TestCase):
         # Apply random translation
         translation = torch.randn(1, 3)
         G_translated = self.G.clone()
-        G_translated.ndata['x'] += translation
-        G_translated.edata['d'] = G_translated.ndata['x'][G_translated.edges(
-        )[1]] - G_translated.ndata['x'][G_translated.edges()[0]]
+        G_translated.ndata['pos'] += translation
+        G_translated.edata['edge_attr'] = G_translated.ndata['pos'][
+            G_translated.edges()[1]] - G_translated.ndata['pos'][
+                G_translated.edges()[0]]
 
         basis_translated, r_translated = get_equivariant_basis_and_r(
             G_translated, max_degree=2, compute_gradients=False)
@@ -534,9 +525,10 @@ class TestEquivarianceUtils(unittest.TestCase):
         angle = torch.rand(1).item() * 2 * np.pi
 
         G_rotated = self.G.clone()
-        G_rotated.ndata['x'] = apply_rotation(self.G.ndata['x'], axis, angle)
-        G_rotated.edata['d'] = G_rotated.ndata['x'][
-            G_rotated.edges()[1]] - G_rotated.ndata['x'][G_rotated.edges()[0]]
+        G_rotated.ndata['pos'] = apply_rotation(self.G.ndata['pos'], axis,
+                                                angle)
+        G_rotated.edata['edge_attr'] = G_rotated.ndata['pos'][
+            G_rotated.edges()[1]] - G_rotated.ndata['pos'][G_rotated.edges()[0]]
 
         basis_rotated, r_rotated = get_equivariant_basis_and_r(
             G_rotated, max_degree=2, compute_gradients=False)

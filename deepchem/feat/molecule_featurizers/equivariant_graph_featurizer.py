@@ -3,6 +3,7 @@ Featurizer for SE(3)-equivariant Graph Neural Networks.
 """
 
 import numpy as np
+from numpy.typing import NDArray
 from deepchem.feat.graph_data import GraphData
 from deepchem.feat import MolecularFeaturizer
 from rdkit import Chem
@@ -174,7 +175,7 @@ class EquivariantGraphFeaturizer(MolecularFeaturizer):
         NUM_BOND_TYPES = 4
 
         edge_features: list[float] = []
-        edge_weights: list[np.ndarray] = []
+        edge_weights_list = []
         src, dst = [], []
 
         for bond in mol.GetBonds():
@@ -186,10 +187,11 @@ class EquivariantGraphFeaturizer(MolecularFeaturizer):
             bond_type = bond.GetBondType()
             bond_class = BOND_TYPE_TO_INT.get(bond_type, 0)
             one_hot = np.eye(NUM_BOND_TYPES)[bond_class]
-            edge_weights.append(one_hot)
+            edge_weights_list.append(one_hot)
 
-        edge_weights_np = np.array(edge_weights)
-        edge_weights_np = np.append(edge_weights_np, edge_weights_np, axis=0)
+        edge_weights: NDArray[np.float64] = np.array(edge_weights_list,
+                                                     dtype=np.float64)
+        edge_weights = np.append(edge_weights, edge_weights, axis=0)
         source = src + dst
         destination = dst + src
         return np.array(source), np.array(destination), np.array(
