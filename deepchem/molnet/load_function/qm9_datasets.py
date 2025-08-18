@@ -27,7 +27,7 @@ class _QM9Loader(_MolnetLoader):
                 os.path.join(self.data_dir, "qm9.tar.gz"), self.data_dir)
         loader = dc.data.SDFLoader(tasks=self.tasks,
                                    featurizer=self.featurizer,
-                                   sanitize=False)
+                                   sanitize=True)
         return loader.create_dataset(dataset_file, shard_size=4096)
 
 
