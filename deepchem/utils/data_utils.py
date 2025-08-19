@@ -17,6 +17,11 @@ import numpy as np
 
 import deepchem as dc
 
+import os
+import joblib
+import numpy as np
+from typing import Any
+
 logger = logging.getLogger(__name__)
 
 
@@ -485,24 +490,43 @@ def _get_file_type(input_file: str) -> str:
         raise ValueError("Unrecognized extension %s" % file_extension)
 
 
-def save_to_disk(dataset: Any, filename: str, compress: int = 3):
-    """Save a dataset to file.
+def save_to_disk(dataset: Any, filename: str, compress: int = 3, overwrite: bool = False):
+    """
+    Save a dataset to a file, with an option to prevent overwriting existing files.
 
     Parameters
     ----------
-    dataset: str
-        A data saved
+    dataset: Any
+        The data to be saved.
     filename: str
         Path to save data.
     compress: int, default 3
         The compress option when dumping joblib file.
+    overwrite: bool, default False
+        If False, raises an error if the file already exists.
+    
+    Raises
+    ------
+    FileExistsError
+        If the file exists and overwrite=False.
+    ValueError
+        If the filename has an unsupported extension.
     """
+    if os.path.exists(filename):
+        if not overwrite:
+            raise FileExistsError(
+                f"Warning: File '{filename}' already exists. Use overwrite=True to proceed."
+            )
+        else:
+            print(f"Overwriting existing file: {filename}")
+            os.remove(filename)  # Remove old file before saving
+
     if filename.endswith('.joblib'):
         joblib.dump(dataset, filename, compress=compress)
     elif filename.endswith('.npy'):
         np.save(filename, dataset)
     else:
-        raise ValueError("Filename with unsupported extension: %s" % filename)
+        raise ValueError(f"Filename with unsupported extension: {filename}")
 
 
 def load_from_disk(filename: str) -> Any:
