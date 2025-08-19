@@ -243,10 +243,12 @@ class LightningTorchModel(Model):
 
         if predictions:
             try:
-                predictions = np.concatenate([p for p in predictions])
+                predictions = np.concatenate([  # type: ignore
+                    p for p in predictions
+                ])
             except ValueError:
-                # If concatenation fails (e.g., due to different shapes in MLM tasks),
-                # return the predictions as a list of batches
+                # If concatenation fails (e.g., due to different shapes in MLM tasks etc),
+                # return the predictions as a list of batches directly
                 pass
         else:
             predictions = []
