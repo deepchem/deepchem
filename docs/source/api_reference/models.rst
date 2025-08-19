@@ -665,12 +665,12 @@ DeepChem supports the use of `PyTorch-Lightning`_ to build PyTorch models.
 
 .. _`PyTorch-Lightning`: https://www.pytorchlightning.ai/
 
-DCLightningModule
+LightningTorchModel
 -----------------
 
-You can wrap an arbitrary :code:`TorchModel` in a :code:`DCLightningModule` object.
+You can wrap an arbitrary :code:`TorchModel` in a :code:`LightningTorchModel` object.
 
-.. autoclass:: deepchem.models.DCLightningModule
+.. autoclass:: deepchem.models.lightning.LightningTorchModel
   :members:
 
 Jax Models
