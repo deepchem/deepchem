@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from typing import Dict, Type, Optional
+from typing import Dict, Type, Optional, Union
 from deepchem.models.torch_models.chemnet_layers import Stem, InceptionResnetA, ReductionA, InceptionResnetB, ReductionB, InceptionResnetC
 from deepchem.models.torch_models import TorchModel
 from deepchem.models.losses import L2Loss, SoftmaxCrossEntropy, SigmoidCrossEntropy
@@ -242,7 +242,7 @@ augmentation during batch generation.
                  img_spec: str = "std",
                  img_size: int = 80,
                  base_filters: int = 16,
-                 inception_blocks: Dict = None,
+                 inception_blocks: Optional[Dict[str, int]] = None,
                  n_tasks: int = 10,
                  n_classes: int = 2,
                  augment: bool = False,
@@ -262,11 +262,13 @@ augmentation during batch generation.
         model = ChemCeption(img_spec=img_spec,
                             img_size=img_size,
                             base_filters=base_filters,
-                            inception_blocks=inception_blocks,
+                            inception_blocks=self.inception_blocks,
                             n_tasks=n_tasks,
                             n_classes=n_classes,
                             augment=augment,
                             mode=mode)
+
+        loss: Union[L2Loss, SoftmaxCrossEntropy, SigmoidCrossEntropy]
 
         if mode == "classification":
             if n_classes == 2:
@@ -332,14 +334,16 @@ augmentation during batch generation.
                         else:
                             img = aug(img.permute(1, 2, 0)).permute(2, 0, 1)
                         X_b_aug.append(img)
-                    X_b = torch.stack(X_b_aug)
 
-                    X_b = X_b.view(X_b.shape[0], X_b.shape[1], self.img_size,
-                                   self.img_size)
+                    X_b = torch.stack(X_b_aug).to(torch.float32).numpy()
+
+                    X_b = torch.as_tensor(X_b, dtype=torch.float32).view(
+                        -1, X_b.shape[1], self.img_size, self.img_size).numpy()
 
                     if pad_batches:
                         X_b, y_b, w_b, _ = pad_batch(self.batch_size, X_b, y_b,
                                                      w_b, ids_b)
+                        X_b = torch.as_tensor(X_b, dtype=torch.float32).numpy()
 
                     n_batches += 1
                     if n_batches > n_samples / self.batch_size:
