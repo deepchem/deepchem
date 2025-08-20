@@ -50,7 +50,7 @@ def test_multitask_classifier_reload_correctness():
     # get a some 10 weights for assertion
     weights = trainer.model.model.layers[0].weight[:10].detach().cpu().numpy()
 
-    trainer.save_checkpoint("multitask_classifier.ckpt")
+    trainer.save("multitask_classifier.ckpt")
 
     # Reload model and checkpoint
     reload_model = dc.models.MultitaskClassifier(n_tasks=len(tasks),
@@ -61,15 +61,15 @@ def test_multitask_classifier_reload_correctness():
                                                  device="cpu",
                                                  batch_size=16)
 
-    trainer = LightningTorchModel.load_checkpoint("multitask_classifier.ckpt",
-                                                  model=reload_model,
-                                                  batch_size=16,
-                                                  max_epochs=10,
-                                                  accelerator="cuda",
-                                                  devices=-1,
-                                                  log_every_n_steps=1,
-                                                  strategy="fsdp",
-                                                  fast_dev_run=True)
+    trainer = LightningTorchModel.reload("multitask_classifier.ckpt",
+                                         model=reload_model,
+                                         batch_size=16,
+                                         max_epochs=10,
+                                         accelerator="cuda",
+                                         devices=-1,
+                                         log_every_n_steps=1,
+                                         strategy="fsdp",
+                                         fast_dev_run=True)
 
     # get a some 10 weights for assertion
     reloaded_weights = trainer.model.model.layers[0].weight[0][:10].detach(
@@ -111,7 +111,7 @@ def test_gcn_model_reload_correctness():
     weights = trainer.model.model.model.gnn.gnn_layers[
         0].res_connection.weight[:10].detach().cpu().numpy()
 
-    trainer.save_checkpoint("gcn_model.ckpt")
+    trainer.save("gcn_model.ckpt")
 
     # Reload model and checkpoint
     reload_model = dc.models.GCNModel(mode='classification',
@@ -120,14 +120,14 @@ def test_gcn_model_reload_correctness():
                                       learning_rate=0.001,
                                       device="cpu")
 
-    trainer = LightningTorchModel.load_checkpoint("gcn_model.ckpt",
-                                                  model=reload_model,
-                                                  batch_size=16,
-                                                  max_epochs=10,
-                                                  accelerator="cuda",
-                                                  devices=-1,
-                                                  log_every_n_steps=1,
-                                                  fast_dev_run=True)
+    trainer = LightningTorchModel.reload("gcn_model.ckpt",
+                                         model=reload_model,
+                                         batch_size=16,
+                                         max_epochs=10,
+                                         accelerator="cuda",
+                                         devices=-1,
+                                         log_every_n_steps=1,
+                                         fast_dev_run=True)
 
     # get a some 10 weights for assertion
     reloaded_weights = trainer.model.model.model.gnn.gnn_layers[
@@ -192,7 +192,7 @@ def test_gcn_overfit_with_lightning_trainer():
 
     # After training, create a new LightningTorchModel instance for prediction and load the best checkpoint
     # Find the latest checkpoint
-    lightning_trainer.save_checkpoint("best_model.ckpt")
+    lightning_trainer.save("best_model.ckpt")
 
     # Create a new model instance and load weights
     gcn_model_pred = dc.models.GCNModel(
@@ -205,7 +205,7 @@ def test_gcn_overfit_with_lightning_trainer():
     )
 
     # Load weights from checkpoint
-    lightning_trainer_pred = LightningTorchModel.load_checkpoint(
+    lightning_trainer_pred = LightningTorchModel.reload(
         "best_model.ckpt",
         devices=1,
         model=gcn_model_pred,

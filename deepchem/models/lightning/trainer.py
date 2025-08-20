@@ -92,9 +92,9 @@ class LightningTorchModel(Model):
         ... #             max_checkpoints_to_keep=3,
         ... #             checkpoint_interval=1000)
         >>> # predictions = trainer.predict(valid_dataset)
-        >>> # trainer.save_checkpoint("model.ckpt")
+        >>> # trainer.save("model.ckpt")
         >>> # To reload:
-        >>> # trainer2 = LightningTorchModel.load_checkpoint("model.ckpt", model=model)
+        >>> # trainer2 = LightningTorchModel.reload("model.ckpt", model=model)
         """
         self.model: TorchModel = model
         self.batch_size: int = batch_size
@@ -287,7 +287,7 @@ class LightningTorchModel(Model):
             predictions = []
         return predictions
 
-    def save_checkpoint(self, filepath: str):
+    def save(self, filepath: str):  # type: ignore
         """Save model checkpoint using Lightning's native checkpointing.
 
         This method saves a complete checkpoint containing the model state,
@@ -304,11 +304,12 @@ class LightningTorchModel(Model):
         self.trainer.save_checkpoint(filepath)
 
     @staticmethod
-    def load_checkpoint(filepath: str,
-                        model: TorchModel,
-                        batch_size: int = 32,
-                        model_dir: Optional[str] = "default_model_dir",
-                        **trainer_kwargs):
+    def reload(  # type: ignore
+            filepath: str,
+            model: TorchModel,
+            batch_size: int = 32,
+            model_dir: Optional[str] = "default_model_dir",
+            **trainer_kwargs):
         """Create a new trainer instance with the loaded model weights.
 
         This method creates a new instance of `LightningTorchModel` and loads
@@ -363,8 +364,8 @@ class LightningTorchModel(Model):
 
         Examples
         --------
-        >>> # Call: trainer = LightningTorchModel.load_checkpoint("model.ckpt", model=my_model)
-        >>> # NOT: trainer.load_checkpoint("model.ckpt", model=my_model)
+        >>> # Call: trainer = LightningTorchModel.reload("model.ckpt", model=my_model)
+        >>> # NOT: trainer.reload("model.ckpt", model=my_model)
         """
 
         # Create trainer first
