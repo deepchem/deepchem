@@ -194,8 +194,8 @@ jobs:
     - name: PyTest
       if: ${{ (success() || failure()) && (steps.install.outcome == 'failure' || steps.install.outcome == 'success') && matrix.python-version == '3.11'}}
       shell: bash -l {0}
-      run: pytest -v -m "not jax and not torch and not tensorflow and not dqc" --ignore='deepchem/utils/test/test_sequence_utils.py' deepchem
+      run: pytest -v -m "not jax and not torch and not tensorflow and not dqc and not hf" --ignore='deepchem/utils/test/test_sequence_utils.py' deepchem
     - name: PyTest
       if: ${{ (success() || failure()) && (steps.install.outcome == 'failure' || steps.install.outcome == 'success') && matrix.python-version != '3.11'}}
       shell: bash -l {0}
-      run: pytest -v -m "not jax and not torch and not tensorflow and not dqc" deepchem
+      run: pytest -v -m "not jax and not torch and not tensorflow and not dqc and not hf" deepchem
