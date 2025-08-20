@@ -23,72 +23,8 @@ class LightningTorchModel(Model):
     This class provides a high-level interface for training and running inference
     on DeepChem models using PyTorch Lightning's training infrastructure. It wraps
     DeepChem models in Lightning modules and handles data loading, training loops,
-    and checkpoint management.
-
-    Parameters
-    ----------
-    model: TorchModel
-        Initialized DeepChem model to be trained or used for inference.
-    batch_size: int, default 32
-        Batch size for training and prediction data loaders.
-    model_dir: str, (default "default_model_dir")
-        Path to directory where model and checkpoints will be stored. If not specified,
-        model will be stored in a "default_model_dir" directory. This is compatible with
-        DeepChem's model directory structure. If given as None, a temporary directory will be used.
-    **trainer_kwargs
-        Additional keyword arguments passed to the Lightning Trainer. Common options include:
-
-            - max_epochs: int, default None
-                Maximum number of training epochs.
-            - accelerator: str, default "auto"
-                Hardware accelerator to use ("cpu", "gpu", "tpu", "auto").
-            - devices: int or str or list, default "auto"
-                Number of devices/GPUs to use.
-            - strategy: str, default "auto"
-                Distributed training strategy ("ddp", "fsdp", "auto").
-            - precision: str or int, default "32-true"
-                Numerical precision ("16-mixed", "bf16-mixed", "32-true").
-            - log_every_n_steps: int, default 50
-                How often to log within training steps.
-            - enable_checkpointing: bool, default True
-                Whether to enable automatic checkpointing.
-            - fast_dev_run: bool or int, default False
-                Run a fast development run with limited batches for debugging.
-        For all available options, see: https://lightning.ai/docs/pytorch/stable/common/trainer.html#init
-
-
-    Examples
-    --------
-    >>> import deepchem as dc
-    >>> import lightning as L
-    >>> from deepchem.models.lightning.trainer import LightningTorchModel
-    >>> tasks, datasets, _ = dc.molnet.load_clintox()
-    >>> _, valid_dataset, _ = datasets
-    >>> model = dc.models.MultitaskClassifier(
-    ...     n_tasks=len(tasks),
-    ...     n_features=1024,
-    ...     layer_sizes=[1000],
-    ...     dropouts=0.2,
-    ...     learning_rate=0.0001,
-    ...     device="cpu",
-    ...     batch_size=16
-    ... )
-    >>> trainer = LightningTorchModel(
-    ...     model=model,
-    ...     batch_size=16,
-    ...     max_epochs=30,
-    ...     accelerator="cpu",
-    ...     log_every_n_steps=1,
-    ...     fast_dev_run=True
-    ... )
-    >>> # Train with custom checkpoint settings
-    >>> trainer.fit(valid_dataset,
-    ...              max_checkpoints_to_keep=3,
-    ...              checkpoint_interval=1000)
-    >>> predictions = trainer.predict(valid_dataset)
-    >>> trainer.save_checkpoint("model.ckpt")
-    >>> # To reload:
-    >>> trainer2 = LightningTorchModel.load_checkpoint("model.ckpt", model=model)
+    and checkpoint management. Currently, it supports strategies like DDP (Distributed Data Parallel)
+    and FSDP (Fully Sharded Data Parallel) for distributed training, as well as single-device training.
     """
 
     def __init__(self,
@@ -96,7 +32,70 @@ class LightningTorchModel(Model):
                  batch_size: int = 32,
                  model_dir: Optional[str] = "default_model_dir",
                  **trainer_kwargs: Any) -> None:
+        """Initialize the LightningTorchModel.
 
+        Parameters
+        ----------
+        model: TorchModel
+            Initialized DeepChem model to be trained or used for inference.
+        batch_size: int, default 32
+            Batch size for training and prediction data loaders.
+        model_dir: str, (default "default_model_dir")
+            Path to directory where model and checkpoints will be stored. If not specified,
+            model will be stored in a "default_model_dir" directory. This is compatible with
+            DeepChem's model directory structure. If given as None, a temporary directory will be used.
+        **trainer_kwargs
+            Additional keyword arguments passed to the Lightning Trainer. Common options include:
+
+                - accelerator: str, default "auto"
+                    Hardware accelerator to use ("cpu", "gpu", "tpu", "auto").
+                - devices: int or str or list, default "auto"
+                    Number of devices/GPUs to use.
+                - strategy: str, default "auto"
+                    Distributed training strategy ("ddp", "fsdp", "auto").
+                - precision: str or int, default "32-true"
+                    Numerical precision ("16-mixed", "bf16-mixed", "32-true").
+                - log_every_n_steps: int, default 50
+                    How often to log within training steps.
+                - enable_checkpointing: bool, default True
+                    Whether to enable automatic checkpointing.
+                - fast_dev_run: bool or int, default False
+                    Run a fast development run with limited batches for debugging.
+            For all available options, see: https://lightning.ai/docs/pytorch/stable/common/trainer.html#init
+
+        Examples
+        --------
+        >>> import deepchem as dc
+        >>> import lightning as L
+        >>> from deepchem.models.lightning.trainer import LightningTorchModel
+        >>> tasks, datasets, _ = dc.molnet.load_clintox()
+        >>> _, valid_dataset, _ = datasets
+        >>> model = dc.models.MultitaskClassifier(
+        ...     n_tasks=len(tasks),
+        ...     n_features=1024,
+        ...     layer_sizes=[1000],
+        ...     dropouts=0.2,
+        ...     learning_rate=0.0001,
+        ...     device="cpu",
+        ...     batch_size=16
+        ... )
+        >>> trainer = LightningTorchModel(
+        ...     model=model,
+        ...     batch_size=16,
+        ...     max_epochs=30,
+        ...     accelerator="cpu",
+        ...     log_every_n_steps=1,
+        ...     fast_dev_run=True
+        ... )
+        >>> # Train with custom checkpoint settings
+        >>> # trainer.fit(valid_dataset,
+        ... #             max_checkpoints_to_keep=3,
+        ... #             checkpoint_interval=1000)
+        >>> # predictions = trainer.predict(valid_dataset)
+        >>> # trainer.save_checkpoint("model.ckpt")
+        >>> # To reload:
+        >>> # trainer2 = LightningTorchModel.load_checkpoint("model.ckpt", model=model)
+        """
         self.model: TorchModel = model
         self.batch_size: int = batch_size
         self.trainer_kwargs: Dict[str, Any] = trainer_kwargs
@@ -124,6 +123,8 @@ class LightningTorchModel(Model):
 
     def fit(self,
             train_dataset: Dataset,
+            nb_epoch: int = 1,
+            restore: bool = False,
             max_checkpoints_to_keep: int = 5,
             checkpoint_interval: int = 1000,
             num_workers: int = 4,
@@ -134,6 +135,12 @@ class LightningTorchModel(Model):
         ----------
         train_dataset: dc.data.Dataset
             DeepChem dataset for training.
+        nb_epoch: int, default 1
+            Maximum number of epochs to train the model for.
+        restore: bool, default False
+            Whether to restore from a previous checkpoint. If True, will load the model weights
+            from the specified `ckpt_path` if provided. If `restore` is True and `ckpt_path` is None,
+            it will look for the last checkpoint in the `model_dir` under "checkpoints/last.ckpt".
         max_checkpoints_to_keep: int, default 5
             The maximum number of checkpoints to keep.
         checkpoint_interval: int, default 1000
@@ -143,7 +150,33 @@ class LightningTorchModel(Model):
             Number of workers for DataLoader.
         ckpt_path: Optional[str], default None
             Path to a checkpoint file to resume training from. If None, starts fresh.
+
+        Notes
+        -----
+        If `max_checkpoints_to_keep` is set to n, the trainer will keep the last n checkpoints plus the
+        last checkpoint created when the fit ends successfully, named `last.ckpt`.
         """
+        # Set the number of epochs in the trainer kwargs
+        if 'max_epochs' not in self.trainer_kwargs:
+            self.trainer_kwargs['max_epochs'] = nb_epoch
+
+        # If restore is True, we need to check if ckpt_path is provided
+        if restore and ckpt_path is None:
+            # If no ckpt_path is provided, check for the last checkpoint in the model directory
+            if os.path.exists(
+                    os.path.join(self.model_dir, "checkpoints", "last.ckpt")):
+                ckpt_path = os.path.join(self.model_dir, "checkpoints",
+                                         "last.ckpt")
+            else:
+                total_checkpoints = len([
+                    f for f in os.listdir(
+                        os.path.join(self.model_dir, "checkpoints"))
+                    if f.endswith('.ckpt')
+                ])
+                raise ValueError(
+                    f"Currently there are {total_checkpoints} checkpoints in the model directory {self.model_dir}/checkpoints. "
+                    "Please specify a valid `ckpt_path` to restore from, or set `restore=False` to start fresh."
+                )
 
         # Prepare callbacks for the trainer
         callbacks_list = []
@@ -307,8 +340,6 @@ class LightningTorchModel(Model):
         **trainer_kwargs
             Additional trainer arguments. Common options include:
 
-            - max_epochs: int, default None
-                Maximum number of training epochs.
             - accelerator: str, default "auto"
                 Hardware accelerator to use ("cpu", "gpu", "tpu", "auto").
             - devices: int or str or list, default "auto"
@@ -332,8 +363,7 @@ class LightningTorchModel(Model):
 
         Examples
         --------
-        >>> # Call as a static method on the class
-        >>> trainer = LightningTorchModel.load_checkpoint("model.ckpt", model=my_model)
+        >>> # Call: trainer = LightningTorchModel.load_checkpoint("model.ckpt", model=my_model)
         >>> # NOT: trainer.load_checkpoint("model.ckpt", model=my_model)
         """
 
