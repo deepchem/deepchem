@@ -39,14 +39,13 @@ def test_multitask_classifier_reload_correctness():
 
     trainer = LightningTorchModel(model=model,
                                   batch_size=16,
-                                  max_epochs=30,
                                   accelerator="cuda",
                                   devices=-1,
                                   log_every_n_steps=1,
                                   strategy="fsdp",
                                   fast_dev_run=True)
 
-    trainer.fit(valid_dataset)
+    trainer.fit(valid_dataset, nb_epoch=3)
     # get a some 10 weights for assertion
     weights = trainer.model.model.layers[0].weight[:10].detach().cpu().numpy()
 
@@ -64,7 +63,6 @@ def test_multitask_classifier_reload_correctness():
     trainer = LightningTorchModel.reload("multitask_classifier.ckpt",
                                          model=reload_model,
                                          batch_size=16,
-                                         max_epochs=10,
                                          accelerator="cuda",
                                          devices=-1,
                                          log_every_n_steps=1,
@@ -98,14 +96,13 @@ def test_gcn_model_reload_correctness():
 
     trainer = LightningTorchModel(model=model,
                                   batch_size=16,
-                                  max_epochs=10,
                                   accelerator="cuda",
                                   devices=-1,
                                   log_every_n_steps=1,
                                   strategy="fsdp",
                                   fast_dev_run=True)
 
-    trainer.fit(valid_dataset)
+    trainer.fit(valid_dataset, nb_epoch=3)
 
     # get a some 10 weights for assertion
     weights = trainer.model.model.model.gnn.gnn_layers[
@@ -123,7 +120,6 @@ def test_gcn_model_reload_correctness():
     trainer = LightningTorchModel.reload("gcn_model.ckpt",
                                          model=reload_model,
                                          batch_size=16,
-                                         max_epochs=10,
                                          accelerator="cuda",
                                          devices=-1,
                                          log_every_n_steps=1,
@@ -172,7 +168,6 @@ def test_gcn_overfit_with_lightning_trainer():
     lightning_trainer = LightningTorchModel(
         model=gcn_model,
         batch_size=5,
-        max_epochs=70,
         accelerator="cuda",
         strategy="fsdp",
         devices=-1,
@@ -183,7 +178,8 @@ def test_gcn_overfit_with_lightning_trainer():
     # Train the model
     lightning_trainer.fit(dataset,
                           max_checkpoints_to_keep=3,
-                          checkpoint_interval=20)
+                          checkpoint_interval=20,
+                          nb_epoch=70)
 
     # evaluate the checkpoints availablity 3 + 1 represents the 3 checkpoints plus the final model
     checkpoints = os.listdir(os.path.join("modeldir", "checkpoints"))
