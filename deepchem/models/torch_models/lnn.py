@@ -131,7 +131,7 @@ class LNN(nn.Module):
         --------
         >>> lnn = LNN(n_dof=2)
         >>> x = torch.randn(10, 4, requires_grad=True)  # Shape: (10, 4)
-        >>> accelerations = lnn.solve_dynamics(x)  # Shape: (10, 2)
+        >>> accelerations = lnn.calculate_dynamics(x)  # Shape: (10, 2)
         """
 
         # separating current state into position and velocities
