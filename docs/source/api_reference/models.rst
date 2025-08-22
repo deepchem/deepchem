@@ -651,6 +651,11 @@ HNNModel
 .. autoclass:: deepchem.models.torch_models.HNNModel
   :members:
 
+LNN
+----------------
+.. autoclass:: deepchem.models.torch_models.LNN
+  :members:
+
 PyTorch Lightning Models
 ========================
 
