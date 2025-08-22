@@ -137,6 +137,7 @@ class LightningTorchModel(Model):
             DeepChem dataset for training.
         nb_epoch: int, default 1
             Maximum number of epochs to train the model for.
+            Note, nb_epoch is mapped to `max_epochs` in Lightning Trainer.
         restore: bool, default False
             Whether to restore from a previous checkpoint. If True, will load the model weights
             from the specified `ckpt_path` if provided. If `restore` is True and `ckpt_path` is None,
@@ -156,9 +157,8 @@ class LightningTorchModel(Model):
         If `max_checkpoints_to_keep` is set to n, the trainer will keep the last n checkpoints plus the
         last checkpoint created when the fit ends successfully, named `last.ckpt`.
         """
-        # Set the number of epochs in the trainer kwargs
-        if 'max_epochs' not in self.trainer_kwargs:
-            self.trainer_kwargs['max_epochs'] = nb_epoch
+
+        self.trainer_kwargs['max_epochs'] = nb_epoch
 
         # If restore is True, we need to check if ckpt_path is provided
         if restore and ckpt_path is None:
