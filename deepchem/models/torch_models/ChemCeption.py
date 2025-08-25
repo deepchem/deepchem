@@ -9,8 +9,6 @@ from deepchem.data import Dataset
 from deepchem.metrics import to_one_hot
 from deepchem.data.datasets import pad_batch
 
-import torchvision.transforms as T
-
 DEFAULT_INCEPTION_BLOCKS = {"A": 3, "B": 3, "C": 3}
 
 
@@ -316,11 +314,6 @@ augmentation during batch generation.
 
                 n_batches = 0
 
-                aug = T.Compose(
-                    [T.ToPILImage(),
-                     T.RandomRotation(180),
-                     T.ToTensor()])
-
                 for (X_b, y_b, w_b,
                      ids_b) in dataset.iterbatches(batch_size=self.batch_size,
                                                    deterministic=deterministic,
@@ -330,9 +323,9 @@ augmentation during batch generation.
                     for img in X_b:
                         img = torch.tensor(img, dtype=torch.float32)
                         if img.shape[0] == 1:
-                            img = aug(img.squeeze(0)).unsqueeze(0)
+                            img = torch.flip(img, dims=[1, 2])
                         else:
-                            img = aug(img.permute(1, 2, 0)).permute(2, 0, 1)
+                            img = torch.flip(img, dims=[1, 2])
                         X_b_aug.append(img)
 
                     X_b = torch.stack(X_b_aug).to(torch.float32).numpy()
