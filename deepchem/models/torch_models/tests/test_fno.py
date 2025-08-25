@@ -34,3 +34,37 @@ def test_fno_block_forward():
     x = torch.rand(100, 32, 100, 100)
     y = block(x)
     assert y.shape == (100, 32, 100, 100)
+
+
+@pytest.mark.torch
+def test_fno_base_construction():
+    """
+    Test if FNO can be constructed in 1D, 2D, and 3D.
+    """
+    from deepchem.models.torch_models.fno import FNO
+    model = FNO(in_channels=1, out_channels=1, modes=8, width=32, dims=2)
+    assert model is not None, "FNO base model construction failed"
+
+
+@pytest.mark.torch
+def test_fno_base_forward():
+    """
+    Test if FNO can be forward-passed in 2D, without any errors.
+    """
+    from deepchem.models.torch_models.fno import FNO
+    model = FNO(in_channels=1, out_channels=1, modes=8, width=32, dims=2)
+    x = torch.rand(100, 1, 100, 100)
+    y = model(x)
+    assert y.shape == (100, 1, 100, 100)
+
+
+@pytest.mark.torch
+def test_fno_base_meshgrids():
+    """
+    Test if meshgrids are properly generated
+    """
+    from deepchem.models.torch_models.fno import FNO
+    model = FNO(in_channels=1, out_channels=1, modes=8, width=32, dims=2)
+    x = torch.rand(100, 1, 100, 100)
+    meshgrid = model._generate_meshgrid(x)
+    assert meshgrid.shape == (100, 2, 100, 100)
