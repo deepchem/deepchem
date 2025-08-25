@@ -172,7 +172,7 @@ class EquivariantGraphFeaturizer(MolecularFeaturizer):
             Chem.rdchem.BondType.DOUBLE: 1,
             Chem.rdchem.BondType.TRIPLE: 2,
         }
-        NUM_BOND_TYPES = 4 
+        NUM_BOND_TYPES = 4
 
         edge_features: list[float] = []
         edge_weights_list = []
