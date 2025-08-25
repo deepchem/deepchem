@@ -41,20 +41,14 @@ def create_test_graph(smiles):
     """Helper function to create a test molecular graph from SMILES."""
     from rdkit import Chem
     import deepchem as dc
-    import dgl
     from deepchem.utils.equivariance_utils import get_equivariant_basis_and_r
 
     mol = Chem.MolFromSmiles(smiles)
-    featurizer = dc.feat.EquivariantGraphFeaturizer(fully_connected=True,
+    featurizer = dc.feat.EquivariantGraphFeaturizer(fully_connected=False,
                                                     embeded=True)
     features = featurizer.featurize([mol])[0]
 
-    G = dgl.graph((features.edge_index[0], features.edge_index[1]),
-                  num_nodes=len(features.node_features))
-    G.ndata['f'] = torch.tensor(features.node_features,
-                                dtype=torch.float32).unsqueeze(-1)
-    G.ndata['x'] = torch.tensor(features.positions, dtype=torch.float32)
-    G.edata['d'] = torch.tensor(features.edge_features, dtype=torch.float32)
+    G = features.to_dgl_graph()
     G.edata['w'] = torch.tensor(features.edge_weights, dtype=torch.float32)
 
     basis, r = get_equivariant_basis_and_r(G, max_degree=3)
@@ -84,34 +78,27 @@ def apply_rotation(x, axis, angle):
 
 @pytest.mark.torch
 @pytest.mark.parametrize("max_degree, nc_in, nc_out, edge_dim",
-                         [(3, 32, 128, 5)])
+                         [(3, 32, 128, 4)])
 def test_se3pairwiseconv_equivariance(max_degree, nc_in, nc_out, edge_dim):
     """Test SE(3) equivariance of SE3PairwiseConv using a real molecular graph (CCO)."""
     from rdkit import Chem
-    import dgl
     from deepchem.models.torch_models.layers import SE3PairwiseConv
     from deepchem.utils.equivariance_utils import get_equivariant_basis_and_r
 
     # Load molecule and featurize
     mol = Chem.MolFromSmiles("CCO")
-    featurizer = dc.feat.EquivariantGraphFeaturizer(fully_connected=True,
+    featurizer = dc.feat.EquivariantGraphFeaturizer(fully_connected=False,
                                                     embeded=True)
     mol_graph = featurizer.featurize([mol])[0]
+    G = mol_graph.to_dgl_graph()
+    G.edata['w'] = torch.tensor(mol_graph.edge_weights, dtype=torch.float32)
 
     # Initialize SE3PairwiseConv layer
     pairwise_conv = SE3PairwiseConv(degree_in=0,
                                     nc_in=32,
                                     degree_out=0,
                                     nc_out=128,
-                                    edge_dim=5)
-
-    G = dgl.graph((mol_graph.edge_index[0], mol_graph.edge_index[1]))
-    G.ndata['f'] = torch.tensor(mol_graph.node_features,
-                                dtype=torch.float32).unsqueeze(-1)
-    G.ndata['x'] = torch.tensor(mol_graph.positions,
-                                dtype=torch.float32)  # Atomic positions
-    G.edata['d'] = torch.tensor(mol_graph.edge_features, dtype=torch.float32)
-    G.edata['w'] = torch.tensor(mol_graph.edge_weights, dtype=torch.float32)
+                                    edge_dim=4)
 
     # Compute initial SE(3) equivariant basis and r
     basis, r = get_equivariant_basis_and_r(G, max_degree)
@@ -124,7 +111,8 @@ def test_se3pairwiseconv_equivariance(max_degree, nc_in, nc_out, edge_dim):
     # Apply random graph rotation to nodes
     axis = np.array([1.0, 1.0, 1.0])  # Rotate around (1,1,1) axis
     angle = np.pi / 4  # 45-degree rotation
-    G.ndata['x'] = apply_rotation(G.ndata['x'], axis, angle)  # Apply rotation
+    G.ndata['pos'] = apply_rotation(G.ndata['pos'], axis,
+                                    angle)  # Apply rotation
 
     # Compute SE(3) rotated equivariant basis and r
     basis_rotated, r_rotated = get_equivariant_basis_and_r(G, max_degree)
@@ -133,7 +121,7 @@ def test_se3pairwiseconv_equivariance(max_degree, nc_in, nc_out, edge_dim):
     output_original = pairwise_conv(feat, basis)
 
     # Compute edge features for rotated graph
-    r_rotated = torch.sqrt(torch.sum(G.edata["d"]**2, -1, keepdim=True))
+    r_rotated = torch.sqrt(torch.sum(G.edata["edge_attr"]**2, -1, keepdim=True))
     feat_rotated = torch.cat([G.edata["w"], r_rotated],
                              -1) if "w" in G.edata else torch.cat([r_rotated],
                                                                   -1)
@@ -487,7 +475,7 @@ def test_se3_multi_head_attention_equivariance(smiles, n_heads, feature_dims):
     # Apply random rotation
     axis = np.array([1.0, 0.0, 0.0])  # Rotate around x-axis
     angle = np.pi / 4  # 45-degree rotation
-    G.ndata['x'] = apply_rotation(G.ndata['x'], axis, angle)
+    G.ndata['pos'] = apply_rotation(G.ndata['pos'], axis, angle)
 
     # Compute output with rotation
     output_rotated = gmab(v, k=k, q=q, G=G)
@@ -595,7 +583,7 @@ def test_se3_gconv_layer_initialization():
     from deepchem.models.torch_models.layers import SE3GraphConv, Fiber
     f_in = Fiber(dictionary={0: 16, 1: 32})
     f_out = Fiber(dictionary={0: 32, 1: 64})
-    layer = SE3GraphConv(f_in, f_out, self_interaction=True, edge_dim=5)
+    layer = SE3GraphConv(f_in, f_out, self_interaction=True, edge_dim=4)
 
     assert isinstance(layer, SE3GraphConv)
     assert layer.f_in.structure_dict[0] == 16
@@ -611,7 +599,7 @@ def test_se3_gconv_forward_pass():
     f_in = Fiber(dictionary={0: 16, 1: 32})
     f_out = Fiber(dictionary={0: 32, 1: 64})
 
-    layer = SE3GraphConv(f_in, f_out, self_interaction=True, edge_dim=5)
+    layer = SE3GraphConv(f_in, f_out, self_interaction=True, edge_dim=4)
     h = {
         str(d): torch.randn(G.num_nodes(), f_in.structure_dict[d], 2 * d + 1)
         for d in f_in.structure_dict
@@ -633,14 +621,14 @@ def test_se3_gconv_equivariance():
     f_in = Fiber(dictionary={0: 16, 1: 32})
     f_out = Fiber(dictionary={0: 32, 1: 64})
 
-    layer = SE3GraphConv(f_in, f_out, self_interaction=True, edge_dim=5)
+    layer = SE3GraphConv(f_in, f_out, self_interaction=True, edge_dim=4)
     h = {
         str(d): torch.randn(G.num_nodes(), f_in.structure_dict[d], 2 * d + 1)
         for d in f_in.structure_dict
     }
 
     R = torch.tensor([[0, -1, 0], [1, 0, 0], [0, 0, 1]], dtype=torch.float32)
-    G.ndata['x'] = G.ndata['x'] @ R.T
+    G.ndata['pos'] = G.ndata['pos'] @ R.T
 
     output_rotated = layer(h, G=G, r=r, basis=basis)
     output_original = layer(h, G=G, r=r, basis=basis)
@@ -686,7 +674,7 @@ def test_se3graphnorm_equivariance():
         "1": torch.randn(G.num_nodes(), 32, 3)
     }
     R = torch.tensor([[0, -1, 0], [1, 0, 0], [0, 0, 1]], dtype=torch.float32)
-    G.ndata['x'] = G.ndata['x'] @ R.T
+    G.ndata['pos'] = G.ndata['pos'] @ R.T
 
     output_rotated = norm_layer(h, G=G)
     rotated_vectors = output_rotated['1'] @ R.T
@@ -706,20 +694,17 @@ def test_se3partialedgeconv_forward_pass():
 
     G, basis, r = create_test_graph("CCO")
 
-    f_in = Fiber(dictionary={0: 16, 1: 32})
-    f_out = Fiber(dictionary={0: 32, 1: 64})
-    conv = SE3PartialEdgeConv(f_in=f_in, f_out=f_out, edge_dim=5, x_ij='cat')
+    f_in = Fiber(dictionary={0: 24})
+    f_out = Fiber(dictionary={0: 32})
 
-    h = {
-        "0": torch.randn(G.num_nodes(), 16, 1),
-        "1": torch.randn(G.num_nodes(), 32, 3)
-    }
+    conv = SE3PartialEdgeConv(f_in, f_out, edge_dim=4, x_ij=None)
+
+    h = {"0": G.ndata["x"].unsqueeze(-1)}
 
     out = conv(h, G=G, r=r, basis=basis)
 
-    assert set(out.keys()) == {"0", "1"}
+    assert set(out.keys()) == {"0"}
     assert out["0"].shape == (G.num_edges(), 32, 1)
-    assert out["1"].shape == (G.num_edges(), 64, 3)
 
 
 @pytest.mark.torch
@@ -731,7 +716,7 @@ def test_se3partialedgeconv_equivariance():
 
     f_in = Fiber(dictionary={0: 16, 1: 32})
     f_out = Fiber(dictionary={0: 32, 1: 64})
-    conv = SE3PartialEdgeConv(f_in=f_in, f_out=f_out, edge_dim=5, x_ij='cat')
+    conv = SE3PartialEdgeConv(f_in=f_in, f_out=f_out, edge_dim=4, x_ij=None)
 
     h = {
         "0": torch.randn(G.num_nodes(), 16, 1),
@@ -739,7 +724,7 @@ def test_se3partialedgeconv_equivariance():
     }
 
     R = torch.tensor([[0, -1, 0], [1, 0, 0], [0, 0, 1]], dtype=torch.float32)
-    G.ndata["x"] = G.ndata["x"] @ R.T
+    G.ndata["pos"] = G.ndata["pos"] @ R.T
 
     out_rotated = conv(h, G=G, r=r, basis=basis)
     rotated_vectors = out_rotated["1"] @ R.T
@@ -768,11 +753,11 @@ def test_se3residualattention_forward_pass():
         "out": Fiber(1, deg * ch)
     }
 
-    h = {"0": G.ndata["f"]}
+    h = {"0": G.ndata["x"].unsqueeze(-1)}
 
     conv = SE3ResidualAttention(fibers["in"],
                                 fibers["mid"],
-                                edge_dim=5,
+                                edge_dim=4,
                                 div=4,
                                 n_heads=8)
     out = conv(h, G=G, r=r, basis=basis)
@@ -802,23 +787,23 @@ def test_se3residualattention_equivariance():
         "out": Fiber(1, deg * ch)
     }
 
-    h = {"0": G.ndata["f"]}
+    h = {"0": G.ndata["x"].unsqueeze(-1)}
 
     axis = np.random.randn(3)
     angle = np.random.uniform(0, 2 * np.pi)
     R_np = rotation_matrix(axis, angle)
     R = torch.tensor(R_np, dtype=torch.float32)
 
-    G.ndata["x"] = G.ndata["x"] @ R.T
+    G.ndata["pos"] = G.ndata["pos"] @ R.T
 
     conv = SE3ResidualAttention(fibers["in"],
                                 fibers["mid"],
-                                edge_dim=5,
+                                edge_dim=4,
                                 div=4,
                                 n_heads=8)
 
     out_rot = conv(h, G=G, r=r, basis=basis)
-    G.ndata["x"] = G.ndata["x"] @ R  # Revert to original
+    G.ndata["pos"] = G.ndata["pos"] @ R  # Revert to original
     out_ref = conv(h, G=G, r=r, basis=basis)
 
     assert torch.allclose(out_rot["0"], out_ref["0"], atol=1e-4)
