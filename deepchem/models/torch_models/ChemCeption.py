@@ -1,8 +1,13 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from typing import Dict, Type
+from typing import Dict, Type, Optional, Union
 from deepchem.models.torch_models.chemnet_layers import Stem, InceptionResnetA, ReductionA, InceptionResnetB, ReductionB, InceptionResnetC
+from deepchem.models.torch_models import TorchModel
+from deepchem.models.losses import L2Loss, SoftmaxCrossEntropy, SigmoidCrossEntropy
+from deepchem.data import Dataset
+from deepchem.metrics import to_one_hot
+from deepchem.data.datasets import pad_batch
 
 DEFAULT_INCEPTION_BLOCKS = {"A": 3, "B": 3, "C": 3}
 
@@ -170,3 +175,175 @@ class ChemCeption(nn.Module):
             x = x.view(-1, self.n_tasks)
 
         return x
+
+
+class ChemceptionModel(TorchModel):
+    """Chemception wrapper model which inherits TorchModel.
+
+This class wraps the ChemCeption CNN backbone and provides a DeepChem-compatible
+interface for training and evaluation of molecular property prediction from
+image-based representations. The ChemceptionModel builds the network, sets the
+appropriate loss for classification or regression, and supports optional image
+augmentation during batch generation.
+
+    Parameters
+    ----------
+    img_spec : str, default "std"
+        Image specification defining input channel encoding.
+    img_size : int, default 80
+        Size (height and width) of input images.
+    base_filters : int, default 16
+        Number of base convolutional filters.
+    inception_blocks : dict, optional
+        Configuration of Inception-style blocks.
+    n_tasks : int, default 10
+        Number of prediction tasks.
+    n_classes : int, default 2
+        Number of classes for classification tasks.
+    augment : bool, default False
+        Whether to apply on-the-fly image augmentation.
+    mode : str, default "regression"
+        Whether the model performs regression or classification.
+    device : torch.device, optional
+        Device to run computations on.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> import deepchem as dc
+    >>> from deepchem.feat.smiles_featurizers import SmilesToImage
+    >>> from deepchem.models.torch_models import ChemceptionModel
+    >>> def get_chemception_dataset(mode="regression", img_size=80, data_points=20, n_tasks=5):
+    ...     smiles = ["CCO", "CCN", "CCC", "CCCl", "CNO"] * (data_points // 5)
+    ...     y = np.random.rand(len(smiles), n_tasks)  # random labels
+    ...     featurizer = SmilesToImage(img_size=img_size, res=img_size)
+    ...     X = featurizer.featurize(smiles)
+    ...     # Convert NHWC -> NCHW for PyTorch
+    ...     X = np.transpose(X, (0, 3, 1, 2))
+    ...     dataset = dc.data.NumpyDataset(X, y)
+    ...     return dataset
+    >>> dataset = get_chemception_dataset(img_size=80, n_tasks=5, data_points=20)
+    >>> model = ChemceptionModel(img_size=80, n_tasks=5, mode="regression", augment=True)
+    >>> _ = model.fit(dataset, nb_epoch=5)
+    >>> preds = model.predict_on_batch(dataset.X)
+    >>> print("Predictions shape:", preds.shape)
+    References
+    ----------
+    .. [1] Goh, G. B., Siegel, C., Vishnu, A., Hodas, N. O., & Baker, N. (2017).
+       "Chemception: A Deep Neural Network with Minimal Chemistry Knowledge Matches
+       the Performance of Expert-developed QSAR/QSPR Models."
+       arXiv preprint arXiv:1706.06689. https://arxiv.org/abs/1706.06689
+
+"""
+
+    def __init__(self,
+                 img_spec: str = "std",
+                 img_size: int = 80,
+                 base_filters: int = 16,
+                 inception_blocks: Optional[Dict[str, int]] = None,
+                 n_tasks: int = 10,
+                 n_classes: int = 2,
+                 augment: bool = False,
+                 mode: str = "regression",
+                 device: Optional[torch.device] = None,
+                 **kwargs):
+        self.img_spec = img_spec
+        self.img_size = img_size
+        self.base_filters = base_filters
+        self.inception_blocks = inception_blocks if inception_blocks is not None else DEFAULT_INCEPTION_BLOCKS
+        self.augment = augment
+        self.mode = mode
+        self.n_tasks = n_tasks
+        self.n_classes = n_classes
+        self.batch_size = kwargs.get("batch_size", 100)
+
+        model = ChemCeption(img_spec=img_spec,
+                            img_size=img_size,
+                            base_filters=base_filters,
+                            inception_blocks=self.inception_blocks,
+                            n_tasks=n_tasks,
+                            n_classes=n_classes,
+                            augment=augment,
+                            mode=mode)
+
+        loss: Union[L2Loss, SoftmaxCrossEntropy, SigmoidCrossEntropy]
+
+        if mode == "classification":
+            if n_classes == 2:
+                loss = SigmoidCrossEntropy()
+            else:
+                loss = SoftmaxCrossEntropy()
+            output_types = ['prediction', 'loss']
+        else:
+            loss = L2Loss()
+            output_types = ['prediction']
+
+        super(ChemceptionModel, self).__init__(model=model,
+                                               loss=loss,
+                                               output_types=output_types,
+                                               device=device,
+                                               **kwargs)
+
+    def default_generator(self,
+                          dataset: Dataset,
+                          epochs: int = 1,
+                          mode: str = 'fit',
+                          deterministic: bool = True,
+                          pad_batches: bool = True):
+
+        for epoch in range(epochs):
+            if mode == "predict" or (not self.augment):
+
+                for (X_b, y_b, w_b,
+                     ids_b) in dataset.iterbatches(batch_size=self.batch_size,
+                                                   deterministic=deterministic,
+                                                   pad_batches=pad_batches):
+                    if self.mode == "classification":
+                        y_b = to_one_hot(y_b.flatten(), self.n_classes).reshape(
+                            -1, self.n_tasks, self.n_classes)
+                    yield ([X_b], [y_b], [w_b])
+
+            else:
+
+                if not pad_batches:
+                    n_samples = dataset.X.shape[0]
+                else:
+                    n_samples = dataset.X.shape[0] + (
+                        self.batch_size -
+                        (dataset.X.shape[0] % self.batch_size))
+
+                n_batches = 0
+
+                for (X_b, y_b, w_b,
+                     ids_b) in dataset.iterbatches(batch_size=self.batch_size,
+                                                   deterministic=deterministic,
+                                                   pad_batches=pad_batches):
+
+                    X_b_aug = []
+                    for img in X_b:
+                        img = torch.tensor(img, dtype=torch.float32)
+                        if img.shape[0] == 1:
+                            img = torch.flip(img, dims=[1, 2])
+                        else:
+                            img = torch.flip(img, dims=[1, 2])
+                        X_b_aug.append(img)
+
+                    X_b = torch.stack(X_b_aug).to(torch.float32).numpy()
+
+                    X_b = torch.as_tensor(X_b, dtype=torch.float32).view(
+                        -1, X_b.shape[1], self.img_size, self.img_size).numpy()
+
+                    if pad_batches:
+                        X_b, y_b, w_b, _ = pad_batch(self.batch_size, X_b, y_b,
+                                                     w_b, ids_b)
+                        X_b = torch.as_tensor(X_b, dtype=torch.float32).numpy()
+
+                    n_batches += 1
+                    if n_batches > n_samples / self.batch_size:
+                        break
+
+                    if self.mode == "classification":
+                        y_b = to_one_hot(y_b.flatten(), self.n_classes).reshape(
+                            -1, self.n_tasks, self.n_classes)
+
+                    yield ([X_b], [y_b], [w_b])

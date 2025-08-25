@@ -738,3 +738,9 @@ ChemCeption
 ----------------
 .. autoclass:: deepchem.models.torch_models.ChemCeption.ChemCeption
   :members:
+
+ChemCeption
+--------------------
+
+.. autoclass:: deepchem.models.torch_models.ChemceptionModel
+  :members:
