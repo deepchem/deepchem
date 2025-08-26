@@ -270,7 +270,7 @@ class FNOModel(TorchModel):
     >>> x = torch.randn(1, 16, 16, 1)
     >>> dataset = dc.data.NumpyDataset(X=x, y=x)
     >>> model = FNOModel(in_channels=1, out_channels=1, modes=8, width=32, dims=2)
-    >>> model.fit(dataset)
+    >>> loss = model.fit(dataset)
     >>> predictions = model.predict(dataset)
     """
 
