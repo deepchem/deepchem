@@ -40,33 +40,32 @@ class LightningTorchModel(Model):
             Initialized DeepChem model to be trained or used for inference.
         batch_size: int, default 32
             Batch size for training and prediction data loaders.
-        model_dir: str, (default "default_model_dir")
+        model_dir: str, default "default_model_dir"
             Path to directory where model and checkpoints will be stored. If not specified,
             model will be stored in a "default_model_dir" directory. This is compatible with
-            DeepChem's model directory structure. If given as None, a temporary directory will be used.
+            DeepChem's model directory structure. If None, checkpointing will be disabled.
         **trainer_kwargs
             Additional keyword arguments passed to the Lightning Trainer. Common options include:
 
-                - accelerator: str, default "auto"
-                    Hardware accelerator to use ("cpu", "gpu", "tpu", "auto").
-                - devices: int or str or list, default "auto"
-                    Number of devices/GPUs to use.
-                - strategy: str, default "auto"
-                    Distributed training strategy ("ddp", "fsdp", "auto").
-                - precision: str or int, default "32-true"
-                    Numerical precision ("16-mixed", "bf16-mixed", "32-true").
-                - log_every_n_steps: int, default 50
-                    How often to log within training steps.
-                - enable_checkpointing: bool, default True
-                    Whether to enable automatic checkpointing.
-                - fast_dev_run: bool or int, default False
-                    Run a fast development run with limited batches for debugging.
+            - accelerator: str, default "auto"
+                Hardware accelerator to use ("cpu", "gpu", "tpu", "auto").
+            - devices: int or str or list, default "auto"
+                Number of devices/GPUs to use.
+            - strategy: str, default "auto"
+                Distributed training strategy ("ddp", "fsdp", "auto").
+            - precision: str or int, default "32-true"
+                Numerical precision ("16-mixed", "bf16-mixed", "32-true").
+            - log_every_n_steps: int, default 50
+                How often to log within training steps.
+            - enable_checkpointing: bool, default True
+                Whether to enable automatic checkpointing.
+            - fast_dev_run: bool or int, default False
+                Run a fast development run with limited batches, epochs and no checkpointing for debugging.
             For all available options, see: https://lightning.ai/docs/pytorch/stable/common/trainer.html#init
 
         Examples
         --------
         >>> import deepchem as dc
-        >>> import lightning as L
         >>> from deepchem.models.lightning.trainer import LightningTorchModel
         >>> tasks, datasets, _ = dc.molnet.load_clintox()
         >>> _, valid_dataset, _ = datasets
@@ -82,19 +81,18 @@ class LightningTorchModel(Model):
         >>> trainer = LightningTorchModel(
         ...     model=model,
         ...     batch_size=16,
-        ...     max_epochs=30,
         ...     accelerator="cpu",
         ...     log_every_n_steps=1,
         ...     fast_dev_run=True
         ... )
         >>> # Train with custom checkpoint settings
         >>> # trainer.fit(valid_dataset,
+        ... #             nb_epoch=30,
         ... #             max_checkpoints_to_keep=3,
         ... #             checkpoint_interval=1000)
         >>> # predictions = trainer.predict(valid_dataset)
-        >>> # trainer.save("model.ckpt")
-        >>> # To reload:
-        >>> # trainer2 = LightningTorchModel.reload("model.ckpt", model=model)
+        >>> # To restore from checkpoint:
+        >>> # trainer.restore()
         """
         self.model: TorchModel = model
         self.batch_size: int = batch_size
@@ -162,21 +160,7 @@ class LightningTorchModel(Model):
 
         # If restore is True, we need to check if ckpt_path is provided
         if restore and ckpt_path is None:
-            # If no ckpt_path is provided, check for the last checkpoint in the model directory
-            if os.path.exists(
-                    os.path.join(self.model_dir, "checkpoints", "last.ckpt")):
-                ckpt_path = os.path.join(self.model_dir, "checkpoints",
-                                         "last.ckpt")
-            else:
-                total_checkpoints = len([
-                    f for f in os.listdir(
-                        os.path.join(self.model_dir, "checkpoints"))
-                    if f.endswith('.ckpt')
-                ])
-                raise ValueError(
-                    f"Currently there are {total_checkpoints} checkpoints in the model directory {self.model_dir}/checkpoints. "
-                    "Please specify a valid `ckpt_path` to restore from, or set `restore=False` to start fresh."
-                )
+            self.restore()
 
         # Prepare callbacks for the trainer
         callbacks_list = []
@@ -253,6 +237,7 @@ class LightningTorchModel(Model):
         List
             Predictions from the model.
         """
+
         self.trainer = L.Trainer(**self.trainer_kwargs)
 
         # Create data module
@@ -287,95 +272,111 @@ class LightningTorchModel(Model):
             predictions = []
         return predictions
 
-    def save(self, filepath: str):  # type: ignore
-        """Save model checkpoint using Lightning's native checkpointing.
+    def save_checkpoint(self,
+                        max_checkpoints_to_keep: int = 1,
+                        model_dir: Optional[str] = None) -> None:
+        """Save a checkpoint to disk.
 
-        This method saves a complete checkpoint containing the model state,
-        optimizer state, learning rate scheduler state (if any schedulers are
-        configured), current training epoch, step counts, and other training
-        related metadata.
+        Usually you do not need to call this method, since fit() saves checkpoints
+        automatically. If you have disabled automatic checkpointing during fitting,
+        this can be called to manually write checkpoints.
 
-        Parameters
-        ----------
-        filepath: str
-            Path to save the checkpoint file (.ckpt extension recommended).
-        """
-
-        self.trainer.save_checkpoint(filepath)
-
-    @staticmethod
-    def reload(  # type: ignore
-            filepath: str,
-            model: TorchModel,
-            batch_size: int = 32,
-            model_dir: Optional[str] = "default_model_dir",
-            **trainer_kwargs):
-        """Create a new trainer instance with the loaded model weights.
-
-        This method creates a new instance of `LightningTorchModel` and loads
-        the model weights and trainer state from the specified checkpoint file.
-        It restores the complete training state including model parameters,
-        optimizer state, learning rate scheduler state, epoch count, step count,
-        and other metadata.
-
-        This is designed to create a new instance instead of reloading on the same
-        instance to avoid shape-mismatch errors that can occur when restoring
-        weights on the same instance after fitting the model, using FSDP training
-        strategy.
-
-        Note:
-        This is a static method, meaning it should be called on the class directly,
-        not on an instance of the class.
+        This method maintains compatibility with TorchModel's save_checkpoint interface
+        while using Lightning's native checkpointing mechanism.
 
         Parameters
         ----------
-        filepath: str
-            Path to checkpoint file (.ckpt).
-        model: TorchModel
-            DeepChem model instance to load weights into.
-        batch_size: int, default 32
-            Batch size for the trainer/model.
-        model_dir: str, optional (default None)
-            Path to directory where model and checkpoints will be stored. If not specified,
-            the default directory name lightning
-        **trainer_kwargs
-            Additional trainer arguments. Common options include:
+        max_checkpoints_to_keep : int, default 1
+            The maximum number of checkpoints to keep. Older checkpoints are discarded.
+        model_dir : str, default None
+            Model directory to save checkpoint to. If None, reverts to self.model_dir.
+            Checkpoints will be saved in a 'checkpoints' subdirectory within this path.
 
-            - accelerator: str, default "auto"
-                Hardware accelerator to use ("cpu", "gpu", "tpu", "auto").
-            - devices: int or str or list, default "auto"
-                Number of devices/GPUs to use.
-            - strategy: str, default "auto"
-                Distributed training strategy ("ddp", "fsdp", "auto").
-            - precision: str or int, default "32-true"
-                Numerical precision ("16-mixed", "bf16-mixed", "32-true").
-            - log_every_n_steps: int, default 50
-                How often to log within training steps.
-            - enable_checkpointing: bool, default True
-                Whether to enable automatic checkpointing.
-            - fast_dev_run: bool or int, default False
-                Run a fast development run with limited batches for debugging.
-            For all available options, see: https://lightning.ai/docs/pytorch/stable/common/trainer.html#init
-
-        Returns
-        -------
-        LightningTorchModel
-            New trainer instance with loaded model.
-
-        Examples
-        --------
-        >>> # Call: trainer = LightningTorchModel.reload("model.ckpt", model=my_model)
-        >>> # NOT: trainer.reload("model.ckpt", model=my_model)
+        Notes
+        -----
+        The `max_checkpoints_to_keep` parameter greater than `1` does not play any
+        significant role here, since we use modelcheckpoint callbacks from lightning for dynamic checkpoint
+        saving. It is kept with the same name and type just to follow the deepchem's convention.
         """
+        if max_checkpoints_to_keep == 0:
+            return
 
-        # Create trainer first
-        trainer = LightningTorchModel(model=model,
-                                      batch_size=batch_size,
-                                      model_dir=model_dir,
-                                      **trainer_kwargs)
+        if model_dir is None:
+            model_dir = self.model_dir
 
-        # Load the checkpoint
-        trainer.lightning_model = DCLightningModule.load_from_checkpoint(
-            filepath, dc_model=model)
+        # Check if trainer has been initialized
+        if not hasattr(self, 'trainer') or self.trainer is None:
+            raise RuntimeError(
+                "Trainer has not been initialized. Please call fit() or predict() "
+                "before attempting to save a checkpoint manually.")
 
-        return trainer
+        # Create checkpoints subdirectory following ModelCheckpoint convention
+        checkpoints_dir = os.path.join(model_dir, "checkpoints")
+        if not os.path.exists(checkpoints_dir):
+            os.makedirs(checkpoints_dir)
+
+        # Save as 'last_manual.ckpt' to match ModelCheckpoint convention
+        checkpoint_path = os.path.join(checkpoints_dir, 'last_manual.ckpt')
+        self.trainer.save_checkpoint(checkpoint_path)
+
+    def restore(self,
+                checkpoint: Optional[str] = None,
+                model_dir: Optional[str] = None,
+                strict: Optional[bool] = True) -> None:
+        """Reload the values of all variables from a checkpoint file.
+
+        This method maintains compatibility with TorchModel's restore interface
+        while using Lightning's native checkpointing mechanism.
+
+        Parameters
+        ----------
+        checkpoint: str, optional
+            the path to the checkpoint file to load. If this is None, will look for
+            'last.ckpt' in the model_dir/checkpoints/ directory.
+        model_dir: str, default None
+            Directory to restore checkpoint from. If None, use self.model_dir.  If
+            checkpoint is not None, this is ignored.
+        strict: bool, default True
+            Whether to strictly enforce that the keys in the checkpoint, match the keys
+            returned by this module's state dict.
+
+        Notes
+        -----
+        **Important Note for FSDP Users**: When using FSDP (Fully Sharded Data Parallel)
+        training strategy, restoring weights on the same trainer instance after fitting,
+        for prediction, can cause shape-mismatch errors due to how FSDP handles model sharding.
+        **It is strongly recommended to create a new LightningTorchModel instance**
+        instead of calling restore() on an existing trained instance when using FSDP.
+        """
+        logger.info('Restoring model')
+
+        if checkpoint is None:
+            # Look for the default checkpoint location
+            if model_dir is None:
+                model_dir = self.model_dir
+
+            # Check for last.ckpt in checkpoints subdirectory
+            checkpoints_dir = os.path.join(model_dir, "checkpoints")
+            checkpoint_path = os.path.join(checkpoints_dir, "last.ckpt")
+            if os.path.exists(checkpoint_path):
+                checkpoint = checkpoint_path
+            else:
+                # Look for any .ckpt file in the model directory
+                if os.path.exists(checkpoints_dir):
+                    ckpt_files = [
+                        f for f in os.listdir(checkpoints_dir)
+                        if f.endswith('.ckpt')
+                    ]
+                    if ckpt_files:
+                        checkpoint = os.path.join(checkpoints_dir,
+                                                  sorted(ckpt_files)[0])
+                    else:
+                        raise ValueError(
+                            f'No checkpoint found in {checkpoints_dir}')
+                else:
+                    raise ValueError(
+                        f'Model directory {checkpoints_dir} does not exist')
+
+        # Load the checkpoint using Lightning's mechanism
+        self.lightning_model = DCLightningModule.load_from_checkpoint(
+            checkpoint, dc_model=self.model, strict=strict)
