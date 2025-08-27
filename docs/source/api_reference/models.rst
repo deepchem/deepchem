@@ -673,6 +673,17 @@ You can wrap an arbitrary :code:`TorchModel` in a :code:`DCLightningModule` obje
 .. autoclass:: deepchem.models.DCLightningModule
   :members:
 
+LightningTorchModel
+-------------------
+
+This is the Lightning wrapper for DeepChem that supports training with Fully Sharded Data Parallel (FSDP)
+and Distributed Data Parallel (DDP). It also performs prediction, evaluation, and checkpoint management for 
+enhanced model training and deployment capabilities. You can wrap an arbitrary :code:`TorchModel` in a 
+:code:`LightningTorchModel` object.
+
+.. autoclass:: deepchem.models.lightning.LightningTorchModel
+  :members:
+
 Jax Models
 ==========
 
