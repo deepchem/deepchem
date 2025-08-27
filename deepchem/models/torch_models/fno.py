@@ -2,7 +2,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from deepchem.models.torch_models.layers import SpectralConv
-from typing import Union, Tuple
+from deepchem.models.torch_models.torch_model import TorchModel
+from typing import Union, Tuple, Optional, List
 
 
 class FNOBlock(nn.Module):
@@ -198,7 +199,8 @@ class FNO(nn.Module):
         ]
         mesh = torch.meshgrid(*coords, indexing='ij')
         grid = torch.stack(mesh, dim=0)  # shape (dims, *spatial)
-        grid = grid.unsqueeze(0).repeat(batch_size, 1, *([1] * self.dims))
+        # Repeat for batch dimension and add spatial dimensions
+        grid = grid.unsqueeze(0).expand(batch_size, -1, *spatial)
         return grid
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -242,3 +244,95 @@ class FNO(nn.Module):
         x = x.permute(0, -1, *range(1, x.ndim - 1)).contiguous()
 
         return x
+
+
+class FNOModel(TorchModel):
+    """Fourier Neural Operator for learning mappings between function spaces.
+
+    This is a TorchModel wrapper around the nn.Module FNO class that provides the DeepChem
+    interface for training and prediction. FNO is particularly effective for
+    solving partial differential equations (PDEs) and learning operators
+    between infinite-dimensional function spaces.
+
+    The model uses spectral convolutions in Fourier space to capture global
+    dependencies efficiently, making it much more parameter-efficient than
+    traditional convolutional neural networks for PDE solving tasks.
+
+    References
+    ----------
+    This technique was introduced in Li, Zongyi, et al. "Fourier neural operator for parametric partial differential equations." arXiv preprint arXiv:2010.08895 (2020).
+
+    Example
+    -------------
+    >>> import torch
+    >>> import deepchem as dc
+    >>> from deepchem.models.torch_models.fno import FNOModel
+    >>> x = torch.randn(1, 16, 16, 1)
+    >>> dataset = dc.data.NumpyDataset(X=x, y=x)
+    >>> model = FNOModel(in_channels=1, out_channels=1, modes=8, width=32, dims=2)
+    >>> loss = model.fit(dataset)
+    >>> predictions = model.predict(dataset)
+    """
+
+    def __init__(self,
+                 in_channels: int,
+                 out_channels: int,
+                 modes: Union[int, Tuple[int, ...]],
+                 width: int,
+                 dims: int,
+                 depth: int = 4,
+                 positional_encoding: bool = False,
+                 loss: nn.Module = nn.MSELoss(),
+                 **kwargs) -> None:
+        """Initialize the FNO model.
+        Parameters
+        ----------
+        in_channels: int
+            Dimension of input features at each spatial location
+        out_channels: int
+            Dimension of output features at each spatial location
+        modes: int or tuple
+            Number of Fourier modes to keep in spectral convolution. Higher values
+            capture more high-frequency information but increase computational cost
+        width: int
+            Width of the hidden layers in the FNO blocks. Controls model capacity
+        dims: int
+            Spatial dimensionality of the input data (1, 2, or 3)
+        depth: int, default 4
+            Number of FNO blocks to stack. More blocks can learn more complex mappings
+        positional_encoding: bool, default False
+            When enabled, uses meshgrids as positional encodings
+        loss: Union[Loss, LossFn], default nn.MSELoss()
+            Loss function to use for training
+        **kwargs: dict
+            Additional arguments passed to TorchModel constructor
+        """
+        self.loss_fn = loss
+        model = FNO(in_channels, out_channels, modes, width, dims, depth,
+                    positional_encoding)
+
+        super(FNOModel, self).__init__(model=model,
+                                       loss=self._loss_fn,
+                                       **kwargs)
+
+    def _loss_fn(self,
+                 outputs: List[torch.Tensor],
+                 labels: List[torch.Tensor],
+                 weights: Optional[List[torch.Tensor]] = None) -> torch.Tensor:
+        """Overrides the default loss function for training.
+
+        Computes the loss for training.
+
+        Parameters
+        ----------
+        outputs: List[torch.Tensor]
+            List of output tensors from the model
+        labels: List[torch.Tensor]
+            List of label tensors
+        weights: Optional[List[torch.Tensor]], default None
+            List of weight tensors
+        """
+        labels_tensor: torch.Tensor = labels[0]
+        outputs_tensor: torch.Tensor = outputs[0]
+        loss = self.loss_fn(labels_tensor, outputs_tensor)
+        return loss
