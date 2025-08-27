@@ -29,6 +29,7 @@ def test_calculate_dynamics_shape():
     output = model.calculate_dynamics(input_tensor)
     assert output.shape == torch.Size([1, 2])
 
+
 @pytest.mark.torch
 @pytest.mark.skipif(not has_torch, reason="PyTorch is not installed")
 def test_lagrangian():

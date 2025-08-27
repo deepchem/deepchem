@@ -106,7 +106,7 @@ class LNN(nn.Module):
         """
         return self.calculate_dynamics(z)
 
-    def calculate_dynamics(self, z) -> torch.Tensor:
+    def calculate_dynamics(self, z: torch.Tensor) -> torch.Tensor:
         """Compute accelerations using Euler-Lagrange equations from learned Lagrangian.
 
         This method implements the core physics computation by:
