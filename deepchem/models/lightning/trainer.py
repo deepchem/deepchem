@@ -25,6 +25,10 @@ class LightningTorchModel(Model):
     DeepChem models in Lightning modules and handles data loading, training loops,
     and checkpoint management. Currently, it supports strategies like DDP (Distributed Data Parallel)
     and FSDP (Fully Sharded Data Parallel) for distributed training, as well as single-device training.
+
+    **Important**: For multi-GPU strategies (DDP, FSDP), this class must be used in a script
+    and cannot be run in Jupyter notebooks or interactive environments due to Lightning's
+    multiprocessing requirements.
     """
 
     def __init__(self,
@@ -86,10 +90,7 @@ class LightningTorchModel(Model):
         ...     fast_dev_run=True
         ... )
         >>> # Train with custom checkpoint settings
-        >>> # trainer.fit(valid_dataset,
-        ... #             nb_epoch=30,
-        ... #             max_checkpoints_to_keep=3,
-        ... #             checkpoint_interval=1000)
+        >>> # trainer.fit(valid_dataset, nb_epoch=3)
         >>> # predictions = trainer.predict(valid_dataset)
         >>> # To restore from checkpoint:
         >>> # trainer.restore()
