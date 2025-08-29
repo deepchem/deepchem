@@ -31,7 +31,7 @@ class TestEquivariantGraphFeaturizer(unittest.TestCase):
         assert isinstance(graph, GraphData)
 
         assert graph.node_features.shape[0] == self.mol.GetNumAtoms()
-        assert graph.positions.shape[0] == self.mol.GetNumAtoms()
+        assert graph.node_pos_features.shape[0] == self.mol.GetNumAtoms()
         assert graph.edge_index.shape[1] > 0
 
     def test_fully_connected_graph_featurization(self):
@@ -62,7 +62,7 @@ class TestEquivariantGraphFeaturizer(unittest.TestCase):
         graph = graphs[0]
         assert isinstance(graph, GraphData)
         # 3D positions
-        assert graph.positions.shape[1] == 3
+        assert graph.node_pos_features.shape[1] == 3
 
     def test_edge_weight_discretization(self):
         """
