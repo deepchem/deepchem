@@ -302,3 +302,65 @@ def test_gcn_model_overfit_and_checkpointing():
             shutil.rmtree(lightning_trainer.model_dir)
     except:
         pass  # Ignore cleanup errors caused by file locks
+
+
+@pytest.mark.torch
+def test_lightning_dc_checkpoint_compatibility():
+    np.random.seed(42)
+    torch.manual_seed(42)
+    L.seed_everything(42)
+
+    # Load the BACE dataset for GCNModel
+    from deepchem.models.tests.test_graph_models import get_dataset
+    from deepchem.feat import MolGraphConvFeaturizer
+    tasks, dataset, transformers, metric = get_dataset(
+        'classification', featurizer=MolGraphConvFeaturizer())
+    dataset = dc.data.DiskDataset.from_numpy(dataset.X, dataset.y, dataset.w,
+                                             dataset.ids)
+    gcn_model = dc.models.GCNModel(
+        mode='classification',
+        n_tasks=len(tasks),
+        number_atom_features=30,
+        batch_size=5,
+        learning_rate=0.0003,
+        device='cpu',
+    )
+
+    lightning_trainer = LightningTorchModel(model=gcn_model,
+                                            batch_size=5,
+                                            accelerator="cuda",
+                                            strategy="fsdp",
+                                            devices=-1,
+                                            enable_checkpointing=True)
+
+    # Train the model
+    lightning_trainer.fit(dataset,
+                          max_checkpoints_to_keep=2,
+                          checkpoint_interval=20,
+                          nb_epoch=70)
+
+    # Create a new dc model instance
+    gcn_model_pred = dc.models.GCNModel(
+        mode='classification',
+        n_tasks=len(tasks),
+        number_atom_features=30,
+        batch_size=10,
+        learning_rate=0.0003,
+        device='cuda',
+    )
+
+    # strict needs to be false, since lightning creates some batch_norm related states, which do not effect any other states.
+    gcn_model_pred.restore(os.path.join(lightning_trainer.model_dir,
+                                        "checkpoints", "last.ckpt"),
+                           strict=False)
+
+    scores_multi = gcn_model_pred.evaluate(dataset, [metric], transformers)
+
+    assert scores_multi[
+        "mean-roc_auc_score"] > 0.85, "Learned weights did not get transfered."
+
+    try:
+        if os.path.exists(lightning_trainer.model_dir):
+            shutil.rmtree(lightning_trainer.model_dir)
+    except:
+        pass  # Ignore cleanup errors caused by file locks
