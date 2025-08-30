@@ -237,6 +237,7 @@ class HuggingFaceModel(TorchModel):
                 self.model = AutoModel.from_pretrained(model_dir,
                                                        trust_remote_code=True,
                                                        **self.config)
+            self.model.to(self.device)
         elif not from_hf_checkpoint:
             checkpoints = sorted(self.get_checkpoints(model_dir))
             if len(checkpoints) == 0:
