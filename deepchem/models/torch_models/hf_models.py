@@ -138,7 +138,7 @@ class HuggingFaceModel(TorchModel):
 
     >>> # removing temporary directory
     >>> if os.path.exists(tempdir):
-    >>> ... shutil.rmtree(tempdir)
+    ...     shutil.rmtree(tempdir)
     """
 
     def __init__(

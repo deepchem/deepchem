@@ -82,7 +82,7 @@ class Chemberta(HuggingFaceModel):
 
     >>> # removing temporary directory
     >>> if os.path.exists(tempdir):
-    >>> ... shutil.rmtree(tempdir)
+    ...     shutil.rmtree(tempdir)
 
 
     Reference

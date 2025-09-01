@@ -73,7 +73,7 @@ class ProtBERT(HuggingFaceModel):
 
    >>> # removing temporary directory
    >>> if os.path.exists(tempdir):
-   >>> ... shutil.rmtree(tempdir)
+   ...      shutil.rmtree(tempdir)
 
    References
    ----------
