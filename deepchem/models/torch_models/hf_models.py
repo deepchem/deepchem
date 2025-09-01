@@ -70,6 +70,7 @@ class HuggingFaceModel(TorchModel):
     -------
     >>> import os
     >>> import tempfile
+    >>> import shutil
     >>> tempdir = tempfile.mkdtemp()
 
     >>> # preparing dataset
@@ -134,6 +135,10 @@ class HuggingFaceModel(TorchModel):
     >>> training_loss = hf_model.fit(dataset, nb_epoch=1)
     >>> predictions = hf_model.predict(dataset)
     >>> eval_result = hf_model.evaluate(dataset, metrics=dc.metrics.Metric(dc.metrics.f1_score))
+
+    >>> # removing temporary directory
+    >>> if os.path.exists(tempdir):
+    >>> ... shutil.rmtree(tempdir)
     """
 
     def __init__(
