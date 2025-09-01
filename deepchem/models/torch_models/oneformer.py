@@ -41,17 +41,17 @@ class OneFormer(HuggingFaceModel):
     >> from deepchem.metrics import Metric, mean_absolute_error, jaccaard_index
 
     >> # Prepare the dataset
-    >> X = np.random.randint(0, 255, (3, 512, 512, 3))
-    >> y = np.random.randint(0, 1, (3, 512, 512))
+    >> X = np.random.randint(0, 255, (3, 256, 256, 3))
+    >> y = np.random.randint(0, 1, (3, 256, 256))
     >> dataset = ImageDataset(X, y)
     >> id2label = {0: "label-A", 1: "label-B"}
 
     >> # Create the model
     >> model = OneFormer(segmentation_task="semantic", model_path='shi-labs/oneformer_ade20k_swin_tiny',
-    ...                  id2label=id2label, torch_dtype=torch.float16, batch_size=2)
+    ...                  id2label=id2label, torch_dtype=torch.float16, batch_size=1)
 
     >> # Train the model
-    >> avg_loss = model.fit(dataset, nb_epoch=3)
+    >> avg_loss = model.fit(dataset, nb_epoch=1)
 
     >> # Predict the model
     >> preds = model.predict(dataset)

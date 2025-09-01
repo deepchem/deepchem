@@ -30,6 +30,7 @@ class ProtBERT(HuggingFaceModel):
    --------
    >>> import os
    >>> import tempfile
+   >>> import shutil
    >>> tempdir = tempfile.mkdtemp()
 
 
@@ -70,6 +71,9 @@ class ProtBERT(HuggingFaceModel):
    >>> tokenized_data = feat_extractor_model.tokenizer(protein,return_tensors='pt')
    >>> protbert_feats = feat_extractor_model.get_last_hidden_state(tokenized_data['input_ids'],tokenized_data['attention_mask'])
 
+   >>> # removing temporary directory
+   >>> if os.path.exists(tempdir):
+   ...      shutil.rmtree(tempdir)
 
    References
    ----------
