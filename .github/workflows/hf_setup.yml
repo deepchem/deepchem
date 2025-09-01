@@ -147,6 +147,11 @@ jobs:
       if: ${{ (runner.os == 'Linux') && always() }}
       shell: bash -l {0}
       run: DGLBACKEND=pytorch pytest -v --doctest-modules deepchem/models/torch_models/antibody_modeling.py deepchem/models/torch_models/chemberta.py deepchem/models/torch_models/hf_models.py deepchem/models/torch_models/molformer.py deepchem/models/torch_models/oneformer.py deepchem/models/torch_models/prot_bert.py --doctest-continue-on-failure
+    - name: Doctest Windows
+      if: ${{ (runner.os == 'Windows') && always() }}
+      # Seperate test avoiding Jax in windows since Jax is not supported in Windows
+      shell: bash -l {0}
+      run: DGLBACKEND=pytorch pytest -v --doctest-modules deepchem/models/torch_models/antibody_modeling.py deepchem/models/torch_models/chemberta.py deepchem/models/torch_models/hf_models.py deepchem/models/torch_models/molformer.py deepchem/models/torch_models/oneformer.py deepchem/models/torch_models/prot_bert.py --doctest-continue-on-failure
     - name: PyTest
       if: ${{ (success() || failure()) && (steps.install.outcome == 'failure' || steps.install.outcome == 'success') }}
       shell: bash -l {0}
