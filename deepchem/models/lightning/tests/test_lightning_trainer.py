@@ -5,6 +5,7 @@ import os
 import shutil
 try:
     import torch
+    import torch.distributed as dist
     gpu_available = torch.cuda.is_available() and torch.cuda.device_count() > 0
 except ImportError:
     gpu_available = False
@@ -144,11 +145,12 @@ def test_multitask_classifier_restore_correctness():
     assert original_state_dict.keys() == restored_state_dict.keys()
 
     # Verify that the restored weights are identical to the original weights
-    for key in original_state_dict:
-        torch.testing.assert_close(
-            original_state_dict[key].detach().cpu(),
-            restored_state_dict[key].detach().cpu(),
-            msg=f"Weight mismatch for key {key} after restore operation.")
+    if dist.get_rank() == 0:
+        for key in original_state_dict:
+            assert np.array_equal(
+                original_state_dict[key].detach().cpu().numpy(),
+                restored_state_dict[key].detach().cpu().numpy(),
+            )
 
     # Clean up
     try:
@@ -212,11 +214,12 @@ def test_gcn_model_restore_correctness():
     assert original_state_dict.keys() == restored_state_dict.keys()
 
     # Verify that the restored weights are identical to the original weights
-    for key in original_state_dict:
-        torch.testing.assert_close(
-            original_state_dict[key].detach().cpu(),
-            restored_state_dict[key].detach().cpu(),
-            msg=f"Weight mismatch for key {key} after restore operation.")
+    if dist.get_rank() == 0:
+        for key in original_state_dict:
+            assert np.array_equal(
+                original_state_dict[key].detach().cpu().numpy(),
+                restored_state_dict[key].detach().cpu().numpy(),
+            )
 
     # Clean up
     try:
@@ -330,14 +333,20 @@ def test_lightning_dc_checkpoint_compatibility():
                                             batch_size=5,
                                             accelerator="cuda",
                                             strategy="fsdp",
-                                            devices=-1,
-                                            enable_checkpointing=True)
+                                            devices=-1)
 
     # Train the model
     lightning_trainer.fit(dataset,
                           max_checkpoints_to_keep=2,
                           checkpoint_interval=20,
                           nb_epoch=70)
+
+    # get a single layer weight for comparison from lightning model
+    original_weight = None
+    for name, param in lightning_trainer.model.model.named_parameters():
+        if '0.weight' in name:
+            original_weight = param.detach().cpu().numpy()
+            break
 
     # Create a new dc model instance
     gcn_model_pred = dc.models.GCNModel(
@@ -349,10 +358,22 @@ def test_lightning_dc_checkpoint_compatibility():
         device='cuda',
     )
 
-    # strict needs to be false, since lightning creates some batch_norm related states, which do not effect any other states.
+    # strict needs to be false, since lightning creates some additional states, which do not effect inference performance.
     gcn_model_pred.restore(os.path.join(lightning_trainer.model_dir,
                                         "checkpoints", "last.ckpt"),
                            strict=False)
+
+    # get the same layer weight from restored dc model for comparison
+    restored_weight = None
+    for name, param in gcn_model_pred.model.named_parameters():
+        if '0.weight' in name:
+            restored_weight = param.detach().cpu().numpy()
+            break
+
+    if dist.get_rank() == 0:
+        assert np.array_equal(
+            original_weight.squeeze(), restored_weight.squeeze()
+        ), "Learned weights did not get transfered, there is some mismatch."
 
     scores_multi = gcn_model_pred.evaluate(dataset, [metric], transformers)
 
