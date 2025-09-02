@@ -16,6 +16,7 @@ except ModuleNotFoundError:
 if has_torch:
     from deepchem.utils.cache_utils import cached_dirpklgz, FileSystemMutex
 
+
 @pytest.mark.torch
 def test_Cache():
     from deepchem.utils.cache_utils import Cache
