@@ -131,7 +131,7 @@ def test_cached_result_saved_and_loaded(tmp_path):
 
     # Second call should use cache
     assert expensive_fn(41) == 42
-    assert call_count["count"] == 1  # Still 1 => cache hit
+    assert call_count["count"] == 1
 
 
 def test_cache_persistence(tmp_path):
