@@ -5,6 +5,7 @@ import os
 import shutil
 try:
     import torch
+    import torch.distributed as dist
     gpu_available = torch.cuda.is_available() and torch.cuda.device_count() > 0
 except ImportError:
     gpu_available = False
@@ -144,11 +145,12 @@ def test_multitask_classifier_restore_correctness():
     assert original_state_dict.keys() == restored_state_dict.keys()
 
     # Verify that the restored weights are identical to the original weights
-    for key in original_state_dict:
-        torch.testing.assert_close(
-            original_state_dict[key].detach().cpu(),
-            restored_state_dict[key].detach().cpu(),
-            msg=f"Weight mismatch for key {key} after restore operation.")
+    if dist.get_rank() == 0:
+        for key in original_state_dict:
+            assert np.array_equal(
+                original_state_dict[key].detach().cpu().numpy(),
+                restored_state_dict[key].detach().cpu().numpy(),
+            )
 
     # Clean up
     try:
@@ -212,11 +214,12 @@ def test_gcn_model_restore_correctness():
     assert original_state_dict.keys() == restored_state_dict.keys()
 
     # Verify that the restored weights are identical to the original weights
-    for key in original_state_dict:
-        torch.testing.assert_close(
-            original_state_dict[key].detach().cpu(),
-            restored_state_dict[key].detach().cpu(),
-            msg=f"Weight mismatch for key {key} after restore operation.")
+    if dist.get_rank() == 0:
+        for key in original_state_dict:
+            assert np.array_equal(
+                original_state_dict[key].detach().cpu().numpy(),
+                restored_state_dict[key].detach().cpu().numpy(),
+            )
 
     # Clean up
     try:
@@ -296,6 +299,86 @@ def test_gcn_model_overfit_and_checkpointing():
 
     assert scores_multi[
         "mean-roc_auc_score"] > 0.85, "Model did not learn anything during training."
+
+    try:
+        if os.path.exists(lightning_trainer.model_dir):
+            shutil.rmtree(lightning_trainer.model_dir)
+    except:
+        pass  # Ignore cleanup errors caused by file locks
+
+
+@pytest.mark.torch
+def test_lightning_dc_checkpoint_compatibility():
+    np.random.seed(42)
+    torch.manual_seed(42)
+    L.seed_everything(42)
+
+    # Load the BACE dataset for GCNModel
+    from deepchem.models.tests.test_graph_models import get_dataset
+    from deepchem.feat import MolGraphConvFeaturizer
+    tasks, dataset, transformers, metric = get_dataset(
+        'classification', featurizer=MolGraphConvFeaturizer())
+    dataset = dc.data.DiskDataset.from_numpy(dataset.X, dataset.y, dataset.w,
+                                             dataset.ids)
+    gcn_model = dc.models.GCNModel(
+        mode='classification',
+        n_tasks=len(tasks),
+        number_atom_features=30,
+        batch_size=5,
+        learning_rate=0.0003,
+        device='cpu',
+    )
+
+    lightning_trainer = LightningTorchModel(model=gcn_model,
+                                            batch_size=5,
+                                            accelerator="cuda",
+                                            strategy="fsdp",
+                                            devices=-1)
+
+    # Train the model
+    lightning_trainer.fit(dataset,
+                          max_checkpoints_to_keep=2,
+                          checkpoint_interval=20,
+                          nb_epoch=70)
+
+    # get a single layer weight for comparison from lightning model
+    original_weight = None
+    for name, param in lightning_trainer.model.model.named_parameters():
+        if '0.weight' in name:
+            original_weight = param.detach().cpu().numpy()
+            break
+
+    # Create a new dc model instance
+    gcn_model_pred = dc.models.GCNModel(
+        mode='classification',
+        n_tasks=len(tasks),
+        number_atom_features=30,
+        batch_size=10,
+        learning_rate=0.0003,
+        device='cuda',
+    )
+
+    # strict needs to be false, since lightning creates some additional states, which do not effect inference performance.
+    gcn_model_pred.restore(os.path.join(lightning_trainer.model_dir,
+                                        "checkpoints", "last.ckpt"),
+                           strict=False)
+
+    # get the same layer weight from restored dc model for comparison
+    restored_weight = None
+    for name, param in gcn_model_pred.model.named_parameters():
+        if '0.weight' in name:
+            restored_weight = param.detach().cpu().numpy()
+            break
+
+    if dist.get_rank() == 0:
+        assert np.array_equal(
+            original_weight.squeeze(), restored_weight.squeeze()
+        ), "Learned weights did not get transfered, there is some mismatch."
+
+    scores_multi = gcn_model_pred.evaluate(dataset, [metric], transformers)
+
+    assert scores_multi[
+        "mean-roc_auc_score"] > 0.85, "Learned weights did not get transfered."
 
     try:
         if os.path.exists(lightning_trainer.model_dir):
