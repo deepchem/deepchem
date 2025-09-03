@@ -7,6 +7,18 @@ try:
     import h5py
 except:
     warnings.warn("h5py is not installed, cache will not work.")
+import os
+import sys
+import pickle
+import gzip
+from functools import wraps, lru_cache
+import tempfile
+
+# OS-specific imports
+if os.name == "nt":  # Windows
+    import msvcrt
+else:  # Unix (Linux, macOS, etc.)
+    import fcntl
 
 
 class Cache(object):
@@ -724,3 +736,137 @@ def normalize_prefix(prefix: str) -> str:
     if not prefix.endswith("."):
         prefix = prefix + "."
     return prefix
+
+
+class FileSystemMutex:
+    """
+    Cross-platform file-system-based mutex for synchronizing access.
+
+    - On Unix, uses fcntl.lockf
+    - On Windows, uses msvcrt.locking
+
+    Parameters
+    ----------
+    filename : str
+        Path to the lock file.
+    """
+
+    def __init__(self, filename: str):
+        self.filename = filename
+        self.handle = None
+
+    def acquire(self):
+        """
+        Acquire the file lock. Blocks if already locked.
+        """
+        # Open lock file
+        self.handle = open(self.filename, "a+")
+        if os.name == "nt":  # Windows
+            msvcrt.locking(self.handle.fileno(), msvcrt.LK_LOCK, 1)
+        else:  # Unix
+            fcntl.lockf(self.handle, fcntl.LOCK_EX)
+
+        # Optional: write PID for debugging
+        try:
+            self.handle.seek(0, os.SEEK_END)
+            self.handle.write(f"{os.getpid()}\n")
+            self.handle.flush()
+        except Exception:
+            pass
+
+    def release(self):
+        """
+        Release the file lock.
+        """
+        if self.handle is None:
+            raise RuntimeError("Cannot release an unacquired lock.")
+
+        if os.name == "nt":
+            # Unlock 1 byte
+            self.handle.seek(0)
+            msvcrt.locking(self.handle.fileno(), msvcrt.LK_UNLCK, 1)
+        else:
+            fcntl.lockf(self.handle, fcntl.LOCK_UN)
+
+        self.handle.close()
+        self.handle = None
+
+    def __enter__(self):
+        self.acquire()
+        return self  # so "with FileSystemMutex(...) as m:" works
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.release()
+
+
+def cached_dirpklgz(dirname: str = '',
+                    maxsize: int = 128,
+                    verbose: bool = False) -> Callable:
+    """
+    Caches the result of a function to disk in compressed pickle format (.pkl.gz).
+    Also caches results in memory using LRU cache.
+
+    Parameters
+    ----------
+    dirname : str, optional
+        Directory path where cache files are stored. If None, uses a temporary directory.
+    maxsize : int, optional
+        Maximum number of in-memory cached results via LRU (default is 128).
+    verbose : bool, optional
+        If True, print debug information.
+
+    Returns
+    -------
+    decorator : Callable
+        Decorator that wraps the target function.
+    """
+
+    def decorator(func):
+        cache_dir = dirname or os.path.join(tempfile.gettempdir(),
+                                            f"cached_dirpklgz_{func.__name__}")
+        os.makedirs(cache_dir, exist_ok=True)
+
+        @lru_cache(maxsize=maxsize)
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            indexfile = os.path.join(cache_dir, "index.pkl")
+            mutexfile = os.path.join(cache_dir, "mutex.lock")
+
+            with FileSystemMutex(mutexfile):
+                try:
+                    with open(indexfile, "rb") as f:
+                        index = pickle.load(f)
+                except FileNotFoundError:
+                    index = {}
+
+                key = (args, frozenset(kwargs.items()), func.__defaults__)
+                filename = index.get(key)
+                if filename is None:
+                    filename = f"{len(index)}.pkl.gz"
+                    index[key] = filename
+                    with open(indexfile, "wb") as f:
+                        pickle.dump(index, f)
+
+            filepath = os.path.join(cache_dir, filename)
+
+            try:
+                with FileSystemMutex(mutexfile):
+                    with gzip.open(filepath, "rb") as f:
+                        return pickle.load(f)
+            except FileNotFoundError:
+                sys.stdout.flush()
+                result = func(*args, **kwargs)
+                sys.stdout.flush()
+
+                with FileSystemMutex(mutexfile):
+                    with gzip.open(filepath, "wb") as f:
+                        pickle.dump(result, f)
+
+                if verbose:
+                    print(f"compute {filename}... save {filename}... done")
+
+                return result
+
+        return wrapper
+
+    return decorator
