@@ -4,17 +4,14 @@ import time
 import gzip
 import pickle
 import tempfile
-import pytest
 from multiprocessing import Process, Event
 
 try:
-    import torch
+    import torch  # noqa: F401
+    from deepchem.utils.cache_utils import cached_dirpklgz, FileSystemMutex
     has_torch = True
 except ModuleNotFoundError:
     has_torch = False
-
-if has_torch:
-    from deepchem.utils.cache_utils import cached_dirpklgz, FileSystemMutex
 
 
 @pytest.mark.torch
@@ -90,7 +87,7 @@ def test_mutex_release_without_acquire():
 def hold_lock(mutexfile, ready_event):
     with FileSystemMutex(mutexfile):
         ready_event.set()  # signal that lock has been acquired
-        time.sleep(2)      # hold the lock for 2 seconds
+        time.sleep(2)  # hold the lock for 2 seconds
 
 
 @pytest.mark.torch
@@ -103,7 +100,7 @@ def test_mutex_blocks_across_processes():
     proc.start()
 
     ready_event.wait()  # wait for child to acquire lock
-    time.sleep(0.1)     # small delay to ensure it's definitely locked
+    time.sleep(0.1)  # small delay to ensure it's definitely locked
 
     start = time.time()
     with FileSystemMutex(tmpfile):
@@ -115,11 +112,14 @@ def test_mutex_blocks_across_processes():
     assert elapsed >= 1.5, f"Expected to block for ~2s, but only blocked for {elapsed:.3f}s"
 
 
-@pytest.mark.torch
-@cached_dirpklgz(dirname=tempfile.gettempdir() + "/cachedir_test", verbose=True)
-def dummy_square(x: float) -> float:
-    time.sleep(0.5)
-    return x * x
+if has_torch:
+
+    @pytest.mark.skipif(not has_torch, reason="torch is not available")
+    @cached_dirpklgz(dirname=tempfile.gettempdir() + "/cachedir_test",
+                     verbose=True)
+    def dummy_square(x: float) -> float:
+        time.sleep(0.5)
+        return x * x
 
 
 @pytest.mark.torch
