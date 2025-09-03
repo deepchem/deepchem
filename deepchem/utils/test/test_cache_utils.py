@@ -50,6 +50,7 @@ def test_DummyCache():
     assert cache.cache("foo", lambda: 2) == 2
 
 
+@pytest.mark.torch
 def hold_lock_and_sleep(mutexfile, flag):
     import time
     with FileSystemMutex(mutexfile):
@@ -57,6 +58,7 @@ def hold_lock_and_sleep(mutexfile, flag):
         flag.value = 1
 
 
+@pytest.mark.torch
 def test_mutex_acquire_and_release():
     tmpfile = tempfile.mktemp()
     mutex = FileSystemMutex(tmpfile)
@@ -68,6 +70,7 @@ def test_mutex_acquire_and_release():
     assert mutex.handle is None
 
 
+@pytest.mark.torch
 def test_mutex_context_manager():
     tmpfile = tempfile.mktemp()
     with FileSystemMutex(tmpfile):
@@ -75,6 +78,7 @@ def test_mutex_context_manager():
         assert os.path.exists(tmpfile)
 
 
+@pytest.mark.torch
 def test_mutex_release_without_acquire():
     tmpfile = tempfile.mktemp()
     mutex = FileSystemMutex(tmpfile)
@@ -82,12 +86,14 @@ def test_mutex_release_without_acquire():
         mutex.release()
 
 
+@pytest.mark.torch
 def hold_lock(mutexfile, ready_event):
     with FileSystemMutex(mutexfile):
         ready_event.set()  # signal that lock has been acquired
         time.sleep(2)      # hold the lock for 2 seconds
 
 
+@pytest.mark.torch
 def test_mutex_blocks_across_processes():
     with tempfile.NamedTemporaryFile(delete=False) as tmp:
         tmpfile = tmp.name
@@ -109,12 +115,14 @@ def test_mutex_blocks_across_processes():
     assert elapsed >= 1.5, f"Expected to block for ~2s, but only blocked for {elapsed:.3f}s"
 
 
+@pytest.mark.torch
 @cached_dirpklgz(dirname=tempfile.gettempdir() + "/cachedir_test", verbose=True)
 def dummy_square(x: float) -> float:
     time.sleep(0.5)
     return x * x
 
 
+@pytest.mark.torch
 def test_cached_result_saved_and_loaded(tmp_path):
     cache_dir = tmp_path / "cached"
     os.makedirs(cache_dir)
@@ -135,6 +143,7 @@ def test_cached_result_saved_and_loaded(tmp_path):
     assert call_count["count"] == 1
 
 
+@pytest.mark.torch
 def test_cache_persistence(tmp_path):
     cache_dir = tmp_path / "cached"
     os.makedirs(cache_dir)
@@ -157,6 +166,7 @@ def test_cache_persistence(tmp_path):
         assert len(index) == 1
 
 
+@pytest.mark.torch
 def test_multiple_args(tmp_path):
     cache_dir = tmp_path / "multi"
     os.makedirs(cache_dir)
@@ -169,6 +179,7 @@ def test_multiple_args(tmp_path):
     assert combine(2, y=3) == 5  # Should hit cache
 
 
+@pytest.mark.torch
 def test_cache_file_format(tmp_path):
     cache_dir = tmp_path / "cachegzip"
     os.makedirs(cache_dir)
@@ -185,6 +196,7 @@ def test_cache_file_format(tmp_path):
                 assert value == 14
 
 
+@pytest.mark.torch
 def test_cache_index_thread_safety(tmp_path):
     cache_dir = str(tmp_path / "race")
     os.makedirs(cache_dir)
@@ -200,6 +212,8 @@ def test_cache_index_thread_safety(tmp_path):
     index_file = os.path.join(cache_dir, "index.pkl")
     assert os.path.exists(index_file)
 
+
+@pytest.mark.torch
 def call_slow_inc_twice(cache_dir):
     import time
 

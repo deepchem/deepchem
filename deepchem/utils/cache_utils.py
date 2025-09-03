@@ -11,9 +11,14 @@ import os
 import sys
 import pickle
 import gzip
-import fcntl
 from functools import wraps, lru_cache
 import tempfile
+
+# OS-specific imports
+if os.name == "nt":  # Windows
+    import msvcrt
+else:  # Unix (Linux, macOS, etc.)
+    import fcntl
 
 
 class Cache(object):
@@ -735,9 +740,10 @@ def normalize_prefix(prefix: str) -> str:
 
 class FileSystemMutex:
     """
-    A file-system-based mutex for synchronizing access across different processes.
+    Cross-platform file-system-based mutex for synchronizing access.
 
-    Uses `fcntl.lockf`, which works on Unix-like systems (Linux/macOS).
+    - On Unix, uses fcntl.lockf
+    - On Windows, uses msvcrt.locking
 
     Parameters
     ----------
@@ -745,18 +751,28 @@ class FileSystemMutex:
         Path to the lock file.
     """
 
-    def __init__(self, filename):
-        self.handle = None
+    def __init__(self, filename: str):
         self.filename = filename
+        self.handle = None
 
     def acquire(self):
         """
-        Acquire the file lock. Blocks if the lock is already held.
+        Acquire the file lock. Blocks if already locked.
         """
-        self.handle = open(self.filename, 'w')
-        fcntl.lockf(self.handle, fcntl.LOCK_EX)
-        self.handle.write(f"{os.getpid()}\n")
-        self.handle.flush()
+        # Open lock file
+        self.handle = open(self.filename, "a+")
+        if os.name == "nt":  # Windows
+            msvcrt.locking(self.handle.fileno(), msvcrt.LK_LOCK, 1)
+        else:  # Unix
+            fcntl.lockf(self.handle, fcntl.LOCK_EX)
+
+        # Optional: write PID for debugging
+        try:
+            self.handle.seek(0, os.SEEK_END)
+            self.handle.write(f"{os.getpid()}\n")
+            self.handle.flush()
+        except Exception:
+            pass
 
     def release(self):
         """
@@ -764,12 +780,20 @@ class FileSystemMutex:
         """
         if self.handle is None:
             raise RuntimeError("Cannot release an unacquired lock.")
-        fcntl.lockf(self.handle, fcntl.LOCK_UN)
+
+        if os.name == "nt":
+            # Unlock 1 byte
+            self.handle.seek(0)
+            msvcrt.locking(self.handle.fileno(), msvcrt.LK_UNLCK, 1)
+        else:
+            fcntl.lockf(self.handle, fcntl.LOCK_UN)
+
         self.handle.close()
         self.handle = None
 
     def __enter__(self):
         self.acquire()
+        return self  # so "with FileSystemMutex(...) as m:" works
 
     def __exit__(self, exc_type, exc_value, traceback):
         self.release()
@@ -806,8 +830,7 @@ def cached_dirpklgz(dirname: str = '',
         @wraps(func)
         def wrapper(*args, **kwargs):
             indexfile = os.path.join(cache_dir, "index.pkl")
-            mutexfile = os.path.join(cache_dir, "mutex")
-
+            mutexfile = os.path.join(cache_dir, "mutex.lock")
 
             with FileSystemMutex(mutexfile):
                 try:
@@ -831,7 +854,6 @@ def cached_dirpklgz(dirname: str = '',
                     with gzip.open(filepath, "rb") as f:
                         return pickle.load(f)
             except FileNotFoundError:
- 
                 sys.stdout.flush()
                 result = func(*args, **kwargs)
                 sys.stdout.flush()
