@@ -4,6 +4,7 @@ import torch
 from deepchem.models.torch_models.layers import Fiber
 from deepchem.utils.cache_utils import cached_dirpklgz
 
+
 def fiber2head(F: Dict[str, torch.Tensor],
                h: int,
                structure: Fiber,
