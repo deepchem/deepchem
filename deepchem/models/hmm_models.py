@@ -1,29 +1,96 @@
-import deepchem as dc
-from deepchem.models import Model
-from hmmlearn.hmm import GaussianHMM
+"""
+Wrappers for hmmlearn HMM models.
+"""
 
-class HMMModel(Model):
-    """DeepChem wrapper for hmmlearn models."""
+from hmmlearn.hmm import (
+    GaussianHMM,
+    MultinomialHMM,
+    GMMHMM,
+    PoissonHMM,
+    CategoricalHMM
+)
 
-    def __init__(self, n_components=2, model_type="gaussian", **kwargs):
-        super(HMMModel, self).__init__(model_dir=None)
 
-        if model_type == "gaussian":
-            self.model = GaussianHMM(n_components=n_components, **kwargs)
-        else:
-            raise ValueError(f"Unsupported model_type: {model_type}")
+class BaseHMMWrapper:
+    """Base class for all HMM wrappers."""
 
-    def fit(self, dataset, **kwargs):
-        """Fit HMM on dataset (expects sequences as X)."""
-        X = dataset.X
-        self.model.fit(X, **kwargs)
+    def fit(self, X, lengths=None):
+        """Fit model to data X (numpy array)."""
+        return self.model.fit(X, lengths)
 
-    def predict(self, dataset):
-        """Predict hidden states for sequences."""
-        X = dataset.X
-        return self.model.predict(X)
+    def predict(self, X, lengths=None):
+        """Predict the optimal state sequence for X."""
+        return self.model.predict(X, lengths)
 
-    def score(self, dataset):
-        """Return log-likelihood of the data under the model."""
-        X = dataset.X
-        return self.model.score(X)
+    def score(self, X, lengths=None):
+        """Compute the log likelihood of the data under the model."""
+        return self.model.score(X, lengths)
+
+
+class GaussianHMMWrapper(BaseHMMWrapper):
+    """
+    Wrapper for hmmlearn.hmm.GaussianHMM.
+
+    Parameters
+    ----------
+    n_components : int
+        Number of states.
+    covariance_type : str
+        Type of covariance parameters ('spherical', 'diag', 'full', 'tied').
+    n_iter : int
+        Maximum number of EM iterations.
+    """
+
+    def __init__(self, n_components=1, covariance_type="diag", n_iter=100, random_state=None):
+        self.model = GaussianHMM(
+            n_components=n_components,
+            covariance_type=covariance_type,
+            n_iter=n_iter,
+            random_state=random_state
+        )
+
+
+class MultinomialHMMWrapper(BaseHMMWrapper):
+    """Wrapper for hmmlearn.hmm.MultinomialHMM."""
+
+    def __init__(self, n_components=1, n_iter=100, random_state=None):
+        self.model = MultinomialHMM(
+            n_components=n_components,
+            n_iter=n_iter,
+            random_state=random_state
+        )
+
+
+class GMMHMMWrapper(BaseHMMWrapper):
+    """Wrapper for hmmlearn.hmm.GMMHMM."""
+
+    def __init__(self, n_components=1, n_mix=1, covariance_type="diag", n_iter=100, random_state=None):
+        self.model = GMMHMM(
+            n_components=n_components,
+            n_mix=n_mix,
+            covariance_type=covariance_type,
+            n_iter=n_iter,
+            random_state=random_state
+        )
+
+
+class PoissonHMMWrapper(BaseHMMWrapper):
+    """Wrapper for hmmlearn.hmm.PoissonHMM."""
+
+    def __init__(self, n_components=1, n_iter=100, random_state=None):
+        self.model = PoissonHMM(
+            n_components=n_components,
+            n_iter=n_iter,
+            random_state=random_state
+        )
+
+
+class CategoricalHMMWrapper(BaseHMMWrapper):
+    """Wrapper for hmmlearn.hmm.CategoricalHMM."""
+
+    def __init__(self, n_components=1, n_iter=100, random_state=None):
+        self.model = CategoricalHMM(
+            n_components=n_components,
+            n_iter=n_iter,
+            random_state=random_state
+        )
