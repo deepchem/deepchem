@@ -358,7 +358,7 @@ class A2C(object):
             ]
         return results
 
-    @tf.function(experimental_relax_shapes=True)
+    @tf.function(reduce_retracing=True)
     def _compute_model(self, inputs):
         return self._model.model(inputs)
 
@@ -477,7 +477,7 @@ class A2C(object):
         self._apply_gradients(inputs, actions_matrix, discounted_rewards,
                               advantages)
 
-    @tf.function(experimental_relax_shapes=True)
+    @tf.function(reduce_retracing=True)
     def _apply_gradients(self, inputs, actions_matrix, discounted_rewards,
                          advantages):
         """Compute the gradient of the loss function for a rollout and update the model."""
