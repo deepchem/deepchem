@@ -152,7 +152,8 @@ class AdaGrad(Optimizer):
             learning_rate = self.learning_rate._create_tf_tensor(global_step)
         else:
             learning_rate = self.learning_rate
-        return tf.keras.optimizers.legacy.Adagrad(
+        # Use current optimizer API (not legacy) for Keras3 compatibility
+        return tf.keras.optimizers.Adagrad(
             learning_rate=learning_rate,
             initial_accumulator_value=self.initial_accumulator_value,
             epsilon=self.epsilon)
@@ -220,13 +221,22 @@ class Adam(Optimizer):
     def _create_tf_optimizer(self, global_step):
         import tensorflow as tf
         if isinstance(self.learning_rate, LearningRateSchedule):
-            learning_rate = self.learning_rate._create_tf_tensor(global_step)
+            # For Keras3, pass schedule object directly (not tensor from calling it)
+            learning_rate = tf.keras.optimizers.schedules.ExponentialDecay(
+                initial_learning_rate=self.learning_rate.initial_rate,
+                decay_rate=self.learning_rate.decay_rate,
+                decay_steps=self.learning_rate.decay_steps,
+                staircase=getattr(
+                    self.learning_rate, 'staircase', True)) if isinstance(
+                        self.learning_rate, ExponentialDecay
+                    ) else self.learning_rate._create_tf_tensor(global_step)
         else:
             learning_rate = self.learning_rate
-        return tf.keras.optimizers.legacy.Adam(learning_rate=learning_rate,
-                                               beta_1=self.beta1,
-                                               beta_2=self.beta2,
-                                               epsilon=self.epsilon)
+        # Use current optimizer API (not legacy) for Keras3 compatibility
+        return tf.keras.optimizers.Adam(learning_rate=learning_rate,
+                                        beta_1=self.beta1,
+                                        beta_2=self.beta2,
+                                        epsilon=self.epsilon)
 
     def _create_pytorch_optimizer(self, params):
         import torch
@@ -419,10 +429,11 @@ class RMSProp(Optimizer):
             learning_rate = self.learning_rate._create_tf_tensor(global_step)
         else:
             learning_rate = self.learning_rate
-        return tf.keras.optimizers.legacy.RMSprop(learning_rate=learning_rate,
-                                                  momentum=self.momentum,
-                                                  rho=self.decay,
-                                                  epsilon=self.epsilon)
+        # Use current optimizer API (not legacy) for Keras3 compatibility
+        return tf.keras.optimizers.RMSprop(learning_rate=learning_rate,
+                                           momentum=self.momentum,
+                                           rho=self.decay,
+                                           epsilon=self.epsilon)
 
     def _create_pytorch_optimizer(self, params):
         import torch
@@ -477,7 +488,8 @@ class GradientDescent(Optimizer):
             learning_rate = self.learning_rate._create_tf_tensor(global_step)
         else:
             learning_rate = self.learning_rate
-        return tf.keras.optimizers.legacy.SGD(learning_rate=learning_rate)
+        # Use current optimizer API (not legacy) for Keras3 compatibility
+        return tf.keras.optimizers.SGD(learning_rate=learning_rate)
 
     def _create_pytorch_optimizer(self, params):
         import torch

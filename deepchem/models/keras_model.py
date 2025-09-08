@@ -280,9 +280,14 @@ class KerasModel(Model):
         self._inputs_built = True
         if (self.model.inputs is not None) and len(self.model.inputs) > 0:
             self._input_shapes = [t.shape for t in self.model.inputs]
-            self._input_dtypes = [
-                t.dtype.as_numpy_dtype for t in self.model.inputs
-            ]
+            # Handle both TF dtypes (with as_numpy_dtype) and Keras3 string dtypes
+            self._input_dtypes = []
+            for t in self.model.inputs:
+                if hasattr(t.dtype, 'as_numpy_dtype'):
+                    self._input_dtypes.append(t.dtype.as_numpy_dtype)
+                else:
+                    import numpy as np
+                    self._input_dtypes.append(np.dtype(str(t.dtype)))
         else:
             self._input_shapes = [(None,) + i.shape[1:] for i in example_inputs]
             self._input_dtypes = [
@@ -421,7 +426,15 @@ class KerasModel(Model):
             loss = self._loss_fn
         var_key = None
         if variables is not None:
-            var_key = tuple(v.ref() for v in variables)
+
+            def get_key(v):
+                # TF Variables have ref(), Keras3 Variables need id() as key
+                if hasattr(v, 'ref') and callable(getattr(v, 'ref')):
+                    return v.ref()
+                else:
+                    return id(v)
+
+            var_key = tuple(get_key(v) for v in variables)
 
             # The optimizer creates internal variables the first time apply_gradients()
             # is called for a new set of variables.  If that happens inside a function

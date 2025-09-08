@@ -83,13 +83,13 @@ class GAN(KerasModel):
         self.data_input_layers = []
         for shape in self.get_data_input_shapes():
             self.data_input_layers.append(Input(shape=shape))
-        self.data_inputs = [i.ref() for i in self.data_input_layers]
+        # In TF2+/Keras3, Input layers can be used directly without .ref()
+        self.data_inputs = self.data_input_layers
         self.conditional_input_layers = []
         for shape in self.get_conditional_input_shapes():
             self.conditional_input_layers.append(Input(shape=shape))
-        self.conditional_inputs = [
-            i.ref() for i in self.conditional_input_layers
-        ]
+        # In TF2+/Keras3, Input layers can be used directly without .ref()
+        self.conditional_inputs = self.conditional_input_layers
 
         # Create the generators.
 
@@ -118,7 +118,8 @@ class GAN(KerasModel):
                 self._call_discriminator(discriminator, self.data_input_layers,
                                          True))
             for gen_output in generator_outputs:
-                if tf.is_tensor(gen_output):
+                # Check for both Tensor and KerasTensor (Keras3 compatibility)
+                if tf.is_tensor(gen_output) or hasattr(gen_output, 'shape'):
                     gen_output = [gen_output]
                 discrim_gen_outputs.append(
                     self._call_discriminator(discriminator, gen_output, False))
@@ -355,9 +356,9 @@ class GAN(KerasModel):
 
             inputs = [self.get_noise_batch(self.batch_size)]
             for input in self.data_input_layers:
-                inputs.append(feed_dict[input.ref()])
+                inputs.append(feed_dict[input])
             for input in self.conditional_input_layers:
-                inputs.append(feed_dict[input.ref()])
+                inputs.append(feed_dict[input])
             discrim_error += self.fit_generator(
                 [(inputs, [], [])],
                 variables=self.discrim_variables,
