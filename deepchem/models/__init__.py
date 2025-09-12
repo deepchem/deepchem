@@ -37,15 +37,12 @@ from deepchem.models.sklearn_models import SklearnModel
 from deepchem.models.gbdt_models import GBDTModel
 
 # hmmlearn models
-from deepchem.models.hmm_models import (
-    GaussianHMMWrapper,
-    MultinomialHMMWrapper,
-    GMMHMMWrapper,
-    PoissonHMMWrapper,
-    CategoricalHMMWrapper,
-    VariationalCategoricalHMMWrapper,
-    VariationalGaussianHMMWrapper
-)
+from deepchem.models.hmm_models import (GaussianHMMWrapper,
+                                        MultinomialHMMWrapper, GMMHMMWrapper,
+                                        PoissonHMMWrapper,
+                                        CategoricalHMMWrapper,
+                                        VariationalCategoricalHMMWrapper,
+                                        VariationalGaussianHMMWrapper)
 
 # PyTorch models
 try:

@@ -2,18 +2,10 @@
 Wrappers for hmmlearn HMM models.
 """
 
-from hmmlearn.hmm import (
-    GaussianHMM,
-    MultinomialHMM,
-    GMMHMM,
-    PoissonHMM,
-    CategoricalHMM
-)
+from hmmlearn.hmm import (GaussianHMM, MultinomialHMM, GMMHMM, PoissonHMM,
+                          CategoricalHMM)
 
-from hmmlearn.vhmm import (
-    VariationalCategoricalHMM,
-    VariationalGaussianHMM
-)
+from hmmlearn.vhmm import (VariationalCategoricalHMM, VariationalGaussianHMM)
 
 
 class BaseHMMWrapper:
@@ -148,7 +140,11 @@ class GaussianHMMWrapper(BaseHMMWrapper):
         Maximum number of EM iterations.
     """
 
-    def __init__(self, n_components=1, covariance_type="diag", n_iter=100, random_state=None):
+    def __init__(self,
+                 n_components=1,
+                 covariance_type="diag",
+                 n_iter=100,
+                 random_state=None):
         """
         Initialize the GaussianHMMWrapper.
 
@@ -163,12 +159,10 @@ class GaussianHMMWrapper(BaseHMMWrapper):
         random_state : int or None, default=None
             Random seed for reproducibility.
         """
-        self.model = GaussianHMM(
-            n_components=n_components,
-            covariance_type=covariance_type,
-            n_iter=n_iter,
-            random_state=random_state
-        )
+        self.model = GaussianHMM(n_components=n_components,
+                                 covariance_type=covariance_type,
+                                 n_iter=n_iter,
+                                 random_state=random_state)
 
 
 class MultinomialHMMWrapper(BaseHMMWrapper):
@@ -186,6 +180,7 @@ class MultinomialHMMWrapper(BaseHMMWrapper):
     random_state : int or None, default=None
         Random seed for reproducibility.
     """
+
     def __init__(self, n_components=1, n_iter=100, random_state=None):
         """
         Initialize the MultinomialHMMWrapper.
@@ -199,11 +194,9 @@ class MultinomialHMMWrapper(BaseHMMWrapper):
         random_state : int or None, default=None
             Random seed for reproducibility.
         """
-        self.model = MultinomialHMM(
-            n_components=n_components,
-            n_iter=n_iter,
-            random_state=random_state
-        )
+        self.model = MultinomialHMM(n_components=n_components,
+                                    n_iter=n_iter,
+                                    random_state=random_state)
 
 
 class GMMHMMWrapper(BaseHMMWrapper):
@@ -226,7 +219,12 @@ class GMMHMMWrapper(BaseHMMWrapper):
         Random seed for reproducibility.
     """
 
-    def __init__(self, n_components=1, n_mix=1, covariance_type="diag", n_iter=100, random_state=None):
+    def __init__(self,
+                 n_components=1,
+                 n_mix=1,
+                 covariance_type="diag",
+                 n_iter=100,
+                 random_state=None):
         """
         Initialize the GMMHMMWrapper.
 
@@ -243,13 +241,11 @@ class GMMHMMWrapper(BaseHMMWrapper):
         random_state : int or None, default=None
             Random seed for reproducibility.
         """
-        self.model = GMMHMM(
-            n_components=n_components,
-            n_mix=n_mix,
-            covariance_type=covariance_type,
-            n_iter=n_iter,
-            random_state=random_state
-        )
+        self.model = GMMHMM(n_components=n_components,
+                            n_mix=n_mix,
+                            covariance_type=covariance_type,
+                            n_iter=n_iter,
+                            random_state=random_state)
 
 
 class PoissonHMMWrapper(BaseHMMWrapper):
@@ -281,11 +277,9 @@ class PoissonHMMWrapper(BaseHMMWrapper):
         random_state : int or None, default=None
             Random seed for reproducibility.
         """
-        self.model = PoissonHMM(
-            n_components=n_components,
-            n_iter=n_iter,
-            random_state=random_state
-        )
+        self.model = PoissonHMM(n_components=n_components,
+                                n_iter=n_iter,
+                                random_state=random_state)
 
 
 class CategoricalHMMWrapper(BaseHMMWrapper):
@@ -317,11 +311,10 @@ class CategoricalHMMWrapper(BaseHMMWrapper):
         random_state : int or None, default=None
             Random seed for reproducibility.
         """
-        self.model = CategoricalHMM(
-            n_components=n_components,
-            n_iter=n_iter,
-            random_state=random_state
-        )
+        self.model = CategoricalHMM(n_components=n_components,
+                                    n_iter=n_iter,
+                                    random_state=random_state)
+
 
 class VariationalCategoricalHMMWrapper(BaseHMMWrapper):
     """
@@ -338,6 +331,7 @@ class VariationalCategoricalHMMWrapper(BaseHMMWrapper):
     random_state : int or None, default=None
         Random seed for reproducibility.
     """
+
     def __init__(self, n_components=1, n_iter=100, random_state=None):
         """
         Initialize the VariationalCategoricalHMMWrapper.
@@ -351,11 +345,9 @@ class VariationalCategoricalHMMWrapper(BaseHMMWrapper):
         random_state : int or None, default=None
             Random seed for reproducibility.
         """
-        self.model = VariationalCategoricalHMM(
-            n_components=n_components,
-            n_iter=n_iter,
-            random_state=random_state
-        )
+        self.model = VariationalCategoricalHMM(n_components=n_components,
+                                               n_iter=n_iter,
+                                               random_state=random_state)
 
     def set_fit_request(self, *, lengths='$UNCHANGED$'):
         """
@@ -374,6 +366,7 @@ class VariationalCategoricalHMMWrapper(BaseHMMWrapper):
         self.model.set_fit_request(lengths=lengths)
         return self
 
+
 class VariationalGaussianHMMWrapper(BaseHMMWrapper):
     """
     Wrapper for hmmlearn's VariationalGaussianHMM.
@@ -391,7 +384,12 @@ class VariationalGaussianHMMWrapper(BaseHMMWrapper):
     random_state : int or None, default=None
         Random seed for reproducibility.
     """
-    def __init__(self, n_components=1, covariance_type='diag', n_iter=100, random_state=None):
+
+    def __init__(self,
+                 n_components=1,
+                 covariance_type='diag',
+                 n_iter=100,
+                 random_state=None):
         """
         Initialize the VariationalGaussianHMMWrapper.
 
@@ -406,12 +404,10 @@ class VariationalGaussianHMMWrapper(BaseHMMWrapper):
         random_state : int or None, default=None
             Random seed for reproducibility.
         """
-        self.model = VariationalGaussianHMM(
-            n_components=n_components,
-            covariance_type=covariance_type,
-            n_iter=n_iter,
-            random_state=random_state
-        )
+        self.model = VariationalGaussianHMM(n_components=n_components,
+                                            covariance_type=covariance_type,
+                                            n_iter=n_iter,
+                                            random_state=random_state)
 
     def set_fit_request(self, *, lengths='$UNCHANGED$'):
         """
