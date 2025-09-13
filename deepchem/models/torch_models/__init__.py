@@ -51,7 +51,7 @@ from deepchem.models.torch_models.chemnet_layers import ReductionB
 from deepchem.models.torch_models.hnn import HNN, HNNModel
 from deepchem.models.torch_models.ChemCeption import ChemCeption
 from deepchem.models.torch_models.fno import FNO, FNOModel
-from deepchem.models.torch_models.lnn import LNN
+from deepchem.models.torch_models.lnn import LNN, LNNModel
 
 try:
     from deepchem.models.torch_models.dmpnn import DMPNN, DMPNNModel
