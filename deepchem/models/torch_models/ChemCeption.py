@@ -36,6 +36,7 @@ class ChemCeption(nn.Module):
 
     Example
     -------
+    >>> import deepchem
     >>> import numpy as np
     >>> import torch
     >>> from deepchem.models.torch_models.ChemCeption import ChemCeption
