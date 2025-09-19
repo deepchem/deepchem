@@ -2,6 +2,11 @@ import math
 from typing import Optional, List, Dict, Tuple
 import torch
 from deepchem.models.torch_models.layers import Fiber
+import scipy.linalg
+
+# Constants
+FLOAT_TYPE = torch.float32
+EPSILON = 1e-8
 
 
 def fiber2head(F: Dict[str, torch.Tensor],
@@ -1241,3 +1246,306 @@ def commutator(A: torch.Tensor, B: torch.Tensor) -> torch.Tensor:
             [ 12,   4]])
     """
     return torch.matmul(A, B) - torch.matmul(B, A)
+
+
+def get_eijk() -> torch.Tensor:
+    """
+    Constant Levi-Civita tensor.
+
+    References:
+    -----------
+    "Tensor field networks: Rotation- and translation-equivariant neural networks for 3D point clouds" (https://arxiv.org/abs/1802.08219).
+    Original Tensorflow Implementation: https://github.com/tensorfieldnetworks/tensorfieldnetworks
+    
+    Returns
+    -------
+    torch.Tensor of shape [3, 3, 3]
+
+    Example
+    -------
+
+    # >>> from deepchem.utils.equivariance_utils import get_ejik
+    # >>> eijk = get_eijk()
+    # >>> eijk.shape
+    # torch.Size([3, 3, 3])
+    # >>> eijk[0, 1, 2]
+    # tensor(1.)
+    # >>> eijk[0, 2, 1]
+    # tensor(-1.)
+    """
+    eijk_ = np.zeros((3, 3, 3))
+    eijk_[0, 1, 2] = eijk_[1, 2, 0] = eijk_[2, 0, 1] = 1.
+    eijk_[0, 2, 1] = eijk_[2, 1, 0] = eijk_[1, 0, 2] = -1.
+    return torch.tensor(eijk_, dtype=FLOAT_TYPE)
+
+
+def norm_with_epsilon(input_tensor: torch.Tensor,
+                      axis=None,
+                      keep_dims=False) -> torch.Tensor:
+    """
+    Regularized norm.
+
+    References:
+    -----------
+    "Tensor field networks: Rotation- and translation-equivariant neural networks for 3D point clouds" (https://arxiv.org/abs/1802.08219). 
+    Original Tensorflow Implementation: https://github.com/tensorfieldnetworks/tensorfieldnetworks
+
+    Parameters
+    ----------
+    input_tensor: torch.Tensor
+    axis: Dimension along which to compute the norm
+    keep_dims: Whether to keep the dimensions
+
+    Returns
+    -------
+    torch.Tensor normed over axis
+
+    Example
+    -------
+
+    # >>> from deepchem.utils.equivariance_utils import norm_with_epsilon
+    # >>> a = torch.tensor([[1.0, 2.0], [3.0, 4.0]])
+    # >>> norm_with_epsilon(a)
+    # tensor(5.4772)
+    # >>> norm_with_epsilon(a, axis=0)
+    # tensor([3.1623, 4.4721])
+    # >>> norm_with_epsilon(a, axis=1, keep_dims=True)
+    # tensor([[2.2361],
+    #         [5.0000]])
+    """
+    if axis is None:
+        return torch.sqrt(
+            torch.clamp(torch.sum(torch.square(input_tensor)), min=EPSILON))
+    else:
+        return torch.sqrt(
+            torch.clamp(torch.sum(torch.square(input_tensor),
+                                  dim=axis,
+                                  keepdim=keep_dims),
+                        min=EPSILON))
+
+
+def ssp(x: torch.Tensor) -> torch.Tensor:
+    """
+    Shifted soft plus nonlinearity.
+
+    References:
+    -----------
+    "Tensor field networks: Rotation- and translation-equivariant neural networks for 3D point clouds" (https://arxiv.org/abs/1802.08219). 
+    Original Tensorflow Implementation: https://github.com/tensorfieldnetworks/tensorfieldnetworks
+
+    Parameters
+    ----------
+    x: torch.Tensor
+
+    Returns
+    -------
+    torch.Tensor of same shape as x
+
+    Example
+    -------
+
+    # >>> from deepchem.utils.equivariance_utils import ssp
+    x = torch.tensor([-1.0, 0.0, 1.0])
+    # >>> ssp(x)
+    # >>> tensor([-0.3799,  0.0000,  0.6201,  1.4338])
+
+    """
+    return torch.log(0.5 * torch.exp(x) + 0.5)
+
+
+def rotation_equivariant_nonlinearity(x: torch.Tensor,
+                                      nonlin=ssp,
+                                      biases_initializer=None) -> torch.Tensor:
+    """
+    Rotation equivariant nonlinearity.
+
+    The -1 axis is assumed to be M index (of which there are 2L + 1 for given L).
+
+    References:
+    -----------
+    "Tensor field networks: Rotation- and translation-equivariant neural networks for 3D point clouds" (https://arxiv.org/abs/1802.08219). 
+    Original Tensorflow Implementation: https://github.com/tensorfieldnetworks/tensorfieldnetworks
+
+    Parameters
+    ----------
+    x: torch.Tensor with channels as -2 axis and M as -1 axis.
+    nonlin: Nonlinearity function to apply
+    biases_initializer: Optional, but unused here (kept for API consistency with TensorFlow)
+
+    Returns
+    -------
+    torch.Tensor of same shape as x with 3d rotation-equivariant nonlinearity applied.
+
+    Example
+    -------
+
+    # >>> from deepchem.utils.equivariance_utils import rotation_equivariant_nonliearity
+    # >>> scalar_features = torch.tensor([[-1.0], [0.0], [2.0]]) # Shape (batch, channels, 1)
+    # >>> rotation_equivariant_nonlinearity(scalar_features, nonlin=ssp)
+    # >>> tensor([[-0.3799],
+        [ 0.0000],
+        [ 1.4338]])
+    """
+    shape = x.shape
+    representation_index = shape[-1]
+
+    if representation_index == 1:
+        return nonlin(x)
+    else:
+        norm = norm_with_epsilon(x, axis=-1, keep_dims=True)
+        nonlin_out = nonlin(norm)
+        factor = torch.div(nonlin_out, norm)
+        # Apply factor to each component
+        return torch.multiply(x, factor)
+
+
+def difference_matrix(geometry: torch.Tensor) -> torch.Tensor:
+    """
+    Get relative vector matrix for array of shape [N, 3].
+
+    References:
+    -----------
+    "Tensor field networks: Rotation- and translation-equivariant neural networks for 3D point clouds" (https://arxiv.org/abs/1802.08219). 
+    Original Tensorflow Implementation: https://github.com/tensorfieldnetworks/tensorfieldnetworks
+
+    Parameters
+    ----------
+    geometry: torch.Tensor with Cartesian coordinates and shape [N, 3]
+
+    Returns
+    -------
+    Relative vector matrix with shape [N, N, 3]
+
+    Example
+    -------
+
+    # >>> from deepchem.utils.equivariance_utils import difference_matrix
+    # >>> geometry = torch.tensor([[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [0.0, 1.0, 0.0]])
+    # >>> difference_matrix(geometry)
+    # tensor([[[ 0.,  0.,  0.],
+         [-1.,  0.,  0.],
+         [ 0., -1.,  0.]],
+
+        [[ 1.,  0.,  0.],
+         [ 0.,  0.,  0.],
+         [ 1., -1.,  0.]],
+
+        [[ 0.,  1.,  0.],
+         [-1.,  1.,  0.],
+         [ 0.,  0.,  0.]]])
+    """
+    # [N, 1, 3]
+    ri = geometry.unsqueeze(1)
+    # [1, N, 3]
+    rj = geometry.unsqueeze(0)
+    # [N, N, 3]
+    rij = ri - rj
+    return rij
+
+
+def distance_matrix(geometry: torch.Tensor) -> torch.Tensor:
+    """
+    Get relative distance matrix for array of shape [N, 3].
+
+    References:
+    -----------
+    "Tensor field networks: Rotation- and translation-equivariant neural networks for 3D point clouds" (https://arxiv.org/abs/1802.08219). 
+    Original Tensorflow Implementation: https://github.com/tensorfieldnetworks/tensorfieldnetworks
+
+    Parameters
+    ----------
+    geometry: torch.Tensor with Cartesian coordinates and shape [N, 3]
+
+    Returns
+    -------
+    Relative distance matrix with shape [N, N]
+
+    Example
+    -------
+
+    # >>> from deepchem.utils.equivariance_utils import distance_matrix
+    # >>> geometry = torch.tensor([[0.0, 0.0, 1.0], [1.0, 0.0, 0.0], [0.0, 1.0, 0.0]])
+    # >>> distance_matrix(geometry)
+    # >>> tensor([[1.0000e-04, 1.4142e+00, 1.4142e+00],
+        [1.4142e+00, 1.0000e-04, 1.4142e+00],
+        [1.4142e+00, 1.4142e+00, 1.0000e-04]])
+    """
+    # [N, N, 3]
+    rij = difference_matrix(geometry)
+    # [N, N]
+    dij = norm_with_epsilon(rij, axis=-1)
+    return dij
+
+
+def random_rotation_matrix(
+        numpy_random_state: Optional[np.random.RandomState] = None
+) -> np.ndarray:
+    """
+    Generates a random 3D rotation matrix.
+
+    References:
+    -----------
+    "Tensor field networks: Rotation- and translation-equivariant neural networks for 3D point clouds" (https://arxiv.org/abs/1802.08219). 
+    Original Tensorflow Implementation: https://github.com/tensorfieldnetworks/tensorfieldnetworks
+
+    Parameters
+    ----------
+    numpy_random_state: numpy random state object
+
+    Returns
+    -------
+    Random rotation matrix.
+
+    Example
+    -------
+
+    # >>> from deepchem.utils.equivariance_utils import random_rotation_matrix, rotation_matrix
+    # >>> # Generate a random rotation matrix
+    # >>> R1 = random_rotation_matrix()
+    # >>> R1.shape
+    # (3, 3)
+    """
+    if numpy_random_state is None:
+        rng = np.random.RandomState()
+    else:
+        rng = numpy_random_state
+
+    axis = rng.randn(3)
+    axis /= np.linalg.norm(axis) + EPSILON
+    theta = 2 * np.pi * rng.uniform(0.0, 1.0)
+    return rotation_matrix(axis, theta)
+
+
+def rotation_matrix(axis: np.ndarray, theta: float) -> np.ndarray:
+    """
+    Create a rotation matrix for rotation around an axis by theta.
+
+    References:
+    -----------
+    "Tensor field networks: Rotation- and translation-equivariant neural networks for 3D point clouds" (https://arxiv.org/abs/1802.08219). 
+    Original Tensorflow Implementation: https://github.com/tensorfieldnetworks/tensorfieldnetworks
+
+    Parameters
+    ----------
+    axis: 3D axis to rotate around
+    theta: Angle to rotate by
+ 
+    Returns
+    -------
+    3x3 rotation matrix
+
+
+    Example
+    -------
+
+    # >>> from deepchem.utils.equivariance_utils import rotation_matrix
+    # >>> # Rotation by 90 degrees (pi/2 radians) around the Z-axis [0, 0, 1]
+    # >>> axis = np.array([0, 0, 1.0])
+    # >>> theta = np.pi / 2
+    # >>> R = rotation_matrix(axis, theta)
+    # >>> print(np.round(R, decimals=5))
+    # [[ 0. -1.  0.]
+    #  [ 1.  0.  0.]
+    #  [ 0.  0.  1.]]
+    """
+    return scipy.linalg.expm(np.cross(np.eye(3), axis * theta))
