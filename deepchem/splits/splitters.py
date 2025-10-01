@@ -1553,6 +1553,10 @@ class ScaffoldSplitter(Splitter):
         np.testing.assert_almost_equal(frac_train + frac_valid + frac_test, 1.)
         scaffold_sets = self.generate_scaffolds(dataset)
 
+        if seed is not None:
+            rng = random.Random(seed)
+            rng.shuffle(scaffold_sets)
+
         train_cutoff = frac_train * len(dataset)
         valid_cutoff = (frac_train + frac_valid) * len(dataset)
         train_inds: List[int] = []
