@@ -73,6 +73,8 @@ class Weave(nn.Module):
         mode: str = "classification",
         n_classes: int = 2,
         batch_size: int = 100,
+        device: Optional[torch.device] = None,
+        **kwargs
     ):
         """
         Parameters
@@ -178,6 +180,7 @@ class Weave(nn.Module):
         ]
         self.batch_normalize: bool = batch_normalize
         self.n_weave: int = n_weave
+        self.device = device 
 
         torch.manual_seed(22)
         self.layers: nn.ModuleList = nn.ModuleList()
@@ -195,7 +198,8 @@ class Weave(nn.Module):
                 n_pair_input_feat=n_pair,
                 n_atom_output_feat=n_atom_next,
                 n_pair_output_feat=n_pair_next,
-                batch_normalize=batch_normalize)
+                batch_normalize=batch_normalize,
+                device=device)
             nn.init.trunc_normal_(weave_layer.W_AA,
                                   0,
                                   std=conv_weight_init_stddevs[ind])
@@ -230,7 +234,8 @@ class Weave(nn.Module):
             batch_size,
             n_input=self.n_graph_feat,
             gaussian_expand=gaussian_expand,
-            compress_post_gaussian_expansion=compress_post_gaussian_expansion)
+            compress_post_gaussian_expansion=compress_post_gaussian_expansion,
+            device=device)
 
         if n_layers > 0:
             self.layers2: nn.ModuleList = nn.ModuleList()
@@ -276,18 +281,18 @@ class Weave(nn.Module):
         List[torch.Tensor]
             Output as per use case : regression/classification
         """
-        input1: List[np.ndarray] = [
-            np.array(inputs[0]),
-            np.array(inputs[1]),
-            np.array(inputs[2]),
-            np.array(inputs[4])
+        input1 = [
+            inputs[0],
+            inputs[1],
+            inputs[2],
+            inputs[4]
         ]
         for ind in range(self.n_weave):
             weave_layer_ind_A, weave_layer_ind_P = self.layers[ind](input1)
             input1 = [
                 weave_layer_ind_A, weave_layer_ind_P,
-                np.array(inputs[2]),
-                np.array(inputs[4])
+                inputs[2],
+                inputs[4]
             ]
 
         dense1: torch.Tensor = self.dense1(weave_layer_ind_A)
@@ -390,6 +395,7 @@ class WeaveModel(TorchModel):
                  mode: str = "classification",
                  n_classes: int = 2,
                  batch_size: int = 100,
+                 device: Optional[torch.device] = None,
                  **kwargs):
         """
         Parameters
@@ -478,7 +484,9 @@ class WeaveModel(TorchModel):
             compress_post_gaussian_expansion=compress_post_gaussian_expansion,
             mode=mode,
             n_classes=n_classes,
-            batch_size=batch_size)
+            batch_size=batch_size,
+            device=device,
+            **kwargs)
 
         if mode not in ['classification', 'regression']:
             raise ValueError(
@@ -511,6 +519,7 @@ class WeaveModel(TorchModel):
                              output_types=output_types,
                              batch_size=batch_size,
                              regularization_loss=regularization_loss,
+                             device=device,
                              **kwargs)
 
     def compute_features_on_batch(self, X_b):
