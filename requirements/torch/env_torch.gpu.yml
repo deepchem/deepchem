@@ -1,14 +1,14 @@
 dependencies:
   - pylibxc
   - pip:
-    - -f https://download.pytorch.org/whl/cu118/torch_stable.html
-    - -f https://data.dgl.ai/wheels/torch-2.2/cu118/repo.html
+    - -f https://download.pytorch.org/whl/torch/
+    - -f https://data.dgl.ai/wheels/torch-2.4/cu124/repo.html
     - dgl
-    - torch==2.2.1+cu118
+    - torch==2.4.1+cu124
     - torch-geometric
     - lightning
     - pydantic
-    - -f https://data.pyg.org/whl/torch-2.2.1+cu118.html
+    - -f https://data.pyg.org/whl/torch-2.4.1+cu124.html
     - torch-cluster
     - git+https://github.com/diffqc/dqclibs.git
     - basis-set-exchange

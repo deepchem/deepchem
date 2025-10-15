@@ -13,11 +13,11 @@ else:
 extras = {
     'jax': ['jax==0.4.30', 'jaxlib==0.4.30', 'dm-haiku==0.0.13', 'optax'],
     'torch': [
-        'torch==2.2.1', 'torchvision', 'pytorch-lightning', 'dgl<2.2.1',
+        'torch<=2.4', 'torchvision', 'pytorch-lightning', 'dgl<2.2.1',
         'dgllife'
     ],
     'tensorflow': ['tensorflow', 'tensorflow_probability', 'tensorflow_addons'],
-    'dqc': ['dqc', 'xitorch', 'torch==2.2.1', 'pylibxc2']
+    'dqc': ['dqc', 'xitorch', 'torch<=2.4', 'pylibxc2']
 }
 
 
@@ -56,6 +56,7 @@ setup(name='deepchem',
           'Programming Language :: Python :: 3.9',
           'Programming Language :: Python :: 3.10',
           'Programming Language :: Python :: 3.11',
+          'Programming Language :: Python :: 3.12',
       ],
       license='MIT',
       description='Deep learning models for drug discovery, \
@@ -83,4 +84,4 @@ setup(name='deepchem',
           'rdkit',
       ],
       extras_require=extras,
-      python_requires='>=3.7,<3.13')
+      python_requires='>=3.8,<3.13')
