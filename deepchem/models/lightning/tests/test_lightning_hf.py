@@ -89,7 +89,7 @@ def test_chemberta_masked_lm_workflow(smiles_data):
     # Test MLM training
     trainer.fit(train_dataset=dataset, checkpoint_interval=0, nb_epoch=1)
 
-    trainer.save("chemberta_mlm_checkpoint.ckpt")
+    trainer.save_checkpoint(model_dir="chemberta_mlm_checkpoint")
 
     # Create a new model instance for loading
     new_dc_hf_model = Chemberta(task='mlm',
@@ -99,13 +99,14 @@ def test_chemberta_masked_lm_workflow(smiles_data):
                                 learning_rate=0.0001)
 
     # Load the checkpoint into the new model instance
-    reloaded_trainer = LightningTorchModel.reload(
-        "chemberta_mlm_checkpoint.ckpt",
+    reloaded_trainer = LightningTorchModel(
         model=new_dc_hf_model,
         batch_size=2,
+        model_dir="chemberta_mlm_checkpoint",
         accelerator="gpu",
         devices=1,
     )
+    reloaded_trainer.restore()
 
     # Test MLM prediction using the reloaded trainer
     prediction_batches = reloaded_trainer.predict(dataset=dataset,
@@ -149,7 +150,7 @@ def test_chemberta_regression_workflow(smiles_data):
                 num_workers=4,
                 checkpoint_interval=0,
                 nb_epoch=1)
-    trainer.save("chemberta_reg_checkpoint.ckpt")
+    trainer.save_checkpoint(model_dir="chemberta_reg_checkpoint")
 
     # Create a new model instance for loading
     new_dc_hf_model = Chemberta(task='regression',
@@ -159,13 +160,14 @@ def test_chemberta_regression_workflow(smiles_data):
                                 learning_rate=0.0001)
 
     # Load the checkpoint into the new model instance
-    reloaded_trainer = LightningTorchModel.reload(
-        "chemberta_reg_checkpoint.ckpt",
+    reloaded_trainer = LightningTorchModel(
         model=new_dc_hf_model,
         batch_size=2,
+        model_dir="chemberta_reg_checkpoint",
         accelerator="gpu",
         devices=1,
     )
+    reloaded_trainer.restore()
 
     # Test regression prediction using the reloaded trainer
     prediction = reloaded_trainer.predict(dataset=dataset)
@@ -223,7 +225,7 @@ def test_chemberta_classification_workflow(smiles_data, tmp_path):
                 checkpoint_interval=0,
                 nb_epoch=1)
 
-    trainer.save("chemberta_classification_checkpoint.ckpt")
+    trainer.save_checkpoint(model_dir="chemberta_classification_checkpoint")
 
     # Create a new model instance for loading
     new_dc_hf_model = Chemberta(task='classification',
@@ -233,13 +235,14 @@ def test_chemberta_classification_workflow(smiles_data, tmp_path):
                                 learning_rate=0.0001)
 
     # Load the checkpoint into the new model instance
-    reloaded_trainer = LightningTorchModel.reload(
-        "chemberta_classification_checkpoint.ckpt",
+    reloaded_trainer = LightningTorchModel(
         model=new_dc_hf_model,
         batch_size=2,
+        model_dir="chemberta_classification_checkpoint",
         accelerator="gpu",
         devices=1,
     )
+    reloaded_trainer.restore()
 
     # Test classification prediction using the reloaded trainer
     prediction = reloaded_trainer.predict(dataset=classification_dataset)
@@ -297,7 +300,7 @@ def test_chemberta_checkpointing_and_loading(smiles_data):
             break
     assert weight_changed, "Model weights did not change (no training occurred)."
 
-    trainer.save("model_checkpoint.ckpt")
+    trainer.save_checkpoint(model_dir="model_checkpoint")
 
     # Create a new model instance for loading
     dc_hf_model_new = Chemberta(task='regression',
@@ -307,13 +310,14 @@ def test_chemberta_checkpointing_and_loading(smiles_data):
                                 learning_rate=0.0001)
 
     # Load the model from the checkpoint using LightningTorchModel
-    reloaded_trainer = LightningTorchModel.reload("model_checkpoint.ckpt",
-                                                  model=dc_hf_model_new,
-                                                  batch_size=2,
-                                                  accelerator="gpu",
-                                                  devices=-1,
-                                                  logger=False,
-                                                  enable_progress_bar=False)
+    reloaded_trainer = LightningTorchModel(model=dc_hf_model_new,
+                                           batch_size=2,
+                                           model_dir="model_checkpoint",
+                                           accelerator="gpu",
+                                           devices=-1,
+                                           logger=False,
+                                           enable_progress_bar=False)
+    reloaded_trainer.restore()
     state_reloaded = reloaded_trainer.lightning_model.pt_model.state_dict()
 
     # --- Correctness Check 2: After Loading ---
@@ -371,12 +375,12 @@ def test_chemberta_overfit_with_lightning_trainer(smiles_data):
         precision="16-mixed",
     )
 
-    eval_before = dc_hf_model.evaluate(dataset=dataset, metrics=[mae_metric])
-
-    lightning_trainer.fit(dataset, checkpoint_interval=0, nb_epoch=70)
+    lightning_trainer.fit(train_dataset=dataset,
+                          checkpoint_interval=0,
+                          nb_epoch=70)
 
     # Save checkpoint after training
-    lightning_trainer.save("chemberta_overfit_best.ckpt")
+    lightning_trainer.save_checkpoint(model_dir="chemberta_overfit_best")
 
     new_dc_hf_model = Chemberta(
         task='regression',
@@ -385,16 +389,20 @@ def test_chemberta_overfit_with_lightning_trainer(smiles_data):
         batch_size=1,  # Match model batch size
         learning_rate=0.0005)
 
+    eval_before = new_dc_hf_model.evaluate(dataset=dataset,
+                                           metrics=[mae_metric])
+
     # Load the checkpoint into the new model instance
-    reloaded_trainer = LightningTorchModel.reload(
-        "chemberta_overfit_best.ckpt",
+    reloaded_trainer = LightningTorchModel(
         model=new_dc_hf_model,
         batch_size=1,
+        model_dir="chemberta_overfit_best",
         accelerator="gpu",
         devices=1,
         logger=False,
         enable_progress_bar=False,
     )
+    reloaded_trainer.restore()
 
     # Evaluate the model on the training set
     eval_score = reloaded_trainer.evaluate(dataset=dataset,
