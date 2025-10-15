@@ -25,25 +25,27 @@ jobs:
         sudo docker image prune --all --force
         sudo rm -rf /opt/hostedtoolcache/CodeQL
     - uses: actions/checkout@v4
-    - name: Cache pip packages for Linux
+    - name: Cache uv
       uses: actions/cache@v4
       # use cached dependencies to speed up workflow
       # ref: https://docs.github.com/en/actions/advanced-guides/caching-dependencies-to-speed-up-workflows
       with:
-        path: ~/.cache/pip
+        path: ~/.cache/uv
         # the key is used to search for cache
         # hashFile(paths) return a single hash for the set of files that matches the path pattern
-        key: ${{ runner.os }}-pip-${{ hashFiles('**/**/docs/requirements.txt') }}
+        key: ${{ runner.os }}-uv-${{ hashFiles('**/**/docs/requirements.txt') }}
         restore-keys: |
-          ${{ runner.os }}-pip-
+          ${{ runner.os }}-uv-
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
+    - name: Install uv
+      run: pip install uv
     - name: Install dependencies (docs)
       shell: bash -l {0}
       working-directory: ./docs
-      run: pip install -r requirements.txt
+      run: uv pip install --system -r requirements.txt
     - name: Build docs
       shell: bash -l {0}
       working-directory: ./docs

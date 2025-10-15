@@ -15,21 +15,21 @@ jobs:
         python-version: ['3.9', '3.10', '3.11']
     steps:
     - uses: actions/checkout@v4
-    - name: Cache pip modules for Linux
+    - name: Cache uv
       uses: actions/cache@v4
       with:
-        path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('requirements/jax/**') }}
+        path: ~/.cache/uv
+        key: ${{ runner.os }}-uv-${{ hashFiles('requirements/jax/**') }}
         restore-keys: |
-          ${{ runner.os }}-pip-
+          ${{ runner.os }}-uv-
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
+    - name: Install uv
+      run: pip install uv
     - name: Build DeepChem
-      run: |
-        python -m pip install --upgrade pip
-        pip install -e '.[jax]'
+      run: uv pip install --system -e '.[jax]'
     - name: Import checking
       run: python -c "import deepchem; import jax;"
 
@@ -71,39 +71,40 @@ jobs:
       run: |
         git fetch origin master
         echo "COMMIT_RANGE=origin/master..." >> $GITHUB_ENV
-    - name: Cache pip packages for Linux
+    - name: Cache uv (Linux)
       if: runner.os == 'Linux'
       uses: actions/cache@v4
       with:
-        path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('requirements/jax/**') }}
+        path: ~/.cache/uv
+        key: ${{ runner.os }}-uv-${{ hashFiles('requirements/jax/**') }}
         restore-keys: |
-          ${{ runner.os }}-pip-
-    - name: Cache pip packages for MacOS
+          ${{ runner.os }}-uv-
+    - name: Cache uv (MacOS)
       if: runner.os == 'macOS'
       uses: actions/cache@v4
       with:
-        path: ~/Library/Caches/pip
-        key: ${{ matrix.os }}-pip-${{ hashFiles('requirements/jax/**') }}
+        path: ~/Library/Caches/uv
+        key: ${{ matrix.os }}-uv-${{ hashFiles('requirements/jax/**') }}
         restore-keys: |
-          ${{ runner.os }}-pip-
-    - name: Cache pip packages for Windows
+          ${{ runner.os }}-uv-
+    - name: Cache uv (Windows)
       if: runner.os == 'Windows'
       uses: actions/cache@v4
       with:
-        path: ~\AppData\Local\pip\Cache
-        key: ${{ matrix.os }}-pip-${{ hashFiles('requirements/jax/**') }}
+        path: ~\AppData\Local\uv\Cache
+        key: ${{ matrix.os }}-uv-${{ hashFiles('requirements/jax/**') }}
         restore-keys: |
-          ${{ runner.os }}-pip-
+          ${{ runner.os }}-uv-
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
+    - name: Install uv
+      run: pip install uv
     - name: Create env.yml
       shell: bash
       run: |
-        python -m pip install --upgrade pip;
-        pip install conda-merge;
+        uv pip install --system conda-merge;
         conda-merge requirements/env_common.yml requirements/env_test.yml requirements/jax/env_jax.cpu.yml > env.yml
     - name: Install all dependencies
       uses: conda-incubator/setup-miniconda@v3
@@ -117,7 +118,7 @@ jobs:
     - name: Install DeepChem
       id: install
       shell: bash -l {0}
-      run: pip install -e .
+      run: uv pip install --system -e .
     - name: PyTest
       if: ${{ (success() || failure()) && (steps.install.outcome == 'failure' || steps.install.outcome == 'success') }}
       shell: bash -l {0}
