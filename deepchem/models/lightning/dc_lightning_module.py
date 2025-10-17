@@ -267,3 +267,69 @@ class DCLightningModule(L.LightningModule):
             return final_results[0]
         else:
             return final_results
+
+    def on_save_checkpoint(self, checkpoint: dict) -> None:
+        """Called by Lightning when saving a checkpoint.
+
+        This method saves only TorchModel-compatible format by removing Lightning-specific
+        state_dict and keeping only the clean model_state_dict.
+
+        Parameters
+        ----------
+        checkpoint: dict
+            The full checkpoint dictionary before it gets dumped to a file.
+            This method modifies this dictionary to use TorchModel-compatible format only.
+        """
+        # Convert Lightning state_dict to TorchModel format and remove the Lightning version
+        if 'state_dict' in checkpoint:
+            lightning_state_dict = checkpoint.pop('state_dict')
+            torch_model_state_dict = {}
+
+            for key, value in lightning_state_dict.items():
+                if key.startswith('pt_model.'):
+                    # Remove 'pt_model.' prefix to match TorchModel format
+                    new_key = key[9:]
+                    torch_model_state_dict[new_key] = value
+                else:
+                    torch_model_state_dict[key] = value
+
+            checkpoint['model_state_dict'] = torch_model_state_dict
+
+        # Map Lightning's optimizer_states to TorchModel's optimizer_state_dict
+        # Lightning stores optimizer states as a list, TorchModel expects a single dict
+        if 'optimizer_states' in checkpoint and len(
+                checkpoint['optimizer_states']) > 0:
+            checkpoint['optimizer_state_dict'] = checkpoint['optimizer_states'][
+                0]
+
+    def on_load_checkpoint(self, checkpoint: dict) -> None:
+        """Called by Lightning to restore the model.
+
+        This method creates Lightning-compatible state_dict from TorchModel format
+        by adding the necessary pt_model prefixes.
+
+        Parameters
+        ----------
+        checkpoint: dict
+            Loaded checkpoint dictionary in TorchModel format.
+        """
+        # Always create Lightning state_dict from model_state_dict
+        if 'model_state_dict' in checkpoint:
+            torch_model_state_dict = checkpoint.pop('model_state_dict')
+            lightning_state_dict = {}
+
+            # Add pt_model prefix for Lightning compatibility
+            for key, value in torch_model_state_dict.items():
+                # Add 'pt_model.' prefix for Lightning format
+                new_key = 'pt_model.' + key
+                lightning_state_dict[new_key] = value
+
+            checkpoint['state_dict'] = lightning_state_dict
+
+        # Handle optimizer state mapping
+        if 'optimizer_state_dict' in checkpoint and 'optimizer_states' not in checkpoint:
+            # TorchModel format: single optimizer dict
+            # Lightning format: list of optimizer dict
+            checkpoint['optimizer_states'] = [
+                checkpoint['optimizer_state_dict']
+            ]
