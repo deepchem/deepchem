@@ -71,6 +71,8 @@ tutorials discuss about using DeepChem for specific applications.
 * [10 Introduction to Molecular Attention Transformer](Introduction_to_Molecular_Attention_Transformer.ipynb)
 * [11 Generating Molecules with MolGAN](Generating_molecules_with_MolGAN.ipynb)
 * [12 Introduction to GROVER](Introduction_to_GROVER.ipynb)
+* [13 Introduction to Antibody Drug Conjugates(ADCs)](Introduction_to_Antibody_Drug_Conjugates.ipynb)
+* [14 Introduction to ADCNet: Predicting ADC Activity with DeepChem](Introduction_to_ADCNet.ipynb)
 
 ### Modeling Proteins
 * [1 Protein Deep Learning](Protein_Deep_Learning.ipynb)
@@ -96,6 +98,7 @@ tutorials discuss about using DeepChem for specific applications.
 * [3 Scanpy](Scanpy.ipynb)
 * [4 Deep probabilistic analysis of omics data](Deep_probabilistic_analysis_of_single-cell_omics_data.ipynb)
 * [5 Automated Cell Counting](Cell_Counting_Tutorial.ipynb)
+* [6 Cell type identification in scRNA-seq data using ACTINN and Deepchem](Cell_type_identification_using_scRNAseq_data.ipynb)
 
 ### Material Science
 * [1 Introduction to Material Science](Introduction_To_Material_Science.ipynb)
@@ -109,6 +112,7 @@ tutorials discuss about using DeepChem for specific applications.
 * [1 Physics Informed Neural Networks (Burgers Equation)](Physics_Informed_Neural_Networks.ipynb)
 * [2 Introducing_JaxModel_and_PINNModel](Introducing_JaxModel_and_PINNModel.ipynb)
 * [3 About_nODE_Using_Torchdiffeq_in_Deepchem](About_nODE_Using_Torchdiffeq_in_Deepchem.ipynb)
+* [4 Introduction_to_Hamiltonian_Neural_Network](Introduction_to_Hamiltonian_Neural_Network.ipynb)
 
 ### Equivariance
 * [1 Introduction to Equivariance](Introduction_to_Equivariance.ipynb)

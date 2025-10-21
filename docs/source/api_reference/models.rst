@@ -641,6 +641,31 @@ MultitaskIRVClassifier
 .. autoclass:: deepchem.models.torch_models.MultitaskIRVClassifier
   :members:
 
+HNN
+----------------
+.. autoclass:: deepchem.models.torch_models.HNN
+  :members:
+
+HNNModel
+----------------
+.. autoclass:: deepchem.models.torch_models.HNNModel
+  :members:
+
+FNO
+----------------
+.. autoclass:: deepchem.models.torch_models.FNO
+  :members:
+
+FNOModel
+----------------
+.. autoclass:: deepchem.models.torch_models.FNOModel
+  :members:
+
+LNN
+----------------
+.. autoclass:: deepchem.models.torch_models.LNN
+  :members:
+
 PyTorch Lightning Models
 ========================
 
@@ -654,6 +679,17 @@ DCLightningModule
 You can wrap an arbitrary :code:`TorchModel` in a :code:`DCLightningModule` object.
 
 .. autoclass:: deepchem.models.DCLightningModule
+  :members:
+
+LightningTorchModel
+-------------------
+
+This is the Lightning wrapper for DeepChem that supports training with Fully Sharded Data Parallel (FSDP)
+and Distributed Data Parallel (DDP). It also performs prediction, evaluation, and checkpoint management for 
+enhanced model training and deployment capabilities. You can wrap an arbitrary :code:`TorchModel` in a 
+:code:`LightningTorchModel` object.
+
+.. autoclass:: deepchem.models.lightning.LightningTorchModel
   :members:
 
 Jax Models
@@ -722,4 +758,9 @@ DistributedTrainer
 ------------------
 
 .. autoclass:: deepchem.trainer.DistributedTrainer
+  :members:
+
+ChemCeption
+----------------
+.. autoclass:: deepchem.models.torch_models.ChemCeption.ChemCeption
   :members:
