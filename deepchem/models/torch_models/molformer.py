@@ -32,6 +32,7 @@ class MoLFormer(HuggingFaceModel):
     -------
     >>> import os
     >>> import tempfile
+    >>> import shutil
     >>> tempdir = tempfile.mkdtemp()
 
     >>> # preparing dataset
@@ -60,8 +61,11 @@ class MoLFormer(HuggingFaceModel):
 
     >>> # prediction and evaluation
     >>> result = finetune_model.predict(dataset)
-    >>> eval_results = finetune_model.evaluate(dataset, metrics=dc.metrics.Metric(dc.metrics.mae_score))
+    >>> eval_results = finetune_model.evaluate(dataset, metrics=dc.metrics.Metric(dc.metrics.mean_absolute_error))
 
+    >>> # removing temporary directory
+    >>> if os.path.exists(tempdir):
+    ...     shutil.rmtree(tempdir)
 
     Reference
     ---------
