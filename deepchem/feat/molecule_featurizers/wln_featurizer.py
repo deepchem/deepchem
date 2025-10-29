@@ -311,16 +311,30 @@ class WLNFeaturizer(MolecularFeaturizer):
 
         return features
 
-    def _get_labels(self, edits):
+    def _get_labels(self,edits, max_natoms):
         """
-        (Placeholder) Parses the edit string from the datapoint.
+        Parses the edit string from the datapoint to genrate labels.
 
         Parameters
         ----------
         edits: str
-            The edit string, e.g., "2;;10-9-1.0;2-9-1.0"
+            The edit string, e.g., "6-8-0.0;15-6-1.0;15-19-0.0"
+            
+        Returns
+        -------
+        np.array 
+            A 3d array (max_natoms, max_natoms, 5)
         """
-        pass
+        bo_to_index  = {0.0: 0, 1:1, 2:2, 3:3, 1.5:4} #bond label (0 -> no bond),(1 -> single bond),(2->double bond),(3->triple bond),(4->aromatic)
+        nbos = len(bo_to_index) # number of bonds 
+        bond_map = np.zeros((max_natoms, max_natoms, nbos),dtype=np.float32)
+        for s in edits.split(';'):
+            a1,a2,bo = s.split('-')
+            x = min(int(a1)-1,int(a2)-1)
+            y = max(int(a1)-1, int(a2)-1)
+            z = bo_to_index[float(bo)]
+            bond_map[x,y,z] = bond_map[y,x,z] = 1
+        return bond_map
 
     def _featurize(
         self, smiles_list: List[str]
@@ -355,7 +369,7 @@ class WLNFeaturizer(MolecularFeaturizer):
             graphs.append(self._smiles_to_graph(reactant_s))
             # Store edit strings if they exist
             if len(parts) > 1 and " " in parts[1]:
-                edit_s = parts[1].split(" ", 1)[-1]
+                edit_s = parts[1].split(" ", 1)[-1]                
                 edit_strings.append(edit_s)
             else:
                 edit_strings.append(None)
@@ -399,7 +413,6 @@ class WLNFeaturizer(MolecularFeaturizer):
 
         # 5. Determine max_atoms for THIS batch
         max_atoms = max(graphs[i][0].shape[0] for i in valid_indices)
-
         # 6. Initialize all padded arrays
         padded_atom_features = np.zeros((batch_size, max_atoms, atom_fdim),
                                         dtype=np.float32)
@@ -411,7 +424,9 @@ class WLNFeaturizer(MolecularFeaturizer):
             (batch_size, max_atoms, max_atoms, self.binary_fdim),
             dtype=np.float32)
         atom_mask = np.zeros((batch_size, max_atoms), dtype=np.float32)
-
+        
+        labels = np.array([self._get_labels(edits ,max_natoms=max_atoms) for edits in edit_strings])
+        
         # 7. Fill the padded arrays
         for i in range(batch_size):
             atom_feats, adj, bond_feats = graphs[i]
@@ -431,14 +446,8 @@ class WLNFeaturizer(MolecularFeaturizer):
             binary_feats = self._binary_features(reactant_s, max_atoms)
             padded_binary_features[i] = binary_feats
 
-            # (Placeholder) Parse labels from edit string
-            # edit_s = edit_strings[i]
-            # if edit_s:
-            #   labels = self._get_labels(edit_s)
-            #   ... add to a padded_labels array ...
-
         return (padded_atom_features, padded_adj, padded_bond_features,
-                padded_binary_features, atom_mask)
+                padded_binary_features, atom_mask ,labels)
 
     def featurize(self,
                   datapoints,
@@ -447,10 +456,10 @@ class WLNFeaturizer(MolecularFeaturizer):
         Featurizes a list of SMILES strings into padded batch representations for WLN.
 
         DATPOINTS FORMAT:
-        REACTANT>>PRODUCT REACTION_CENTER;;EDITS
+        REACTANT>>PRODUCT REACTION_CENTER EDITS
 
         EXAMPLES:
-        [CH3:1][NH:2][NH2:3].[CH3:4][CH2:5][O:6][C:7](=[O:8])[CH2:9][Br:10]>>CCOC(=O)CN(C)N 2;;10-9-1.0;2-9-1.0
+        [CH2:1]1[O:2][CH2:3][CH2:4][CH2:5]1.[CH:18]([Cl:19])([Cl:20])[Cl:21].[I:6][c:7]1[n:8][cH:9][cH:10][n:11][c:12]1[O:13][CH3:14].[NH2:16][NH2:17].[OH2:15]>>[c:7]1([NH:16][NH2:17])[n:8][cH:9][cH:10][n:11][c:12]1[O:13][CH3:14] 6-7-0.0;16-7-1.0
 
         This method processes a list of datapoints (SMILES strings) and
         returns a tuple of numpy arrays, where each array represents a
