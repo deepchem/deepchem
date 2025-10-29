@@ -9244,6 +9244,95 @@ class SE3ResidualAttention(nn.Module):
 
         return z
 
+class WLNGraphConvolution(nn.Module):
+
+    def __init__(self, atom_feature_dim: int, bond_feature_dim: int, hidden_size: int, depth: int):
+
+        super(WLNGraphConvolution, self).__init__()
+        self.depth = depth
+        self.hidden_size = hidden_size
+
+        # --- Layer Definitions ---
+        # Initial atom embedding layer
+        self.atom_embedding = nn.Linear(atom_feature_dim, hidden_size)
+
+        # Layers for the iterative update (Eq. 2)
+        self.V = nn.Linear(hidden_size + bond_feature_dim, hidden_size)
+        self.U1 = nn.Linear(hidden_size, hidden_size)
+        self.U2 = nn.Linear(hidden_size, hidden_size)
+
+        # Layers for the final representation (Eq. 3)
+        self.W0 = nn.Linear(hidden_size, hidden_size)
+        self.W1 = nn.Linear(bond_feature_dim, hidden_size)
+        self.W2 = nn.Linear(hidden_size, hidden_size)
+        
+        self.relu = nn.ReLU()
+
+    def forward(self, atom_features, adj_matrix, bond_features, atom_mask):
+        """
+        Performs the forward pass on a padded batch.
+
+        Args:
+            atom_features (Tensor): (batch, max_atoms, atom_fdim)
+            adj_matrix (Tensor): (batch, max_atoms, max_atoms)
+            bond_features (Tensor): (batch, max_atoms, max_atoms, bond_fdim)
+            atom_mask (Tensor): (batch, max_atoms), boolean or float mask.
+
+        Returns:
+            Tuple[torch.Tensor, torch.Tensor]: A tuple containing:
+            - atom_embeddings (Tensor): Final atom representations. (batch, max_atoms, hidden_size)
+            - graph_embedding (Tensor): Final graph representations. (batch, hidden_size)
+        """
+        # Ensure mask is float for multiplication
+        float_mask = atom_mask.unsqueeze(-1).float()
+
+        # Initial atom features, h^(0)
+        h = self.relu(self.atom_embedding(atom_features))
+        h = h * float_mask # Mask out padding atoms
+
+        # --- Iterative Relabeling (Eq. 2) ---
+        for _ in range(self.depth):
+            # Expand h to create neighbor feature tensor of shape (batch, max_atoms, max_atoms, hidden_size)
+            # This represents h_u for all pairs (u, v)
+            h_neighbors = h.unsqueeze(1).expand(-1, h.shape[1], -1, -1)
+            
+            # Concatenate neighbor atom features with bond features
+            message_input = torch.cat([h_neighbors, bond_features], dim=-1)
+            
+            # Generate messages for all pairs
+            messages = self.relu(self.V(message_input))
+            
+            # Mask messages to only include actual neighbors
+            masked_messages = messages * adj_matrix.unsqueeze(-1)
+            
+            # Sum messages over the neighbor dimension (dim=2) to aggregate
+            aggregated_messages = torch.sum(masked_messages, dim=2)
+            
+            # Update atom representations
+            h = self.relu(self.U1(h) + self.U2(aggregated_messages))
+            h = h * float_mask # Apply mask after each update
+
+        # --- Final Atom Representation (Eq. 3) ---
+        # Expand final h to get h_u and h_v for all pairs
+        h_u = h.unsqueeze(2).expand(-1, -1, h.shape[1], -1) # source atoms
+        h_v = h.unsqueeze(1).expand(-1, h.shape[1], -1, -1) # destination atoms
+        
+        term1 = self.W0(h_u)
+        term2 = self.W1(bond_features)
+        term3 = self.W2(h_v)
+        
+        # Element-wise product
+        edge_outputs = term1 * term2 * term3
+        
+        # Mask with adjacency and sum over neighbors (dim=2)
+        masked_outputs = edge_outputs * adj_matrix.unsqueeze(-1)
+        atom_embeddings = torch.sum(masked_outputs, dim=2)
+        atom_embeddings = atom_embeddings * float_mask
+        
+        # --- Graph-level Representation (Sum Pooling) ---
+        graph_embedding = torch.sum(atom_embeddings, dim=1)
+        
+        return atom_embeddings, graph_embedding
 
 class SpectralConv(nn.Module):
     """

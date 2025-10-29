@@ -25,3 +25,6 @@ from deepchem.feat.molecule_featurizers.snap_featurizer import SNAPFeaturizer
 from deepchem.feat.molecule_featurizers.conformer_featurizer import RDKitConformerFeaturizer
 from deepchem.feat.molecule_featurizers.mxmnet_featurizer import MXMNetFeaturizer
 from deepchem.feat.molecule_featurizers.equivariant_graph_featurizer import EquivariantGraphFeaturizer
+from deepchem.feat.molecule_featurizers.wln_featurizer import WLNFeaturizer
+
+
