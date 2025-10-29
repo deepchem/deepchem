@@ -42,6 +42,8 @@ def create_test_graph(smiles):
     from rdkit import Chem
     import deepchem as dc
     from deepchem.utils.equivariance_utils import get_equivariant_basis_and_r
+    import shutil
+    import os
 
     mol = Chem.MolFromSmiles(smiles)
     featurizer = dc.feat.EquivariantGraphFeaturizer(fully_connected=False,
@@ -52,6 +54,9 @@ def create_test_graph(smiles):
     G.edata['w'] = torch.tensor(features.edge_weights, dtype=torch.float32)
 
     basis, r = get_equivariant_basis_and_r(G, max_degree=3)
+    dir_path = "cache"
+    if os.path.exists(dir_path) and os.path.isdir(dir_path):
+        shutil.rmtree(dir_path)
 
     return G, basis, r
 
@@ -84,6 +89,8 @@ def test_se3pairwiseconv_equivariance(max_degree, nc_in, nc_out, edge_dim):
     from rdkit import Chem
     from deepchem.models.torch_models.layers import SE3PairwiseConv
     from deepchem.utils.equivariance_utils import get_equivariant_basis_and_r
+    import shutil
+    import os
 
     # Load molecule and featurize
     mol = Chem.MolFromSmiles("CCO")
@@ -132,7 +139,9 @@ def test_se3pairwiseconv_equivariance(max_degree, nc_in, nc_out, edge_dim):
     # Test for equivariance under rotation
     output_diff = torch.norm(output_original -
                              output_rotated) / torch.norm(output_original)
-
+    dir_path = "cache"
+    if os.path.exists(dir_path) and os.path.isdir(dir_path):
+        shutil.rmtree(dir_path)
     assert output_diff.item() < 1e-6
 
 
@@ -812,3 +821,39 @@ def test_se3residualattention_equivariance():
         expected = (G.num_nodes(), fibers["mid"].structure_dict[d_int],
                     2 * d_int + 1)
         assert t.shape == expected
+
+
+
+@pytest.mark.parametrize("batch_size, num_nodes, channels_0, channels_1", [
+    (4, 10, 16, 32),
+    (2, 6, 8, 16),
+])
+def test_se3_maxpooling_layer(batch_size, num_nodes, channels_0, channels_1):
+    """Test SE3MaxPooling with scalar (degree 0) and vector (degree 1) features."""
+    from deepchem.models.torch_models.layers import SE3MaxPooling
+    import dgl
+
+    # Create DGL graph
+    G = dgl.graph(([0, 1, 2], [3, 4, 5]), num_nodes=num_nodes)
+
+    # Random features
+    features = {
+        '0': torch.randn(num_nodes, channels_0, 1),   # Scalars (Degree 0)
+        '1': torch.randn(num_nodes, channels_1, 3)    # Vectors (Degree 1)
+    }
+
+    # Initialize Pooling Layers
+    pool_0 = SE3MaxPooling(pooling_type='0')  # Scalars
+    pool_1 = SE3MaxPooling(pooling_type='1')  # Vectors
+
+    # Apply Pooling
+    pooled_0 = pool_0(features, G)  # Scalar pooling
+    pooled_1 = pool_1(features, G)  # Vector pooling
+
+    # Expected output shapes
+    expected_shape_0 = torch.Size([1, channels_0])      # Scalars collapse into global pooled representation
+    expected_shape_1 = torch.Size([1, channels_1, 3])   # Vectors keep (channels, 3)
+
+    # Assertions
+    assert pooled_0.shape == expected_shape_0, f"Expected {expected_shape_0}, got {pooled_0.shape}"
+    assert pooled_1['1'].shape == expected_shape_1, f"Expected {expected_shape_1}, got {pooled_1['1'].shape}"
