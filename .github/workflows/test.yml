@@ -28,21 +28,21 @@ jobs:
         sudo docker image prune --all --force
         sudo rm -rf /opt/hostedtoolcache/CodeQL
     - uses: actions/checkout@v4
-    - name: Cache pip modules for Linux
+    - name: Cache uv
       uses: actions/cache@v4
       with:
-        path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('requirements/**.yml') }}
+        path: ~/.cache/uv
+        key: ${{ runner.os }}-uv-${{ hashFiles('requirements/**.yml') }}
         restore-keys: |
-          ${{ runner.os }}-pip-
+          ${{ runner.os }}-uv-
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
+    - name: Install uv
+      run: pip install uv
     - name: Build DeepChem
-      run: |
-        python -m pip install --upgrade pip
-        pip install -e .
+      run: uv pip install --system -e .
     - name: Import checking
       run: python -c "import deepchem"
 
@@ -86,40 +86,41 @@ jobs:
       run: |
         git fetch origin master
         echo "COMMIT_RANGE=origin/master..." >> $GITHUB_ENV
-    - name: Cache pip packages for Linux
+    - name: Cache uv (Linux)
       if: runner.os == 'Linux'
       uses: actions/cache@v4
       with:
-        path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('requirements/**.yml') }}
+        path: ~/.cache/uv
+        key: ${{ runner.os }}-uv-${{ hashFiles('requirements/**.yml') }}
         restore-keys: |
-          ${{ runner.os }}-pip-
-    - name: Cache pip packages for MacOS
+          ${{ runner.os }}-uv-
+    - name: Cache uv (MacOS)
       if: runner.os == 'macOS'
       uses: actions/cache@v4
       with:
-        path: ~/Library/Caches/pip
-        key: ${{ matrix.os }}-pip-${{ hashFiles('requirements/**.yml') }}
+        path: ~/Library/Caches/uv
+        key: ${{ matrix.os }}-uv-${{ hashFiles('requirements/**.yml') }}
         restore-keys: |
-          ${{ runner.os }}-pip-
-    - name: Cache pip packages for Windows
+          ${{ runner.os }}-uv-
+    - name: Cache uv (Windows)
       if: runner.os == 'Windows'
       uses: actions/cache@v4
       with:
-        path: ~\AppData\Local\pip\Cache
-        key: ${{ matrix.os }}-pip-${{ hashFiles('requirements/**.yml') }}
+        path: ~\AppData\Local\uv\Cache
+        key: ${{ matrix.os }}-uv-${{ hashFiles('requirements/**.yml') }}
         restore-keys: |
-          ${{ runner.os }}-pip-
+          ${{ runner.os }}-uv-
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
+    - name: Install uv
+      run: pip install uv
     - name: Create env.yml for python 3.11
       shell: bash
       if: ${{ matrix.python-version == '3.11' }}
       run: |
-        python -m pip install --upgrade pip;
-        pip install conda-merge;
+        uv pip install --system conda-merge;
         cd requirements
         if [ "$(uname)" == 'Linux' ]; then
           sudo apt-get update
@@ -137,8 +138,7 @@ jobs:
       # A special case of environment creation for python 3.8 which excludes jax
       if: ${{ matrix.python-version == '3.8' }}
       run: |
-        python -m pip install --upgrade pip;
-        pip install conda-merge;
+        uv pip install --system conda-merge;
         cd requirements
         if [ "$(uname)" == 'Linux' ]; then
           sudo apt-get update
@@ -155,8 +155,7 @@ jobs:
       shell: bash
       if: ${{ matrix.python-version != '3.8' && matrix.python-version != '3.11' }}
       run: |
-        python -m pip install --upgrade pip;
-        pip install conda-merge;
+        uv pip install --system conda-merge;
         cd requirements
         if [ "$(uname)" == 'Linux' ]; then
           sudo apt-get update
@@ -181,7 +180,7 @@ jobs:
     - name: Install DeepChem
       id: install
       shell: bash -l {0}
-      run: pip install -e .
+      run: uv pip install --system -e .
     - name: Doctest Linux
       if: ${{ (runner.os == 'Linux') && always() }}
       shell: bash -l {0}

@@ -25,11 +25,12 @@ jobs:
       uses: actions/setup-python@v4.5.0
       with:
         python-version: ${{ matrix.python-version }}
+    - name: Install uv
+      run: pip install uv
     - name: Create env.yml
       shell: bash
       run: |
-        python -m pip install --upgrade pip;
-        pip install conda-merge; 
+        uv pip install --system conda-merge; 
         conda-merge requirements/env_dqc.yml requirements/env_test.yml > env.yml
     - name: Install all dependencies
       uses: conda-incubator/setup-miniconda@v3
@@ -45,7 +46,7 @@ jobs:
       run: conda info
     - name: Install DeepChem
       shell: bash -l {0}
-      run: pip install -e .
+      run: uv pip install --system -e .
     - name: Show packages
       shell: bash -l {0}
       run: pip freeze
