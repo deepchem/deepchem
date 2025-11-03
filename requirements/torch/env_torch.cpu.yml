@@ -3,7 +3,7 @@ dependencies:
     - -f https://download.pytorch.org/whl/cpu/torch_stable.html
     - -f https://data.dgl.ai/wheels/torch-2.4/repo.html
     - torchdata<0.8.0
-    - dgl==2.5.0
+    - dgl
     - torch==2.4.1
     - torch-geometric
     - lightning
