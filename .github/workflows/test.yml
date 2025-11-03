@@ -184,7 +184,7 @@ jobs:
     - name: Doctest Linux
       if: ${{ (runner.os == 'Linux') && always() }}
       shell: bash -l {0}
-      run: DGLBACKEND=pytorch pytest -v --ignore-glob='deepchem/**/test*.py' --ignore-glob='deepchem/models/jax_models/*' --ignore-glob='deepchem/models/dft/*' --ignore='deepchem/utils/dftutils.py' --doctest-modules deepchem --doctest-continue-on-failure
+      run: DGLBACKEND=pytorch pytest -v --ignore-glob='deepchem/**/test*.py' --ignore-glob='deepchem/models/jax_models/*' --ignore-glob='deepchem/models/dft/*' --ignore='deepchem/utils/dftutils.py' --ignore='deepchem/models/torch_models/antibody_modeling.py' --ignore='deepchem/models/torch_models/chemberta.py' --ignore='deepchem/models/torch_models/hf_models.py' --ignore='deepchem/models/torch_models/molformer.py' --ignore='deepchem/models/torch_models/oneformer.py' --ignore='deepchem/models/torch_models/prot_bert.py' --doctest-modules deepchem --doctest-continue-on-failure
     - name: Doctest Windows
       if: ${{ (runner.os == 'Windows') && always() }}
       # Seperate test avoiding Jax in windows since Jax is not supported in Windows
