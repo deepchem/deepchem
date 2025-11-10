@@ -13,7 +13,6 @@
 DeepChem aims to provide a high quality open-source toolchain
 that democratizes the use of deep-learning in drug discovery,
 materials science, quantum chemistry, and biology.
-
 ### Table of contents:
 
 - [Requirements](#requirements)
