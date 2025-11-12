@@ -718,6 +718,7 @@ def normalize_prefix(prefix: str) -> str:
 
     Examples
     --------
+    >>> from deepchem.utils.cache_utils import normalize_prefix as _normalize_prefix
     >>> _normalize_prefix("prefix")
     'prefix.'
     >>> _normalize_prefix("prefix.")
@@ -740,33 +741,77 @@ def normalize_prefix(prefix: str) -> str:
 
 class FileSystemMutex:
     """
-    Cross-platform file-system-based mutex for synchronizing access.
+    A cross-platform file-based mutual exclusion (mutex) object.
 
-    - On Unix, uses fcntl.lockf
-    - On Windows, uses msvcrt.locking
+    This class ensures that only one process at a time
+    can access or modify cache files. It uses the file system as a locking mechanism [1].
+
+    - On Unix: uses fcntl.lockf
+    - On Windows: uses msvcrt.locking
+
+
+    This lock works across multiple CPUs on the same session and prevents race
+    conditions when several processes try to read or write the same file.
+    The lock is automatically released when leaving the `with` block when called
+    or when the process terminates.
 
     Parameters
     ----------
     filename : str
         Path to the lock file.
+
+    Example
+    -------
+        >>> from time import sleep
+        >>> import os
+        >>> mutex = FileSystemMutex("example.lock")
+        >>> # Using the mutex directly
+        >>> with mutex:
+        ...     print("Critical section start")
+        ...     sleep(2)  # Simulate protected work
+        ...     print("Critical section end")
+        ...
+        Critical section start
+        Critical section end
+        >>> os.remove("example.lock")  # Clean up lock file
+
+        # In multi-process or multi-thread scenarios,
+        # only one process can hold the lock at a time.
+
+    References
+    ----------
+    .. [1] SE(3)-Transformers: 3D Roto-Translation Equivariant Attention Networks
+           Fabian B. Fuchs, Daniel E. Worrall, Volker Fischer, Max Welling
+           NeurIPS 2020, https://arxiv.org/abs/2006.10503
     """
 
     def __init__(self, filename: str):
+        """
+        Initialize object to lock.
+
+        Parameters
+        ----------
+        filename : str
+            Path to the lock file. This file will be created if it doesn't exist.
+        """
         self.filename = filename
         self.handle = None
 
     def acquire(self):
         """
-        Acquire the file lock. Blocks if already locked.
+        Obtain the file lock.
+
+        This methods waits until the lock is available if another process already holds it.
         """
-        # Open lock file
+        # Open the lock file in "append + read" mode and creates a file if it doesn't exist
         self.handle = open(self.filename, "a+")
+
         if os.name == "nt":  # Windows
             msvcrt.locking(self.handle.fileno(), msvcrt.LK_LOCK, 1)
-        else:  # Unix
+        else:  # Unix / macOS / Linux
             fcntl.lockf(self.handle, fcntl.LOCK_EX)
 
-        # Optional: write PID for debugging
+        # Record PID for debugging
         try:
             self.handle.seek(0, os.SEEK_END)
             self.handle.write(f"{os.getpid()}\n")
@@ -776,97 +821,179 @@ class FileSystemMutex:
 
     def release(self):
         """
-        Release the file lock.
+        Free the file lock so that other processes can acquire it.
         """
         if self.handle is None:
             raise RuntimeError("Cannot release an unacquired lock.")
 
         if os.name == "nt":
-            # Unlock 1 byte
             self.handle.seek(0)
             msvcrt.locking(self.handle.fileno(), msvcrt.LK_UNLCK, 1)
         else:
             fcntl.lockf(self.handle, fcntl.LOCK_UN)
 
+        # Close the handle after unlocking
         self.handle.close()
         self.handle = None
 
     def __enter__(self):
+        """
+        Allow usage with 'with' statement for automatic lock handling.
+        """
         self.acquire()
-        return self  # so "with FileSystemMutex(...) as m:" works
+        return self  # returning self allows context management syntax
 
     def __exit__(self, exc_type, exc_value, traceback):
+        """Release lock when leaving 'with' block."""
         self.release()
 
 
 def cached_dirpklgz(dirname: str = '',
                     maxsize: int = 128,
-                    verbose: bool = False) -> Callable:
+                    verbose: bool = False):
     """
-    Caches the result of a function to disk in compressed pickle format (.pkl.gz).
-    Also caches results in memory using LRU cache.
+    Decorator that caches the output of a function on memory and on disk [1].
+
+    It uses:
+    - A Least Recently Used (LRU) cache that uses in-memory storage
+      for fast repeated calls.
+    - A persistent on-disk cache using compressed pickle files (.pkl.gz)
+      so that results are available as long as the session exists.
+
+    Cache are protected by a FileSystemMutex to allow
+    multi-process safe access.
 
     Parameters
     ----------
     dirname : str, optional
-        Directory path where cache files are stored. If None, uses a temporary directory.
+        Directory path where cache files will be stored.
+        If empty, a temporary directory is created.
     maxsize : int, optional
-        Maximum number of in-memory cached results via LRU (default is 128).
+        Maximum number of cached items in memory (default = 128).
+        When exceeded, LRU entries are removed.
     verbose : bool, optional
-        If True, print debug information.
+        If True, prints debug information.
 
     Returns
     -------
     decorator : Callable
-        Decorator that wraps the target function.
+        A decorator that can be applied to any function to cache results.
+
+    Example
+    -------
+    >>> from deepchem.utils.cache_utils import cached_dirpklgz
+    >>> import shutil
+    >>> import time
+
+    >>> @cached_dirpklgz("cache/", verbose=True)
+    ... def slow_add(a, b):
+    ...     time.sleep(2)
+    ...     return a + b
+    ...
+    >>> t0 = time.time()
+    >>> slow_add(2, 3)
+    compute 0.pkl.gz... save 0.pkl.gz... done
+    5
+    >>> t1 = time.time()
+    >>> if t1 - t0 >= 2:
+    ...     print(f"First call took more than 2 seconds")
+    First call took more than 2 seconds
+    >>> t2 = time.time()
+    >>> slow_add(2, 3)
+    5
+    >>> t3 = time.time()
+    >>> if t3 - t2 <= 1:
+    ...     print(f"First call took less than 1 second")
+    First call took less than 1 second
+    >>> shutil.rmtree("cache/")  # Clean up cache directory
+
+    References
+    ----------
+    .. [1] SE(3)-Transformers: 3D Roto-Translation Equivariant Attention Networks
+           Fabian B. Fuchs, Daniel E. Worrall, Volker Fischer, Max Welling
+           NeurIPS 2020, https://arxiv.org/abs/2006.10503
     """
 
     def decorator(func):
-        cache_dir = dirname or os.path.join(tempfile.gettempdir(),
-                                            f"cached_dirpklgz_{func.__name__}")
-        os.makedirs(cache_dir, exist_ok=True)
+        cache_dir = dirname or os.path.join(
+            tempfile.gettempdir(), f"cached_dirpklgz_{func.__name__}"
+        )
+        os.makedirs(cache_dir, exist_ok=True)  # Ensure directory exists
 
+        # Wrap the target function with caching behavior.
+        # @lru_cache enables in-memory caching for recent calls.
         @lru_cache(maxsize=maxsize)
+        # @wraps preserves the original function’s metadata (name, docstring).
         @wraps(func)
         def wrapper(*args, **kwargs):
+            """
+            Wrapped function that manages both memory and disk caching.
+
+            Steps:
+            1. Build paths for index and lock files.
+            2. Safely load or update index under file lock.
+            3. Check if cached result exists. If cache exists, load and return it.
+            4. Otherwise, compute function result, store it to disk, and return it.
+            """
+            # File that maps function input arguments to cache filenames
             indexfile = os.path.join(cache_dir, "index.pkl")
+
+            # Lock file that ensures only one process modifies cache at a time
             mutexfile = os.path.join(cache_dir, "mutex.lock")
 
+
+            # Read and/or update index under file lock
             with FileSystemMutex(mutexfile):
                 try:
+                    # Load index from disk if exists
                     with open(indexfile, "rb") as f:
                         index = pickle.load(f)
                 except FileNotFoundError:
+                    # If not found, initialize empty index
                     index = {}
 
+                # Construct a hashable key based on function inputs
+                # to ensures same inputs always map to the same cache file.
                 key = (args, frozenset(kwargs.items()), func.__defaults__)
+
+                # Look for existing cached file name for this key
                 filename = index.get(key)
                 if filename is None:
+                    # If not found, allocate a new filename based on index size
                     filename = f"{len(index)}.pkl.gz"
                     index[key] = filename
+
+                    # Write the updated index back to disk safely
                     with open(indexfile, "wb") as f:
                         pickle.dump(index, f)
 
+            # Path to the cache file where the result should be stored
             filepath = os.path.join(cache_dir, filename)
 
+        
+            # Try reading cached result
             try:
                 with FileSystemMutex(mutexfile):
+                    # Attempt to open and decompress cached result
                     with gzip.open(filepath, "rb") as f:
-                        return pickle.load(f)
+                        return pickle.load(f)  # Return previously cached result
             except FileNotFoundError:
-                sys.stdout.flush()
+                # Compute fresh result if cache file found
+                sys.stdout.flush()  # Prevent output mixing in multiprocess mode
                 result = func(*args, **kwargs)
                 sys.stdout.flush()
 
+                # Save the new result to disk under lock
                 with FileSystemMutex(mutexfile):
                     with gzip.open(filepath, "wb") as f:
                         pickle.dump(result, f)
 
+                # Print optional debug info
                 if verbose:
                     print(f"compute {filename}... save {filename}... done")
 
                 return result
 
-        return wrapper
+        return wrapper  # Return the cached version of the function
 
     return decorator
