@@ -5,6 +5,7 @@ from deepchem.models.torch_models.layers import MultilayerPerceptron
 from torch.func import jacfwd, hessian, vmap
 from deepchem.models.torch_models.torch_model import TorchModel
 from deepchem.models.losses import L2Loss
+from deepchem.utils.data_utils import load_from_disk, save_to_disk
 
 
 class LNN(nn.Module):
@@ -278,3 +279,11 @@ class LNNModel(TorchModel):
             input state configuration.
         """
         return self.model.calculate_dynamics(z)
+
+    def save(self):
+        """Saves model to disk using joblib."""
+        save_to_disk(self.model, self.get_model_filename(self.model_dir))
+
+    def reload(self):
+        """Loads model from joblib file on disk."""
+        self.model = load_from_disk(self.get_model_filename(self.model_dir))

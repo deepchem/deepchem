@@ -85,13 +85,14 @@ def test_lnnmodel_restore():
     model.fit(dataset, nb_epoch=1)
     pred = model.predict_on_batch(inputs)
 
-    # Create new instance of model and restore from checkpoint
+    # Save and restore model
+    model.save()
     restored_model = LNNModel(n_dof=2, batch_size=5, model_dir=model_dir)
     restored_model.restore()
 
     restored_pred = restored_model.predict_on_batch(inputs)
 
-    assert pred.shape == restored_pred.shape
+    # compare the predictions
     assert np.allclose(pred, restored_pred, atol=1e-4)
 
 
