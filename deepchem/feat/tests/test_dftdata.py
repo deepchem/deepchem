@@ -1,8 +1,10 @@
 import pytest
+from deepchem.utils.dft_utils import KS
+from deepchem.feat.dft_data import DFTEntry
+from deepchem.utils.dftutils import KSCalc
+
+
 try:
-    from deepchem.feat.dft_data import DFTEntry
-    from dqc.qccalc.ks import KS
-    from deepchem.utils.dftutils import KSCalc
     import torch
     has_dqc = True
 except:
