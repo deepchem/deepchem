@@ -2,6 +2,8 @@ import unittest
 import math
 import numpy as np
 import deepchem as dc
+import shutil
+import os
 try:
     import torch
     has_torch = True
@@ -509,6 +511,9 @@ class TestEquivarianceUtils(unittest.TestCase):
                     basis_original[key], basis_translated[key],
                     atol=1e-5), f"Failed translation equivariance for {key}"
 
+        dir_path = "cache"
+        if os.path.exists(dir_path) and os.path.isdir(dir_path):
+            shutil.rmtree(dir_path)
         # r should be unchanged under translation
         assert torch.allclose(r_original, r_translated, atol=1e-5)
 
@@ -538,7 +543,9 @@ class TestEquivarianceUtils(unittest.TestCase):
                 assert torch.allclose(
                     basis_original[key], basis_rotated[key],
                     atol=1e-5), f"Failed rotation equivariance for {key}"
-
+        dir_path = "cache"
+        if os.path.exists(dir_path) and os.path.isdir(dir_path):
+            shutil.rmtree(dir_path)
         # Check if the norm of `r` is unchanged under rotation
         assert torch.allclose(r_original[..., 0], r_rotated[..., 0], atol=1e-5)
 

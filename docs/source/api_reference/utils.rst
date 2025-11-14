@@ -900,3 +900,16 @@ The utilities here are used for lightning specific operations and
 act as componenets for lightning modules.
 
 .. autofunction:: deepchem.utils.lightning_utils.collate_dataset_fn
+
+Caching Utils
+-------------
+
+Caching utilities to reuse computation results across active sessions.
+These prevent redundant recalculations by saving function outputs to disk or memory,
+improving performance for expensive and data-heavy operations 
+(e.g., equivariant basis).
+
+.. autofunction:: deepchem.utils.caching_utils.FileSystemMutex
+
+.. autofunction:: deepchem.utils.caching_utils.cached_dirpklgz
+

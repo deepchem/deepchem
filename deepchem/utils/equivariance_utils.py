@@ -1,7 +1,8 @@
 import math
-from typing import Optional, List, Dict, Tuple
+from typing import Optional, List, Dict, Tuple, Callable
 import torch
 from deepchem.models.torch_models.layers import Fiber
+from deepchem.utils.cache_utils import cached_dirpklgz
 
 
 def fiber2head(F: Dict[str, torch.Tensor],
@@ -157,6 +158,8 @@ def get_basis(G,
 
     >>> import torch
     >>> import dgl
+    >>> import shutil
+    >>> import os
     >>> from deepchem.utils.equivariance_utils import get_basis
     >>> from rdkit import Chem
     >>> import deepchem as dc
@@ -168,6 +171,9 @@ def get_basis(G,
     >>> basis = get_basis(G, max_degree=2)
     >>> print(basis.keys())
     dict_keys(['0,0', '0,1', '0,2', '1,0', '1,1', '1,2', '2,0', '2,1', '2,2'])
+    >>> dir_path = "cache"
+    >>> if os.path.exists(dir_path) and os.path.isdir(dir_path):
+    ...     shutil.rmtree(dir_path)
     """
     # Disable gradients unless explicitly enabled
     context = torch.enable_grad() if compute_gradients else torch.no_grad()
@@ -710,6 +716,7 @@ def get_matrices_kernel(As: List[torch.Tensor],
     return get_matrix_kernel(torch.cat(As, dim=0), eps)
 
 
+@cached_dirpklgz("cache/trans_Q")
 def basis_transformation_Q_J(
     J: int,
     order_in: int,
