@@ -915,9 +915,8 @@ def cached_dirpklgz(dirname: str = '',
     """
 
     def decorator(func):
-        cache_dir = dirname or os.path.join(
-            tempfile.gettempdir(), f"cached_dirpklgz_{func.__name__}"
-        )
+        cache_dir = dirname or os.path.join(tempfile.gettempdir(),
+                                            f"cached_dirpklgz_{func.__name__}")
         os.makedirs(cache_dir, exist_ok=True)  # Ensure directory exists
 
         # Wrap the target function with caching behavior.
@@ -940,7 +939,6 @@ def cached_dirpklgz(dirname: str = '',
 
             # Lock file that ensures only one process modifies cache at a time
             mutexfile = os.path.join(cache_dir, "mutex.lock")
-
 
             # Read and/or update index under file lock
             with FileSystemMutex(mutexfile):
@@ -970,7 +968,6 @@ def cached_dirpklgz(dirname: str = '',
             # Path to the cache file where the result should be stored
             filepath = os.path.join(cache_dir, filename)
 
-        
             # Try reading cached result
             try:
                 with FileSystemMutex(mutexfile):
