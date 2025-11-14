@@ -15,6 +15,11 @@ try:
 except Exception as e:
     warnings.warn(f"Failed to import DFT dependencies with error: {e}")
 
+from deepchem.utils.dft_utils import parse_moldesc, BaseGrid
+from deepchem.utils.dft_utils import Mol
+from deepchem.utils.dft_utils import BaseSystem
+from deepchem.utils.dftutils import KSCalc
+
 
 class DFTSystem():
     """
