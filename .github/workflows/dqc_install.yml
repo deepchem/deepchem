@@ -13,7 +13,11 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
+<<<<<<< HEAD
         python-version: ['3.8', '3.9', '3.10', '3.11']
+=======
+        python-version: ['3.8', '3.11', '3.13']
+>>>>>>> 32927cc7d (python version upgrade)
     env:
       OS: ${{ matrix.os }}
       PYTHON_VERSION: ${{ matrix.python-version }}
