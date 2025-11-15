@@ -332,7 +332,7 @@ def wrap_gmres(A, B, E=None, M=None, min_eps=1e-9, max_niter=None, **unused):
         for j in range(ncols):
             x, info = scipy_gmres(op,
                                   B_np[i, j, :],
-                                  rtol=min_eps,
+                                  tol=min_eps,
                                   atol=1e-12,
                                   maxiter=max_niter)
             if info > 0:
