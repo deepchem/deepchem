@@ -83,4 +83,4 @@ setup(name='deepchem',
           'rdkit',
       ],
       extras_require=extras,
-      python_requires='>=3.7,<=3.13')
+      python_requires='>=3.7,<3.13')
