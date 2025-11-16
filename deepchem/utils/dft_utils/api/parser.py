@@ -14,6 +14,7 @@ def parse_moldesc(
     """
     Parse the string of molecular descriptor and returns tensors of atomzs and
     atom positions.
+
     Examples
     --------
     >>> from deepchem.utils.dft_utils import parse_moldesc
@@ -40,12 +41,14 @@ def parse_moldesc(
         The datatype of the returned atomic positions.
     device: torch.device (default torch.device('cpu'))
         The device to store the returned tensors.
+    
     Returns
     -------
     atomzs: torch.Tensor
         The tensor of atomzs [Atom Number].
     atompos: torch.Tensor
         The tensor of atomic positions [Bohr].
+    
     """
     if isinstance(moldesc, str):
         # TODO: use regex!
@@ -78,7 +81,25 @@ def parse_moldesc(
         else:
             atompos = atompos_raw.to(dtype).to(device)  # already a tensor
 
-    # convert to dtype if atomzs is a floating point tensor, not an integer tensor
-    atomzs = atomzs.to(dtype)
+    # Only convert atomzs to dtype if they represent fractional atomic numbers
+    # For integer atomic numbers, keep them as torch.int to avoid triggering fraction mode
+    # Check if atomzs are all integers (whole numbers)
+    if atomzs.is_floating_point():
+        # Already created as float, convert to specified dtype
+        atomzs = atomzs.to(dtype)
+    else:
+        # Check if all values are whole numbers
+        # If they are, keep as integers; otherwise convert to float
+        if isinstance(moldesc, tuple):
+            atomzs_raw_val = moldesc[0]
+            if isinstance(atomzs_raw_val, torch.Tensor) and atomzs_raw_val.is_floating_point():
+                # Original tensor was float, so keep as float
+                atomzs = atomzs.to(dtype)
+            elif isinstance(atomzs_raw_val, (list, tuple)):
+                # Check if any raw values are explicitly float
+                has_explicit_float = any(isinstance(x, float) and not float(x).is_integer() for x in atomzs_raw_val)
+                if has_explicit_float:
+                    atomzs = atomzs.to(dtype)
+        # else: keep as integer tensor
 
     return atomzs, atompos
