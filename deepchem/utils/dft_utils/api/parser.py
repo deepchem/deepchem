@@ -14,7 +14,7 @@ def parse_moldesc(
     """
     Parse the string of molecular descriptor and returns tensors of atomzs and
     atom positions.
- 
+
     Examples
     --------
     >>> from deepchem.utils.dft_utils import parse_moldesc
@@ -48,7 +48,7 @@ def parse_moldesc(
         The tensor of atomzs [Atom Number].
     atompos: torch.Tensor
         The tensor of atomic positions [Bohr].
-
+    
     """
     if isinstance(moldesc, str):
         # TODO: use regex!
