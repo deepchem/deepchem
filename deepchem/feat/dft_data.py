@@ -13,12 +13,7 @@ try:
     from deepchem.utils.dftutils import KSCalc
     from deepchem.utils.dft_utils import parse_moldesc, BaseGrid, Mol, BaseSystem
 except Exception as e:
-    warnings.warn(f"Failed to import DFT dependencies with error: {e}")
-
-from deepchem.utils.dft_utils import parse_moldesc, BaseGrid
-from deepchem.utils.dft_utils import Mol
-from deepchem.utils.dft_utils import BaseSystem
-from deepchem.utils.dftutils import KSCalc
+    warnings.warn(f"DFT dependencies error: {e}")
 
 
 class DFTSystem():
