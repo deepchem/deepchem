@@ -48,7 +48,7 @@ def parse_moldesc(
         The tensor of atomzs [Atom Number].
     atompos: torch.Tensor
         The tensor of atomic positions [Bohr].
-
+    
     """
     if isinstance(moldesc, str):
         # TODO: use regex!
