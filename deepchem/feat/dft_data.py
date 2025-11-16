@@ -6,8 +6,6 @@ from __future__ import annotations
 from abc import abstractmethod, abstractproperty
 from typing import List, Dict, Optional, Union
 import numpy as np
-import warnings
-
 
 try:
     import torch
