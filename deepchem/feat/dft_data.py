@@ -6,8 +6,6 @@ from __future__ import annotations
 from abc import abstractmethod, abstractproperty
 from typing import List, Dict, Optional
 import numpy as np
-import warnings
-
 
 from deepchem.utils.dft_utils import parse_moldesc, BaseGrid
 from deepchem.utils.dft_utils import Mol
