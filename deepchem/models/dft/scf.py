@@ -3,8 +3,6 @@ from abc import abstractmethod
 from typing import Union
 import torch
 import numpy as np
-import warnings
-
 
 from deepchem.feat.dft_data import DFTEntry, DFTSystem
 from deepchem.utils.dftutils import KSCalc, hashstr, SpinParam
