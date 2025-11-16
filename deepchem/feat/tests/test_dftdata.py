@@ -3,7 +3,6 @@ from deepchem.utils.dft_utils import KS
 from deepchem.feat.dft_data import DFTEntry
 from deepchem.utils.dftutils import KSCalc
 
-
 try:
     import torch
     has_dqc = True

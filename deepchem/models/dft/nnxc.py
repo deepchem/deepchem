@@ -1,8 +1,6 @@
 from abc import abstractmethod
 from typing import Union, List
 import torch
-import warnings
-
 
 from deepchem.utils.dftutils import SpinParam
 from deepchem.utils.dft_utils import get_xc, ValGrad, BaseXC
