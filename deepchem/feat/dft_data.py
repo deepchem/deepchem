@@ -6,11 +6,13 @@ from __future__ import annotations
 from abc import abstractmethod, abstractproperty
 from typing import List, Dict, Optional
 import numpy as np
+import warnings
 
-from deepchem.utils.dft_utils import parse_moldesc, BaseGrid
-from deepchem.utils.dft_utils import Mol
-from deepchem.utils.dft_utils import BaseSystem
-from deepchem.utils.dftutils import KSCalc
+try:
+    from deepchem.utils.dft_utils import parse_moldesc, BaseGrid, Mol, BaseSystem
+    from deepchem.utils.dftutils import KSCalc
+except Exception as e:
+    warnings.warn(f"DFT dependencies error: {e}")
 
 
 class DFTSystem():
