@@ -1,6 +1,12 @@
 import pytest
+<<<<<<< HEAD
 import warnings
 import numpy as np
+=======
+from deepchem.utils.dft_utils import KS
+from deepchem.feat.dft_data import DFTEntry
+from deepchem.utils.dftutils import KSCalc
+>>>>>>> 2e381bd4e (yapf and flake8)
 
 try:
     from deepchem.feat.dft_data import DFTEntry
