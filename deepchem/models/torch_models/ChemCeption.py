@@ -1,14 +1,18 @@
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torchvision import transforms
 from typing import Dict, Type, Optional, Literal
 from deepchem.models.torch_models.chemnet_layers import Stem, InceptionResnetA, ReductionA, InceptionResnetB, ReductionB, InceptionResnetC
 from deepchem.models.torch_models import ModularTorchModel
-from deepchem.models.losses import L2Loss, SoftmaxCrossEntropy
+from deepchem.models.losses import L2Loss, SoftmaxCrossEntropy, SigmoidCrossEntropy
+from deepchem.metrics import to_one_hot
+from deepchem.data.datasets import pad_batch
+
 
 
 DEFAULT_INCEPTION_BLOCKS = {"A": 3, "B": 3, "C": 3}
-
 
 class ChemCeption(nn.Module):
     """
@@ -66,8 +70,11 @@ class ChemCeption(nn.Module):
                  reductionB: nn.Module,
                  inceptionC: nn.Module,
                  global_avg_pool: nn.Module,
-                 output_layer: nn.Module,
-                 mode: str = "regression",
+                 fc_classification : Optional[nn.Module] = None,
+                 fc_regression: Optional[nn.Module] = None,
+                 mode: str = "classification",
+                 n_tasks: int = 10,
+                 n_classes: int = 2,
                  **kwargs) -> None:
         """
         Parameters
@@ -92,13 +99,9 @@ class ChemCeption(nn.Module):
         """
         super(ChemCeption, self).__init__()
 
-        assert mode in ["classification", "regression"
-                       ], "Mode must be 'classification' or 'regression'"
-
-        if inception_blocks is None:
-            inception_blocks = {"A": 3, "B": 3, "C": 3}
-
         self.mode = mode
+        self.n_tasks = n_tasks
+        self.n_classes = n_classes
 
         self.stem = stem
         self.inceptionA = inceptionA
@@ -107,7 +110,10 @@ class ChemCeption(nn.Module):
         self.reductionB = reductionB
         self.inceptionC = inceptionC
         self.global_avg_pool = global_avg_pool
-        self.output_layer = output_layer
+        if self.mode == 'classification':
+            self.output_layer = fc_classification
+        else:
+            self.output_layer = fc_regression
 
     def forward(self, x) -> torch.Tensor:
         x = self.stem(x)
@@ -118,7 +124,6 @@ class ChemCeption(nn.Module):
         x = self.inceptionC(x)
         x = self.global_avg_pool(x)
         x = torch.flatten(x, 1)
-
         x = self.output_layer(x)
 
         if self.mode == "classification":
@@ -128,7 +133,7 @@ class ChemCeption(nn.Module):
             else:
                 final_output = F.softmax(x, dim=-1), x
         else:
-            final_output = x.view(-1, self.n_tasks)
+            final_output = x.view(-1, self.n_tasks,1)
 
         return final_output
 
@@ -209,15 +214,15 @@ class ChemCeptionModular(ModularTorchModel):
     """
 
     def __init__(self,
+                 img_spec: str = "std",
                  img_size: int = 80,
                  base_filters: int = 16,
+                 inception_blocks: Optional[Dict[str, int]] = DEFAULT_INCEPTION_BLOCKS, 
                  n_tasks: int = 10,
                  n_classes: int = 2,
+                 augment: bool = False,
                  mode: Literal['regression',
                                'classification'] = 'classification',
-                 img_spec: str = "std",
-                 inception_blocks: Optional[Dict[str, int]] = None,
-                 augment: bool = False,
                  **kwargs):
 
         self.img_size = img_size
@@ -321,9 +326,9 @@ class ChemCeptionModular(ModularTorchModel):
 
     def build_model(self) -> nn.Module:
         """Assemble ChemCeption model from components."""
-        return ChemCeption(**self.components,mode=self.mode)
+        return ChemCeption(**self.components, mode=self.mode, n_tasks=self.n_tasks, n_classes=self.n_classes)
 
-    def loss_func(self, inputs, labels, weights=None) -> torch.Tensor:
+    def loss_func(self, inputs, labels, weights) -> torch.Tensor:
         """Compute the loss depending on mode (regression/classification)."""
         outputs = self.model(inputs)
 
@@ -331,13 +336,32 @@ class ChemCeptionModular(ModularTorchModel):
             labels = labels[0]
 
         if self.mode == 'regression':
-            loss_fn = L2Loss
+            loss_fn = L2Loss()._create_pytorch_loss()
+            outputs = outputs.squeeze(-1)
+
         elif self.mode == 'classification':
-            loss_fn = SoftmaxCrossEntropy
+            if self.n_classes == 2:
+                loss_fn = SigmoidCrossEntropy()._create_pytorch_loss()
+            else:
+                loss_fn = SoftmaxCrossEntropy()._create_pytorch_loss()
+
             if self._loss_outputs is not None:
                 outputs = [outputs[i] for i in self._loss_outputs]
+                outputs = outputs[0]
+
+        losses = loss_fn(outputs, labels)
         
-        loss = loss_fn(outputs, labels, weights)
+        w = weights[0]
+        if len(w.shape) < len(losses.shape):
+            if isinstance(w, torch.Tensor):
+                shape = tuple(w.shape)
+            else:
+                shape = w.shape
+            shape = tuple(-1 if x is None else x for x in shape)
+            w = w.reshape(shape + (1,) * (len(losses.shape) - len(w.shape)))
+
+        loss = losses * w
+        loss = loss.mean()
 
         return loss
 
@@ -356,3 +380,50 @@ class ChemCeptionModular(ModularTorchModel):
                                                    lr=self.kwargs.get(
                                                        'learning_rate', 1e-3))
         self._lr_schedule = None
+        
+    def default_generator(self,
+                          dataset,
+                          epochs=1,
+                          mode='fit',
+                          deterministic=True,
+                          pad_batches=True):
+        
+        torch.set_default_dtype(torch.float32)
+
+        for epoch in range(epochs):
+            if mode == "predict" or (not self.augment):
+                for (X_b, y_b, w_b,
+                     ids_b) in dataset.iterbatches(batch_size=self.batch_size,
+                                                   deterministic=deterministic,
+                                                   pad_batches=pad_batches):
+                    
+                    X_b = torch.from_numpy(X_b)
+                    in_channels = self.components['stem'].conv_layer.in_channels
+                    if X_b.shape[1] != in_channels and X_b.shape[-1] == in_channels:
+                        X_b = X_b.permute(0,3,1,2)
+
+                    if self.mode == 'classification':
+                        y_b = to_one_hot(y_b.flatten(), self.n_classes).reshape(
+                            -1, self.n_tasks, self.n_classes)
+                    yield ([X_b], [y_b], [w_b])
+
+            else:
+
+                augment_fn = transforms.v2.RandomRotation(180)
+                
+                for (X_b, y_b, w_b,
+                     ids_b) in dataset.iterbatches(batch_size=self.batch_size,
+                                                   deterministic=deterministic,
+                                                   pad_batches=pad_batches):
+
+                    X_b = torch.from_numpy(X_b)
+                    in_channels = self.components['stem'].conv_layer.in_channels
+                    if X_b.shape[1] != in_channels and X_b.shape[-1] == in_channels:
+                        X_b = X_b.permute(0,3,1,2)
+
+                    X_b = augment_fn(X_b)
+
+                    if self.mode == 'classification':
+                        y_b = to_one_hot(y_b.flatten(), self.n_classes).reshape(
+                            -1, self.n_tasks, self.n_classes)
+                    yield ([X_b], [y_b], [w_b])
