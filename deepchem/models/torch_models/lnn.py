@@ -3,6 +3,9 @@ import torch.nn as nn
 from typing import Tuple
 from deepchem.models.torch_models.layers import MultilayerPerceptron
 from torch.func import jacfwd, hessian, vmap
+from deepchem.models.torch_models.torch_model import TorchModel
+from deepchem.models.losses import L2Loss
+from deepchem.utils.data_utils import load_from_disk, save_to_disk
 
 
 class LNN(nn.Module):
@@ -191,3 +194,96 @@ class LNN(nn.Module):
         """
         L = self.net(z).squeeze(-1)
         return L
+
+
+class LNNModel(TorchModel):
+    """Lagrangian Neural Network wrapper model which inherits TorchModel.
+    This class wraps the LNN base model and provides a DeepChem-compatible interface
+    for training and evaluation using conservative dynamics. The LNNModel computes
+    the time evolution of a dynamical system by learning the euler-lagrangian and using
+    its gradients to derive time derivatives of the phase space variables.
+    Parameters
+    ----------
+    n_dof : int
+        Number of degrees of freedom in the system. The input dimension
+        will be 2*n_dof (positions + velocities).
+    d_hidden : Tuple[int, ...], default (32, 32)
+        Hidden layer dimensions for the multilayer perceptron that approximates
+        the Lagrangian function.
+    activation_fn : str, default 'softplus'
+        Activation function to use in the hidden layers. Softplus is preferred
+        for Lagrangian learning as it ensures smooth derivatives.
+    Examples
+    --------
+    >>> import deepchem as dc
+    >>> from deepchem.models.torch_models.lnn import LNNModel
+    >>> import torch
+    >>> model = LNNModel(n_dof=2, d_hidden=(64, 64), activation_fn='softplus')
+    >>> # input values for spring-pendulum
+    >>> x = torch.randn(10, 4) # Shape : (10, 4)
+    >>> dx = torch.randn(10, 2) # Shape : (10, 2)
+    >>> dataset = dc.data.NumpyDataset(x, dx)
+    >>> _ = model.fit(dataset, nb_epoch=10)
+    >>> # predicting values with batches
+    >>> _ = model.predict_on_batch(x) # shape : (10, 2)
+
+    References
+    ----------
+    .. [1] Cranmer, M., Greydanus, S., Hoyer, S., Battaglia, P., Spergel, D., & Ho, S. (2020).
+        "Lagrangian Neural Networks."
+       International Conference on Learning Representations (ICLR).
+       https://arxiv.org/abs/2003.04630
+    """
+
+    def __init__(self,
+                 n_dof: int,
+                 d_hidden: Tuple[int, ...] = (32, 32),
+                 activation_fn: str = 'softplus',
+                 **kwargs) -> None:
+        """Initialize LNNModel."""
+
+        self.n_dof = n_dof
+        model = LNN(n_dof=n_dof, d_hidden=d_hidden, activation_fn=activation_fn)
+        super().__init__(model, loss=L2Loss(), **kwargs)
+
+    def predict_lagrangian(self, z: torch.Tensor) -> torch.Tensor:
+        """Compute lagrangian forward pass with input z as (q, q_dot)
+        Parameters
+        ----------
+        z : torch.Tensor
+            State space coordinates of shape (..., 2*n_dof) where the first
+            n_dof dimensions are positions q and the last n_dof dimensions
+            are velocities q_dot.
+        Returns
+        -------
+        torch.Tensor
+            Lagrangian values L(q, q_dot) of shape (...,) - one scalar value per
+            input state configuration.
+        """
+        self.model.eval()
+        with torch.no_grad():
+            return self.model.lagrangian(z)
+
+    def calculate_dynamics(self, z: torch.Tensor) -> torch.Tensor:
+        """Compute accelerations using Euler-Lagrange equations from learned Lagrangian.
+        Parameters
+        ----------
+        z : torch.Tensor
+            State space coordinates of shape (..., 2*n_dof) where the first
+            n_dof dimensions are positions q and the last n_dof dimensions
+            are velocities q_dot.
+        Returns
+        -------
+        torch.Tensor
+            Lagrangian values L(q, q_dot) of shape (...,) - one scalar value per
+            input state configuration.
+        """
+        return self.model.calculate_dynamics(z)
+
+    def save(self):
+        """Saves model to disk using joblib."""
+        save_to_disk(self.model, self.get_model_filename(self.model_dir))
+
+    def reload(self):
+        """Loads model from joblib file on disk."""
+        self.model = load_from_disk(self.get_model_filename(self.model_dir))
