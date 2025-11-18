@@ -718,10 +718,14 @@ def normalize_prefix(prefix: str) -> str:
 
     Examples
     --------
+<<<<<<< HEAD
     >>> from deepchem.utils.cache_utils import normalize_prefix as _normalize_prefix
     >>> _normalize_prefix("prefix")
+=======
+    >>> normalize_prefix("prefix")
+>>>>>>> 78297c8f6 (test fixes and docs fixes)
     'prefix.'
-    >>> _normalize_prefix("prefix.")
+    >>> normalize_prefix("prefix.")
     'prefix.'
 
     Parameters
