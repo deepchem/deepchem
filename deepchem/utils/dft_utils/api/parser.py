@@ -27,7 +27,7 @@ def parse_moldesc(
     ... }
     >>> atomzs, atomposs = parse_moldesc(system["kwargs"]["moldesc"])
     >>> atomzs
-    tensor([1., 9.], dtype=torch.float64)
+    tensor([1, 9])
     >>> atomposs
     tensor([[ 0.8662,  0.0000,  0.0000],
             [-0.8662,  0.0000,  0.0000]], dtype=torch.float64)
