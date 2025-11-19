@@ -82,7 +82,7 @@ class GraphConv(tf.keras.layers.Layer):
     """Graph Convolutional Layers
 
     This layer implements the graph convolution introduced in [1]_.  The graph
-    convolution combines per-node feature vectures in a nonlinear fashion with
+    convolution combines per-node feature vectors in a nonlinear fashion with
     the feature vectors for neighboring nodes.  This "blends" information in
     local neighborhoods of a graph.
 
