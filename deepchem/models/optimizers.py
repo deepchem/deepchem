@@ -152,7 +152,7 @@ class AdaGrad(Optimizer):
             learning_rate = self.learning_rate._create_tf_tensor(global_step)
         else:
             learning_rate = self.learning_rate
-        return tf.keras.optimizers.legacy.Adagrad(
+        return tf.keras.optimizers.Adagrad(
             learning_rate=learning_rate,
             initial_accumulator_value=self.initial_accumulator_value,
             epsilon=self.epsilon)
@@ -223,7 +223,7 @@ class Adam(Optimizer):
             learning_rate = self.learning_rate._create_tf_tensor(global_step)
         else:
             learning_rate = self.learning_rate
-        return tf.keras.optimizers.legacy.Adam(learning_rate=learning_rate,
+        return tf.keras.optimizers.Adam(learning_rate=learning_rate,
                                                beta_1=self.beta1,
                                                beta_2=self.beta2,
                                                epsilon=self.epsilon)
@@ -419,7 +419,7 @@ class RMSProp(Optimizer):
             learning_rate = self.learning_rate._create_tf_tensor(global_step)
         else:
             learning_rate = self.learning_rate
-        return tf.keras.optimizers.legacy.RMSprop(learning_rate=learning_rate,
+        return tf.keras.optimizers.RMSprop(learning_rate=learning_rate,
                                                   momentum=self.momentum,
                                                   rho=self.decay,
                                                   epsilon=self.epsilon)
@@ -477,7 +477,7 @@ class GradientDescent(Optimizer):
             learning_rate = self.learning_rate._create_tf_tensor(global_step)
         else:
             learning_rate = self.learning_rate
-        return tf.keras.optimizers.legacy.SGD(learning_rate=learning_rate)
+        return tf.keras.optimizers.SGD(learning_rate=learning_rate)
 
     def _create_pytorch_optimizer(self, params):
         import torch
