@@ -782,6 +782,7 @@ class ConvMolFeaturizer(MolecularFeaturizer):
                   datapoints: Union[RDKitMol, str, Iterable[RDKitMol],
                                     Iterable[str]],
                   log_every_n: int = 1000,
+                  n_jobs: int = 1,
                   **kwargs) -> np.ndarray:
         """
         Override parent: aim is to add handling atom-depleted molecules featurization
