@@ -452,6 +452,47 @@ class Mol(BaseSystem):
         """
         return self._efield
 
+    def requires_grid(self) -> bool:
+        """Check if the system requires a grid.
+
+        Returns
+        -------
+        bool
+            True if the system requires a grid, False otherwise.
+
+        """
+        return True
+
+    def make_copy(self, **kwargs) -> BaseSystem:
+        """Make a copy of the system with modified parameters.
+
+        Parameters
+        ----------
+        **kwargs
+            Parameters to override in the copy.
+
+        Returns
+        -------
+        BaseSystem
+            A copy of the system with modified parameters.
+
+        """
+        # Get the current parameters
+        params = {
+            'moldesc': (self._atomzs, self._atompos),
+            'basis': self._basis_inp,
+            'grid': self._grid_inp,
+            'spin': self._spin,
+            'charge': self._charge,
+            'efield': self._efield,
+            'dtype': self._dtype,
+            'device': self._device,
+        }
+        # Update with kwargs
+        params.update(kwargs)
+        # Create a new instance
+        return Mol(**params)
+
 
 def _parse_basis(atomzs: torch.Tensor,
                  basis: BasisInpType) -> List[List[CGTOBasis]]:

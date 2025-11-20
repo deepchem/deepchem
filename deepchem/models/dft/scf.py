@@ -5,9 +5,9 @@ import torch
 import numpy as np
 
 from deepchem.feat.dft_data import DFTEntry, DFTSystem
-from deepchem.utils.dftutils import KSCalc, hashstr, SpinParam
+from deepchem.utils.dftutils import KSCalc, hashstr
+from deepchem.utils.dft_utils import SpinParam, KS
 from deepchem.models.dft.nnxc import BaseNNXC, HybridXC
-from deepchem.utils.dft_utils import KS
 
 
 class XCNNSCF(torch.nn.Module):
@@ -74,7 +74,7 @@ class XCNNSCF(torch.nn.Module):
         self.xc = xc
 
     @abstractmethod
-    def get_xc(self) -> HybridXC:
+    def get_xc(self) -> Union[BaseNNXC, HybridXC]:
         """
         Returns
         -------

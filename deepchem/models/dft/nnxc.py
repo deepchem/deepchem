@@ -2,8 +2,7 @@ from abc import abstractmethod
 from typing import Union, List
 import torch
 
-from deepchem.utils.dftutils import SpinParam
-from deepchem.utils.dft_utils import get_xc, ValGrad, BaseXC
+from deepchem.utils.dft_utils import SpinParam, get_xc, ValGrad, BaseXC
 from deepchem.utils import safenorm, safepow
 
 
@@ -119,6 +118,17 @@ class NNLDA(BaseNNXC):
         """
         self.nnmodel = nnmodel
 
+    @property
+    def family(self) -> int:
+        """Return the XC family type for LDA.
+
+        Returns
+        -------
+        int
+            Family type 1 for LDA functional.
+        """
+        return 1
+
     def get_edensityxc(
             self, densinfo: Union[ValGrad, SpinParam[ValGrad]]) -> torch.Tensor:
         """
@@ -208,6 +218,17 @@ class NNPBE(BaseNNXC):
         """
         super().__init__()
         self.nnmodel = nnmodel
+
+    @property
+    def family(self) -> int:
+        """Return the XC family type for GGA.
+
+        Returns
+        -------
+        int
+            Family type 2 for GGA functional.
+        """
+        return 2
 
     def get_edensityxc(
             self, densinfo: Union[ValGrad, SpinParam[ValGrad]]) -> torch.Tensor:
@@ -312,6 +333,7 @@ class HybridXC(BaseNNXC):
         """
         self.xc = get_xc(xcstr)
         family = self.xc.family
+        self.nnxc: Union[NNLDA, NNPBE]
         if family == 1:
             self.nnxc = NNLDA(nnmodel)
         else:
