@@ -2,8 +2,7 @@ from abc import abstractmethod
 from typing import Union, List
 import torch
 
-from deepchem.utils.dftutils import SpinParam
-from deepchem.utils.dft_utils import get_xc, ValGrad, BaseXC
+from deepchem.utils.dft_utils import SpinParam, get_xc, ValGrad, BaseXC
 from deepchem.utils import safenorm, safepow
 
 
