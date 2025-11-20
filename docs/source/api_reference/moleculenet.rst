@@ -206,6 +206,16 @@ QM8 Datasets
 QM9 Datasets
 ------------
 
+A bug was reported in the issue `https://github.com/deepchem/deepchem/issues/4413` in the previously 
+included SDF files for the QM9 dataset, where some molecules incorrectly carried formal charges, 
+despite QM9 molecules being charge-neutral. To address this, we now use the original QM9 XYZ files 
+and convert them to SDF format using Open Babel, which preserves correct charge information. The updated
+SDF file is uploaded to the Deepchem S3 bucket.
+
+.. _`XYZ files`: https://doi.org/10.6084/m9.figshare.978904_D12
+
+.. _`updated QM9 file`: https://deepchemdata.s3.us-west-1.amazonaws.com/datasets/qm9.tar.gz
+
 .. autofunction:: deepchem.molnet.load_qm9
 
 
