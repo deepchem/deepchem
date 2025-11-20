@@ -13,19 +13,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
         python-version: ['3.8', '3.9', '3.10', '3.11']
-=======
-        python-version: ['3.8', '3.11', '3.13']
->>>>>>> 32927cc7d (python version upgrade)
-=======
-        python-version: ['3.8', '3.9', '3.10', '3.11', '3.12']
->>>>>>> 1927ded52 (solve revert)
-=======
-        python-version: ['3.8', '3.9', '3.10', '3.11']
->>>>>>> c24b2d5c0 (undo dependencies)
     env:
       OS: ${{ matrix.os }}
       PYTHON_VERSION: ${{ matrix.python-version }}
