@@ -242,7 +242,7 @@ class _EntryDM(DFTEntry):
 
     def get_val(self, qcs: List[KSCalc]) -> np.ndarray:
         val = qcs[0].aodmtot()
-        return np.array([val.tolist()])
+        return val.unsqueeze(0)
 
 
 class _EntryDens(DFTEntry):
@@ -291,7 +291,7 @@ class _EntryDens(DFTEntry):
         grid = self.get_integration_grid()
         rgrid = grid.get_rgrid()
         val = qc.dens(rgrid)
-        return np.array(val.tolist())
+        return val
 
     def get_integration_grid(self) -> BaseGrid:
         """
@@ -359,7 +359,7 @@ class _EntryIE(DFTEntry):
         e_1 = [m.energy() for m in qcs]
         e = [item1 * item2 for item1, item2 in zip(systems, e_1)]
         val = sum(e) - 2 * e[0]
-        return np.array([val.tolist()])
+        return val.unsqueeze(0)
 
 
 class _EntryAE(_EntryIE):

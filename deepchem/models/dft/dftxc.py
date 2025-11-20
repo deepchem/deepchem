@@ -71,18 +71,19 @@ class DFTXC(torch.nn.Module):
             Calculated value of the data point after running the Kohn Sham iterations
             using the neural network XC functional.
         """
-        hybridxc = HybridXC(self.xcstr, self.nnmodel, aweight0=0.0)
+        hybridxc = HybridXC(self.xcstr, self.nnmodel, aweight0=0.5)
         output = []
         for entry in inputs:
             evl = XCNNSCF(hybridxc, entry)
             qcs = []
             for system in entry.get_systems():
                 qcs.append(evl.run(system))
+            # get_val now returns torch tensors with gradients attached
+            val = entry.get_val(qcs)
             if entry.entry_type == 'dm':
-                output.append((torch.as_tensor(entry.get_val(qcs)[0])))
+                output.append(val[0])
             else:
-                output.append(
-                    torch.tensor(entry.get_val(qcs), requires_grad=True))
+                output.append(val)
         return output
 
 
