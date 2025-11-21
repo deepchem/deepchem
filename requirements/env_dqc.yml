@@ -14,3 +14,4 @@ dependencies:
    - pytest
    - PyYAML
    - yamlloader
+   - tqdm
