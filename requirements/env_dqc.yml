@@ -9,11 +9,10 @@ dependencies:
    - h5py
    - -f https://download.pytorch.org/whl/cpu/torch_stable.html
    - torch==2.2.1+cpu
-   - torch-geometric
-   - git+https://github.com/diffqc/dqc.git
-   - xitorch
-   - pylibxc2
+   - git+https://github.com/diffqc/dqclibs.git
+   - git+https://gitlab.com/libxc/libxc.git
    - pytest
    - PyYAML
    - yamlloader
+   - tqdm
    - pyscf[all]
