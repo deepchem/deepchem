@@ -488,8 +488,14 @@ class Mol(BaseSystem):
         device = kwargs.get('device', self._device)
 
         # Create a new instance with explicit parameters
-        return Mol(moldesc, basis, grid=grid, spin=spin, charge=charge,
-                   efield=efield, dtype=dtype, device=device)
+        return Mol(moldesc,
+                   basis,
+                   grid=grid,
+                   spin=spin,
+                   charge=charge,
+                   efield=efield,
+                   dtype=dtype,
+                   device=device)
 
 
 def _parse_basis(atomzs: torch.Tensor,
