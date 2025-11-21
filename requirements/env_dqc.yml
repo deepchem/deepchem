@@ -15,3 +15,4 @@ dependencies:
    - PyYAML
    - yamlloader
    - tqdm
+   - pyscf[all]
