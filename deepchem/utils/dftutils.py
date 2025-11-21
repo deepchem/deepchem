@@ -176,8 +176,10 @@ class KSCalc(object):
         """
         dm = self.qc.aodm()
         if isinstance(dm, SpinParam):
-            dmtot = dm.u + dm.d
+            dmtot: torch.Tensor = dm.u + dm.d
         else:
+            # mypy needs explicit assertion that dm is torch.Tensor here
+            assert isinstance(dm, torch.Tensor)
             dmtot = dm
         return dmtot
 

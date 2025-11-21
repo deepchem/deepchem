@@ -477,21 +477,19 @@ class Mol(BaseSystem):
             A copy of the system with modified parameters.
 
         """
-        # Get the current parameters
-        params = {
-            'moldesc': (self._atomzs, self._atompos),
-            'basis': self._basis_inp,
-            'grid': self._grid_inp,
-            'spin': self._spin,
-            'charge': self._charge,
-            'efield': self._efield,
-            'dtype': self._dtype,
-            'device': self._device,
-        }
-        # Update with kwargs
-        params.update(kwargs)
-        # Create a new instance
-        return Mol(**params)
+        # Get the current parameters with kwargs overrides
+        moldesc = kwargs.get('moldesc', (self._atomzs, self._atompos))
+        basis = kwargs.get('basis', self._basis_inp)
+        grid = kwargs.get('grid', self._grid_inp)
+        spin = kwargs.get('spin', self._spin)
+        charge = kwargs.get('charge', self._charge)
+        efield = kwargs.get('efield', self._efield)
+        dtype = kwargs.get('dtype', self._dtype)
+        device = kwargs.get('device', self._device)
+
+        # Create a new instance with explicit parameters
+        return Mol(moldesc, basis, grid=grid, spin=spin, charge=charge,
+                   efield=efield, dtype=dtype, device=device)
 
 
 def _parse_basis(atomzs: torch.Tensor,
