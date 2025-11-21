@@ -3,16 +3,17 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torchvision import transforms
-from typing import Dict, Type, Optional, Literal
+import logging
+from typing import Dict, Type, Optional, Literal, List
 from deepchem.models.torch_models.chemnet_layers import Stem, InceptionResnetA, ReductionA, InceptionResnetB, ReductionB, InceptionResnetC
 from deepchem.models.torch_models import ModularTorchModel
 from deepchem.models.losses import L2Loss, SoftmaxCrossEntropy, SigmoidCrossEntropy
 from deepchem.metrics import to_one_hot
 from deepchem.data.datasets import pad_batch
 
-
-
+logger = logging.getLogger(__name__)
 DEFAULT_INCEPTION_BLOCKS = {"A": 3, "B": 3, "C": 3}
+
 
 class ChemCeption(nn.Module):
     """
@@ -180,6 +181,8 @@ class ChemCeptionModular(ModularTorchModel):
     >>> import deepchem as dc
     >>> from deepchem.feat import SmilesToImage
     >>> from deepchem.models.torch_models.chemception import ChemCeptionModular
+    >>> import tempfile
+    >>> tempdir = tempfile.TemporaryDirectory()
     >>> n_samples = 6
     >>> img_size = 80
     >>> n_tasks = 10
@@ -197,7 +200,8 @@ class ChemCeptionModular(ModularTorchModel):
     ...     n_tasks=n_tasks,
     ...     n_classes=n_classes,
     ...     mode='classification',
-    ...     learning_rate=1e-4, device="cpu"
+    ...     learning_rate=1e-4,
+    ...     model_dir=model_dir=tempdir.name
     ... )
     >>> pretrain_model.fit(dataset_pt, nb_epoch=2)
     >>> pretrain_model.save_checkpoint()
@@ -206,11 +210,12 @@ class ChemCeptionModular(ModularTorchModel):
     ...     n_tasks=n_tasks,
     ...     n_classes=n_classes,
     ...     mode='regression',
-    ...     learning_rate=1e-4, device="cpu"
+    ...     learning_rate=1e-4
+    ...     model_dir=tempdir.name
     ... )
     >>> finetune_model.restore()
-    >>> finetuning_loss = finetune_model.fit(dataset)
-
+    >>> finetuning_loss = finetune_model.fit(dataset_ft,nb_epoch=2)
+    >>> finetune_model.predict(dataset_ft)
     """
 
     def __init__(self,
@@ -273,9 +278,9 @@ class ChemCeptionModular(ModularTorchModel):
         in_channels = 1 if self.img_spec == "std" else 4
 
         components: Dict[str, nn.Module] = {}
+
         components['stem'] = Stem(in_channels=in_channels, out_channels=self.base_filters)
 
-        # Build inception modules
         components['inceptionA'] = self.build_inception_module(InceptionResnetA, "A",
                                                  self.base_filters,
                                                  self.base_filters)
@@ -337,7 +342,6 @@ class ChemCeptionModular(ModularTorchModel):
 
         if self.mode == 'regression':
             loss_fn = L2Loss()._create_pytorch_loss()
-            outputs = outputs.squeeze(-1)
 
         elif self.mode == 'classification':
             if self.n_classes == 2:
@@ -351,6 +355,10 @@ class ChemCeptionModular(ModularTorchModel):
 
         losses = loss_fn(outputs, labels)
         
+        # To ensure weights and losses have the same shape and multiply losses with weights.
+        # The following code is taken from _StandardLoss class inside torch_model.py, 
+        # as the class cannot be imported here due to its absense in the __init__.py file
+    
         w = weights[0]
         if len(w.shape) < len(losses.shape):
             if isinstance(w, torch.Tensor):
@@ -363,23 +371,10 @@ class ChemCeptionModular(ModularTorchModel):
         loss = losses * w
         loss = loss.mean()
 
+        if self.regularization_loss is not None:
+            loss += self.model.regularization_loss()
+
         return loss
-
-    def _ensure_built(self):
-        """Ensure the model is built and optimizer initialized."""
-        if getattr(self, '_built', False):
-            return
-
-        self._built = True
-        self._global_step = 0
-
-        # Collect parameters (respect requires_grad for pretraining)
-        params = [p for p in self.model.parameters() if p.requires_grad]
-
-        self._pytorch_optimizer = torch.optim.Adam(params,
-                                                   lr=self.kwargs.get(
-                                                       'learning_rate', 1e-3))
-        self._lr_schedule = None
         
     def default_generator(self,
                           dataset,
@@ -387,8 +382,6 @@ class ChemCeptionModular(ModularTorchModel):
                           mode='fit',
                           deterministic=True,
                           pad_batches=True):
-        
-        torch.set_default_dtype(torch.float32)
 
         for epoch in range(epochs):
             if mode == "predict" or (not self.augment):
@@ -396,15 +389,15 @@ class ChemCeptionModular(ModularTorchModel):
                      ids_b) in dataset.iterbatches(batch_size=self.batch_size,
                                                    deterministic=deterministic,
                                                    pad_batches=pad_batches):
-                    
-                    X_b = torch.from_numpy(X_b)
+
                     in_channels = self.components['stem'].conv_layer.in_channels
                     if X_b.shape[1] != in_channels and X_b.shape[-1] == in_channels:
-                        X_b = X_b.permute(0,3,1,2)
+                        X_b = np.transpose(X_b, (0, 3, 1, 2))
 
                     if self.mode == 'classification':
                         y_b = to_one_hot(y_b.flatten(), self.n_classes).reshape(
                             -1, self.n_tasks, self.n_classes)
+
                     yield ([X_b], [y_b], [w_b])
 
             else:
@@ -416,10 +409,9 @@ class ChemCeptionModular(ModularTorchModel):
                                                    deterministic=deterministic,
                                                    pad_batches=pad_batches):
 
-                    X_b = torch.from_numpy(X_b)
                     in_channels = self.components['stem'].conv_layer.in_channels
                     if X_b.shape[1] != in_channels and X_b.shape[-1] == in_channels:
-                        X_b = X_b.permute(0,3,1,2)
+                        X_b = np.transpose(X_b, (0, 3, 1, 2))
 
                     X_b = augment_fn(X_b)
 
@@ -427,3 +419,39 @@ class ChemCeptionModular(ModularTorchModel):
                         y_b = to_one_hot(y_b.flatten(), self.n_classes).reshape(
                             -1, self.n_tasks, self.n_classes)
                     yield ([X_b], [y_b], [w_b])
+
+    def restore(  # type: ignore
+            self,
+            components: Optional[List[str]] = None,
+            checkpoint: Optional[str] = None,
+            model_dir: Optional[str] = None) -> None:
+        """
+        Restores the state of a ModularTorchModel from a checkpoint file.
+
+        If no checkpoint file is provided, it will use the latest checkpoint found in the model directory. 
+        If a list of component names is provided, only the state of those components will be restored.
+        Optimizer state dict and global step is not restored.
+
+        Parameters
+        ----------
+        components: Optional[List[str]]
+            A list of component names to restore. If None, all components will be restored.
+        checkpoint: Optional[str]
+            The path to the checkpoint file. If None, the latest checkpoint in the model directory will
+            be used.
+        model_dir: Optional[str]
+            The path to the model directory. If None, the model directory used to initialize the model will be used.
+        """
+        logger.info('Restoring model')
+        if checkpoint is None:
+            checkpoints = sorted(self.get_checkpoints(model_dir))
+            if len(checkpoints) == 0:
+                raise ValueError('No checkpoint found')
+            checkpoint = checkpoints[0]
+        data = torch.load(checkpoint)
+        for name, state_dict in data.items():
+            if name != 'model' and name in self.components.keys():
+                if components is None or name in components:
+                    self.components[name].load_state_dict(state_dict)
+
+        self.build_model()
