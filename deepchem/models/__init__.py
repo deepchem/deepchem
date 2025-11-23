@@ -88,6 +88,9 @@ except ModuleNotFoundError as e:
     logger.warning(
         f'Skipped loading some Jax models, missing a dependency. {e}')
 
+# Kalman Filter model
+from deepchem.models.kalman_filter import KalmanFilterModel
+
 #####################################################################################
 # Compatibility imports for renamed XGBoost models. Remove below with DeepChem 3.0.
 #####################################################################################
