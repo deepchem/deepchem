@@ -214,6 +214,7 @@ class LNNModel(TorchModel):
     activation_fn : str, default 'softplus'
         Activation function to use in the hidden layers. Softplus is preferred
         for Lagrangian learning as it ensures smooth derivatives.
+
     Examples
     --------
     >>> import deepchem as dc
