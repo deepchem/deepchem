@@ -909,7 +909,7 @@ These prevent redundant recalculations by saving function outputs to disk or mem
 improving performance for expensive and data-heavy operations 
 (e.g., equivariant basis).
 
-.. autofunction:: deepchem.utils.caching_utils.FileSystemMutex
+.. autofunction:: deepchem.utils.cache_utils.FileSystemMutex
 
-.. autofunction:: deepchem.utils.caching_utils.cached_dirpklgz
+.. autofunction:: deepchem.utils.cache_utils.cached_dirpklgz
 
