@@ -10,6 +10,7 @@ import warnings
 
 # dqc dependencies
 try:
+    import torch
     from dqc.system.mol import Mol
     from dqc.system.base_system import BaseSystem
     from deepchem.utils.dftutils import KSCalc
