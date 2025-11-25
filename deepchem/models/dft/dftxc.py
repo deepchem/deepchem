@@ -40,7 +40,10 @@ class DFTXC(torch.nn.Module):
 
     """
 
-    def __init__(self, xcstr: str, nnmodel: torch.nn.Module, aweight0: float = 0.0):
+    def __init__(self,
+                 xcstr: str,
+                 nnmodel: torch.nn.Module,
+                 aweight0: float = 0.0):
         """
         Parameters
         ----------
@@ -60,7 +63,9 @@ class DFTXC(torch.nn.Module):
         self.xcstr = xcstr
         self.nnmodel = nnmodel
         self.aweight0 = aweight0
-        self.hybridxc = HybridXC(self.xcstr, self.nnmodel, aweight0=aweight0)
+        self.hybridxc = HybridXC(self.xcstr,
+                                 self.nnmodel,
+                                 aweight0=self.weight0)
 
     def forward(self, inputs):
         """
