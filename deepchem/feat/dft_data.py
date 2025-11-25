@@ -4,18 +4,19 @@ Derived from: https://github.com/mfkasim1/xcnn/blob/f2cb9777da2961ac553f256ecdcc
 """
 from __future__ import annotations
 from abc import abstractmethod, abstractproperty
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Union
 import numpy as np
 import warnings
 
 # dqc dependencies
 try:
+    import torch
     from dqc.system.mol import Mol
     from dqc.system.base_system import BaseSystem
     from deepchem.utils.dftutils import KSCalc
     from deepchem.utils.dft_utils import parse_moldesc, BaseGrid
 except Exception as e:
-    warnings.warn(f"Failed to import DQC dependencies with error: {e}")
+    warnings.warn(f"Failed to import DFT dependencies with error: {e}")
 
 
 class DFTSystem():
@@ -191,7 +192,7 @@ class DFTEntry():
         return np.array(0)
 
     @abstractmethod
-    def get_val(self, qcs: List[KSCalc]) -> np.ndarray:
+    def get_val(self, qcs: List[KSCalc]) -> Union[np.ndarray, torch.Tensor]:
         """
         Return the energy value of the entry, using a DQC-DFT calculation, where the XC has been
         replaced by the trained neural network. This method does not carry out any calculations, it is
@@ -243,9 +244,9 @@ class _EntryDM(DFTEntry):
         dm = np.load(self.true_val)
         return dm
 
-    def get_val(self, qcs: List[KSCalc]) -> np.ndarray:
+    def get_val(self, qcs: List[KSCalc]) -> torch.Tensor:
         val = qcs[0].aodmtot()
-        return np.array([val.tolist()])
+        return val.unsqueeze(0)
 
 
 class _EntryDens(DFTEntry):
@@ -276,7 +277,7 @@ class _EntryDens(DFTEntry):
         dens = np.load(self.true_val)
         return dens
 
-    def get_val(self, qcs: List[KSCalc]) -> np.ndarray:
+    def get_val(self, qcs: List[KSCalc]) -> torch.Tensor:
         """
         This method calculates the integration grid which is then used to calculate the
         density profile of an entry object.
@@ -287,14 +288,14 @@ class _EntryDens(DFTEntry):
 
         Returns
         -------
-        Numpy array containing calculated density profile
+        Tensor containing calculated density profile
         """
         qc = qcs[0]
 
         grid = self.get_integration_grid()
         rgrid = grid.get_rgrid()
         val = qc.dens(rgrid)
-        return np.array(val.tolist())
+        return val
 
     def get_integration_grid(self) -> BaseGrid:
         """
@@ -344,7 +345,7 @@ class _EntryIE(DFTEntry):
     def get_true_val(self) -> np.ndarray:
         return np.array([self.true_val])
 
-    def get_val(self, qcs: List[KSCalc]) -> np.ndarray:
+    def get_val(self, qcs: List[KSCalc]) -> torch.Tensor:
         """
         This method calculates the energy of an entry based on the systems and command present
         in the data object. For example; for a Lithium hydride molecule the total energy
@@ -362,7 +363,7 @@ class _EntryIE(DFTEntry):
         e_1 = [m.energy() for m in qcs]
         e = [item1 * item2 for item1, item2 in zip(systems, e_1)]
         val = sum(e) - 2 * e[0]
-        return np.array([val.tolist()])
+        return val.unsqueeze(0)
 
 
 class _EntryAE(_EntryIE):
