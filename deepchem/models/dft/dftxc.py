@@ -40,7 +40,7 @@ class DFTXC(torch.nn.Module):
 
     """
 
-    def __init__(self, xcstr: str, nnmodel: torch.nn.Module):
+    def __init__(self, xcstr: str, nnmodel: torch.nn.Module, aweight0: float = 0.0):
         """
         Parameters
         ----------
@@ -48,7 +48,9 @@ class DFTXC(torch.nn.Module):
             The choice of xc to use. Some of the commonly used ones are:
             lda_x, lda_c_pw, lda_c_ow, lda_c_pz, lda_xc_lp_a, lda_xc_lp_b.
         nnmodel: torch.nn.Module
-            the PyTorch model implementing the calculation
+            The PyTorch model implementing the calculation.
+        aweight0: float (default 0.0)
+            The weightage of the Neural Network Model in the final result.
 
         Notes
         -----
@@ -57,6 +59,8 @@ class DFTXC(torch.nn.Module):
         super(DFTXC, self).__init__()
         self.xcstr = xcstr
         self.nnmodel = nnmodel
+        self.aweight0 = aweight0
+        self.hybridxc = HybridXC(self.xcstr, self.nnmodel, aweight0=aweight0)
 
     def forward(self, inputs):
         """
@@ -71,18 +75,17 @@ class DFTXC(torch.nn.Module):
             Calculated value of the data point after running the Kohn Sham iterations
             using the neural network XC functional.
         """
-        hybridxc = HybridXC(self.xcstr, self.nnmodel, aweight0=0.0)
         output = []
         for entry in inputs:
-            evl = XCNNSCF(hybridxc, entry)
+            evl = XCNNSCF(self.hybridxc, entry)
             qcs = []
             for system in entry.get_systems():
                 qcs.append(evl.run(system))
+            val = entry.get_val(qcs)
             if entry.entry_type == 'dm':
-                output.append((torch.as_tensor(entry.get_val(qcs)[0])))
+                output.append(val[0])
             else:
-                output.append(
-                    torch.tensor(entry.get_val(qcs), requires_grad=True))
+                output.append(val)
         return output
 
 
@@ -142,6 +145,7 @@ class XCModel(TorchModel):
                  log_frequency: int = 0,
                  mode: str = 'classification',
                  device: Optional[torch.device] = None,
+                 aweight0: float = 0.0,
                  **kwargs) -> None:
         """
         Parameters
@@ -159,11 +163,13 @@ class XCModel(TorchModel):
             number of layers in the neural network
         modeltype: int
             model type 2 includes an activation layer whereas type 1 does not.
+        aweight0: float (default 0.0)
+            Weightage of the Neural Network Model on the final result.
         """
         if nnmodel is None:
             nnmodel = _construct_nn_model(input_size, hidden_size, n_layers,
                                           modeltype).to(torch.double)
-        model = (DFTXC(xcstr, nnmodel)).to(device)
+        model = (DFTXC(xcstr, nnmodel, aweight0)).to(device)
         self.xc = xcstr
         loss: Loss = L2Loss()
         output_types = ['loss', 'predict']
