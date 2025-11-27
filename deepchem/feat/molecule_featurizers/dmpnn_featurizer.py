@@ -15,6 +15,7 @@ from deepchem.utils.molecule_feature_utils import get_atom_formal_charge_one_hot
 from deepchem.utils.molecule_feature_utils import get_atom_total_num_Hs_one_hot
 from deepchem.utils.molecule_feature_utils import get_atom_hybridization_one_hot
 from deepchem.utils.molecule_feature_utils import get_atom_is_in_aromatic_one_hot
+from deepchem.models.torch_models.dmpnn import _MapperDMPNN, WrappedFeatures
 
 from deepchem.feat.graph_features import bond_features as b_Feats
 
@@ -531,7 +532,16 @@ class DMPNNFeaturizer(MolecularFeaturizer):
             global_features = generate_global_features(datapoint,
                                                        self.features_generators)
 
-        return GraphData(node_features=f_atoms,
-                         edge_index=edge_index,
-                         edge_features=f_bonds,
-                         global_features=global_features)
+        gd = GraphData(node_features=f_atoms,
+                       edge_index=edge_index,
+                       edge_features=f_bonds,
+                       global_features=global_features)
+        
+        mapper = _MapperDMPNN(gd)
+
+        return WrappedFeatures(mapper.atom_features, mapper.f_ini_atoms_bonds,
+                               mapper.atom_to_incoming_bonds, mapper.mapping,
+                               mapper.global_features)
+
+        
+
