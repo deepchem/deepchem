@@ -65,7 +65,7 @@ class DFTXC(torch.nn.Module):
         self.aweight0 = aweight0
         self.hybridxc = HybridXC(self.xcstr,
                                  self.nnmodel,
-                                 aweight0=self.weight0)
+                                 aweight0=self.aweight0)
 
     def forward(self, inputs):
         """
