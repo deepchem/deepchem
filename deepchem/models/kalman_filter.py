@@ -3,6 +3,15 @@ Kalman Filter Model
 --------------------------------
 Implements a basic linear Kalman Filter with configurable matrices.
 Supports both filterpy-based and pure NumPy implementations.
+
+References
+--------------------------------
+    - Kalman, R. E. (1960). "A New Approach to Linear Filtering and Prediction Problems."
+      Journal of Basic Engineering.
+    - Welch, G. & Bishop, G. (1995). "An Introduction to the Kalman Filter."
+      https://www.cs.unc.edu/~welch/media/pdf/kalman_intro.pdf
+    - FilterPy documentation (optional backend):
+      https://filterpy.readthedocs.io/en/latest/
 """
 
 import numpy as np
