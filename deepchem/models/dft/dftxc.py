@@ -51,7 +51,7 @@ class DFTXC(torch.nn.Module):
             The choice of xc to use. Some of the commonly used ones are:
             lda_x, lda_c_pw, lda_c_ow, lda_c_pz, lda_xc_lp_a, lda_xc_lp_b.
         nnmodel: torch.nn.Module
-            The PyTorch model implementing the calculation.
+            the PyTorch model implementing the calculation.
         aweight0: float (default 0.0)
             The weightage of the Neural Network Model in the final result.
 
