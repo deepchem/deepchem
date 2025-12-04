@@ -243,13 +243,15 @@ class PileupFeaturizer(Featurizer):
 
     Examples
     --------
-    >>> from deepchem.feat import PileupFeaturizer
+    >>> from deepchem.feat import CandidateVariantFeaturizer, PileupFeaturizer
     >>> bamfile_path = 'deepchem/data/tests/example.bam'
     >>> reference_path = 'deepchem/data/tests/sample.fa'
-    >>> candidate_path = 'deepchem/data/tests/candidate_variants.npy'
-    >>> candidate_variants = np.load(candidate_path, allow_pickle=True)
-    >>> datapoint = (bamfile_path, reference_path, candidate_variants)
+    >>> realign = CandidateVariantFeaturizer()
+    >>> datapoint = (bamfile_path, reference_path)
+    >>> features = realign.featurize([datapoint])
+    >>> candidate_variants = features[0]
     >>> pileup_feat = PileupFeaturizer()
+    >>> datapoint = (candidate_variants, reference_path)
     >>> features = pileup_feat.featurize([datapoint])
 
     Note
