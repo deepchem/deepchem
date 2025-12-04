@@ -291,11 +291,21 @@ def extract_grover_attributes(molgraph: BatchGraphData):
     Example
     -------
     >>> import deepchem as dc
-    >>> from deepchem.feat.graph_data import BatchGraphData
+    >>> from deepchem.feat.graph_data import BatchGraphData, GraphData
+    >>> import numpy as np
+    >>> batch_graphs = []
     >>> smiles = ['CC', 'CCC', 'CC(=O)C']
     >>> featurizer = dc.feat.GroverFeaturizer(features_generator=dc.feat.CircularFingerprint())
     >>> graphs = featurizer.featurize(smiles)
-    >>> molgraph = BatchGraphData(graphs)
+    >>> for g in graphs:
+    ...     batch_graphs.append(GraphData(
+    ...        g.node_features,
+    ...        g.edge_index,
+    ...        g.edge_features,
+    ...        fg_labels=np.asarray(g.fg_labels),
+    ...        additional_features=np.asarray(g.additional_features)
+    ...    ))
+    >>> molgraph = BatchGraphData(batch_graphs)
     >>> attributes = extract_grover_attributes(molgraph)
     """
     fg_labels = getattr(molgraph, 'fg_labels')
