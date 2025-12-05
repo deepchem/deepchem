@@ -9245,93 +9245,154 @@ class SE3ResidualAttention(nn.Module):
         return z
 
 class WLNGraphConvolution(nn.Module):
+    """
+    Weisfeiler-Lehman Network (WLN) Graph Convolution layer.
 
-    def __init__(self, atom_feature_dim: int, bond_feature_dim: int, hidden_size: int, depth: int):
+    This layer implements the Wesfeiler lehman graph convolution operation described 
+    It iteratively updates atom representations by aggregating information from local neighborhoods
+    (atoms and bonds) similar to the Weisfeiler-Lehman test of graph isomorphism.
 
+    The update rule involves:
+    1. Initial embedding of atom features.
+    2. Iterative message passing where atom representations are updated based on their neighbors and connecting bonds.
+    3. Computation of a local feature vector for each atom based on the final hidden states.
+
+    Parameters
+    ----------
+    atom_feature_dim : int
+        Dimension of the input atom features.
+    bond_feature_dim : int
+        Dimension of the input bond features.
+    hidden_size : int
+        Dimension of the hidden layers (atom state size).
+    depth : int
+        Number of iteration steps for the graph convolution (message passing rounds).
+
+
+    Examples
+    --------
+    >>> import torch
+    >>> from deepchem.models.torch_models.layers import WLNGraphConvolution
+    >>> batch_size = 2
+    >>> max_atoms = 5
+    >>> atom_dim = 10
+    >>> bond_dim = 6
+    >>> hidden_size = 32
+    >>> depth = 3
+    >>> # Create dummy inputs
+    >>> atom_features = torch.randn(batch_size, max_atoms, atom_dim)
+    >>> bond_features = torch.randn(batch_size, max_atoms, max_atoms, bond_dim)
+    >>> adj_matrix = torch.ones(batch_size, max_atoms, max_atoms)
+    >>> atom_mask = torch.ones(batch_size, max_atoms)
+    >>> # Initialize layer
+    >>> model = WLNGraphConvolution(atom_dim, bond_dim, hidden_size, depth)
+    >>> # Forward pass
+    >>> atom_reps, graph_rep = model(atom_features, adj_matrix, bond_features, atom_mask)
+    >>> print(atom_reps.shape)
+    torch.Size([2, 5, 32])
+    >>> print(graph_rep.shape)
+    torch.Size([2, 32])
+    """
+
+    def __init__(self, atom_feature_dim: int, bond_feature_dim: int,
+                 hidden_size: int, depth: int):
         super(WLNGraphConvolution, self).__init__()
         self.depth = depth
         self.hidden_size = hidden_size
+        self.atom_feature_dim = atom_feature_dim
+        self.bond_feature_dim = bond_feature_dim
 
         # --- Layer Definitions ---
         # Initial atom embedding layer
         self.atom_embedding = nn.Linear(atom_feature_dim, hidden_size)
 
-        # Layers for the iterative update (Eq. 2)
         self.V = nn.Linear(hidden_size + bond_feature_dim, hidden_size)
         self.U1 = nn.Linear(hidden_size, hidden_size)
         self.U2 = nn.Linear(hidden_size, hidden_size)
 
-        # Layers for the final representation (Eq. 3)
         self.W0 = nn.Linear(hidden_size, hidden_size)
         self.W1 = nn.Linear(bond_feature_dim, hidden_size)
         self.W2 = nn.Linear(hidden_size, hidden_size)
-        
+
         self.relu = nn.ReLU()
 
-    def forward(self, atom_features, adj_matrix, bond_features, atom_mask):
+    def forward(
+            self, atom_features: torch.Tensor, adj_matrix: torch.Tensor,
+            bond_features: torch.Tensor,
+            atom_mask: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         """
-        Performs the forward pass on a padded batch.
+        Performs the forward pass on a padded batch of molecular graphs.
 
-        Args:
-            atom_features (Tensor): (batch, max_atoms, atom_fdim)
-            adj_matrix (Tensor): (batch, max_atoms, max_atoms)
-            bond_features (Tensor): (batch, max_atoms, max_atoms, bond_fdim)
-            atom_mask (Tensor): (batch, max_atoms), boolean or float mask.
+        Parameters
+        ----------
+        atom_features : torch.Tensor
+            Input atom features of shape `(batch_size, max_atoms, atom_feature_dim)`.
+        adj_matrix : torch.Tensor
+            Adjacency matrix of shape `(batch_size, max_atoms, max_atoms)`.
+            Entries should be 1 if an edge exists and 0 otherwise.
+        bond_features : torch.Tensor
+            Input bond features of shape `(batch_size, max_atoms, max_atoms, bond_feature_dim)`.
+        atom_mask : torch.Tensor
+            Mask indicating valid atoms, shape `(batch_size, max_atoms)`.
+            Should be 1 for real atoms and 0 for padding.
 
-        Returns:
-            Tuple[torch.Tensor, torch.Tensor]: A tuple containing:
-            - atom_embeddings (Tensor): Final atom representations. (batch, max_atoms, hidden_size)
-            - graph_embedding (Tensor): Final graph representations. (batch, hidden_size)
+        Returns
+        -------
+        Tuple[torch.Tensor, torch.Tensor]
+            A tuple containing:
+            - atom_embeddings: Final updated atom representations of shape `(batch_size, max_atoms, hidden_size)`.
+            - graph_embedding: Aggregated graph representation (sum pooling) of shape `(batch_size, hidden_size)`.
         """
         # Ensure mask is float for multiplication
         float_mask = atom_mask.unsqueeze(-1).float()
 
         # Initial atom features, h^(0)
         h = self.relu(self.atom_embedding(atom_features))
-        h = h * float_mask # Mask out padding atoms
+        h = h * float_mask  # Mask out padding atoms
 
-        # --- Iterative Relabeling (Eq. 2) ---
+        # --- Iterative Relabeling ---
         for _ in range(self.depth):
             # Expand h to create neighbor feature tensor of shape (batch, max_atoms, max_atoms, hidden_size)
             # This represents h_u for all pairs (u, v)
             h_neighbors = h.unsqueeze(1).expand(-1, h.shape[1], -1, -1)
-            
+
             # Concatenate neighbor atom features with bond features
             message_input = torch.cat([h_neighbors, bond_features], dim=-1)
-            
+
             # Generate messages for all pairs
             messages = self.relu(self.V(message_input))
-            
+
             # Mask messages to only include actual neighbors
             masked_messages = messages * adj_matrix.unsqueeze(-1)
-            
+
             # Sum messages over the neighbor dimension (dim=2) to aggregate
             aggregated_messages = torch.sum(masked_messages, dim=2)
-            
+
             # Update atom representations
             h = self.relu(self.U1(h) + self.U2(aggregated_messages))
-            h = h * float_mask # Apply mask after each update
+            h = h * float_mask  # Apply mask after each update
 
-        # --- Final Atom Representation (Eq. 3) ---
+        # --- Final Atom Representation ---
         # Expand final h to get h_u and h_v for all pairs
-        h_u = h.unsqueeze(2).expand(-1, -1, h.shape[1], -1) # source atoms
-        h_v = h.unsqueeze(1).expand(-1, h.shape[1], -1, -1) # destination atoms
-        
+        h_u = h.unsqueeze(2).expand(-1, -1, h.shape[1], -1)  # source atoms
+        h_v = h.unsqueeze(1).expand(-1, h.shape[1], -1,
+                                    -1)  # destination atoms
+
         term1 = self.W0(h_u)
         term2 = self.W1(bond_features)
         term3 = self.W2(h_v)
-        
+
         # Element-wise product
         edge_outputs = term1 * term2 * term3
-        
+
         # Mask with adjacency and sum over neighbors (dim=2)
         masked_outputs = edge_outputs * adj_matrix.unsqueeze(-1)
         atom_embeddings = torch.sum(masked_outputs, dim=2)
         atom_embeddings = atom_embeddings * float_mask
-        
+
         # --- Graph-level Representation (Sum Pooling) ---
         graph_embedding = torch.sum(atom_embeddings, dim=1)
-        
+
         return atom_embeddings, graph_embedding
 
 class SpectralConv(nn.Module):

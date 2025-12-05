@@ -651,6 +651,16 @@ HNNModel
 .. autoclass:: deepchem.models.torch_models.HNNModel
   :members:
 
+WLNScoringModel
+----------------
+.. autoclass:: deepchem.models.torch_models.WLNScoring
+  :members:
+
+WLNScoring
+----------------
+.. autoclass:: deepchem.models.torch_models.WLN
+  :members:
+  
 FNO
 ----------------
 .. autoclass:: deepchem.models.torch_models.FNO

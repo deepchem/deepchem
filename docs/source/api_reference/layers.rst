@@ -281,6 +281,9 @@ Torch Layers
 .. autoclass:: deepchem.models.torch_models.layers.GraphConv
   :members:
 
+.. autoclass:: deepchem.models.torch_models.layers.WLNGraphConvolution
+  :members:
+  
 .. autoclass:: deepchem.models.torch_models.layers.GraphPool
   :members:
 
