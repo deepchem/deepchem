@@ -4,12 +4,12 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torchvision import transforms
 import logging
-from typing import Dict, Type, Optional, Literal, List
+from typing import Dict, Type, Optional, Literal, Sequence
+from deepchem.utils.typing import OneOrMany
 from deepchem.models.torch_models.chemnet_layers import Stem, InceptionResnetA, ReductionA, InceptionResnetB, ReductionB, InceptionResnetC
 from deepchem.models.torch_models import ModularTorchModel
 from deepchem.models.losses import L2Loss, SoftmaxCrossEntropy, SigmoidCrossEntropy
 from deepchem.metrics import to_one_hot
-from deepchem.data.datasets import pad_batch
 
 logger = logging.getLogger(__name__)
 DEFAULT_INCEPTION_BLOCKS = {"A": 3, "B": 3, "C": 3}
@@ -44,23 +44,52 @@ class ChemCeption(nn.Module):
 
     Example
     -------
-    >>> import numpy as np
-    >>> import torch
+    >>> import torch.nn as nn
     >>> import deepchem as dc
-    >>> from deepchem.models.torch_models.ChemCeption import ChemCeption
+    >>> from deepchem.models.torch_models.chemnet_layers import Stem, InceptionResnetA, InceptionResnetB, InceptionResnetC, ReductionA, ReductionB
+    >>> from deepchem.models.torch_models import ChemCeption
+    >>> DEFAULT_INCEPTION_BLOCKS = {"A": 3, "B": 3, "C": 3}
     >>> base_filters = 16
+    >>> img_spec = 'std'
     >>> img_size = 80
     >>> n_tasks = 10
     >>> n_classes = 2
-    >>> model = ChemCeption(img_spec="std", img_size=img_size, base_filters=base_filters, inception_blocks={"A": 3, "B": 3, "C": 3}, n_tasks=n_tasks, n_classes=n_classes, augment=False, mode="classification")
+    >>> in_channels = 1 if img_spec == "std" else 4
+    >>> mode = 'classification'
+    >>> components = {}
+    >>> components['stem'] = Stem(in_channels=in_channels, out_channels=base_filters)
+    >>> components['inceptionA'] = nn.Sequential(*[InceptionResnetA(base_filters, base_filters) for _ in range(DEFAULT_INCEPTION_BLOCKS['A'])])
+    >>> components['reductionA'] = ReductionA(base_filters, base_filters)
+    >>> components['inceptionB'] = nn.Sequential(*[InceptionResnetB(4*base_filters, base_filters) for _ in range(DEFAULT_INCEPTION_BLOCKS['B'])])
+    >>> components['reductionB'] = ReductionB(4 * base_filters, base_filters)
+    >>> current_channels = int(torch.floor(torch.tensor(7.875 * base_filters)).item())
+    >>> components['inceptionC'] = nn.Sequential(*[InceptionResnetC(current_channels, base_filters) for _ in range(DEFAULT_INCEPTION_BLOCKS['C'])])
+    >>> components['global_avg_pool'] = nn.AdaptiveAvgPool2d(1)
+    >>> if mode == "classification":
+    ...     components['fc_classification'] = nn.Linear(current_channels, n_tasks * n_classes)
+    ... else:
+    ...     components['fc_regression'] = nn.Linear(current_channels,n_tasks)
     >>> smiles = ['CC(=O)OC1=CC=CC=C1C(=O)O']
-    >>> featurizer = dc.feat.SmilesToImage(img_size=80, img_spec='std')
+    >>> featurizer = dc.feat.SmilesToImage(img_size=img_size, img_spec='std')
     >>> images = featurizer.featurize(smiles)
     >>> image = torch.tensor(images, dtype=torch.float32)
-    >>> image = image.permute(0, 3, 1, 2)  # Convert to NCHW format
-    >>> output = model(image)
-    >>> print(output.shape)
-    torch.Size([1, 10, 2])
+    >>> if mode == 'classification':
+    ...        output_layer = components['fc_classification']
+    ... else:
+    ...        output_layer = components['fc_regression']
+    >>> input = image.permute(0, 3, 1, 2) # to convert from channel last  (N,H,W,C) to pytorch default channel first (N,C,H,W) representation
+    >>> model = ChemCeption(stem=components['stem'],
+    ...                       inceptionA=components['inceptionA'],
+    ...                       reductionA=components['reductionA'],
+    ...                       inceptionB=components['inceptionB'],
+    ...                       reductionB=components['reductionB'],
+    ...                       inceptionC=components['inceptionC'],
+    ...                       global_avg_pool=components['global_avg_pool'],
+    ...                       output_layer=output_layer,
+    ...                       mode=mode,
+    ...                       n_tasks=n_tasks,
+    ...                       n_classes=n_classes)
+    >>> output = model(input)
     """
 
     def __init__(self,
@@ -71,8 +100,7 @@ class ChemCeption(nn.Module):
                  reductionB: nn.Module,
                  inceptionC: nn.Module,
                  global_avg_pool: nn.Module,
-                 fc_classification : Optional[nn.Module] = None,
-                 fc_regression: Optional[nn.Module] = None,
+                 output_layer: nn.Module,
                  mode: str = "classification",
                  n_tasks: int = 10,
                  n_classes: int = 2,
@@ -80,23 +108,30 @@ class ChemCeption(nn.Module):
         """
         Parameters
         ----------
-        img_spec: str, default std
-            Image specification used
-        img_size: int, default 80
-            Image size used
-        base_filters: int, default 16
-            Base filters used for the different inception and reduction layers
-        inception_blocks: dict,
-            Dictionary containing number of blocks for every inception layer
+        stem: nn.Module
+            Stem layer that serves as the initial processing block in ChemCeption.
+        inceptionA: nn.Module
+            Inception-ResNet-A block from the Inception-ResNet architecture.
+        reductionA: nn.Module
+            Reduction-A block from the Inception-ResNet architecture.
+        inceptionB: nn.Module
+            Inception-ResNet-B block from the Inception-ResNet architecture.
+        reductionB: nn.Module
+            Reduction-B block from the Inception-ResNet architecture.
+        inceptionC:
+            Inception-ResNet-C block from the Inception-ResNet architecture.
+        global_avg_pool: nn.Module
+            2D Average Pooling layer
+        fc_classification: nn.Module
+            A fully connected neural network to be used as the prediction head for classification
+        fc_regression: nn.Module
+            A fully connected neural network to be used as the prediction head for regression
+        mode: str, default regression
+            The model type, 'classification' or 'regression'.
         n_tasks: int, default 10
             Number of classification or regression tasks
         n_classes: int, default 2
             Number of classes (used only for classification)
-        augment: bool, default False
-            Whether to augment images
-        mode: str, default regression
-            Whether the model is used for regression or classification
-
         """
         super(ChemCeption, self).__init__()
 
@@ -111,12 +146,9 @@ class ChemCeption(nn.Module):
         self.reductionB = reductionB
         self.inceptionC = inceptionC
         self.global_avg_pool = global_avg_pool
-        if self.mode == 'classification':
-            self.output_layer = fc_classification
-        else:
-            self.output_layer = fc_regression
+        self.output_layer = output_layer
 
-    def forward(self, x) -> torch.Tensor:
+    def forward(self, x: torch.Tensor) -> OneOrMany[torch.Tensor]:
         x = self.stem(x)
         x = self.inceptionA(x)
         x = self.reductionA(x)
@@ -130,16 +162,15 @@ class ChemCeption(nn.Module):
         if self.mode == "classification":
             x = x.view(-1, self.n_tasks, self.n_classes)
             if self.n_classes == 2:
-                final_output = torch.sigmoid(x), x
+                prob = torch.sigmoid(x)
             else:
-                final_output = F.softmax(x, dim=-1), x
+                prob = F.softmax(x, dim=-1)
+            return prob, x
         else:
-            final_output = x.view(-1, self.n_tasks,1)
-
-        return final_output
+            return x.view(-1, self.n_tasks, 1)
 
 
-class ChemCeptionModular(ModularTorchModel):
+class ChemCeptionModel(ModularTorchModel):
     """
     Modular wrapper around ChemCeption for flexible pretraining and finetuning.
 
@@ -180,7 +211,7 @@ class ChemCeptionModular(ModularTorchModel):
     >>> import numpy as np
     >>> import deepchem as dc
     >>> from deepchem.feat import SmilesToImage
-    >>> from deepchem.models.torch_models.chemception import ChemCeptionModular
+    >>> from deepchem.models.torch_models.chemception import ChemCeptionModel
     >>> import tempfile
     >>> tempdir = tempfile.TemporaryDirectory()
     >>> n_samples = 6
@@ -195,41 +226,61 @@ class ChemCeptionModular(ModularTorchModel):
     >>> X_images = np.array([img.squeeze() for img in X_images])[:, np.newaxis, :, :]
     >>> dataset_pt = dc.data.NumpyDataset(X_images, y_pretrain)
     >>> dataset_ft = dc.data.NumpyDataset(X_images, y_finetune)
-    >>> pretrain_model = ChemCeptionModular(
+    >>> pretrain_model = ChemCeptionModel(
     ...     img_size=img_size,
     ...     n_tasks=n_tasks,
     ...     n_classes=n_classes,
     ...     mode='classification',
     ...     learning_rate=1e-4,
-    ...     model_dir=model_dir=tempdir.name
+    ...     model_dir=tempdir.name
     ... )
-    >>> pretrain_model.fit(dataset_pt, nb_epoch=2)
+    >>> pretrain_loss = pretrain_model.fit(dataset_pt, nb_epoch=2)
     >>> pretrain_model.save_checkpoint()
-    >>> finetune_model = ChemCeptionModular(
+    >>> finetune_model = ChemCeptionModel(
     ...     img_size=img_size,
     ...     n_tasks=n_tasks,
     ...     n_classes=n_classes,
     ...     mode='regression',
-    ...     learning_rate=1e-4
+    ...     learning_rate=1e-4,
     ...     model_dir=tempdir.name
     ... )
-    >>> finetune_model.restore()
-    >>> finetuning_loss = finetune_model.fit(dataset_ft,nb_epoch=2)
-    >>> finetune_model.predict(dataset_ft)
+    >>> finetune_model.load_from_pretrained(model_dir=tempdir.name)
+    >>> finetuning_loss = finetune_model.fit(dataset_ft,nb_epoch=1)
+    >>> predictions = finetune_model.predict(dataset_ft)
     """
 
-    def __init__(self,
-                 img_spec: str = "std",
-                 img_size: int = 80,
-                 base_filters: int = 16,
-                 inception_blocks: Optional[Dict[str, int]] = DEFAULT_INCEPTION_BLOCKS, 
-                 n_tasks: int = 10,
-                 n_classes: int = 2,
-                 augment: bool = False,
-                 mode: Literal['regression',
-                               'classification'] = 'classification',
-                 **kwargs):
-
+    def __init__(
+            self,
+            img_spec: str = "std",
+            img_size: int = 80,
+            base_filters: int = 16,
+            inception_blocks: Optional[Dict[str,
+                                            int]] = DEFAULT_INCEPTION_BLOCKS,
+            n_tasks: int = 10,
+            n_classes: int = 2,
+            augment: bool = False,
+            mode: Literal['regression', 'classification'] = 'classification',
+            **kwargs):
+        """
+        Parameters
+        ----------
+        img_spec: str, default std
+            Image specification used
+        img_size: int, default 80
+            Image size used
+        base_filters: int, default 16
+            Base filters used for the different inception and reduction layers
+        inception_blocks: dict,
+            Dictionary containing number of blocks for every inception layer
+        n_tasks: int, default 10
+            Number of classification or regression tasks
+        n_classes: int, default 2
+            Number of classes (used only for classification)
+        augment: bool, default False
+            Whether to augment images
+        mode: str, default regression
+            Whether the model is used for regression or classification
+        """
         self.img_size = img_size
         self.base_filters = base_filters
         self.n_tasks = n_tasks
@@ -250,9 +301,8 @@ class ChemCeptionModular(ModularTorchModel):
         if mode == 'regression':
             output_types = ['prediction']
         else:
-            output_types = ['prediction', 'logits']
+            output_types = ['prediction', 'loss']
 
-        # Initialize parent with both model and components
         super().__init__(model=self.model,
                          components=self.components,
                          output_types=output_types,
@@ -279,31 +329,31 @@ class ChemCeptionModular(ModularTorchModel):
 
         components: Dict[str, nn.Module] = {}
 
-        components['stem'] = Stem(in_channels=in_channels, out_channels=self.base_filters)
+        components['stem'] = Stem(in_channels=in_channels,
+                                  out_channels=self.base_filters)
 
-        components['inceptionA'] = self.build_inception_module(InceptionResnetA, "A",
-                                                 self.base_filters,
-                                                 self.base_filters)
-        components['reductionA'] = ReductionA(self.base_filters, self.base_filters)
+        components['inceptionA'] = self.build_inception_module(
+            InceptionResnetA, "A", self.base_filters, self.base_filters)
+        components['reductionA'] = ReductionA(self.base_filters,
+                                              self.base_filters)
 
-        components['inceptionB'] = self.build_inception_module(InceptionResnetB, "B",
-                                                 4 * self.base_filters,
-                                                 self.base_filters)
-        components['reductionB'] = ReductionB(4 * self.base_filters, self.base_filters)
+        components['inceptionB'] = self.build_inception_module(
+            InceptionResnetB, "B", 4 * self.base_filters, self.base_filters)
+        components['reductionB'] = ReductionB(4 * self.base_filters,
+                                              self.base_filters)
 
         current_channels = int(
             torch.floor(torch.tensor(7.875 * self.base_filters)).item())
-        components['inceptionC'] = self.build_inception_module(InceptionResnetC, "C",
-                                                 current_channels,
-                                                 self.base_filters)
-
+        components['inceptionC'] = self.build_inception_module(
+            InceptionResnetC, "C", current_channels, self.base_filters)
         components['global_avg_pool'] = nn.AdaptiveAvgPool2d(1)
 
         if self.mode == "classification":
-            components['fc_classification'] = nn.Linear(current_channels,
-                                     self.n_tasks * self.n_classes)
+            components['fc_classification'] = nn.Linear(
+                current_channels, self.n_tasks * self.n_classes)
         else:
-            components['fc_regression'] = nn.Linear(current_channels, self.n_tasks)
+            components['fc_regression'] = nn.Linear(current_channels,
+                                                    self.n_tasks)
 
         return components
 
@@ -326,15 +376,30 @@ class ChemCeptionModular(ModularTorchModel):
         nn.Sequential
             Sequential module containing stacked Inception blocks.
         """
-        n = self.inception_blocks.get(block_key, 0)
+        n = self.inception_blocks[block_key]
         return nn.Sequential(*[block_cls(*args, **kwargs) for _ in range(n)])
 
     def build_model(self) -> nn.Module:
         """Assemble ChemCeption model from components."""
-        return ChemCeption(**self.components, mode=self.mode, n_tasks=self.n_tasks, n_classes=self.n_classes)
+        if self.mode == 'classification':
+            output_layer = self.components['fc_classification']
+        else:
+            output_layer = self.components['fc_regression']
+        return ChemCeption(stem=self.components['stem'],
+                           inceptionA=self.components['inceptionA'],
+                           reductionA=self.components['reductionA'],
+                           inceptionB=self.components['inceptionB'],
+                           reductionB=self.components['reductionB'],
+                           inceptionC=self.components['inceptionC'],
+                           global_avg_pool=self.components['global_avg_pool'],
+                           output_layer=output_layer,
+                           mode=self.mode,
+                           n_tasks=self.n_tasks,
+                           n_classes=self.n_classes)
 
-    def loss_func(self, inputs, labels, weights) -> torch.Tensor:
-        """Compute the loss depending on mode (regression/classification)."""
+    def loss_func(self, inputs: OneOrMany[torch.Tensor], labels: Sequence,
+                  weights: Sequence) -> torch.Tensor:
+        """Compute the loss depending on the mode (regression/classification)."""
         outputs = self.model(inputs)
 
         if isinstance(labels, list) and len(labels) == 1:
@@ -354,11 +419,8 @@ class ChemCeptionModular(ModularTorchModel):
                 outputs = outputs[0]
 
         losses = loss_fn(outputs, labels)
-        
+
         # To ensure weights and losses have the same shape and multiply losses with weights.
-        # The following code is taken from _StandardLoss class inside torch_model.py, 
-        # as the class cannot be imported here due to its absense in the __init__.py file
-    
         w = weights[0]
         if len(w.shape) < len(losses.shape):
             if isinstance(w, torch.Tensor):
@@ -375,13 +437,35 @@ class ChemCeptionModular(ModularTorchModel):
             loss += self.model.regularization_loss()
 
         return loss
-        
+
     def default_generator(self,
                           dataset,
                           epochs=1,
                           mode='fit',
                           deterministic=True,
                           pad_batches=True):
+        """ Create a generator that iterates batches for a dataset.
+
+        Parameters
+        ----------
+        dataset: Dataset
+            the data to iterate
+        epochs: int
+            the number of times to iterate over the full dataset
+        mode: str
+            allowed values are 'fit' (called during training), 'predict' (called
+            during prediction), and 'uncertainty' (called during uncertainty
+            prediction)
+        deterministic: bool
+            whether to iterate over the dataset in order, or randomly shuffle the
+            data for each epoch
+        pad_batches: bool
+            whether to pad each batch up to this model's preferred batch size
+
+        Returns
+        -------
+        a generator that iterates batches, each represented as a tuple of lists:
+        ([inputs], [outputs], [weights]) """
 
         for epoch in range(epochs):
             if mode == "predict" or (not self.augment):
@@ -391,7 +475,8 @@ class ChemCeptionModular(ModularTorchModel):
                                                    pad_batches=pad_batches):
 
                     in_channels = self.components['stem'].conv_layer.in_channels
-                    if X_b.shape[1] != in_channels and X_b.shape[-1] == in_channels:
+                    if X_b.shape[1] != in_channels and X_b.shape[
+                            -1] == in_channels:
                         X_b = np.transpose(X_b, (0, 3, 1, 2))
 
                     if self.mode == 'classification':
@@ -401,16 +486,15 @@ class ChemCeptionModular(ModularTorchModel):
                     yield ([X_b], [y_b], [w_b])
 
             else:
-
                 augment_fn = transforms.v2.RandomRotation(180)
-                
                 for (X_b, y_b, w_b,
                      ids_b) in dataset.iterbatches(batch_size=self.batch_size,
                                                    deterministic=deterministic,
                                                    pad_batches=pad_batches):
 
                     in_channels = self.components['stem'].conv_layer.in_channels
-                    if X_b.shape[1] != in_channels and X_b.shape[-1] == in_channels:
+                    if X_b.shape[1] != in_channels and X_b.shape[
+                            -1] == in_channels:
                         X_b = np.transpose(X_b, (0, 3, 1, 2))
 
                     X_b = augment_fn(X_b)
@@ -419,39 +503,3 @@ class ChemCeptionModular(ModularTorchModel):
                         y_b = to_one_hot(y_b.flatten(), self.n_classes).reshape(
                             -1, self.n_tasks, self.n_classes)
                     yield ([X_b], [y_b], [w_b])
-
-    def restore(  # type: ignore
-            self,
-            components: Optional[List[str]] = None,
-            checkpoint: Optional[str] = None,
-            model_dir: Optional[str] = None) -> None:
-        """
-        Restores the state of a ModularTorchModel from a checkpoint file.
-
-        If no checkpoint file is provided, it will use the latest checkpoint found in the model directory. 
-        If a list of component names is provided, only the state of those components will be restored.
-        Optimizer state dict and global step is not restored.
-
-        Parameters
-        ----------
-        components: Optional[List[str]]
-            A list of component names to restore. If None, all components will be restored.
-        checkpoint: Optional[str]
-            The path to the checkpoint file. If None, the latest checkpoint in the model directory will
-            be used.
-        model_dir: Optional[str]
-            The path to the model directory. If None, the model directory used to initialize the model will be used.
-        """
-        logger.info('Restoring model')
-        if checkpoint is None:
-            checkpoints = sorted(self.get_checkpoints(model_dir))
-            if len(checkpoints) == 0:
-                raise ValueError('No checkpoint found')
-            checkpoint = checkpoints[0]
-        data = torch.load(checkpoint)
-        for name, state_dict in data.items():
-            if name != 'model' and name in self.components.keys():
-                if components is None or name in components:
-                    self.components[name].load_state_dict(state_dict)
-
-        self.build_model()

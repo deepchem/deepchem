@@ -49,7 +49,7 @@ from deepchem.models.torch_models.chemnet_layers import InceptionResnetC
 from deepchem.models.torch_models.chemnet_layers import ReductionA
 from deepchem.models.torch_models.chemnet_layers import ReductionB
 from deepchem.models.torch_models.hnn import HNN, HNNModel
-from deepchem.models.torch_models.ChemCeption import ChemCeption
+from deepchem.models.torch_models.chemception import ChemCeption, ChemCeptionModel
 from deepchem.models.torch_models.fno import FNO, FNOModel
 from deepchem.models.torch_models.lnn import LNN, LNNModel
 from deepchem.models.torch_models.se3_transformer import SE3Transformer, SE3TransformerModel
