@@ -194,7 +194,7 @@ class WLNScoring(TorchModel):
         self.loss_fn = loss
         model = WLN(atom_feature_dim, wln_bond_fdim, binary_fdim, hidden_size, depth, num_bond_orders)
         
-        super(WLNScoring,self).__init__(model = model,loss=self._loss_fn)
+        super(WLNScoring,self).__init__(model = model,loss=self.loss_fn)
         
         
     def default_generator(self):
