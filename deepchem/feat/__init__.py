@@ -48,6 +48,7 @@ from deepchem.feat.molecule_featurizers import SNAPFeaturizer
 from deepchem.feat.molecule_featurizers import RDKitConformerFeaturizer
 from deepchem.feat.molecule_featurizers import MXMNetFeaturizer
 from deepchem.feat.molecule_featurizers import EquivariantGraphFeaturizer
+from deepchem.feat.molecule_featurizers import WeisfeilerLehmanScoringModelFeaturizer
 
 # complex featurizers
 from deepchem.feat.complex_featurizers import RdkitGridFeaturizer
