@@ -9,8 +9,11 @@ import tempfile
 import tarfile
 import zipfile
 import logging
+import warnings
+
 from urllib.request import urlretrieve
 from typing import Any, Iterator, List, Optional, Tuple, Union, cast, IO
+from pathlib import Path
 
 import pandas as pd
 import numpy as np
@@ -485,25 +488,43 @@ def _get_file_type(input_file: str) -> str:
         raise ValueError("Unrecognized extension %s" % file_extension)
 
 
-def save_to_disk(dataset: Any, filename: str, compress: int = 3):
+def save_to_disk(dataset: Any, filename: str, compress: int = 3, overwrite: bool = False):
     """Save a dataset to file.
 
     Parameters
     ----------
-    dataset: str
-        A data saved
+    dataset: Any
+        The data to be saved.
     filename: str
-        Path to save data.
+        Path to save data. Expected to be a file path ending in '.joblib' or '.npy'.
     compress: int, default 3
         The compress option when dumping joblib file.
+    overwrite: bool, default False
+        Whether to overwrite an existing file without warning.
     """
+    path = Path(filename)
+
+    if path.exists():
+        # If it's a directory, this is a misuse of the API
+        if path.is_dir():
+            raise IsADirectoryError(
+                f"Expected a file path but got directory '{filename}'. "
+                "Please provide a file path (e.g. 'path/to/file.joblib')."
+            )
+        # It's a file; warn before overwriting unless overwrite=True
+        elif not overwrite:
+            warnings.warn(
+                f"File '{filename}' already exists and will be overwritten. "
+                "Pass overwrite=True to suppress this warning.",
+                UserWarning,
+            )
+
     if filename.endswith('.joblib'):
         joblib.dump(dataset, filename, compress=compress)
     elif filename.endswith('.npy'):
         np.save(filename, dataset)
     else:
         raise ValueError("Filename with unsupported extension: %s" % filename)
-
 
 def load_from_disk(filename: str) -> Any:
     """Load a dataset from file.
