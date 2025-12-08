@@ -45,6 +45,8 @@ On the other hand, :code:`MolGraphConvFeaturizer` is used
 with graph convolution models which inherited :code:`TorchModel`.
 :code:`MolGanFeaturizer` will be used with MolGAN model,
 a GAN model for generation of small molecules.
+:code:`WeisfeilerLehmanScoringModelFeaturizer` is used with Weisfeiler-Lehman
+graph convolution model and reaction score prediction model to predict the change in bond order for a reactant molecules.
 
 ConvMolFeaturizer
 *****************
@@ -64,6 +66,12 @@ MolGanFeaturizer
 ****************
 
 .. autoclass:: deepchem.feat.MolGanFeaturizer
+  :members:
+  :inherited-members:
+
+WeisfeilerLehmanScoringModelFeaturizer
+****************************************
+.. autoclass:: deepchem.feat.WeisfeilerLehmanScoringModelFeaturizer
   :members:
   :inherited-members:
 
