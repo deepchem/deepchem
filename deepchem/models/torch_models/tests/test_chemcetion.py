@@ -103,18 +103,20 @@ def test_chemception_forward():
         output_layer = components['fc_classification']
     else:
         output_layer = components['fc_regression']
-    input = image.permute(0, 3, 1, 2) # to convert from channel last  (N,H,W,C) to pytorch default channel first (N,C,H,W) representation
+    input = image.permute(
+        0, 3, 1, 2
+    )  # to convert from channel last  (N,H,W,C) to pytorch default channel first (N,C,H,W) representation
     model = ChemCeption(stem=components['stem'],
-                           inceptionA=components['inceptionA'],
-                           reductionA=components['reductionA'],
-                           inceptionB=components['inceptionB'],
-                           reductionB=components['reductionB'],
-                           inceptionC=components['inceptionC'],
-                           global_avg_pool=components['global_avg_pool'],
-                           output_layer=output_layer,
-                           mode=mode,
-                           n_tasks=n_tasks,
-                           n_classes=n_classes)
+                        inceptionA=components['inceptionA'],
+                        reductionA=components['reductionA'],
+                        inceptionB=components['inceptionB'],
+                        reductionB=components['reductionB'],
+                        inceptionC=components['inceptionC'],
+                        global_avg_pool=components['global_avg_pool'],
+                        output_layer=output_layer,
+                        mode=mode,
+                        n_tasks=n_tasks,
+                        n_classes=n_classes)
     output = model(input)
 
     # preditions
@@ -179,7 +181,7 @@ def test_chemception_classification_overfit():
 
 @pytest.mark.torch
 def test_chemception_compare_with_tf_impl():
-    """Compare the ouputs of tensorflow and torch implementations when model parameters are equal"""
+    """Compare the ouputs of tensorflow and torch 1implementations when model parameters are equal"""
     from deepchem.models.torch_models import ChemCeptionModel
     tf_weights_dir = os.path.join(os.path.dirname(__file__),
                                           "assets/chemception/")

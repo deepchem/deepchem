@@ -1,8 +1,8 @@
 import numpy as np
+import scipy
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torchvision import transforms
 import logging
 from typing import Dict, Type, Optional, Literal, Sequence
 from deepchem.utils.typing import OneOrMany
@@ -90,6 +90,11 @@ class ChemCeption(nn.Module):
     ...                       n_tasks=n_tasks,
     ...                       n_classes=n_classes)
     >>> output = model(input)
+
+    References
+    ----------
+    .. [1] Goh et al. "Chemception: A Deep Neural Network with Minimal Chemistry Knowledge Matches
+        the Performance of Expert-developed QSAR/QSPR Models" (https://arxiv.org/abs/1706.06689)
     """
 
     def __init__(self,
@@ -486,7 +491,6 @@ class ChemCeptionModel(ModularTorchModel):
                     yield ([X_b], [y_b], [w_b])
 
             else:
-                augment_fn = transforms.v2.RandomRotation(180)
                 for (X_b, y_b, w_b,
                      ids_b) in dataset.iterbatches(batch_size=self.batch_size,
                                                    deterministic=deterministic,
@@ -497,7 +501,18 @@ class ChemCeptionModel(ModularTorchModel):
                             -1] == in_channels:
                         X_b = np.transpose(X_b, (0, 3, 1, 2))
 
-                    X_b = augment_fn(X_b)
+                    N = len(X_b)
+                    angles = np.random.uniform(-180, 180, size=N)
+                    X_b = np.stack([
+                        scipy.ndimage.rotate(x,
+                                             angle=a,
+                                             axes=(2, 3),
+                                             reshape=False,
+                                             order=1,
+                                             mode='nearest')
+                        for x, a in zip(X_b, angles)
+                    ],
+                                   axis=0)
 
                     if self.mode == 'classification':
                         y_b = to_one_hot(y_b.flatten(), self.n_classes).reshape(
