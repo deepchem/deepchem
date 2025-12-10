@@ -506,7 +506,7 @@ class ChemCeptionModel(ModularTorchModel):
                     X_b = np.stack([
                         scipy.ndimage.rotate(x,
                                              angle=a,
-                                             axes=(2, 3),
+                                             axes=(1, 2),
                                              reshape=False,
                                              order=1,
                                              mode='nearest')
