@@ -52,7 +52,7 @@ def get_dataset(mode="classification",
 
 @pytest.mark.torch
 def test_chemception_forward():
-    """To verify that the underlying model class for ChemCeption Modular behaves correctly by examining its output dimensions."""
+    """To check that the model class beneath ChemCeptionModel is working properly by ensuring its output has the expected shape"""
     import torch.nn as nn
     from deepchem.models.torch_models.chemnet_layers import Stem, InceptionResnetA, InceptionResnetB, InceptionResnetC, ReductionA, ReductionB
     from deepchem.models.torch_models import ChemCeption
@@ -184,9 +184,10 @@ def test_chemception_compare_with_tf_impl():
     """Compare the ouputs of tensorflow and torch 1implementations when model parameters are equal"""
     from deepchem.models.torch_models import ChemCeptionModel
     tf_weights_dir = os.path.join(os.path.dirname(__file__),
-                                          "assets/chemception/")
-    tf_regression_output = os.path.join(os.path.dirname(__file__),
-                                          "assets/chemception/tf_regression_output.npy")
+                                  "assets/chemception/")
+    tf_regression_output = os.path.join(
+        os.path.dirname(__file__),
+        "assets/chemception/tf_regression_output.npy")
 
     n_tasks = 5
     mode = 'regression'
