@@ -318,7 +318,11 @@ def test_chemception_load_from_pretrained():
                 model_ft.model.get_parameter(param_name).detach().cpu())
 
     # loading pretrained weights
-    model_ft.load_from_pretrained(model_dir=model_pt.model_dir)
+    model_ft.load_from_pretrained(source_model=model_pt,
+                                  components=[
+                                      'stem', 'inceptionA', 'inceptionB',
+                                      'inceptionC', 'reductionA', 'reductionB'
+                                  ])
 
     # asserting that weight matches after loading
     for param_name in model_pt.model.state_dict().keys():
