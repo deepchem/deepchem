@@ -291,6 +291,11 @@ def test_chemception_load_from_pretrained():
                                 img_spec=img_spec,
                                 img_size=img_size,
                                 n_tasks=n_tasks)
+    dataset_ft, _ = get_dataset(mode='regression',
+                                featurizer="smiles2img",
+                                img_spec=img_spec,
+                                img_size=img_size,
+                                n_tasks=n_tasks)
 
     model_pt = ChemCeptionModel(n_tasks=n_tasks,
                                 img_spec=img_spec,
@@ -321,3 +326,5 @@ def test_chemception_load_from_pretrained():
             assert np.allclose(
                 model_pt.model.get_parameter(param_name).detach().cpu(),
                 model_ft.model.get_parameter(param_name).detach().cpu())
+
+    model_ft.fit(dataset_ft, nb_epoch=1)
