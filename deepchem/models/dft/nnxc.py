@@ -1,15 +1,8 @@
 from abc import abstractmethod
 from typing import Union, List
 import torch
-import warnings
-try:
-    from dqc.utils.datastruct import ValGrad
-    from deepchem.utils.dftutils import SpinParam
-    from dqc.api.getxc import get_xc
-    from dqc.xc.base_xc import BaseXC
-    from dqc.utils.safeops import safenorm, safepow
-except Exception as e:
-    warnings.warn(f"Import error: {e}")
+from deepchem.utils import safenorm, safepow
+from deepchem.utils.dft_utils import ValGrad, SpinParam, get_xc, BaseXC
 
 
 class BaseNNXC(BaseXC, torch.nn.Module):
@@ -26,7 +19,8 @@ class BaseNNXC(BaseXC, torch.nn.Module):
     an external potential. Whereas in DFT, instead of the many-body wave
     function, the density (n(r)) is a function of three spatial coordinates.
 
-    The many-body electronic ground state can be described using single-particle    equations and an effective potential thanks to the Kohn-Sham theory. The
+    The many-body electronic ground state can be described using single-particle
+    equations and an effective potential thanks to the Kohn-Sham theory. The
     exchange-correlation potential, which accounts for many-body effects, the
     Hartree potential, which describes the electrostatic electron-electron
     interaction, and the ionic potential resulting from the atomic cores make
@@ -34,13 +28,15 @@ class BaseNNXC(BaseXC, torch.nn.Module):
 
     The difference between the total exact energy and the total of the rest
     of the energy terms (such as kinetic energy), is known as the
-    exchange-correlation energy. The exchange-correlation functional is obtained    by calculating the functional derivate of the XC energy w.r.t the
+    exchange-correlation energy. The exchange-correlation functional is obtained
+    by calculating the functional derivate of the XC energy w.r.t the
     electron density function. In this model, we are trying to build a neural
     network that can be trained to calculate an exchange-correlation functional
     based on a specific set of molecules/atoms/ions.
 
     This base class can be used to build layers such as the NNLDA layer, where
-    the exchange correlation functional is trained based on the pre-defined LDA     class of functionals. The methods in this class take the electron density as
+    the exchange correlation functional is trained based on the pre-defined LDA 
+    class of functionals. The methods in this class take the electron density as
     the input and transform it accordingly. For example; The NNLDA layer
     requires only the density to build an NNXC whereas a GGA based model would
     require the density gradient as well. This method also takes polarization
@@ -152,7 +148,8 @@ class NNLDA(BaseNNXC):
         -------
         res
             Neural network output by calculating total density (n) and the spin
-            density (xi). The shape of res is (ninp , ) where ninp is the number            of layers in nnmodel ; which is user defined.
+            density (xi). The shape of res is (ninp , ) where ninp is the number
+            of layers in nnmodel ; which is user defined.
         """
         if isinstance(densinfo, ValGrad):  # unpolarized case
             n = densinfo.value.unsqueeze(-1)  # (*BD, nr, 1)
@@ -253,7 +250,10 @@ class NNPBE(BaseNNXC):
         -------
         res
             Neural network output by calculating total density (n) and the spin
-            density (xi). The shape of res is (ninp , ) where ninp is the number            of layers in nnmodel ; which is 3 for NNPBE. The shape of the output is (....,1) and it represents the energy density per density per unit volume.
+            density (xi). The shape of res is (ninp , ) where ninp is the number
+            of layers in nnmodel ; which is 3 for NNPBE. The shape of the output
+            is (....,1) and it represents the energy density per density per unit
+            volume.
         """
         # densinfo.value: (*BD, nr)
         # densinfo.grad : (*BD, nr, 3)
@@ -357,6 +357,7 @@ class HybridXC(BaseNNXC):
         This method determines the type of model to be used, to train the
         neural network. Currently we only support an LDA based model and will
         implement more in subsequent iterations.
+
         Returns
         -------
         xc.family
@@ -367,6 +368,7 @@ class HybridXC(BaseNNXC):
             self, densinfo: Union[ValGrad, SpinParam[ValGrad]]) -> torch.Tensor:
         """Get electron density from xc
         This function reflects eqn. 4 in the `paper <https://arxiv.org/abs/2102.04229>_`.
+
         Parameters
         ----------
         densinfo: Union[ValGrad, SpinParam[ValGrad]]
