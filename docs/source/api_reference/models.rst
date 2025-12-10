@@ -694,7 +694,7 @@ and Distributed Data Parallel (DDP). It also performs prediction, evaluation, an
 enhanced model training and deployment capabilities. You can wrap an arbitrary :code:`TorchModel` in a 
 :code:`LightningTorchModel` object.
 
-.. autoclass:: deepchem.models.lightning.LightningTorchModel
+.. autoclass:: deepchem.models.dc_lightning.LightningTorchModel
   :members:
 
 Jax Models

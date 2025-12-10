@@ -1,7 +1,7 @@
 import deepchem as dc
 from deepchem.models import GCNModel
-from deepchem.models.lightning.dc_lightning_module import DCLightningModule
-from deepchem.models.lightning.dc_lightning_dataset_module import DCLightningDatasetModule, collate_dataset_wrapper
+from deepchem.models.dc_lightning.dc_lightning_module import DCLightningModule
+from deepchem.models.dc_lightning.dc_lightning_dataset_module import DCLightningDatasetModule, collate_dataset_wrapper
 from deepchem.feat import MolGraphConvFeaturizer
 import pytorch_lightning as pl
 import argparse

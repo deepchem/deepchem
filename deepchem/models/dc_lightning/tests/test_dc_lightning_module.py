@@ -4,7 +4,7 @@ import numpy as np
 
 try:
     from deepchem.models import GCNModel, MultitaskClassifier
-    from deepchem.models.lightning.dc_lightning_module import DCLightningModule
+    from deepchem.models.dc_lightning.dc_lightning_module import DCLightningModule
     from deepchem.models.lightning.dc_lightning_dataset_module import DCLightningDatasetModule, collate_dataset_wrapper
     from deepchem.metrics import to_one_hot
     import lightning as L  # noqa

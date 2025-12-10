@@ -1,6 +1,6 @@
 from deepchem.data import Dataset
-from deepchem.models.lightning.dc_lightning_dataset_module import DCLightningDatasetModule
-from deepchem.models.lightning.dc_lightning_module import DCLightningModule
+from deepchem.models.dc_lightning.dc_lightning_dataset_module import DCLightningDatasetModule
+from deepchem.models.dc_lightning.dc_lightning_module import DCLightningModule
 from deepchem.models.torch_models import TorchModel
 from deepchem.trans import Transformer
 from deepchem.utils.typing import OneOrMany
@@ -70,7 +70,7 @@ class LightningTorchModel(Model):
         Examples
         --------
         >>> import deepchem as dc
-        >>> from deepchem.models.lightning.trainer import LightningTorchModel
+        >>> from deepchem.models.dc_lightning.trainer import LightningTorchModel
         >>> tasks, datasets, _ = dc.molnet.load_clintox()
         >>> _, valid_dataset, _ = datasets
         >>> model = dc.models.MultitaskClassifier(

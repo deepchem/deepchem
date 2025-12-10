@@ -12,7 +12,7 @@ except ImportError:
 
 try:
     import lightning as L
-    from deepchem.models.lightning.trainer import LightningTorchModel
+    from deepchem.models.dc_lightning.trainer import LightningTorchModel
     PYTORCH_LIGHTNING_IMPORT_FAILED = False
 except ImportError:
     PYTORCH_LIGHTNING_IMPORT_FAILED = True
