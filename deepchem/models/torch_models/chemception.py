@@ -249,7 +249,11 @@ class ChemCeptionModel(ModularTorchModel):
     ...     learning_rate=1e-4,
     ...     model_dir=tempdir.name
     ... )
-    >>> finetune_model.load_from_pretrained(model_dir=tempdir.name)
+    >>> finetune_model.load_from_pretrained(source_model=pretrain_model,
+    ...                                 components=[
+    ...                                  'stem', 'inceptionA', 'inceptionB',
+    ...                                  'inceptionC', 'reductionA', 'reductionB'
+    ...                              ])
     >>> finetuning_loss = finetune_model.fit(dataset_ft,nb_epoch=1)
     >>> predictions = finetune_model.predict(dataset_ft)
     """
