@@ -127,10 +127,8 @@ class ChemCeption(nn.Module):
             Inception-ResNet-C block from the Inception-ResNet architecture.
         global_avg_pool: nn.Module
             2D Average Pooling layer
-        fc_classification: nn.Module
-            A fully connected neural network to be used as the prediction head for classification
-        fc_regression: nn.Module
-            A fully connected neural network to be used as the prediction head for regression
+        output_layer: nn.Module
+            A fully connected layer for regression/classification task
         mode: str, default regression
             The model type, 'classification' or 'regression'.
         n_tasks: int, default 10
@@ -154,6 +152,20 @@ class ChemCeption(nn.Module):
         self.output_layer = output_layer
 
     def forward(self, x: torch.Tensor) -> OneOrMany[torch.Tensor]:
+        """
+        Execute a forward pass through the complete Chemception model
+
+        Parameters
+        ----------
+        x: torch.Tensor
+            Input images of shape (n_images, channels, height, width)
+
+        Returns
+        -------
+        OneOrMany[torch.Tensor]
+           Output predictions corresponding to the provided images.
+           Shape of regression output is (n_images, n_tasks, 1) and classification output is (n_images, n_tasks, 2).
+        """
         x = self.stem(x)
         x = self.inception_resnet_A(x)
         x = self.reduction_A(x)
