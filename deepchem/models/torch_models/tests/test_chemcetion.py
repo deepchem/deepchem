@@ -69,22 +69,22 @@ def test_chemception_forward():
     components = {}
     components['stem'] = Stem(in_channels=in_channels,
                               out_channels=base_filters)
-    components['inceptionA'] = nn.Sequential(*[
+    components['inception_resnet_A'] = nn.Sequential(*[
         InceptionResnetA(base_filters, base_filters)
         for _ in range(DEFAULT_INCEPTION_BLOCKS['A'])
     ])
-    components['reductionA'] = ReductionA(base_filters, base_filters)
+    components['reduction_A'] = ReductionA(base_filters, base_filters)
 
-    components['inceptionB'] = nn.Sequential(*[
+    components['inception_resnet_B'] = nn.Sequential(*[
         InceptionResnetB(4 * base_filters, base_filters)
         for _ in range(DEFAULT_INCEPTION_BLOCKS['B'])
     ])
-    components['reductionB'] = ReductionB(4 * base_filters, base_filters)
+    components['reduction_B'] = ReductionB(4 * base_filters, base_filters)
 
     current_channels = int(
         torch.floor(torch.tensor(7.875 * base_filters)).item())
 
-    components['inceptionC'] = nn.Sequential(*[
+    components['inception_resnet_C'] = nn.Sequential(*[
         InceptionResnetC(current_channels, base_filters)
         for _ in range(DEFAULT_INCEPTION_BLOCKS['C'])
     ])
@@ -107,11 +107,11 @@ def test_chemception_forward():
         0, 3, 1, 2
     )  # to convert from channel last  (N,H,W,C) to pytorch default channel first (N,C,H,W) representation
     model = ChemCeption(stem=components['stem'],
-                        inceptionA=components['inceptionA'],
-                        reductionA=components['reductionA'],
-                        inceptionB=components['inceptionB'],
-                        reductionB=components['reductionB'],
-                        inceptionC=components['inceptionC'],
+                        inception_resnet_A=components['inception_resnet_A'],
+                        reduction_A=components['reduction_A'],
+                        inception_resnet_B=components['inception_resnet_B'],
+                        reduction_B=components['reduction_B'],
+                        inception_resnet_C=components['inception_resnet_C'],
                         global_avg_pool=components['global_avg_pool'],
                         output_layer=output_layer,
                         mode=mode,
@@ -203,8 +203,8 @@ def test_chemception_compare_with_tf_impl():
                                    mode=mode)
 
     layers = [
-        'stem', 'inceptionA', 'reductionA', 'inceptionB', 'reductionB',
-        'inceptionC', 'output_layer'
+        'stem', 'inception_resnet_A', 'reduction_A', 'inception_resnet_B',
+        'reduction_B', 'inception_resnet_C', 'output_layer'
     ]
 
     for layer_name in layers:
@@ -235,7 +235,10 @@ def test_chemception_compare_with_tf_impl():
     tf_model_predictions = np.load(tf_regression_output)
     torch_model_predictions = torch_model.predict(dataset)
 
-    assert np.allclose(tf_model_predictions, torch_model_predictions, atol=1e-2)
+    assert np.allclose(tf_model_predictions,
+                       torch_model_predictions,
+                       atol=1e-6,
+                       rtol=1e-5)
 
 
 @pytest.mark.torch
@@ -320,8 +323,10 @@ def test_chemception_load_from_pretrained():
     # loading pretrained weights
     model_ft.load_from_pretrained(source_model=model_pt,
                                   components=[
-                                      'stem', 'inceptionA', 'inceptionB',
-                                      'inceptionC', 'reductionA', 'reductionB'
+                                      'stem', 'inception_resnet_A',
+                                      'inception_resnet_B',
+                                      'inception_resnet_C', 'reduction_A',
+                                      'reduction_B'
                                   ])
 
     # asserting that weight matches after loading

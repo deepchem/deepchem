@@ -58,12 +58,12 @@ class ChemCeption(nn.Module):
     >>> mode = 'classification'
     >>> components = {}
     >>> components['stem'] = Stem(in_channels=in_channels, out_channels=base_filters)
-    >>> components['inceptionA'] = nn.Sequential(*[InceptionResnetA(base_filters, base_filters) for _ in range(DEFAULT_INCEPTION_BLOCKS['A'])])
-    >>> components['reductionA'] = ReductionA(base_filters, base_filters)
-    >>> components['inceptionB'] = nn.Sequential(*[InceptionResnetB(4*base_filters, base_filters) for _ in range(DEFAULT_INCEPTION_BLOCKS['B'])])
-    >>> components['reductionB'] = ReductionB(4 * base_filters, base_filters)
+    >>> components['inception_resnet_A'] = nn.Sequential(*[InceptionResnetA(base_filters, base_filters) for _ in range(DEFAULT_INCEPTION_BLOCKS['A'])])
+    >>> components['reduction_A'] = ReductionA(base_filters, base_filters)
+    >>> components['inception_resnet_B'] = nn.Sequential(*[InceptionResnetB(4*base_filters, base_filters) for _ in range(DEFAULT_INCEPTION_BLOCKS['B'])])
+    >>> components['reduction_B'] = ReductionB(4 * base_filters, base_filters)
     >>> current_channels = int(torch.floor(torch.tensor(7.875 * base_filters)).item())
-    >>> components['inceptionC'] = nn.Sequential(*[InceptionResnetC(current_channels, base_filters) for _ in range(DEFAULT_INCEPTION_BLOCKS['C'])])
+    >>> components['inception_resnet_C'] = nn.Sequential(*[InceptionResnetC(current_channels, base_filters) for _ in range(DEFAULT_INCEPTION_BLOCKS['C'])])
     >>> components['global_avg_pool'] = nn.AdaptiveAvgPool2d(1)
     >>> if mode == "classification":
     ...     components['fc_classification'] = nn.Linear(current_channels, n_tasks * n_classes)
@@ -79,11 +79,11 @@ class ChemCeption(nn.Module):
     ...        output_layer = components['fc_regression']
     >>> input = image.permute(0, 3, 1, 2) # to convert from channel last  (N,H,W,C) to pytorch default channel first (N,C,H,W) representation
     >>> model = ChemCeption(stem=components['stem'],
-    ...                       inceptionA=components['inceptionA'],
-    ...                       reductionA=components['reductionA'],
-    ...                       inceptionB=components['inceptionB'],
-    ...                       reductionB=components['reductionB'],
-    ...                       inceptionC=components['inceptionC'],
+    ...                       inception_resnet_A=components['inception_resnet_A'],
+    ...                       reduction_A=components['reduction_A'],
+    ...                       inception_resnet_B=components['inception_resnet_B'],
+    ...                       reduction_B=components['reduction_B'],
+    ...                       inception_resnet_C=components['inception_resnet_C'],
     ...                       global_avg_pool=components['global_avg_pool'],
     ...                       output_layer=output_layer,
     ...                       mode=mode,
@@ -99,11 +99,11 @@ class ChemCeption(nn.Module):
 
     def __init__(self,
                  stem: nn.Module,
-                 inceptionA: nn.Module,
-                 reductionA: nn.Module,
-                 inceptionB: nn.Module,
-                 reductionB: nn.Module,
-                 inceptionC: nn.Module,
+                 inception_resnet_A: nn.Module,
+                 reduction_A: nn.Module,
+                 inception_resnet_B: nn.Module,
+                 reduction_B: nn.Module,
+                 inception_resnet_C: nn.Module,
                  global_avg_pool: nn.Module,
                  output_layer: nn.Module,
                  mode: str = "classification",
@@ -115,15 +115,15 @@ class ChemCeption(nn.Module):
         ----------
         stem: nn.Module
             Stem layer that serves as the initial processing block in ChemCeption.
-        inceptionA: nn.Module
+        inception_resnet_A: nn.Module
             Inception-ResNet-A block from the Inception-ResNet architecture.
-        reductionA: nn.Module
+        reduction_A: nn.Module
             Reduction-A block from the Inception-ResNet architecture.
-        inceptionB: nn.Module
+        inception_resnet_B: nn.Module
             Inception-ResNet-B block from the Inception-ResNet architecture.
-        reductionB: nn.Module
+        reduction_B: nn.Module
             Reduction-B block from the Inception-ResNet architecture.
-        inceptionC:
+        inception_resnet_C:
             Inception-ResNet-C block from the Inception-ResNet architecture.
         global_avg_pool: nn.Module
             2D Average Pooling layer
@@ -145,21 +145,21 @@ class ChemCeption(nn.Module):
         self.n_classes = n_classes
 
         self.stem = stem
-        self.inceptionA = inceptionA
-        self.reductionA = reductionA
-        self.inceptionB = inceptionB
-        self.reductionB = reductionB
-        self.inceptionC = inceptionC
+        self.inception_resnet_A = inception_resnet_A
+        self.reduction_A = reduction_A
+        self.inception_resnet_B = inception_resnet_B
+        self.reduction_B = reduction_B
+        self.inception_resnet_C = inception_resnet_C
         self.global_avg_pool = global_avg_pool
         self.output_layer = output_layer
 
     def forward(self, x: torch.Tensor) -> OneOrMany[torch.Tensor]:
         x = self.stem(x)
-        x = self.inceptionA(x)
-        x = self.reductionA(x)
-        x = self.inceptionB(x)
-        x = self.reductionB(x)
-        x = self.inceptionC(x)
+        x = self.inception_resnet_A(x)
+        x = self.reduction_A(x)
+        x = self.inception_resnet_B(x)
+        x = self.reduction_B(x)
+        x = self.inception_resnet_C(x)
         x = self.global_avg_pool(x)
         x = torch.flatten(x, 1)
         x = self.output_layer(x)
@@ -251,8 +251,8 @@ class ChemCeptionModel(ModularTorchModel):
     ... )
     >>> finetune_model.load_from_pretrained(source_model=pretrain_model,
     ...                                 components=[
-    ...                                  'stem', 'inceptionA', 'inceptionB',
-    ...                                  'inceptionC', 'reductionA', 'reductionB'
+    ...                                  'stem', 'inception_resnet_A', 'inception_resnet_B',
+    ...                                  'inception_resnet_C', 'reduction_A', 'reduction_B'
     ...                              ])
     >>> finetuning_loss = finetune_model.fit(dataset_ft,nb_epoch=1)
     >>> predictions = finetune_model.predict(dataset_ft)
@@ -326,11 +326,11 @@ class ChemCeptionModel(ModularTorchModel):
         components : dict of str -> nn.Module
             Dictionary containing the model components:
             - 'stem': initial convolutional stem
-            - 'inceptionA': Inception-ResNet-A block stack
-            - 'reductionA': Reduction-A layer
-            - 'inceptionB': Inception-ResNet-B block stack
-            - 'reductionB': Reduction-B layer
-            - 'inceptionC': Inception-ResNet-C block stack
+            - 'inception_resnet_A': Inception-ResNet-A block stack
+            - 'reduction_A': Reduction-A layer
+            - 'inception_resnet_B': Inception-ResNet-B block stack
+            - 'reduction_B': Reduction-B layer
+            - 'inception_resnet_C': Inception-ResNet-C block stack
             - 'global_avg_pool': Global average pooling
             - 'output_layer': Final linear projection
         """
@@ -341,19 +341,19 @@ class ChemCeptionModel(ModularTorchModel):
         components['stem'] = Stem(in_channels=in_channels,
                                   out_channels=self.base_filters)
 
-        components['inceptionA'] = self.build_inception_module(
+        components['inception_resnet_A'] = self.build_inception_module(
             InceptionResnetA, "A", self.base_filters, self.base_filters)
-        components['reductionA'] = ReductionA(self.base_filters,
-                                              self.base_filters)
+        components['reduction_A'] = ReductionA(self.base_filters,
+                                               self.base_filters)
 
-        components['inceptionB'] = self.build_inception_module(
+        components['inception_resnet_B'] = self.build_inception_module(
             InceptionResnetB, "B", 4 * self.base_filters, self.base_filters)
-        components['reductionB'] = ReductionB(4 * self.base_filters,
-                                              self.base_filters)
+        components['reduction_B'] = ReductionB(4 * self.base_filters,
+                                               self.base_filters)
 
         current_channels = int(
             torch.floor(torch.tensor(7.875 * self.base_filters)).item())
-        components['inceptionC'] = self.build_inception_module(
+        components['inception_resnet_C'] = self.build_inception_module(
             InceptionResnetC, "C", current_channels, self.base_filters)
         components['global_avg_pool'] = nn.AdaptiveAvgPool2d(1)
 
@@ -394,17 +394,18 @@ class ChemCeptionModel(ModularTorchModel):
             output_layer = self.components['fc_classification']
         else:
             output_layer = self.components['fc_regression']
-        return ChemCeption(stem=self.components['stem'],
-                           inceptionA=self.components['inceptionA'],
-                           reductionA=self.components['reductionA'],
-                           inceptionB=self.components['inceptionB'],
-                           reductionB=self.components['reductionB'],
-                           inceptionC=self.components['inceptionC'],
-                           global_avg_pool=self.components['global_avg_pool'],
-                           output_layer=output_layer,
-                           mode=self.mode,
-                           n_tasks=self.n_tasks,
-                           n_classes=self.n_classes)
+        return ChemCeption(
+            stem=self.components['stem'],
+            inception_resnet_A=self.components['inception_resnet_A'],
+            reduction_A=self.components['reduction_A'],
+            inception_resnet_B=self.components['inception_resnet_B'],
+            reduction_B=self.components['reduction_B'],
+            inception_resnet_C=self.components['inception_resnet_C'],
+            global_avg_pool=self.components['global_avg_pool'],
+            output_layer=output_layer,
+            mode=self.mode,
+            n_tasks=self.n_tasks,
+            n_classes=self.n_classes)
 
     def loss_func(self, inputs: OneOrMany[torch.Tensor], labels: Sequence,
                   weights: Sequence) -> torch.Tensor:
