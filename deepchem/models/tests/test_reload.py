@@ -294,7 +294,7 @@ def test_robust_multitask_classification_reload():
 
 @pytest.mark.tensorflow
 def test_atomic_conv_model_reload():
-    from deepchem.models.atomic_conv import AtomicConvModel
+    from deepchem.models.tf_models.atomic_conv import AtomicConvModel
     from deepchem.data import NumpyDataset
     model_dir = tempfile.mkdtemp()
     batch_size = 1

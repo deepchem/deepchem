@@ -11,7 +11,7 @@ from deepchem.feat import AtomicConvFeaturizer
 
 try:
     import tensorflow as tf  # noqa: F401
-    from deepchem.models import atomic_conv
+    from deepchem.models.tf_models import atomic_conv
     has_tensorflow = True
 except:
     has_tensorflow = False
