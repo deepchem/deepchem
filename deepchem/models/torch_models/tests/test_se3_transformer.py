@@ -881,22 +881,16 @@ def test_se3_transformer_forward():
     assert len(features) == 2
 
     labels = np.array([[
-        4, 0.0, 35.6100361, 35.6100361, 0.0, 16.28, -0.2845, 0.0506, 0.3351,
-        59.5248, 0.026841, -77.308427, -77.305527, -77.304583, -77.327429, 8.574
-    ],
-                       [
-                           5, 0.0, 44.593883, 44.593883, 2.8937, 12.99, -0.3604,
-                           0.0191, 0.3796, 48.7476, 0.016601, -93.411888,
-                           -93.40937, -93.408425, -93.431246, 6.278
-                       ]],
-                      dtype=np.float32)
+        -0.2845,
+    ], [
+        -0.3604,
+    ]], dtype=np.float32)
 
     weights = np.ones_like(labels, dtype=np.float32)
 
     dataset = dc.data.NumpyDataset(X=features, y=labels, w=weights)
 
     model = SE3TransformerModel(
-        task='homo',
         num_layers=7,
         atom_feature_size=6,
         num_workers=4,
@@ -911,12 +905,11 @@ def test_se3_transformer_forward():
 
     _ = model.fit(dataset, nb_epoch=1)
     preds = model.predict(dataset).reshape(-1)
-    labels_homo = labels[:, 6]
 
     if os.path.exists("cache"):
         shutil.rmtree("cache")
 
-    assert preds.shape == labels_homo.shape
+    assert preds.shape == labels.shape
 
 
 @pytest.mark.torch
@@ -938,22 +931,16 @@ def test_se3_transformer_overfitting():
     assert len(features) == 2
 
     labels = np.array([[
-        4, 0.0, 35.6100361, 35.6100361, 0.0, 16.28, -0.2845, 0.0506, 0.3351,
-        59.5248, 0.026841, -77.308427, -77.305527, -77.304583, -77.327429, 8.574
-    ],
-                       [
-                           5, 0.0, 44.593883, 44.593883, 2.8937, 12.99, -0.3604,
-                           0.0191, 0.3796, 48.7476, 0.016601, -93.411888,
-                           -93.40937, -93.408425, -93.431246, 6.278
-                       ]],
-                      dtype=np.float32)
+        -0.2845,
+    ], [
+        -0.3604,
+    ]], dtype=np.float32)
 
     weights = np.ones_like(labels, dtype=np.float32)
 
     dataset = dc.data.NumpyDataset(X=features, y=labels, w=weights)
 
     model = SE3TransformerModel(
-        task='homo',
         num_layers=7,
         atom_feature_size=6,
         num_workers=4,
@@ -968,13 +955,12 @@ def test_se3_transformer_overfitting():
 
     loss = model.fit(dataset, nb_epoch=200)
     preds = model.predict(dataset).reshape(-1)
-    labels_homo = labels[:, 6]
 
     if os.path.exists("cache"):
         shutil.rmtree("cache")
 
     assert loss < 1e-02
-    assert np.allclose(labels_homo, preds, atol=0.1)
+    assert np.allclose(labels, preds, atol=0.1)
 
 
 @pytest.mark.torch
@@ -996,22 +982,16 @@ def test_se3_transformer_equivariance():
     assert len(features) == 2
 
     labels = np.array([[
-        4, 0.0, 35.6100361, 35.6100361, 0.0, 16.28, -0.2845, 0.0506, 0.3351,
-        59.5248, 0.026841, -77.308427, -77.305527, -77.304583, -77.327429, 8.574
-    ],
-                       [
-                           5, 0.0, 44.593883, 44.593883, 2.8937, 12.99, -0.3604,
-                           0.0191, 0.3796, 48.7476, 0.016601, -93.411888,
-                           -93.40937, -93.408425, -93.431246, 6.278
-                       ]],
-                      dtype=np.float32)
+        -0.2845,
+    ], [
+        -0.3604,
+    ]], dtype=np.float32)
 
     weights = np.ones_like(labels, dtype=np.float32)
 
     dataset = dc.data.NumpyDataset(X=features, y=labels, w=weights)
 
     model = SE3TransformerModel(
-        task='homo',
         num_layers=7,
         atom_feature_size=6,
         num_workers=4,
@@ -1065,15 +1045,10 @@ def test_se3_transformer_save_restore():
     assert len(features) == 2
 
     labels = np.array([[
-        4, 0.0, 35.6100361, 35.6100361, 0.0, 16.28, -0.2845, 0.0506, 0.3351,
-        59.5248, 0.026841, -77.308427, -77.305527, -77.304583, -77.327429, 8.574
-    ],
-                       [
-                           5, 0.0, 44.593883, 44.593883, 2.8937, 12.99, -0.3604,
-                           0.0191, 0.3796, 48.7476, 0.016601, -93.411888,
-                           -93.40937, -93.408425, -93.431246, 6.278
-                       ]],
-                      dtype=np.float32)
+        -0.2845,
+    ], [
+        -0.3604,
+    ]], dtype=np.float32)
 
     weights = np.ones_like(labels, dtype=np.float32)
 
@@ -1081,7 +1056,6 @@ def test_se3_transformer_save_restore():
     model_dir = tempfile.mkdtemp()
 
     model = SE3TransformerModel(
-        task='homo',
         num_layers=7,
         atom_feature_size=6,
         num_workers=4,
@@ -1103,7 +1077,6 @@ def test_se3_transformer_save_restore():
     # Save and restore model, then compare predictions
     model.save()
     reloaded_model = SE3TransformerModel(
-        task='homo',
         num_layers=7,
         atom_feature_size=6,
         num_workers=4,

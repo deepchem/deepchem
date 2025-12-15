@@ -221,9 +221,6 @@ class SE3TransformerModel(TorchModel):
         Number of DGL / DataLoader worker processes used for batching and featurization.
     num_channels : int
         Number of channels for the hidden layers.
-    task : str or list of str, optional (default='homo')
-        Target property (or list of target properties) to predict.
-        Only the corresponding label columns will be used for training.
     num_nlayers : int, optional (default=1)
         Number of layers for the residual attention blocks.
     num_degrees : int, optional (default=4)
@@ -254,11 +251,10 @@ class SE3TransformerModel(TorchModel):
     >>> featurizer = dc.feat.EquivariantGraphFeaturizer(fully_connected=False, embeded=True)
     >>> mols_g = [featurizer.featurize(Chem.MolFromSmiles(mol))[0] for mol in smiles]
     >>> # Extract SE(3)-equivariant features
-    >>> labels = np.random.rand(len(mols_g), 12)
+    >>> labels = np.random.rand(len(mols_g), 1)
     >>> weights = np.ones_like(labels)
     >>> dataset = dc.data.NumpyDataset(X=mols_g, y=labels, w=weights)
     >>> model = SE3TransformerModel(
-    ...    task='homo',
     ...    num_layers=7,
     ...    atom_feature_size=6,
     ...    num_workers=4,
@@ -280,7 +276,6 @@ class SE3TransformerModel(TorchModel):
                  atom_feature_size: int,
                  num_workers: int,
                  num_channels: int,
-                 task: Union[str, List[str]] = 'homo',
                  num_nlayers: int = 1,
                  num_degrees: int = 4,
                  edge_dim: int = 4,
@@ -301,14 +296,7 @@ class SE3TransformerModel(TorchModel):
         output_types = ['prediction']
         loss = L1Loss()
 
-        if isinstance(task, str):
-            self.task = [task]
-        else:
-            self.task = task
-        n_tasks = len(self.task)
-
         model = SE3Transformer(
-            n_tasks=n_tasks,
             num_layers=num_layers,
             atom_feature_size=atom_feature_size,
             num_workers=num_workers,
@@ -326,7 +314,8 @@ class SE3TransformerModel(TorchModel):
                                                   output_types=output_types,
                                                   **kwargs)
 
-    def _prepare_batch(self, batch):
+    def _prepare_batch(self, batch: Tuple[Any, Any,
+                                          Any]) -> Tuple[List, List, List]:
         """
         Prepares a batch of data for the SE3Transformer model.
 
@@ -335,7 +324,7 @@ class SE3TransformerModel(TorchModel):
 
         Parameters
         ----------
-        batch : Tuple
+        batch : Tuple[Any, Any, Any]
             A batch of data from the dataset in the form (X, y, w, ids).
 
         Returns
@@ -349,31 +338,6 @@ class SE3TransformerModel(TorchModel):
             raise ImportError('These classes require DGL to be installed.')
 
         inputs, labels, weights = batch
-        QM9_TASKS = {
-            "idx": 0,
-            "A": 1,
-            "B": 2,
-            "C": 3,
-            "mu": 4,
-            "alpha": 5,
-            "homo": 6,
-            "lumo": 7,
-            "gap": 8,
-            "r2": 9,
-            "zpve": 10,
-            "u0": 11,
-            "u298": 12,
-            "h298": 13,
-            "g298": 14,
-            "cv": 15,
-        }
-        if labels is not None and weights is not None:
-            indices = []
-            for t in self.task:
-                indices.append(QM9_TASKS[t])
-
-            labels = [labels[0][:, indices]]
-            weights = [weights[0][:, indices]]
 
         dgl_graphs = []
 
