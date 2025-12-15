@@ -135,8 +135,8 @@ def test_atomic_conv_with_feat():
     dir_path = os.path.dirname(os.path.realpath(__file__))
     ligand_file = os.path.join(dir_path,
                                "../../../feat/tests/data/3zso_ligand_hyd.pdb")
-    protein_file = os.path.join(dir_path,
-                                "../../../feat/tests/data/3zso_protein_noH.pdb")
+    protein_file = os.path.join(
+        dir_path, "../../../feat/tests/data/3zso_protein_noH.pdb")
     # Pulled from PDB files. For larger datasets with more PDBs, would use
     # max num atoms instead of exact.
     frag1_num_atoms = 44  # for ligand atoms
