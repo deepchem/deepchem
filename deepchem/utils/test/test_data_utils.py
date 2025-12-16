@@ -7,6 +7,7 @@ import numpy as np
 
 from deepchem.utils.data_utils import load_sdf_files, save_to_disk
 
+
 class TestFileLoading(unittest.TestCase):
 
     def test_load_sdf_files(self):
@@ -22,6 +23,7 @@ class TestFileLoading(unittest.TestCase):
         self.assertEqual(len(eval(df['pos_x'][0])), n_atoms_mol1)
         self.assertEqual(len(eval(df['pos_y'][0])), n_atoms_mol1)
         self.assertEqual(len(eval(df['pos_y'][0])), n_atoms_mol1)
+
 
 class TestSaveToDisk(unittest.TestCase):
 
@@ -45,8 +47,7 @@ class TestSaveToDisk(unittest.TestCase):
                 save_to_disk(np.ones(1), file_path, overwrite=True)
 
             self.assertFalse(
-                any(isinstance(warn.message, UserWarning) for warn in w)
-            )
+                any(isinstance(warn.message, UserWarning) for warn in w))
 
     def test_save_to_disk_directory_error(self):
         # Passing a directory path should raise IsADirectoryError

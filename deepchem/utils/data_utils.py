@@ -488,7 +488,10 @@ def _get_file_type(input_file: str) -> str:
         raise ValueError("Unrecognized extension %s" % file_extension)
 
 
-def save_to_disk(dataset: Any, filename: str, compress: int = 3, overwrite: bool = False):
+def save_to_disk(dataset: Any,
+                 filename: str,
+                 compress: int = 3,
+                 overwrite: bool = False):
     """Save a dataset to file.
 
     Parameters
@@ -509,8 +512,7 @@ def save_to_disk(dataset: Any, filename: str, compress: int = 3, overwrite: bool
         if path.is_dir():
             raise IsADirectoryError(
                 f"Expected a file path but got directory '{filename}'. "
-                "Please provide a file path (e.g. 'path/to/file.joblib')."
-            )
+                "Please provide a file path (e.g. 'path/to/file.joblib').")
         # It's a file; warn before overwriting unless overwrite=True
         elif not overwrite:
             warnings.warn(
@@ -525,6 +527,7 @@ def save_to_disk(dataset: Any, filename: str, compress: int = 3, overwrite: bool
         np.save(filename, dataset)
     else:
         raise ValueError("Filename with unsupported extension: %s" % filename)
+
 
 def load_from_disk(filename: str) -> Any:
     """Load a dataset from file.
