@@ -527,7 +527,7 @@ class ChemCeptionModel(ModularTorchModel):
                 if X_b.shape[1] != in_channels and X_b.shape[-1] == in_channels:
                     X_b = np.transpose(X_b, (0, 3, 1, 2))
 
-                if self.mode == 'classification':
+                if self.mode == 'classification' and y_b is not None:
                     y_b = to_one_hot(y_b.flatten(), self.n_classes).reshape(
                         -1, self.n_tasks, self.n_classes)
 
