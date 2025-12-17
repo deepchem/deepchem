@@ -193,6 +193,7 @@ def test_chemception_compare_with_tf_impl():
     mode = 'regression'
     img_spec = "std"
     dataset, metric = get_dataset(mode=mode,
+                                  data_points=5,
                                   featurizer="smiles2img",
                                   img_spec=img_spec,
                                   n_tasks=n_tasks)

@@ -421,7 +421,30 @@ class ChemCeptionModel(ModularTorchModel):
 
     def loss_func(self, inputs: OneOrMany[torch.Tensor], labels: Sequence,
                   weights: Sequence) -> torch.Tensor:
-        """Compute the loss depending on the mode (regression/classification)."""
+        """
+        Compute the weighted mean loss for a batch.
+
+        This method forwards `inputs` through `self.model` and computes a loss according to
+        `self.mode`.
+
+        Per-sample weights are broadcast (if needed) to match the per-sample loss tensor,
+        multiplied elementwise, and then averaged. If a regularization term is configured,
+        it is added to the final scalar loss.
+
+        Parameters
+        ----------
+        inputs : OneOrMany[torch.Tensor]
+            SMILES strings converted to image tensors.
+        labels : Sequence
+            Ground-truth targets.
+        weights : Sequence
+            Per-sample weights.
+
+        Returns
+        -------
+        torch.Tensor
+            A scalar tensor: weighted mean loss (+ optional regularization term).
+        """
         outputs = self.model(inputs)
 
         if isinstance(labels, list) and len(labels) == 1:
@@ -490,34 +513,28 @@ class ChemCeptionModel(ModularTorchModel):
         ([inputs], [outputs], [weights]) """
 
         for epoch in range(epochs):
-            if mode == "predict" or (not self.augment):
-                for (X_b, y_b, w_b,
-                     ids_b) in dataset.iterbatches(batch_size=self.batch_size,
-                                                   deterministic=deterministic,
-                                                   pad_batches=pad_batches):
 
-                    in_channels = self.components['stem'].conv_layer.in_channels
-                    if X_b.shape[1] != in_channels and X_b.shape[
-                            -1] == in_channels:
-                        X_b = np.transpose(X_b, (0, 3, 1, 2))
+            for (X_b, y_b, w_b,
+                 ids_b) in dataset.iterbatches(batch_size=self.batch_size,
+                                               deterministic=deterministic,
+                                               pad_batches=pad_batches):
+                if len(X_b.shape) != 4:
+                    raise ValueError(
+                        "Input must be shaped (N,H,W,C) or (N,C,H,W)")
 
-                    if self.mode == 'classification':
-                        y_b = to_one_hot(y_b.flatten(), self.n_classes).reshape(
-                            -1, self.n_tasks, self.n_classes)
+                # To convert from SmilesToImage featurizer default dim (N,H,W,C) to Pytorch default dim (N,C,H,W)
+                in_channels = self.components['stem'].conv_layer.in_channels
+                if X_b.shape[1] != in_channels and X_b.shape[-1] == in_channels:
+                    X_b = np.transpose(X_b, (0, 3, 1, 2))
 
+                if self.mode == 'classification':
+                    y_b = to_one_hot(y_b.flatten(), self.n_classes).reshape(
+                        -1, self.n_tasks, self.n_classes)
+
+                if mode == "predict" or (not self.augment):
                     yield ([X_b], [y_b], [w_b])
 
-            else:
-                for (X_b, y_b, w_b,
-                     ids_b) in dataset.iterbatches(batch_size=self.batch_size,
-                                                   deterministic=deterministic,
-                                                   pad_batches=pad_batches):
-
-                    in_channels = self.components['stem'].conv_layer.in_channels
-                    if X_b.shape[1] != in_channels and X_b.shape[
-                            -1] == in_channels:
-                        X_b = np.transpose(X_b, (0, 3, 1, 2))
-
+                else:
                     N = len(X_b)
                     angles = np.random.uniform(-180, 180, size=N)
                     X_b = np.stack([
@@ -531,7 +548,4 @@ class ChemCeptionModel(ModularTorchModel):
                     ],
                                    axis=0)
 
-                    if self.mode == 'classification':
-                        y_b = to_one_hot(y_b.flatten(), self.n_classes).reshape(
-                            -1, self.n_tasks, self.n_classes)
                     yield ([X_b], [y_b], [w_b])
