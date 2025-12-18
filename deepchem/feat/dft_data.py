@@ -10,10 +10,14 @@ import warnings
 
 # dqc dependencies
 try:
-    import torch
     from dqc.system.mol import Mol
     from dqc.system.base_system import BaseSystem
     from deepchem.utils.dftutils import KSCalc
+except Exception as e:
+    warnings.warn(f"Failed to import DFT dependencies with error: {e}")
+
+try:
+    import torch
     from deepchem.utils.dft_utils import parse_moldesc, BaseGrid
 except Exception as e:
     warnings.warn(f"Failed to import DFT dependencies with error: {e}")
