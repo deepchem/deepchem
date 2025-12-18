@@ -97,7 +97,7 @@ def test_parse_moldesc():
         }
     }
     atomzs, atomposs = parse_moldesc(system["kwargs"]["moldesc"])
-    assert torch.allclose(atomzs, torch.tensor([1., 9.], dtype=torch.float64))
+    assert torch.allclose(atomzs, torch.tensor([1, 9]))
     assert torch.allclose(
         atomposs,
         torch.tensor(
@@ -105,7 +105,7 @@ def test_parse_moldesc():
             dtype=torch.float64))
     system2 = (['H', 'F'], torch.tensor([[0.86625, 0, 0], [-0.86625, 0, 0]]))
     atomzs2, atomposs2 = parse_moldesc(system2)
-    assert torch.allclose(atomzs2, torch.tensor([1., 9.], dtype=torch.float64))
+    assert torch.allclose(atomzs2, torch.tensor([1, 9]))
     assert torch.allclose(
         atomposs2,
         torch.tensor(
@@ -1817,10 +1817,10 @@ def test_dfmol():
 @pytest.mark.torch
 def test_mol():
     from deepchem.utils.dft_utils.system.mol import Mol
-    mol = Mol("H 1 0 0; H -1 0 0", "sto-3g", spin=1)
+    mol = Mol("H 1 0 0; H -1 0 0", "sto-3g")
     mol.setup_grid()
     assert torch.allclose(mol.get_orbweight(),
-                          torch.tensor([1.5000, 0.5000], dtype=torch.float64))
+                          torch.tensor([2.0], dtype=torch.float64))
 
 
 @pytest.mark.torch

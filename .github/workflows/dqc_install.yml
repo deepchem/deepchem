@@ -13,7 +13,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        python-version: ['3.8']
+        python-version: ['3.8', '3.9', '3.10', '3.11']
     env:
       OS: ${{ matrix.os }}
       PYTHON_VERSION: ${{ matrix.python-version }}
@@ -31,6 +31,10 @@ jobs:
         python -m pip install --upgrade pip;
         pip install conda-merge; 
         conda-merge requirements/env_dqc.yml requirements/env_test.yml > env.yml
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y cmake g++ libopenblas-dev liblapack-dev
     - name: Install all dependencies
       uses: conda-incubator/setup-miniconda@v3
       with:
@@ -57,8 +61,6 @@ jobs:
       run: |
         python -c 'import deepchem; print("DeepChem version %s" % deepchem.__version__)'
         python -c 'import torch; print("Torch version %s" % torch.__version__)'
-        python -c 'import dqc; print("DQC version %s" % dqc.__version__)'
-        python -c 'import xitorch; print("Xitorch version %s" % xitorch.__version__)'
         python -c 'import pylibxc; print("pylibxc version %s" % pylibxc.version.__version__)'
     - name: PyTest
       shell: bash -l {0}

@@ -78,11 +78,12 @@ class DFTXC(torch.nn.Module):
             qcs = []
             for system in entry.get_systems():
                 qcs.append(evl.run(system))
+            # get_val now returns torch tensors with gradients attached
+            val = entry.get_val(qcs)
             if entry.entry_type == 'dm':
-                output.append((torch.as_tensor(entry.get_val(qcs)[0])))
+                output.append(val[0])
             else:
-                output.append(
-                    torch.tensor(entry.get_val(qcs), requires_grad=True))
+                output.append(val)
         return output
 
 

@@ -9,7 +9,7 @@ ZType = Union[int, float, torch.Tensor]
 
 
 def safepow(a: torch.Tensor,
-            p: torch.Tensor,
+            p: Union[float, torch.Tensor],
             eps: float = 1e-12) -> torch.Tensor:
     """Safely calculate the power of a tensor with a small eps to avoid nan.
 
@@ -27,8 +27,8 @@ def safepow(a: torch.Tensor,
     ----------
     a: torch.Tensor
         Base tensor on which to calculate the power. Must be positive.
-    p: torch.Tensor
-        Power tensor, by which to calculate the power.
+    p: Union[float, torch.Tensor]
+        Power value or tensor, by which to calculate the power.
     eps: float (default 1e-12)
         The eps to add to the base tensor.
 
