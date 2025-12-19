@@ -15,7 +15,7 @@ from deepchem.utils.dft_utils.system.mol import _parse_basis, _get_nelecs_spin, 
         _get_orb_weights
 from deepchem.utils.cache_utils import Cache
 
-from dqc.hamilton.hcgto_pbc import HamiltonCGTO_PBC
+from deepchem.utils.dft_utils.hamilton.hcgto_pbc import HamiltonCGTO_PBC
 
 __all__ = ["Sol"]
 
@@ -133,7 +133,7 @@ class Sol(BaseSystem):
                         for (atz, bas, atpos) in zip(self._atomzs, auxbasis_lst, self._atompos)]
 
         # change the hamiltonian to have density fit
-        df = DensityFitInfo(method=method, auxbases=atomauxbases)
+        df = DensityFitInfo(method=method, auxbasis=atomauxbases)
         self._hamilton = HamiltonCGTO_PBC(self._atombases, df=df, latt=self._lattice,
                                           lattsum_opt=self._lattsum_opt,
                                           cache=self._cache.add_prefix("hamilton"))

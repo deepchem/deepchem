@@ -3,22 +3,19 @@ import torch
 import numpy as np
 
 from deepchem.utils.dft_utils import HamiltonCGTO, BaseDF, CGTOBasis, AtomCGTOBasis, \
-        SpinParam, DensityFitInfo, ValGrad
+        SpinParam, DensityFitInfo, ValGrad, BaseHamilton, BaseGrid, BaseXC, Lattice, \
+        PBCIntOption, LibcintWrapper, pbc_eval_gradgto, pbc_eval_gto, pbc_eval_laplgto
+
+from deepchem.utils.differentiation_utils import LinearOperator
+
+from deepchem.utils.pytorch_utils import get_complex_dtype
+from deepchem.utils.cache_utils import Cache
+
+import deepchem.utils.dft_utils.hamilton.intor.pbcintor as pbcintor
 
 
-import dqc.hamilton.intor as intor
-from dqc.hamilton.base_hamilton import BaseHamilton
-from dqc.hamilton.hcgto import HamiltonCGTO
-from dqc.df.base_df import BaseDF
 from dqc.df.dfpbc import DFPBC
-from dqc.utils.datastruct import CGTOBasis, AtomCGTOBasis, SpinParam, DensityFitInfo, \
-                                 ValGrad
-from dqc.utils.types import get_complex_dtype
-from dqc.utils.pbc import unweighted_coul_ft, get_gcut
-from dqc.grid.base_grid import BaseGrid
-from dqc.xc.base_xc import BaseXC
-from dqc.hamilton.intor.lattice import Lattice
-from dqc.utils.cache import Cache
+from deepchem.utils.dft_utils.hamilton.intor.utils import unweighted_coul_ft, get_gcut
 
 class HamiltonCGTO_PBC(HamiltonCGTO):
     """
@@ -35,7 +32,7 @@ class HamiltonCGTO_PBC(HamiltonCGTO):
                  wkpts: Optional[torch.Tensor] = None,  # weights of k-points to get the density
                  spherical: bool = True,
                  df: Optional[DensityFitInfo] = None,
-                 lattsum_opt: Optional[Union[intor.PBCIntOption, Dict]] = None,
+                 lattsum_opt: Optional[Union[PBCIntOption, Dict]] = None,
                  cache: Optional[Cache] = None) -> None:
         self._atombases = atombases
         self._spherical = spherical
@@ -45,9 +42,9 @@ class HamiltonCGTO_PBC(HamiltonCGTO):
         self._eta = 0.2
         self._eta = 0.46213127322256375  # temporary to follow pyscf.df
         # lattice sum integral options
-        self._lattsum_opt = intor.PBCIntOption.get_default(lattsum_opt)
+        self._lattsum_opt = PBCIntOption.get_default(lattsum_opt)
 
-        self._basiswrapper = intor.LibcintWrapper(
+        self._basiswrapper = LibcintWrapper(
             atombases, spherical=spherical, lattice=latt)
         self.dtype = self._basiswrapper.dtype
         self.cdtype = get_complex_dtype(self.dtype)
@@ -108,10 +105,10 @@ class HamiltonCGTO_PBC(HamiltonCGTO):
             })
 
             self._olp_mat = self._cache.cache(
-                "overlap", lambda: intor.pbc_overlap(self._basiswrapper, kpts=self._kpts,
+                "overlap", lambda: pbcintor.pbc_overlap(self._basiswrapper, kpts=self._kpts,
                                                      options=self._lattsum_opt))
             self._kin_mat = self._cache.cache(
-                "kinetic", lambda: intor.pbc_kinetic(self._basiswrapper, kpts=self._kpts,
+                "kinetic", lambda: pbcintor.pbc_kinetic(self._basiswrapper, kpts=self._kpts,
                                                      options=self._lattsum_opt))
             self._nucl_mat = self._cache.cache("nuclattr", self._calc_nucl_attr)
 
@@ -135,7 +132,7 @@ class HamiltonCGTO_PBC(HamiltonCGTO):
 
         # setup the basis as a spatial function
         self.is_ao_set = True
-        self.basis = intor.pbc_eval_gto(  # (nkpts, nao, ngrid)
+        self.basis = pbc_eval_gto(  # (nkpts, nao, ngrid)
             self._basiswrapper, self.rgrid, kpts=self._kpts, options=self._lattsum_opt)
         basis_dvolume = self.basis * self.grid.get_dvolume()  # (nkpts, nao, ngrid)
         self.basis_dvolume_conj = basis_dvolume.conj()
@@ -145,64 +142,64 @@ class HamiltonCGTO_PBC(HamiltonCGTO):
 
         # setup the gradient of the basis
         self.is_grad_ao_set = True
-        self.grad_basis = intor.pbc_eval_gradgto(  # (ndim, nkpts, nao, ngrid)
+        self.grad_basis = pbc_eval_gradgto(  # (ndim, nkpts, nao, ngrid)
             self._basiswrapper, self.rgrid, kpts=self._kpts, options=self._lattsum_opt)
         if self.xcfamily == 2:  # GGA
             return
 
         # setup the laplacian of the basis
         self.is_lapl_ao_set = True
-        self.lapl_basis = intor.pbc_eval_laplgto(  # (nkpts, nao, ngrid)
+        self.lapl_basis = pbc_eval_laplgto(  # (nkpts, nao, ngrid)
             self._basiswrapper, self.rgrid, kpts=self._kpts, options=self._lattsum_opt)
 
     ############ fock matrix components ############
-    def get_nuclattr(self) -> xt.LinearOperator:
+    def get_nuclattr(self) -> LinearOperator:
         # return: (nkpts, nao, nao)
-        return xt.LinearOperator.m(self._nucl_mat, is_hermitian=True)
+        return LinearOperator.m(self._nucl_mat, is_hermitian=True)
 
-    def get_kinnucl(self) -> xt.LinearOperator:
+    def get_kinnucl(self) -> LinearOperator:
         # kinnucl_mat: (nkpts, nao, nao)
         # return: (nkpts, nao, nao)
-        return xt.LinearOperator.m(self._kinnucl_mat, is_hermitian=True)
+        return LinearOperator.m(self._kinnucl_mat, is_hermitian=True)
 
-    def get_overlap(self) -> xt.LinearOperator:
+    def get_overlap(self) -> LinearOperator:
         # olp_mat: (nkpts, nao, nao)
         # return: (nkpts, nao, nao)
-        return xt.LinearOperator.m(self._olp_mat, is_hermitian=True)
+        return LinearOperator.m(self._olp_mat, is_hermitian=True)
 
-    def get_elrep(self, dm: torch.Tensor) -> xt.LinearOperator:
+    def get_elrep(self, dm: torch.Tensor) -> LinearOperator:
         # dm: (nkpts, nao, nao)
         # return: (nkpts, nao, nao)
         assert self._df is not None
         return self._df.get_elrep(dm)
 
     @overload
-    def get_exchange(self, dm: torch.Tensor) -> xt.LinearOperator:
+    def get_exchange(self, dm: torch.Tensor) -> LinearOperator:
         ...
 
     @overload
-    def get_exchange(self, dm: SpinParam[torch.Tensor]) -> SpinParam[xt.LinearOperator]:
+    def get_exchange(self, dm: SpinParam[torch.Tensor]) -> SpinParam[LinearOperator]:
         ...
 
     def get_exchange(self, dm):
         msg = "Exact exchange for periodic boundary conditions has not been implemented"
         raise NotImplementedError(msg)
 
-    def get_vext(self, vext: torch.Tensor) -> xt.LinearOperator:
+    def get_vext(self, vext: torch.Tensor) -> LinearOperator:
         # vext: (*BR, ngrid)
         # return: (*BR, nkpts, nao, nao)
         if not self.is_ao_set:
             raise RuntimeError("Please call `setup_grid(grid, xc)` to call this function")
         mat = torch.einsum("...r,kbr,kcr->...kbc", vext, self.basis_dvolume_conj, self.basis)  # (*BR, nao, nao)
         mat = (mat + mat.transpose(-2, -1).conj()) * 0.5  # ensure the hermitianness and reduce numerical instability
-        return xt.LinearOperator.m(mat, is_hermitian=True)
+        return LinearOperator.m(mat, is_hermitian=True)
 
     @overload
-    def get_vxc(self, dm: SpinParam[torch.Tensor]) -> SpinParam[xt.LinearOperator]:
+    def get_vxc(self, dm: SpinParam[torch.Tensor]) -> SpinParam[LinearOperator]:
         ...
 
     @overload
-    def get_vxc(self, dm: torch.Tensor) -> xt.LinearOperator:
+    def get_vxc(self, dm: torch.Tensor) -> LinearOperator:
         ...
 
     def get_vxc(self, dm):
@@ -323,9 +320,9 @@ class HamiltonCGTO_PBC(HamiltonCGTO):
         cnucl_atbases = self._create_fake_nucl_bases(alpha=self._eta, chargemult=-1)
         # real charge + compensating charge
         nucl_atbases_all = nucl_atbases + cnucl_atbases
-        nucl_wrapper = intor.LibcintWrapper(
+        nucl_wrapper = LibcintWrapper(
             nucl_atbases_all, spherical=self._spherical, lattice=self._lattice)
-        cnucl_wrapper = intor.LibcintWrapper(
+        cnucl_wrapper = LibcintWrapper(
             cnucl_atbases, spherical=self._spherical, lattice=self._lattice)
         natoms = nucl_wrapper.nao() // 2
 
@@ -337,7 +334,7 @@ class HamiltonCGTO_PBC(HamiltonCGTO):
         # get the 1st part of the nuclear attraction: the charge and compensating charge
         # nuc1: (nkpts, nao, nao, 2 * natoms)
         # nuc1 is not hermitian
-        basiswrapper1, nucl_wrapper1 = intor.LibcintWrapper.concatenate(self._basiswrapper, nucl_wrapper)
+        basiswrapper1, nucl_wrapper1 = LibcintWrapper.concatenate(self._basiswrapper, nucl_wrapper)
         nuc1_c = intor.pbc_coul3c(basiswrapper1, other1=basiswrapper1,
                                   other2=nucl_wrapper1, kpts_ij=kpts_ij,
                                   options=self._lattsum_opt)
@@ -399,7 +396,7 @@ class HamiltonCGTO_PBC(HamiltonCGTO):
             res.append(AtomCGTOBasis(atomz=0, bases=[basis], pos=atb.pos))
         return res
 
-    def _get_vxc_from_potinfo(self, potinfo: ValGrad) -> xt.LinearOperator:
+    def _get_vxc_from_potinfo(self, potinfo: ValGrad) -> LinearOperator:
         # overloading from hcgto
 
         vext = potinfo.value
@@ -428,7 +425,7 @@ class HamiltonCGTO_PBC(HamiltonCGTO):
             mat += torch.einsum("...r,kbr,kcr->...kbc", lapl_kin_dvol, self.grad_basis[2], self.grad_basis[2])
 
         mat = (mat + mat.transpose(-2, -1).conj()) * 0.5
-        return xt.LinearOperator.m(mat, is_hermitian=True)
+        return LinearOperator.m(mat, is_hermitian=True)
 
     def _dm2densinfo(self, dm: torch.Tensor) -> ValGrad:
         # overloading from hcgto
