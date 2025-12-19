@@ -7620,6 +7620,8 @@ class SE3PairwiseConv(nn.Module):
     >>> from rdkit import Chem
     >>> import dgl
     >>> import deepchem as dc
+    >>> import shutil
+    >>> import os
     >>> from deepchem.models.torch_models.layers import SE3PairwiseConv
     >>> from deepchem.utils.equivariance_utils import get_spherical_from_cartesian, precompute_sh, basis_transformation_Q_J
     >>> mol = Chem.MolFromSmiles('CCO')
@@ -7658,6 +7660,9 @@ class SE3PairwiseConv(nn.Module):
     >>> output = pairwise_conv(feat, basis)
     >>> output.shape
     torch.Size([4, 128, 32])
+    >>> dir_path = "cache"
+    >>> if os.path.exists(dir_path) and os.path.isdir(dir_path):
+    ...     shutil.rmtree(dir_path)
 
     References
     ----------
@@ -8003,6 +8008,103 @@ class SE3AvgPooling(nn.Module):
         else:
             raise NotImplementedError(
                 "SE3AvgPooling for type > 1 is not implemented.")
+
+        return pooled
+
+
+class SE3MaxPooling(nn.Module):
+    """
+    SE(3)-Equivariant Graph Max Pooling Module (SE3MaxPooling).
+    This layer performs max pooling over graph nodes while preserving SE(3) equivariance.
+    Given a set of node features \( h_i \) over a graph \( G \),
+    the max pooling operation computes:
+    \[
+    h_{\text{out}} = \max_{i \in V} h_i
+    \]
+    where \( V \) is the set of nodes in the graph, and the pooling is applied independently for each node feature component.
+    For SE(3)-equivariant features, this layer performs:
+    - Degree 0 (scalars): Standard max pooling.
+    - Degree 1 (vectors): Applies max pooling component-wise for each feature dimension.
+    Example
+    -------
+    >>> import torch
+    >>> import dgl
+    >>> from deepchem.models.torch_models.layers import SE3MaxPooling, Fiber
+    >>> # Create a DGL Graph
+    >>> G = dgl.graph(([0, 1, 2], [3, 4, 5]), num_nodes=6)
+    >>> # Define Node Features
+    >>> features = {
+    ...     '0': torch.randn(6, 16, 1),  # Scalar features (Degree 0)
+    ...     '1': torch.randn(6, 32, 3)   # Vector features (Degree 1)
+    ... }
+    >>>
+    >>> # Initialize SE(3)-Equivariant Max Pooling Layer
+    >>> pool_0 = SE3MaxPooling(pooling_type='0')  # For scalars
+    >>> pool_1 = SE3MaxPooling(pooling_type='1')  # For vectors
+    >>> # Apply Pooling
+    >>> pooled_0 = pool_0(features, G)
+    >>> pooled_1 = pool_1(features, G)
+    >>> print(pooled_0.shape)
+    torch.Size([1, 16])
+    >>> print(pooled_1['1'].shape)
+    torch.Size([1, 32, 3])
+
+    References
+    ----------
+    .. [1] SE(3)-Transformers: 3D Roto-Translation Equivariant Attention Networks
+           Fabian B. Fuchs, Daniel E. Worrall, Volker Fischer, Max Welling
+           NeurIPS 2020, https://arxiv.org/abs/2006.10503
+    """
+
+    def __init__(self, pooling_type: str = '0'):
+        """
+        Initializes the SE(3)-equivariant max pooling layer.
+        Parameters
+        ----------
+        pooling_type : str
+            Type of pooling.
+            - `'0'`: Applies standard max pooling for scalar (degree 0) features.
+            - `'1'`: Applies component-wise max pooling for vector (degree 1) features.
+        """
+        try:
+            from dgl.nn.pytorch.glob import MaxPooling
+        except ModuleNotFoundError:
+            raise ImportError('These classes require DGL to be installed.')
+        super().__init__()
+        self.pool = MaxPooling()
+        self.pooling_type = pooling_type
+
+    def forward(self, features: Dict[str, torch.Tensor], G,
+                **kwargs) -> Union[torch.Tensor, Dict[str, torch.Tensor]]:
+        """
+        Forward pass of SE(3)-equivariant graph pooling.
+        Parameters
+        ----------
+        features : Dict[str, torch.Tensor]
+            Node features dictionary.
+        G : dgl.DGLGraph
+            DGL graph structure.
+        Returns
+        -------
+        Union[torch.Tensor, Dict[str, torch.Tensor]]
+            Pooled features
+        """
+        if self.pooling_type == '0':
+            # Scalars (degree 0)
+            h = features['0'][..., -1]
+            pooled = self.pool(G, h)
+        elif self.pooling_type == '1':
+            # Vectors (degree 1)
+            pooled_list: List[torch.Tensor] = [
+                self.pool(G, features['1'][..., i]).unsqueeze(-1)
+                for i in range(3)
+            ]
+
+            pooled_tensor = torch.cat(pooled_list, dim=-1)
+            pooled = {'1': pooled_tensor}
+        else:
+            raise NotImplementedError(
+                "SE3MaxPooling for type > 1 is not implemented.")
 
         return pooled
 
