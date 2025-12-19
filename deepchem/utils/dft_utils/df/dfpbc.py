@@ -45,7 +45,7 @@ class DFPBC(BaseDF):
         # calculate the matrices required to calculate the electron repulsion operator
         # i.e. the 3-centre 2-electron integrals (short + long range) and j3c @ (j2c^-1)
         method = df.method.lower()
-        df_auxbases = _renormalize_auxbases(df.auxbases)
+        df_auxbases = _renormalize_auxbases(df.auxbasis)
         aux_comp_bases = self._create_compensating_bases(df_auxbases, eta=self._eta)
         fuse_aux_bases = df_auxbases + aux_comp_bases
         fuse_aux_wrapper = LibcintWrapper(fuse_aux_bases,
