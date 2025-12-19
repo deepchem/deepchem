@@ -20,10 +20,10 @@ class Mol(BaseSystem):
     Examples
     --------
     >>> from deepchem.utils.dft_utils import Mol
-    >>> mol = Mol("H 1 0 0; H -1 0 0", "sto-3g", spin=1)
+    >>> mol = Mol("H 1 0 0; H -1 0 0", "sto-3g")
     >>> mol.setup_grid()
     >>> mol.get_orbweight()
-    tensor([1.5000, 0.5000], dtype=torch.float64)
+    tensor([2.], dtype=torch.float64)
 
     """
 
