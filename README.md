@@ -49,6 +49,32 @@ Please check [the document](https://deepchem.readthedocs.io/en/latest/requiremen
 
 ## Installation
 
+### Virtual Environment Setup (Recommended)
+Before installing DeepChem, we recommend creating a virtual environment to manage dependencies and avoid conflicts with your system packages.
+
+You can choose either **Conda** or **venv** (Python's built-in tool).
+
+### Option 1: Conda 
+```bash
+# 1. Create a conda environment with Python 3.10 (DeepChem supports 3.7-3.10)
+conda create --name deepchem_env python=3.10
+
+# 2. Activate the environment
+conda activate deepchem_env
+```
+
+### Option 2: venv
+```bash
+# 1. Create a virtual environment named 'deepchem_env'
+python -m venv deepchem_env
+
+# 2. Activate the environment
+# On macOS/Linux:
+source deepchem_env/bin/activate
+# On Windows:
+.\deepchem_env\Scripts\activate
+```
+
 ### Stable version
 
 DeepChem stable version can be installed using pip or conda as
