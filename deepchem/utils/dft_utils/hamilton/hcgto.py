@@ -486,6 +486,8 @@ class HamiltonCGTO(BaseHamilton):
 
         """
 
+        dm = self._orthozer.unconvert_dm(dm)
+
         nao = dm.shape[-1]
         xyzshape = xyz.shape
         # basis: (nao, *BR)
