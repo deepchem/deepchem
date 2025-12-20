@@ -1,36 +1,38 @@
-﻿Layer,Reference, Model
-InteratomicL2Distances,,
-GraphConv,`ref <https://arxiv.org/abs/1509.09292>`_,
-GraphPool, `ref <https://arxiv.org/abs/1509.09292>`_,
-GraphGather, `ref <https://arxiv.org/abs/1509.09292>`_,
-MolGANConvolutionLayer,`ref <https://arxiv.org/abs/1805.11973>`_, MolGan
-MolGANAggregationLayer, `ref <https://arxiv.org/abs/1805.11973>`_, MolGan
-MolGANMultiConvolutionLayer, `ref <https://arxiv.org/abs/1805.11973>`_, MolGan
-MolGANEncoderLayer, `ref <https://arxiv.org/abs/1805.11973>`_, MolGan
-LSTMStep,,
-AttnLSTMEmbedding, `ref <https://arxiv.org/abs/1606.04080>`_,
-IterRefLSTMEmbedding, ,
-SwitchedDropout, ,
-WeightedLinearCombo, ,
-CombineMeanSt, ,
-Stack,,
-VinaFreeEnergy,,
-NeighborList,,
-AtomicConvolution, `ref <https://arxiv.org/abs/1703.10603>`_,
-AlphaShareLayer,, Sluice Network
-SluiceLoss,, Sluice Network
-BetaShare,, Sluice Network
-ANIFeat,,
-GraphEmbedPoolLayer,`ref <https://arxiv.org/abs/1703.00792>`_,
-Highway,`ref <https://arxiv.org/abs/11505.00387>`_,
-WeaveLayer,`ref <https://pubmed.ncbi.nlm.nih.gov/27558503/>`_,
-WeaveGather,`ref <https://pubmed.ncbi.nlm.nih.gov/27558503/>`_,
-DTNNEmbedding, ,
-DTNNStep, ,
-DTNNGather,,
-DAGLayer, `ref <https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3739985/>`_,
-DAGGather,,
-MessagePassing, `ref <https://arxiv.org/abs/1511.06391>`_,
-EdgeNetwork, `ref <https://arxiv.org/abs/1511.06391>`_, MessagePassing
-GatedRecurrentUnit, `ref <https://arxiv.org/abs/1511.06391>`_, MessagePassing
-SetGather,,
+﻿Layer, Description, Key Arguments
+InteratomicL2Distances,Compute (squared) L2 Distances between atoms given neighbors, "[N_atoms, M_nbrs, ndim]"
+GraphConv, The graph convolution combines per-node feature vectors in a nonlinear fashion with the feature vectors for neighboring nodes, "[out_channel, min_deg, max_deg, activation_fn]"
+GraphPool, This layer does a max-pooling over the feature vectors of atoms in a neighborhood,"[min_degree, max_degree]"
+GraphGather, A GraphGather layer pools node-level feature vectors to create a graph feature vector, "[batch_size, activation_fn]"
+MolGANConvolutionLayer, This layer performs basic convolution on one-hot encoded matrices containing atom and bond information, "[units, activation_fn, dropout_rate, edges]"
+MolGANAggregationLayer, Performs aggregation on tensor resulting from convolution layers, "[units, activation, dropout_rate]"
+MolGANMultiConvolutionLayer, It takes outputs of previous convolution layer and uses them as inputs for the next one, "[units, activation, dropout_rate, edges]"
+MolGANEncoderLayer, Combines graph convolution and aggregation for molecular encoding, "[units, activation, dropout_rate, edges]"
+LSTMStep, This layer performs a single step LSTM update, "[output_dim, input_dim, activation_fn, init_fn, inner_init_fn, inner_activation_fn]"
+AttnLSTMEmbedding,The AttnLSTM embedding adjusts two sets of vectors i.e. "test" and "support" sets, "[n_test, n_support, n_feat, max_depth]"
+IterRefLSTMEmbedding, Iterative refinement LSTM that modifies both test and support sets, "[n_test, n_support, n_feat, max_depth]"
+SwitchedDropout, Apply dropout based on an input, "[rate]"
+WeightedLinearCombo, Computes a weighted linear combination of input layers with the weights defined by trainable variables, "[std]"
+CombineMeanStd, Generates Gaussian noise by combining mean and standard deviation, "[training_only, noise_epsilon]"
+Stack, Stack the inputs along a new axis, "[axis]"
+Variable, Wraps a trainable variable as a Keras layer (requires a dummy input), "[initial_value]"
+VinaFreeEnergy, Computes free-energy as defined by Autodock Vina, "[N_atoms, M_nbrs, ndim, nbr_cutoff, start, stop, stddev, Nrot]"
+NeighborList, Computes a neighbor-list in TensorFlow, "[N_atoms, M_nbrs, ndim, nbr_cutoff, start, stop]"
+AtomicConvolution, Performs graph convolution on 3D molecular structures using radial symmetry functions, "[atom_types, radial_params, boxsize]"
+AlphaShareLayer, Part of a sluice network. Adds alpha parameters to control sharing between the main and auxiliary tasks, "[in_layers]"
+SluiceLoss, Calculates the loss in a Sluice Network, "[]"
+BetaShare, Part of a sluice network. Adds beta params to control which layer outputs are used for prediction, "[]"
+ANIFeat, Performs transform from 3D coordinates to ANI symmetry functions, "[max_atoms, radial_cutoff, angular_cutoff, radial_length, angular_length, atom_cases, atomic_number_differentiated, coordinates_in_bohr]"
+GraphEmbedPoolLayer, This is a learnable pool operation. It constructs a new adjacency matrix for a graph of specified number of nodes, "[num_vertices]"
+GraphCNN, Implements spatial graph convolution from Robust Spatial Filtering with Graph Convolutional Neural Networks, "[num_filters]"
+Highway, Creates a highway layer, "[activation_fn, biases_initializer, weights_initializer]"
+WeaveLayer, This layer implements the core Weave convolution, "[n_atom_input_feat, n_pair_input_feat, n_atom_output_feat, n_pair_output_feat, n_hidden_AA, n_hidden_PA, n_hidden_AP, n_hidden_PP, update_pair, activation, batch_normalize, batch_normalize_kwargs]"
+WeaveGather, Implements the weave-gathering section of weave convolutions, "[batch_size, n_input, gaussian_expand, compress_post_gaussian_expansion, activation]"
+DTNNEmbedding, Embedding layer for Deep Tensor Neural Networks that maps atomic numbers to learnable feature vectors, "[n_embedding, periodic_table_length, init]"
+DTNNStep, Performs one step of distance-based message passing in Deep Tensor Neural Networks, "[n_embedding, n_distance, n_hidden, init, activation]"
+DTNNGather, Gathers atom-level features into molecule-level features for final molecular property prediction in Deep Tensor Neural Networks, "[n_embedding, n_outputs, layer_sizes, output_activation, init, activation]"
+DAGLayer, This layer generates a directed acyclic graph for each atom in a molecule, "[n_graph_feat, n_atom_feat, max_atoms, layer_sizes, init, activation, dropout, batch_size]"
+DAGGather, Gathers atom-level features from DAG layer into molecular-level features, "[n_graph_feat, n_outputs, max_atoms, layer_sizes, init, activation, dropout]"
+MessagePassing, Message passing neural network layer for iterative feature propagation on molecular graphs, "[T, message_fn, update_fn, n_hidden]"
+EdgeNetwork, Computes edge representations for message passing neural network based on atom and bond features, "[n_pair_features, n_hidden, init]"
+GatedRecurrentUnit, It is used as an update function of the MessagePassing layer, "[n_hidden, init]"
+SetGather, Set2Set layer for aggregating atom-level features into graph-level representations, "[M, batch_size, n_hidden, init]"

@@ -1,61 +1,66 @@
-﻿Layer,Reference, Model
-MultilayerPerceptron,,
-ScaleNorm,`ref <https://arxiv.org/abs/2002.08264>`_, Molecular Attention Transformer
-MATEncoderLayer,`ref <https://arxiv.org/abs/2002.08264>`_, Molecular Attention Transformer
-MultiHeadedMATAttention,`ref <https://arxiv.org/abs/2002.08264>`_, Molecular Attention Transformer
-SublayerConnection,`ref <https://arxiv.org/abs/1706.03762>`_, Transformer
-MATEmbedding,`ref <https://arxiv.org/abs/2002.08264>`_, Molecular Attention Transformer
-MATGenerator, `ref <https://arxiv.org/abs/2002.08264>`_, Molecular Attention Transformer
-Affine,`ref <http://arxiv.org/abs/2110.15828>`_, Normalizing Flow
-RealNVPLayer,`ref <http://arxiv.org/abs/2110.15828>`_, Normalizing Flow
-DMPNNEncoderLayer,`ref <https://arxiv.org/pdf/1904.01561.pdf>`_, Normalizing Flow
-PositionwiseFeedForward,`ref <https://arxiv.org/abs/2002.08264>`_, Molecular Attention Transformer
-GraphPool, `ref <https://arxiv.org/abs/1509.09292>`_,
-GroverMPNEncoder, `ref <https://drug.ai.tencent.com/publications/GROVER.pdf>`_, Grover
-GroverAttentionHead, `ref <https://drug.ai.tencent.com/publications/GROVER.pdf>`_, Grover
-GroverMTBlock, `ref <https://drug.ai.tencent.com/publications/GROVER.pdf>`_, Grover
-GroverTransEncoder, `ref <https://drug.ai.tencent.com/publications/GROVER.pdf>`_, Grover
-GroverEmbedding, `ref <https://drug.ai.tencent.com/publications/GROVER.pdf>`_, Grover
-GroverAtomVocabPredictor, `ref <https://drug.ai.tencent.com/publications/GROVER.pdf>`_, Grover
-GroverBondVocabPredictor, `ref <https://drug.ai.tencent.com/publications/GROVER.pdf>`_, Grover
-GroverFunctionalGroupPredictor, `ref <https://drug.ai.tencent.com/publications/GROVER.pdf>`_, Grover
-ScaledDotProductAttention, `ref <https://arxiv.org/abs/1706.03762>`_, Transformer
-SelfAttention, `ref <https://arxiv.org/abs/1706.03762>`_, Transformer
-GroverReadout, `ref <https://drug.ai.tencent.com/publications/GROVER.pdf>`_, Grover
-DFTXC, `ref <https://arxiv.org/abs/2102.04229>`_, XCModel-DFT
-NNLDA, `ref <https://arxiv.org/abs/2102.04229>`_, XCModel-DFT
-HybridXC, `ref <https://arxiv.org/abs/2102.04229>`_, XCModel-DFT
-XCNNSCF, `ref <https://arxiv.org/abs/2102.04229>`_, XCModel-DFT
-AtomEncoder, `https://arxiv.org/abs/2110.04126`_, 3D InfoMax
-BondEncoder, `https://arxiv.org/abs/2110.04126`_, 3D InfoMax
-Net3DLayer, `https://arxiv.org/abs/2110.04126`_, 3D InfoMax
-Net3D, `https://arxiv.org/abs/2110.04126`_, 3D InfoMax
-PNALayer, `https://arxiv.org/abs/2004.05718`_, Principal Neighbourhood Aggregation
-PNAGNN, `https://arxiv.org/abs/2004.05718`_, Principal Neighbourhood Aggregation
-EdgeNetwork, `ref <https://arxiv.org/abs/1704.01212>`_, Message Passing Neural Network
-WeaveLayer,`ref <https://pubmed.ncbi.nlm.nih.gov/27558503/>`_, WeaveModel
-WeaveGather,`ref <https://pubmed.ncbi.nlm.nih.gov/27558503/>`_, WeaveModel
-GradientPenalty, `ref <https://arxiv.org/abs/1704.00028>`_, WGANModel
-MolGANConvolutionLayer,`ref <https://arxiv.org/abs/1805.11973>`_, MolGan
-MolGANAggregationLayer,`ref <https://arxiv.org/abs/1805.11973>`_, MolGan
-MolGANMultiConvolutionLayer,`ref <https://arxiv.org/abs/1805.11973>`_, MolGan
-MolGANEncoderLayer, `ref <https://arxiv.org/abs/1805.11973>`_, MolGan
-DTNNEmbedding, ref`<https://arxiv.org/abs/1609.08259>`_, DTNNModel
-DTNNStep, ref`<https://arxiv.org/abs/1609.08259>`_, DTNNModel
-DTNNGather, ref`<https://arxiv.org/abs/1609.08259>`_, DTNNModel
-MXMNetGlobalMessagePassing, `ref <https://arxiv.org/pdf/2011.07457>`_, MXMNetModel
-MXMNetBesselBasisLayer, `ref <https://arxiv.org/pdf/2011.07457>`_, MXMNetModel
-VariationalRandomizer, `ref <https://arxiv.org/abs/1511.06349>`_, SeqToSeqModel
-EncoderRNN, `ref <https://arxiv.org/abs/1409.3215>`_, SeqToSeqModel
-DecoderRNN, `ref <https://arxiv.org/abs/1409.3215>`_, SeqToSeqModel
-FerminetElectronFeature, `ref <https://arxiv.org/pdf/1909.02487.pdf>`_, FerminetModel
-FerminetEnvelope, `ref <https://arxiv.org/pdf/1909.02487.pdf>`_, FerminetModel
-MXMNetLocalMessagePassing, `ref <https://arxiv.org/pdf/2011.07457>`_, MXMNetModel
-MXMNetModelMXMNetSphericalBasisLayer, ref`<https://arxiv.org/pdf/2011.07457>`_, MXMNetModel
-HighwayLayer, `ref <https://arxiv.org/abs/1507.06228>`_,
-GraphConv,`ref <https://arxiv.org/abs/1509.09292>`_,
-GraphPool,`ref <https://arxiv.org/abs/1509.09292>`_,
-GraphGather,`ref <https://arxiv.org/abs/1509.09292>`_,
-IRVLayer,`ref <https://pmc.ncbi.nlm.nih.gov/articles/PMC2750043/>`_,
-DAGLayer,`ref <https://pmc.ncbi.nlm.nih.gov/articles/PMC3739985/>`_,
-DAGGather,`ref <https://pmc.ncbi.nlm.nih.gov/articles/PMC3739985/>`_,
+﻿Layer, Description, Key Arguments
+MultilayerPerceptron, A simple fully connected feed-forward network otherwise known as a multilayer perceptron (MLP), "[d_input, d_output, d_hidden, dropout, batch_norm, batch_norm_momentum, activation_fn, skip_connection, weighted_skip]"
+CNNModule, A 1D 2D or 3D convolutional network for either regression or classification, "[n_tasks, n_features, dims, layer_filters, kernel_size, strides]"
+ScaleNorm, Applies Scale Normalization by computing the sqrt(scale) and then dividing by the matrix norm of input tensor, "[scale, eps]"
+MultiHeadedMATAttention, Constructs an attention layer tailored to the Molecular Attention Transformer and then converts it into Multi-headed Attention, "[dist_kernel, lambda_attention, lambda_distance, h, hsize, dropout_p, output_bias]"
+MATEncoderLayer, Encoder layer for use in the Molecular Attention Transformer, "[dist_kernel, lambda_attention, lambda_distance, h, sa_hsize, sa_dropout_p, output_bias, d_input, d_hidden, d_output, activation, n_layers, ff_dropout_p, encoder_hsize, encoder_dropout_p]"
+SublayerConnection, Normalizes and adds dropout to output tensor of an arbitrary layer, "[size, dropout_p]"
+PositionwiseFeedForward, Defines the position-wise feed-forward (FFN) algorithm for the Molecular Attention Transformer, "[d_input, d_hidden, d_output, activation, n_layers, dropout_p, dropout_at_input_no_act]"
+MATEmbedding, Embedding layer to create embedding for inputs, "[d_input, d_output, dropout_p]"
+MATGenerator, Defines the linear and softmax generator step for the Molecular Attention Transformer, "[hsize, aggregation_type, d_output, n_layers, dropout_p, attn_hidden, attn_out]"
+GraphNetwork, Takes a graph as input and returns an updated graph having node_features edge_features as output, "[n_node_features, n_edge_features, n_global_features, residual_connection]"
+DMPNNEncoderLayer, Encoder layer for use in the Directed Message Passing Neural Network (D-MPNN), "[use_default_fdim, atom_fdim, bond_fdim, d_hidden, depth, bias, activation, dropout_p, aggregation, aggregation_norm]"
+InteratomicL2Distances, Compute (squared) L2 Distances between atoms given neighbors, "[N_atoms, M_nbrs, ndim]"
+RealNVPLayer, This is a constructor transformation layer used on a NormalizingFlow model, "[mask, hidden_size]"
+NeighborList, Computes a neighbor-list, "[N_atoms, M_nbrs, ndim, nbr_cutoff, start, stop]"
+LSTMStep, Layer that performs a single step LSTM update, "[output_dim, input_dim, init_fn, inner_init_fn, activation_fn, inner_activation_fn]"
+AtomicConvolution, Implements the Atomic Convolutional transform, "[atom_types, radial_params, boxsize]"
+AtomicConv, Implements an Atomic Convolution Model, "[n_tasks, frag1_num_atoms, frag2_num_atoms, complex_num_atoms, max_num_neighbours, batch_size, atom_types, radial, layer_sizes, weight_init_stddevs, bias_init_consts, dropouts, activation_fn]"
+CombineMeanStd, Generates Gaussian noise, "[training_only, noise_epsilon]"
+GatedRecurrentUnit, It is used as an update function of the MessagePassing layer, "[n_hidden, init]"
+WeightedLinearCombo, Compute a weighted linear combination of input layers where the weight variables are trained, "[num_inputs, std]"
+SetGather, Set2Set layer for aggregating atom-level features into graph-level representations, "[M, batch_size, n_hidden, init]"
+DTNNEmbedding, This layer creates 'n' number of embeddings as initial atomic descriptors, "[n_embedding, periodic_table_length, init]"
+MolGANConvolutionLayer, This layer performs basic convolution on one-hot encoded matrices containing atom and bond information, "[units, nodes, activation_fn, dropout_rate, edges, name, prev_shape, device]"
+MolGANAggregationLayer, Performs aggregation on tensor resulting from convolution layers, "[units, activation, dropout_rate, name, prev_shape, device]"
+MolGANMultiConvolutionLayer, It takes outputs of previous convolution layer and uses them as inputs for the next one, "[units, nodes, activation, dropout_rate, edges, name, device]"
+MolGANEncoderLayer, Encoder layer that combines graph convolution and aggregation for molecular generation in MolGAN, "[units, activation, dropout_rate, edges, nodes, name, device]"
+DTNNStep, Encodes the atom's interaction with other atoms according to distance relationships, "[n_embedding, n_distance, n_hidden, initializer, activation]"
+DTNNGather, This Layer gathers the inputs got from the step layer according to atom_membership and calculates the total Molecular Energy, "[n_embedding, n_outputs, layer_sizes, output_activation, initializer, activation]"
+EdgeNetwork, Submodule designed for message passing in graph neural networks, "[n_pair_features, n_hidden, init]"
+WeaveLayer, Graph convolutional layer combining atom and bond features from local neighborhoods, "[n_atom_input_feat, n_pair_input_feat, n_atom_output_feat, n_pair_output_feat, n_hidden_AA, n_hidden_PA, n_hidden_AP, n_hidden_PP, update_pair, init_, activation, batch_normalize]"
+WeaveGather, Implements the weave-gathering section of weave convolutions, "[batch_size, n_input, gaussian_expand, compress_post_gaussian_expansion, init,  activation]"
+_MXMNetEnvelope, Helper envelope function for MXMNet that applies smooth cutoff to radial basis functions using polynomial decay, "[exponent]"
+MXMNetBesselBasisLayer, Computes Bessel basis functions for radial distance representation with envelope cutoff in MXMNet model, "[num_radial, cutoff, envelope_exponent]"
+VariationalRandomizer, Adds random noise to the embedding and includes a corresponding loss, "[embedding_dimension, annealing_start_step, annealing_final_step]"
+EncoderRNN, Encoder layer for SeqToSeq model that converts input sequences into fixed-size context vector embeddings using GRU, "[input_size, hidden_size, n_layers, dropout_p]"
+DecoderRNN, Decoder layer for SeqToSeq model that transforms embeddings into output sequences using GRU with teacher forcing support, "[hidden_size, output_size, n_layers, max_length, batch_size, step_activation]"
+FerminetElectronFeature, Ferminet electron feature interaction layer with linear transformations for one-electron and two-electron features in molecular systems, "[n_one, n_two, no_of_atoms, batch_size, total_electron, spin]"
+FerminetEnvelope, Ferminet envelope layer that calculates spin up and spin down orbital values using learnable envelope functions for molecular wavefunctions, "[n_one, n_two, total_electron, batch_size, spin, no_of_atoms, determinant]"
+MXMNetLocalMessagePassing, Local message passing layer for MXMNet model that captures multi-hop angles and distances through three-step message passing scheme, "[dim, activation_fn]"
+MXMNetSphericalBasisLayer, Spherical basis layer combining radial basis functions with spherical harmonics to capture radial and orientation information in molecular systems, "[num_spherical, num_radial, cutoff, envelope_exponent]"
+HighwayLayer, Highway layer implementing gated transformation H(x)*T(x) + x*C(x) for training very deep networks with adaptive information flow, "[d_input, activation_fn]"
+GraphConv, Graph convolutional layer that combines per-node feature vectors nonlinearly with neighboring node features for molecular fingerprints, "[out_channel, number_input_features, min_deg, max_deg, activation_fn]"
+GraphPool, Graph pooling layer that performs max-pooling over feature vectors of atoms in local graph neighborhoods, "[min_degree, max_degree]"
+GraphGather, Graph gathering layer that pools node-level features to create graph-level feature vectors by combining all node features, "[batch_size, activation_fn]"
+EquivariantLinear, Linear layer for 3D atomic/molecular data that transforms feature tensors while preserving equivariance properties for atomic coordinates, "[in_features, out_features]"
+SphericalHarmonics, Computes spherical harmonics up to specified degree to capture rotationally equivariant features from interatomic relative positions, "[max_degree]"
+SE3Attention, SE(3) attention module using spherical harmonics for rotationally equivariant attention on 3D molecular data with coordinate updates, "[embed_dim, num_heads, sh_max_degree]"
+DAGLayer, DAG computation layer computing graph features recursively for each atom with its neighbors using deep architecture, "[n_graph_feat, n_atom_feat, max_atoms, layer_sizes, init, activation, dropout, batch_size, device]"
+DAGGather, DAG vector gathering layer that pools and combines graph features based on molecular membership for molecular-level representations, "[n_graph_feat, n_outputs, max_atoms, layer_sizes, init, activation, dropout, device]"
+Fiber, Data structure for fibers in SE(3)-Transformers defining structured feature spaces with utilities for combining fiber structures, "[num_degrees, num_channels, structure, dictionary]"
+SE3LayerNorm, SE(3)-equivariant layer normalization applied per feature channel for graph-based architectures with stable training, "[num_channels]"
+SE3RadialFunc, Radial profile function for SE(3)-equivariant kernels using MLP to modulate interaction strength based on relative distances, "[num_freq, in_dim, out_dim, edge_dim]"
+SE3PairwiseConv, SE(3)-equivariant pairwise convolution between single-type features using spherical harmonics basis for geometric symmetries, "[degree_in, nc_in, degree_out, nc_out, edge_dim]"
+SE3Sum, SE(3)-equivariant residual sum layer performing element-wise summation of node features with zero-padding for skip connections, "[f_x, f_y]"
+SE3Cat, SE(3)-equivariant concatenation layer stacking features from two fiber representations along channel dimension, "[f_x, f_y]"
+SE3AvgPooling, SE(3)-equivariant average pooling over graph nodes preserving equivariance for scalar and vector features, "[pooling_type]"
+SE3MultiHeadAttention, SE(3)-equivariant multi-headed self-attention computing attention scores over graph edges while preserving symmetry, "[f_value, f_key, n_heads]"
+SE3AttentiveSelfInteraction, Self-interaction layer with attention mechanism for adaptive SE(3)-equivariant feature transformation using learned weights, "[f_in, f_out]"
+SE3SelfInteraction, Linear SE(3)-equivariant layer equivalent to 1x1 convolution applying independent transformations per feature type, "[f_in, f_out, learnable]"
+SE3GraphConv, Graph convolutional layer equivariant under SE(3) transformations using spherical harmonics basis for message passing, "[f_in, f_out, self_interaction, edge_dim, flavor]"
+SE3GraphNorm, SE(3)-equivariant graph normalization layer normalizing features per degree while maintaining phase information, "[fiber, nonlin, num_layers]"
+SE3PartialEdgeConv, SE(3)-equivariant partial convolution mapping node features to edge features for attention mechanism value embeddings, "[f_in, f_out, edge_dim, x_ij]"
+SE3ResidualAttention, SE(3)-equivariant residual attention block with multi-head attention and skip connections for graph neural networks, "[f_in, f_out, edge_dim, div, n_heads, learnable_skip, skip, selfint, x_ij]"
+SpectralConv, N-dimensional Fourier layer applying FFT on spatial dimensions with learned complex multiplication in frequency domain, "[in_channels, out_channels, modes, dims]"
+
