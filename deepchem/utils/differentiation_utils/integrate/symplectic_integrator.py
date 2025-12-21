@@ -1,11 +1,13 @@
 import torch
 from torch.autograd import grad
 from tqdm import tqdm
+from typing import Callable
+
 
 
 def leapfrog(p: torch.Tensor,
              q: torch.Tensor,
-             Func: callable,
+             Func: Callable,
              dt: float,
              N: int,
              is_hamiltonian: bool = True) -> torch.Tensor:
@@ -20,7 +22,7 @@ def leapfrog(p: torch.Tensor,
         Initial position tensor, shape (1,)
     Func : callable
         If is_hamiltonian=True: Function that returns Hamiltonian H(z) where z=[p,q]
-        If is_hamiltonian=False: Function that returns derivatives [dp/dt, dq/dt]
+        If is_hamiltonian=False: FuncCallabletion that returns derivatives [dp/dt, dq/dt]
     dt : float
         Time step size for integration
     N : int
