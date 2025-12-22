@@ -5,12 +5,16 @@ from typing import Callable
 
 def leapfrog(p: torch.Tensor,
              q: torch.Tensor,
-             fcn: Callable,
+             fcn: Callable[..., torch.Tensor],
              dt: float,
              N: int,
              is_hamiltonian: bool = True) -> torch.Tensor:
     """
     Leapfrog integrator for simulating Hamiltonian or general dynamics.
+
+    A second-order symplectic integrator that alternates between half-step
+    momentum updates and full-step position updates, which conserves the
+    energy in physical system
 
     Parameters
     ----------
