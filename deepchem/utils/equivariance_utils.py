@@ -1424,7 +1424,7 @@ class LieGroup:
         ab_dist = torch.norm(abq_pairs[..., :self.lie_dim], dim=-1)
         if self.q_dim is None:
             raise ValueError("q_dim must be defined to compute distance.")
-        if type(self.q_dim) == int and self.q_dim > 0:
+        if self.q_dim > 0:
             qa = abq_pairs[..., self.lie_dim:self.lie_dim + self.q_dim]
             qb = abq_pairs[..., self.lie_dim + self.q_dim:self.lie_dim +
                            2 * self.q_dim]
@@ -1436,10 +1436,10 @@ class LieGroup:
 
     def lift(
         self,
-        x: tuple[torch.Tensor, torch.Tensor, torch.Tensor],
+        x: Tuple[torch.Tensor, torch.Tensor, torch.Tensor],
         nsamples: int,
         **kwargs,
-    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """Lift inputs to pairwise Lie group representations.
 
         This method lifts Euclidean points into the Lie algebra (and optional
@@ -1448,7 +1448,7 @@ class LieGroup:
 
         Parameters
         ----------
-        x : tuple
+        x : Tuple
             Tuple ``(p, v, m)`` consisting of:
             - ``p``: input points taking values in $\mathbb{R}^{\\text{rep\\_dim}}$
             - ``v``: feature values associated with each point
@@ -1500,7 +1500,7 @@ class LieGroup:
         v: torch.Tensor,
         m: torch.Tensor,
         a: torch.Tensor,
-    ) -> tuple[torch.Tensor, torch.Tensor]:
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Expand features and masks to align with lifted Lie algebra elements.
 
         This method replicates per-point feature values and masks so that they
@@ -1655,7 +1655,7 @@ class T(LieGroup):
         xyz: torch.Tensor,
         nsamples: int,
         **kwargs,
-    ) -> tuple[torch.Tensor, None]:
+    ) -> Tuple[torch.Tensor, None]:
         """Lift Euclidean points into the Lie algebra.
 
         For the translation group, the lift is unique since the group is Abelian

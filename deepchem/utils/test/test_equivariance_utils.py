@@ -598,7 +598,6 @@ class TestLieGroup(unittest.TestCase):
             lie_dim = 2
             q_dim = 0
 
-            # --- Core maps ---
             def exp(self, a: torch.Tensor) -> torch.Tensor:
                 return a
 
@@ -622,39 +621,46 @@ class TestLieGroup(unittest.TestCase):
 
         self.G = _TranslationLieGroup(alpha=0.5)
 
+    @unittest.skipIf(not has_torch, "torch is not available")
     def test_exp_log_identity(self) -> None:
         a = torch.tensor([1.0, -2.0])
         self.assertTrue(torch.allclose(self.G.exp(a), a))
         self.assertTrue(torch.allclose(self.G.log(a), a))
 
+    @unittest.skipIf(not has_torch, "torch is not available")
     def test_inverse(self) -> None:
         g = torch.tensor([3.0, -4.0])
         inv_g = self.G.inv(g)
         self.assertTrue(torch.allclose(inv_g, -g))
 
+    @unittest.skipIf(not has_torch, "torch is not available")
     def test_lifted_elems(self) -> None:
         xyz = torch.tensor([[0.0, 1.0], [2.0, 3.0]])
         a, q = self.G.lifted_elems(xyz, nsamples=1)
         self.assertTrue(torch.allclose(a, xyz))
         self.assertIsNone(q)
 
+    @unittest.skipIf(not has_torch, "torch is not available")
     def test_lifted_elems_invalid_nsamples(self) -> None:
         xyz = torch.zeros(2, 2)
         with self.assertRaises(ValueError):
             self.G.lifted_elems(xyz, nsamples=2)
 
+    @unittest.skipIf(not has_torch, "torch is not available")
     def test_distance_translation(self) -> None:
         abq = torch.tensor([[3.0, 4.0]])
         d = self.G.distance(abq)
         d = torch.as_tensor(d)
         self.assertTrue(torch.allclose(d, torch.tensor([2.5])))
 
+    @unittest.skipIf(not has_torch, "torch is not available")
     def test_elems2pairs(self) -> None:
         a = torch.tensor([[0.0, 0.0], [1.0, 2.0]])
         pairs = self.G.elems2pairs(a.unsqueeze(0))
         expected = a[None, :, None, :] - a[None, None, :, :]
         self.assertTrue(torch.allclose(pairs, expected))
 
+    @unittest.skipIf(not has_torch, "torch is not available")
     def test_expand_like(self) -> None:
         v = torch.tensor([[1.0], [2.0]])
         m = torch.tensor([1, 0])
@@ -664,6 +670,7 @@ class TestLieGroup(unittest.TestCase):
         self.assertEqual(v_exp.shape, (1, 2, 1))
         self.assertEqual(m_exp.shape, (1, 2))
 
+    @unittest.skipIf(not has_torch, "torch is not available")
     def test_lift(self) -> None:
         p = torch.tensor([[0.0, 0.0], [1.0, 1.0]])
         v = torch.tensor([[1.0], [2.0]])
@@ -684,18 +691,21 @@ class TestTranslationLieGroup(unittest.TestCase):
         """Create a 2D translation group."""
         self.G = equivariance_utils.T(k=2, alpha=0.5)
 
+    @unittest.skipIf(not has_torch, "torch is not available")
     def test_exp_log_identity(self) -> None:
         """exp and log should be identity maps."""
         a = torch.tensor([1.0, -2.0])
         self.assertTrue(torch.allclose(self.G.exp(a), a))
         self.assertTrue(torch.allclose(self.G.log(a), a))
 
+    @unittest.skipIf(not has_torch, "torch is not available")
     def test_inverse(self) -> None:
         """Inverse should negate translations."""
         g = torch.tensor([3.0, -4.0])
         inv_g = self.G.inv(g)
         self.assertTrue(torch.allclose(inv_g, -g))
 
+    @unittest.skipIf(not has_torch, "torch is not available")
     def test_lifted_elems(self) -> None:
         """Lifting should return the input and no quotient."""
         xyz = torch.tensor([[0.0, 1.0], [2.0, 3.0]])
@@ -703,12 +713,14 @@ class TestTranslationLieGroup(unittest.TestCase):
         self.assertTrue(torch.allclose(a, xyz))
         self.assertIsNone(q)
 
+    @unittest.skipIf(not has_torch, "torch is not available")
     def test_lifted_elems_invalid_nsamples(self) -> None:
         """Translations do not support multiple samples."""
         xyz = torch.zeros(2, 2)
         with self.assertRaises(ValueError):
             self.G.lifted_elems(xyz, nsamples=2)
 
+    @unittest.skipIf(not has_torch, "torch is not available")
     def test_distance_translation(self) -> None:
         """Distance reduces to scaled Euclidean norm."""
         # abq contains only Lie algebra part since q_dim = 0
@@ -717,6 +729,7 @@ class TestTranslationLieGroup(unittest.TestCase):
         expected = 0.5 * torch.tensor([5.0])  # alpha * ||(3,4)||
         self.assertTrue(torch.allclose(torch.as_tensor(d), expected))
 
+    @unittest.skipIf(not has_torch, "torch is not available")
     def test_elems2pairs(self) -> None:
         """Pairwise differences should be simple subtraction."""
         a = torch.tensor([[0.0, 0.0], [1.0, 2.0]])  # (n=2, k=2)
@@ -730,6 +743,7 @@ class TestTranslationLieGroup(unittest.TestCase):
 
         self.assertTrue(torch.allclose(pairs, expected))
 
+    @unittest.skipIf(not has_torch, "torch is not available")
     def test_expand_like(self) -> None:
         """expand_like should align features and masks."""
         v = torch.tensor([[1.0], [2.0]])
@@ -743,6 +757,7 @@ class TestTranslationLieGroup(unittest.TestCase):
         self.assertEqual(v_exp.shape, (1, 2, 1))
         self.assertEqual(m_exp.shape, (1, 2))
 
+    @unittest.skipIf(not has_torch, "torch is not available")
     def test_lift(self) -> None:
         """lift should produce pairwise relative translations."""
         p = torch.tensor([[0.0, 0.0], [1.0, 1.0]])
