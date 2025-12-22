@@ -26,7 +26,7 @@ def leapfrog(p: torch.Tensor,
     N : int
         Number of steps to simulate
     is_hamiltonian : bool
-        boolean flag for indicating either hamiltonian or non-hamiltonian function 
+        boolean flag for indicating either hamiltonian or non-hamiltonian function
 
     Returns
     -------
@@ -46,6 +46,14 @@ def leapfrog(p: torch.Tensor,
     >>> trajectories = leapfrog(p0, q0, hamiltonian_fn, dt, N, is_hamiltonian=True)
     >>> trajectories.shape
     torch.Size([100, 2])
+
+    References
+    ----------
+    .. [1] https://en.wikipedia.org/wiki/Leapfrog_integration
+    .. [2] https://www.johndcook.com/blog/2020/07/13/leapfrog-integrator/
+    .. [3] https://cvarin.github.io/CSci-Survival-Guide/leapfrog.html
+    .. [4] https://github.com/zhengdao-chen/SRNN
+
     """
 
     trajectories = torch.empty((N, 2))
