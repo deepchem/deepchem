@@ -441,11 +441,12 @@ Attention Layers
 .. autoclass:: deepchem.models.torch_models.layers.SE3GraphNorm
   :members:
 
-  .. autoclass:: deepchem.models.torch_models.layers.SE3PartialEdgeConv
+.. autoclass:: deepchem.models.torch_models.layers.SE3PartialEdgeConv
   :members:
 
 .. autoclass:: deepchem.models.torch_models.layers.SE3ResidualAttention
   :members:
+
 
 Readout Layers
 ^^^^^^^^^^^^^^

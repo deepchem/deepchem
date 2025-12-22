@@ -671,6 +671,11 @@ LNNModel
 .. autoclass:: deepchem.models.torch_models.LNNModel
   :members:
 
+SE3TransformerModel
+--------------------
+.. autoclass:: deepchem.models.torch_models.SE3TransformerModel
+  :members:
+  
 PyTorch Lightning Models
 ========================
 
