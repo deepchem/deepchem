@@ -3,10 +3,9 @@ from torch.autograd import grad
 from typing import Callable
 
 
-
 def leapfrog(p: torch.Tensor,
              q: torch.Tensor,
-             Func: Callable,
+             fcn: Callable,
              dt: float,
              N: int,
              is_hamiltonian: bool = True) -> torch.Tensor:
@@ -19,7 +18,7 @@ def leapfrog(p: torch.Tensor,
         Initial momentum tensor, shape (1,)
     q : torch.Tensor
         Initial position tensor, shape (1,)
-    Func : callable
+    fcn : callable
         If is_hamiltonian=True: Function that returns Hamiltonian H(z) where z=[p,q]
         If is_hamiltonian=False: FuncCallabletion that returns derivatives [dp/dt, dq/dt]
     dt : float
@@ -53,7 +52,7 @@ def leapfrog(p: torch.Tensor,
     q = q.clone().requires_grad_(True)
 
     if is_hamiltonian:
-        hamilt = Func(torch.cat([p, q], dim=-1))
+        hamilt = fcn(torch.cat([p, q], dim=-1))
         dpdt = -grad(hamilt.sum(), q)[0]
 
         for i in range(N):
@@ -63,18 +62,18 @@ def leapfrog(p: torch.Tensor,
             trajectories[i, :1] = p.detach()
             trajectories[i, 1:] = q.detach()
 
-            hamil = Func(torch.cat([p_half, q], dim=-1))
+            hamil = fcn(torch.cat([p_half, q], dim=-1))
             dqdt = grad(hamil.sum(), p_half)[0]
             q_next = q + dt * dqdt
 
-            hamil = Func(torch.cat([p_half, q_next], dim=-1))
+            hamil = fcn(torch.cat([p_half, q_next], dim=-1))
             dpdt = -grad(hamil.sum(), q_next)[0]
             p_next = p_half + (dt / 2) * dpdt
 
             p, q = p_next, q_next
 
     else:
-        time_drvt = Func((p, q))
+        time_drvt = fcn((p, q))
         dpdt = time_drvt[0]
 
         for i in range(N):
@@ -84,11 +83,11 @@ def leapfrog(p: torch.Tensor,
             trajectories[i, :1] = p
             trajectories[i, 1:] = q
 
-            time_drvt = Func((p_half, q))
+            time_drvt = fcn((p_half, q))
             dqdt = time_drvt[1]
             q_next = q + dqdt * dt
 
-            time_drvt = Func((p_half, q_next))
+            time_drvt = fcn((p_half, q_next))
             dpdt = time_drvt[0]
             p_next = p_half + dpdt * (dt / 2)
 
