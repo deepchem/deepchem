@@ -25,6 +25,8 @@ def leapfrog(p: torch.Tensor,
         Time step size for integration
     N : int
         Number of steps to simulate
+    is_hamiltonian : bool
+        boolean flag for indicating either hamiltonian or non-hamiltonian function 
 
     Returns
     -------
