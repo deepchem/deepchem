@@ -1,6 +1,5 @@
 import torch
 from torch.autograd import grad
-from tqdm import tqdm
 from typing import Callable
 
 
@@ -57,7 +56,7 @@ def leapfrog(p: torch.Tensor,
         hamilt = Func(torch.cat([p, q], dim=-1))
         dpdt = -grad(hamilt.sum(), q)[0]
 
-        for i in tqdm(range(N)):
+        for i in range(N):
 
             p_half = p + (dt / 2) * dpdt
 
@@ -78,7 +77,7 @@ def leapfrog(p: torch.Tensor,
         time_drvt = Func((p, q))
         dpdt = time_drvt[0]
 
-        for i in tqdm(range(N)):
+        for i in range(N):
 
             p_half = p + dpdt * (dt / 2)
 
