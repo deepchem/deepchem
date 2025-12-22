@@ -1,5 +1,5 @@
 import math
-from typing import Optional, List, Dict, Tuple, Callable
+from typing import Optional, List, Dict, Tuple
 import torch
 from deepchem.models.torch_models.layers import Fiber
 from deepchem.utils.cache_utils import cached_dirpklgz
@@ -1248,3 +1248,451 @@ def commutator(A: torch.Tensor, B: torch.Tensor) -> torch.Tensor:
             [ 12,   4]])
     """
     return torch.matmul(A, B) - torch.matmul(B, A)
+
+
+class LieGroup:
+    """Abstract base class for Lie groups used in LieConv _[1].
+
+    This class represents continuous Lie groups acting on
+    Euclidean data, as required by LieConv-style equivariant neural networks _[1].
+    Specific groups, like translations (T) or 3d roto-translations (SE(3)), or subclasses
+    must implement the group exponential and logarithm maps, as well
+    as a lifting procedure from Euclidean coordinates to group-aligned
+    representations.
+
+    Each group is characterized by:
+    - A representation space on which the group acts.
+    - A Lie algebra parameterization.
+    - An optional quotient (orbit) embedding.
+
+    Subclasses must implement at least:
+    - :meth:`exp` - the group exponential map
+    - :meth:`log` - the group logarithm map
+    - :meth:`lifted_elems` - lifting from Euclidean coordinates to Lie algebra elements
+
+    and define the attributes `rep_dim`, `lie_dim`, and `q_dim`.
+
+    Attributes
+    ----------
+    rep_dim : int
+        Dimension of the representation space on which the group acts
+        (e.g., 2 for SO(2) acting on R^2).
+    lie_dim : int
+        Dimension of the Lie algebra parameterization
+        (e.g., 1 for SO(2)).
+    q_dim : int
+        Dimension of the quotient space embedding X/G, if applicable
+        (e.g., 1 for SO(2) acting on R^2).
+
+    References
+    ----------
+    .. [1] Generalizing Convolutional Neural Networks for Equivariance
+           to Lie Groups on Arbitrary Continuous Data
+           Marc Finzi, Samuel Stanton, Pavel Izmailov, Andrew Gordon Wilson
+           NeurIPS 2020, https://arxiv.org/abs/2002.12880
+    """
+
+    rep_dim: int
+    lie_dim: int
+    q_dim: int
+
+    def __init__(self, alpha: float = 0.2):
+        """Initialize the Lie group.
+
+        Parameters
+        ----------
+        alpha : float, optional (default 0.2)
+            Parameter controlling the contribution of Lie group displacement
+            versus orbit (quotient-space) displacement in the distance metric.
+            Larger values emphasize group motion (orientation/rotation),
+            while smaller values emphasize orbit or spatial displacement.
+        """
+        super().__init__()
+        self.alpha = alpha
+
+    def exp(self, a: torch.Tensor) -> torch.Tensor:
+        """Exponential map from the Lie algebra to the Lie group.
+
+        Computes the group element
+        $\\exp\\left(\\sum_i a_i A_i\\right)$,
+        where $\\{A_i\\}$ are the generators of the Lie algebra and
+        $a \\in \\mathbb{R}^{\\text{lie\\_dim}}$ are the corresponding coefficients.
+
+        Parameters
+        ----------
+        a : torch.Tensor
+            Lie algebra coefficients taking values in
+            $\mathbb{R}^{\\text{lie\\_dim}}$.
+
+        Returns
+        -------
+        torch.Tensor
+            Group elements represented as matrices in
+            $\mathbb{R}^{\\text{rep\\_dim} \\times \\text{rep\\_dim}}$.
+        """
+        raise NotImplementedError
+
+    def log(self, u: torch.Tensor) -> torch.Tensor:
+        """Logarithm map from the Lie group to the Lie algebra.
+
+        Computes the Lie algebra element corresponding to a group element,
+        expressed in the chosen Lie algebra basis.
+
+        Parameters
+        ----------
+        u : torch.Tensor
+            Group elements represented as matrices in
+            $\mathbb{R}^{\\text{rep\\_dim} \\times \\text{rep\\_dim}}$.
+
+        Returns
+        -------
+        torch.Tensor
+            Lie algebra coefficients taking values in
+            $\mathbb{R}^{\\text{lie\\_dim}}$.
+        """
+        raise NotImplementedError
+
+    def lifted_elems(
+        self,
+        xyz: torch.Tensor,
+        nsamples: int,
+    ) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
+        """Lift Euclidean coordinates into Lie algebra and quotient representations.
+
+        This method maps input points in Euclidean space to elements of the Lie
+        algebra, together with optional quotient (orbit) embeddings. For groups
+        with multivalued lifts, multiple samples may be generated per input point.
+
+        Parameters
+        ----------
+        xyz : torch.Tensor
+            Input points taking values in $\mathbb{R}^{\\text{rep\\_dim}}$.
+        nsamples : int
+            Number of lifted samples per point.
+
+        Returns
+        -------
+        a : torch.Tensor
+            Lie algebra elements taking values in $\mathbb{R}^{\\text{lie\\_dim}}$.
+        q : torch.Tensor or None
+            Quotient (orbit) embeddings taking values in
+            $\mathbb{R}^{\\text{q\\_dim}}$, or ``None`` if the quotient is trivial.
+        """
+        raise NotImplementedError
+
+    def inv(self, g: torch.Tensor) -> torch.Tensor:
+        """Compute the inverse of a group element.
+
+        Uses the identity $g^{-1} = \\exp(-\\log(g))$.
+
+        Parameters
+        ----------
+        g : torch.Tensor
+            Group elements represented as matrices in
+            $\mathbb{R}^{\\text{rep\\_dim} \\times \\text{rep\\_dim}}$.
+
+        Returns
+        -------
+        torch.Tensor
+            Inverse group elements in
+            $\mathbb{R}^{\\text{rep\\_dim} \\times \\text{rep\\_dim}}$.
+        """
+        return self.exp(-self.log(g))
+
+    def distance(self, abq_pairs: torch.Tensor) -> torch.Tensor:
+        """Compute the combined group and orbit distance.
+
+        The distance between two lifted points is defined as
+        $$
+        \\alpha \\, \\lVert \\Delta a \\rVert
+        + (1 - \\alpha) \\, \\lVert q_1 - q_2 \\rVert,
+        $$
+        where $\\Delta a = \\log(v^{-1} u)$ is the relative Lie algebra element and
+        $q_1, q_2$ are the corresponding quotient embeddings.
+
+        Parameters
+        ----------
+        abq_pairs : torch.Tensor
+            Concatenated relative Lie algebra and quotient components taking values in
+            $\mathbb{R}^{\\text{lie\\_dim} + 2\\,\\text{q\\_dim}}$.
+
+        Returns
+        -------
+        ArrayLike
+            Scalar distance values.
+        """
+        ab_dist = torch.norm(abq_pairs[..., :self.lie_dim], dim=-1)
+        if self.q_dim is None:
+            raise ValueError("q_dim must be defined to compute distance.")
+        if type(self.q_dim) == int and self.q_dim > 0:
+            qa = abq_pairs[..., self.lie_dim:self.lie_dim + self.q_dim]
+            qb = abq_pairs[..., self.lie_dim + self.q_dim:self.lie_dim +
+                           2 * self.q_dim]
+            qa_qb_dist = torch.norm(qa - qb, dim=-1)
+        else:
+            qa_qb_dist = torch.zeros_like(ab_dist)
+
+        return self.alpha * ab_dist + (1.0 - self.alpha) * qa_qb_dist
+
+    def lift(
+        self,
+        x: tuple[torch.Tensor, torch.Tensor, torch.Tensor],
+        nsamples: int,
+        **kwargs,
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        """Lift inputs to pairwise Lie group representations.
+
+        This method lifts Euclidean points into the Lie algebra (and optional
+        quotient space), expands associated features and masks, and constructs
+        all pairwise relative group elements via the group logarithm.
+
+        Parameters
+        ----------
+        x : tuple
+            Tuple ``(p, v, m)`` consisting of:
+            - ``p``: input points taking values in $\mathbb{R}^{\\text{rep\\_dim}}$
+            - ``v``: feature values associated with each point
+            - ``m``: binary mask indicating valid points
+        nsamples : int
+            Number of lifted samples per point.
+
+        Returns
+        -------
+        embedded_locations : torch.Tensor
+            Pairwise relative group elements, optionally augmented with quotient
+            embeddings, taking values in
+            $\mathbb{R}^{\\text{lie\\_dim} + 2\\,\\text{q\\_dim}}$.
+        expanded_v : torch.Tensor
+            Feature values expanded to align with pairwise group elements.
+        expanded_mask : torch.Tensor
+            Mask expanded to align with pairwise group elements.
+        """
+
+        p, v, m = x
+
+        expanded_a, expanded_q = self.lifted_elems(p, nsamples, **kwargs)
+
+        nsamples = expanded_a.shape[-2] // m.shape[-1]
+
+        # Expand features
+        expanded_v = v[...,
+                       None, :].repeat((1,) * len(v.shape[:-1]) + (nsamples, 1))
+        expanded_v = expanded_v.reshape(*expanded_a.shape[:-1], v.shape[-1])
+
+        # Expand mask
+        expanded_mask = m[...,
+                          None].repeat((1,) * len(v.shape[:-1]) + (nsamples,))
+        expanded_mask = expanded_mask.reshape(*expanded_a.shape[:-1])
+
+        paired_a = self.elems2pairs(expanded_a)
+
+        if expanded_q is not None:
+            q_in = expanded_q.unsqueeze(-2).expand(*paired_a.shape[:-1], 1)
+            q_out = expanded_q.unsqueeze(-3).expand(*paired_a.shape[:-1], 1)
+            embedded_locations = torch.cat([paired_a, q_in, q_out], dim=-1)
+        else:
+            embedded_locations = paired_a
+
+        return embedded_locations, expanded_v, expanded_mask
+
+    def expand_like(
+        self,
+        v: torch.Tensor,
+        m: torch.Tensor,
+        a: torch.Tensor,
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        """Expand features and masks to align with lifted Lie algebra elements.
+
+        This method replicates per-point feature values and masks so that they
+        correspond to the lifted Lie algebra elements produced by the group
+        lifting procedure.
+
+        Parameters
+        ----------
+        v : torch.Tensor
+            Feature values associated with input points.
+        m : torch.Tensor
+            Mask indicating valid input points.
+        a : torch.Tensor
+            Lifted Lie algebra elements used to determine the expansion.
+
+        Returns
+        -------
+        expanded_v : torch.Tensor
+            Feature values expanded to align with lifted Lie algebra elements.
+        expanded_mask : torch.Tensor
+            Mask expanded to align with lifted Lie algebra elements.
+        """
+
+        nsamples = a.shape[-2] // m.shape[-1]
+
+        expanded_v = v[...,
+                       None, :].repeat((1,) * len(v.shape[:-1]) + (nsamples, 1))
+        expanded_v = expanded_v.reshape(*a.shape[:2], v.shape[-1])
+
+        expanded_mask = m[...,
+                          None].repeat((1,) * len(v.shape[:-1]) + (nsamples,))
+        expanded_mask = expanded_mask.reshape(*a.shape[:2])
+
+        return expanded_v, expanded_mask
+
+    def elems2pairs(self, a: torch.Tensor) -> torch.Tensor:
+        """Compute pairwise relative Lie algebra elements.
+
+        For lifted elements $a_i, a_j \in \mathbb{R}^{\text{lie\_dim}}$, this method
+        computes the relative displacement
+        $\log\!\left(\exp(-a_j)\exp(a_i)\right)$
+        for all ordered pairs $(i, j)$.
+
+        Parameters
+        ----------
+        a : torch.Tensor
+            Lie algebra elements taking values in $\mathbb{R}^{\text{lie\_dim}}$.
+
+        Returns
+        -------
+        pairwise_lie_algebra : torch.Tensor
+            Pairwise relative Lie algebra elements.
+        """
+
+        vinv = self.exp(-a.unsqueeze(-3))
+        u = self.exp(a.unsqueeze(-2))
+        pairwise_lie_algebra = self.log(vinv @ u)
+        return pairwise_lie_algebra
+
+
+class T(LieGroup):
+    """k-dimensional translation group R^k adapted from _[1].
+
+    This Lie group (T) represents pure translations acting on R^k.
+
+    Note that for the translation group the exponential and logarithm maps are
+    identities. Consequently, relative group elements reduce to simple subtraction.
+    In particular, in two dimensions this corresponds to the trivial difference
+    x_i − x_j for $x \in \mathbb{R}^2$.
+
+
+    The quotient space is trivial (q_dim = 0).
+
+    Examples
+    --------
+    >>> from deepchem.utils.equivariance_utils import T
+    >>> G = T(k=2)
+    >>> x = torch.tensor([[0.0, 0.0],
+    ...                   [1.0, 2.0]])
+    >>> a, q = G.lifted_elems(x, nsamples=1)
+    >>> a
+    tensor([[0., 0.],
+            [1., 2.]])
+    >>> pairs = G.elems2pairs(a)
+    >>> pairs
+    tensor([[[ 0.,  0.],
+             [-1., -2.]],
+    <BLANKLINE>
+            [[ 1.,  2.],
+             [ 0.,  0.]]])
+    >>> ab = pairs.reshape(-1, 2)
+    >>> G.distance(ab)
+    tensor([0.0000, 0.4472, 0.4472, 0.0000])
+
+    References
+    ----------
+    .. [1] Generalizing Convolutional Neural Networks for Equivariance
+           to Lie Groups on Arbitrary Continuous Data
+           Marc Finzi, Samuel Stanton, Pavel Izmailov, Andrew Gordon Wilson
+           NeurIPS 2020, https://arxiv.org/abs/2002.12880
+    """
+
+    def __init__(self, k: int, alpha: float = 0.2) -> None:
+        """Initialize the k-dimensional translation group.
+
+        Parameters
+        ----------
+        k : int
+            Dimension of the translation space R^k.
+        alpha : float, optional
+            Weighting factor for group displacement in the distance metric.
+        """
+        super().__init__(alpha=alpha)
+        self.rep_dim: int = k
+        self.lie_dim: int = k
+        self.q_dim: int = 0
+
+    def exp(self, a: torch.Tensor) -> torch.Tensor:
+        """Exponential map (identity for translations).
+
+        Parameters
+        ----------
+        a : torch.Tensor
+            Lie algebra coefficients taking values in $\mathbb{R}^{\text{lie\_dim}}$.
+
+        Returns
+        -------
+        torch.Tensor
+            Group elements of shape $\mathbb{R}^{\text{k}}$.
+        """
+        return a
+
+    def log(self, g: torch.Tensor) -> torch.Tensor:
+        """Logarithm map from the Lie group to the Lie algebra.
+
+        For the translation group, this map is the identity.
+
+        Parameters
+        ----------
+        g : torch.Tensor
+            Group elements taking values in $\mathbb{R}^k$.
+
+        Returns
+        -------
+        torch.Tensor
+            Lie algebra elements taking values in $\mathbb{R}^k$.
+        """
+        return g
+
+    def lifted_elems(
+        self,
+        xyz: torch.Tensor,
+        nsamples: int,
+        **kwargs,
+    ) -> tuple[torch.Tensor, None]:
+        """Lift Euclidean points into the Lie algebra.
+
+        For the translation group, the lift is unique since the group is Abelian
+        and simply connected; therefore `nsamples` must be 1.
+
+        Parameters
+        ----------
+        xyz : torch.Tensor
+            Input points taking values in $\mathbb{R}^k$.
+        nsamples : int
+            Number of lifted samples per point (must be 1).
+
+        Returns
+        -------
+        a : torch.Tensor
+            Lie algebra elements taking values in $\mathbb{R}^k$.
+        q : None
+            No quotient embedding for the translation group.
+        """
+        if nsamples != 1:
+            raise ValueError("Translation group is Abelian; nsamples must be 1")
+        return xyz, None
+
+    def elems2pairs(self, a: torch.Tensor) -> torch.Tensor:
+        """Compute pairwise Lie algebra differences.
+
+        For translations:
+            log(exp(-b) exp(a)) = a - b
+
+        Parameters
+        ----------
+        a : torch.Tensor
+            Lie algebra elements of shape (*, n, k).
+
+        Returns
+        -------
+        torch.Tensor
+            Pairwise differences of shape (*, n, n, k).
+        """
+        return a.unsqueeze(-2) - a.unsqueeze(-3)

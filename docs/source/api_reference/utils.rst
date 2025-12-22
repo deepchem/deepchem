@@ -850,6 +850,10 @@ for additional information regarding equivariance and Deepchem's support for equ
 
 .. autofunction:: deepchem.utils.equivariance_utils.fiber2head
 
+.. autofunction:: deepchem.utils.equivariance_utils.LieGroup
+
+.. autofunction:: deepchem.utils.equivariance_utils.T
+
 Miscellaneous Utilities
 -----------------------
 
