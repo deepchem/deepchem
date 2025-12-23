@@ -5,7 +5,8 @@ import copy
 import torch
 import numpy as np
 from deepchem.utils import memoize_method
-from deepchem.utils.dft_utils import AtomCGTOBasis, CGTOBasis, Lattice
+from deepchem.utils.dft_utils.data.datastruct import AtomCGTOBasis, CGTOBasis
+from deepchem.utils.dft_utils.hamilton.intor.lattice import Lattice
 from deepchem.utils.dft_utils.hamilton.intor.utils import np2ctypes, int2ctypes, NDIM, CINT
 
 # Terminology:

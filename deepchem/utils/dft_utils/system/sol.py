@@ -20,39 +20,13 @@ from deepchem.utils.dft_utils.hamilton.hcgto_pbc import HamiltonCGTO_PBC
 __all__ = ["Sol"]
 
 class Sol(BaseSystem):
-    """
-    Describe the system of a solid (i.e. periodic boundary condition system).
+    """Describe the system of a solid (i.e. periodic boundary condition system).
 
-    Arguments
-    ---------
-    * soldesc: str or 2-elements tuple
-        Description of the molecule system.
-        If string, it can be described like ``"H 1 0 0; H -1 0 0"``.
-        If tuple, the first element of the tuple is the Z number of the atoms while
-        the second element is the position of the atoms: ``(atomzs, atomposs)``.
-    * basis: str, CGTOBasis, list of str, or CGTOBasis
-        The string describing the gto basis. If it is a list, then it must have
-        the same length as the number of atoms.
-    * grid: int
-        Describe the grid.
-        If it is an integer, then it uses the default grid with specified level
-        of accuracy.
-    * spin: int, float, torch.Tensor, or None
-        The difference between spin-up and spin-down electrons.
-        It must be an integer or ``None``.
-        If ``None``, then it is ``num_electrons % 2``.
-        For floating point atomzs and/or charge, the ``spin`` must be specified.
-    * charge: int, float, or torch.Tensor
-        The charge of the molecule.
-    * orb_weights: SpinParam[torch.Tensor] or None
-        Specifiying the orbital occupancy (or weights) directly. If specified,
-        ``spin`` and ``charge`` arguments are ignored.
-    * dtype: torch.dtype
-        The data type of tensors in this class.
-    * device: torch.device
-        The device on which the tensors in this class are stored.
+    Examples
+    --------
+    >>> from deepchem.utils.dft_utils.system.sol import Sol
+    >>> sol = Sol()
     """
-
     def __init__(self,
                  soldesc: Union[str, Tuple[AtomZsType, AtomPosType]],
                  alattice: torch.Tensor,
@@ -64,21 +38,53 @@ class Sol(BaseSystem):
                  dtype: torch.dtype = torch.float64,
                  device: torch.device = torch.device('cpu'),
                  ):
+        """Initialize the Periodic Body Condition System.
+
+        Parameters
+        ----------
+        soldesc: str or 2-elements tuple
+            Description of the molecule system.
+            If string, it can be described like ``"H 1 0 0; H -1 0 0"``.
+            If tuple, the first element of the tuple is the Z number of the atoms while
+            the second element is the position of the atoms: ``(atomzs, atomposs)``.
+        alattice: torch.Tensor
+            The lattice boundaries of the single cell of the system.
+        basis: str, CGTOBasis, list of str, or CGTOBasis
+            The string describing the gto basis. If it is a list, then it must have
+            the same length as the number of atoms.
+        grid: int
+            Describe the grid.
+            If it is an integer, then it uses the default grid with specified level
+            of accuracy.
+        spin: int, float, torch.Tensor, or None
+            The difference between spin-up and spin-down electrons.
+            It must be an integer or ``None``.
+            If ``None``, then it is ``num_electrons % 2``.
+            For floating point atomzs and/or charge, the ``spin`` must be specified.
+        lattsum_opt: Optional[Union[PBCIntOption, Dict]]
+            
+        dtype: torch.dtype
+            The data type of tensors in this class.
+        device: torch.device
+            The device on which the tensors in this class are stored.
+        """
         self._dtype = dtype
         self._device = device
         self._grid_inp = grid
         self._basis_inp = basis
         self._grid: Optional[BaseGrid] = None
-        charge = 0  # we can't have charged solids for now
+        charge = 0  # Charged solids are not yet implemented
+        self._alattice_inp = alattice
+        self._lattice = Lattice(self._alattice_inp)
 
         # get the AtomCGTOBasis & the hamiltonian
-        # atomzs: (natoms,) dtype: torch.int or dtype for floating point
-        # atompos: (natoms, ndim)
         atomzs, atompos = parse_moldesc(soldesc, dtype, device)
         allbases = _parse_basis(atomzs, basis)  # list of list of CGTOBasis
         atombases = [AtomCGTOBasis(atomz=atz, bases=bas, pos=atpos)
                      for (atz, bas, atpos) in zip(atomzs, allbases, atompos)]
         self._atombases = atombases
+        self._hamilton = HamiltonCGTO_PBC(atombases,
+                                          self._lattice)
         self._atompos = atompos  # (natoms, ndim)
         self._atomzs = atomzs  # (natoms,) int-type
         nelecs_tot: torch.Tensor = torch.sum(atomzs)
@@ -99,8 +105,6 @@ class Sol(BaseSystem):
         self._orb_weights = _orb_weights
         self._orb_weights_u = _orb_weights_u
         self._orb_weights_d = _orb_weights_d
-        self._alattice_inp = alattice
-        self._lattice = Lattice(self._alattice_inp)
         self._lattsum_opt = PBCIntOption.get_default(lattsum_opt)
 
     def densityfit(self, method: Optional[str] = None,

@@ -12,9 +12,11 @@ from deepchem.utils.pytorch_utils import get_complex_dtype
 from deepchem.utils.cache_utils import Cache
 
 import deepchem.utils.dft_utils.hamilton.intor.pbcintor as pbcintor
+from deepchem.utils.dft_utils.hamilton.intor.gtoft import eval_gto_ft
+from deepchem.utils.dft_utils.hamilton.intor.pbcftintor import pbcft_overlap
+from deepchem.utils.dft_utils.hamilton.intor.gtoeval import pbc_eval_gto
 
-
-from dqc.df.dfpbc import DFPBC
+from deepchem.utils.dft_utils.df.dfpbc import DFPBC
 from deepchem.utils.dft_utils.hamilton.intor.utils import unweighted_coul_ft, get_gcut
 
 class HamiltonCGTO_PBC(HamiltonCGTO):
@@ -229,7 +231,7 @@ class HamiltonCGTO_PBC(HamiltonCGTO):
         # basis: (nkpts, nao, *BR)
         xyz1 = xyz.reshape(-1, xyzshape[-1])  # (BR=ngrid, ndim)
         # ao1: (nkpts, nao, ngrid)
-        ao1 = intor.pbc_eval_gto(self._basiswrapper, xyz1, kpts=self._kpts, options=self._lattsum_opt)
+        ao1 = pbc_eval_gto(self._basiswrapper, xyz1, kpts=self._kpts, options=self._lattsum_opt)
         ao1 = torch.movedim(ao1, -1, 0).reshape(*xyzshape[:-1], nkpts, nao)  # (*BR, nkpts, nao)
 
         # dens = torch.einsum("...ka,...kb,...kab,k->...", ao1, ao1.conj(), dm, self._wkpts)
@@ -335,9 +337,9 @@ class HamiltonCGTO_PBC(HamiltonCGTO):
         # nuc1: (nkpts, nao, nao, 2 * natoms)
         # nuc1 is not hermitian
         basiswrapper1, nucl_wrapper1 = LibcintWrapper.concatenate(self._basiswrapper, nucl_wrapper)
-        nuc1_c = intor.pbc_coul3c(basiswrapper1, other1=basiswrapper1,
-                                  other2=nucl_wrapper1, kpts_ij=kpts_ij,
-                                  options=self._lattsum_opt)
+        nuc1_c = pbcintor.pbc_coul3c(basiswrapper1, other1=basiswrapper1,
+                                     other2=nucl_wrapper1, kpts_ij=kpts_ij,
+                                     options=self._lattsum_opt)
         nuc1 = -nuc1_c[..., :natoms] + nuc1_c[..., natoms:]
         nuc1 = torch.sum(nuc1, dim=-1)  # (nkpts, nao, nao)
 
@@ -360,9 +362,9 @@ class HamiltonCGTO_PBC(HamiltonCGTO):
 
         # the compensating charge's Fourier Transform
         # TODO: split gvgrids and gvweights to reduce the memory usage
-        cnucl_ft = intor.eval_gto_ft(cnucl_wrapper, gvgrids)  # (natoms, ngv)
+        cnucl_ft = eval_gto_ft(cnucl_wrapper, gvgrids)  # (natoms, ngv)
         # overlap integral of the electron basis' Fourier Transform
-        cbas_ft = intor.pbcft_overlap(
+        cbas_ft = pbcft_overlap(
             self._basiswrapper, gvgrid=-gvgrids, kpts=self._kpts,
             options=self._lattsum_opt)  # (nkpts, nao, nao, ngv)
         # coulomb kernel Fourier Transform

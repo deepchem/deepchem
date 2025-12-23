@@ -3,9 +3,11 @@ import ctypes.util
 import dqclibs
 import numpy as np
 import torch
-from deepchem.utils.dft_utils import LibcintWrapper
-from typing import List
+from typing import List, TYPE_CHECKING
 import scipy
+
+if TYPE_CHECKING:
+    from deepchem.utils.dft_utils.hamilton.intor.lcintwrap import LibcintWrapper
 
 # CONSTANTS
 NDIM = 3
@@ -106,9 +108,10 @@ def estimate_g_cutoff(precision: float, coeffs: torch.Tensor, alphas: torch.Tens
     gcut = (2 * Ecut_max) ** 0.5
     return gcut
 
-def get_gcut(precision: float, wrappers: List[LibcintWrapper], reduce: str = "min") -> float:
+def get_gcut(precision: float, wrappers: List["LibcintWrapper"], reduce: str = "min") -> float:
     # get the G-point cut-off from the given wrappers where the FT
     # eval/integration is going to be performed
+    from deepchem.utils.dft_utils.hamilton.intor.lcintwrap import LibcintWrapper
     gcuts: List[float] = []
     for wrapper in wrappers:
         # TODO: using params here can be confusing because wrapper.params
