@@ -5,7 +5,7 @@ import hashlib
 import warnings
 from dataclasses import dataclass
 from abc import abstractmethod, abstractproperty
-from typing import Union, List, TypeVar, Generic, Callable, TYPE_CHECKING
+from typing import Union, List, TypeVar, Generic, Callable
 try:
     import torch
 except Exception as e:
@@ -13,8 +13,7 @@ except Exception as e:
 
 from deepchem.utils.differentiation_utils import EditableModule
 
-if TYPE_CHECKING:
-    from deepchem.utils.dft_utils.qccalc.base_qccalc import BaseQCCalc as DFTUtilsBaseQCCalc
+from deepchem.utils.dft_utils.qccalc.base_qccalc import BaseQCCalc as DFTUtilsBaseQCCalc
 
 T = TypeVar('T')
 
