@@ -1294,6 +1294,7 @@ def test_terminate_param():
     x2 = gd(fun, x0, [], terminate=False)
     assert not torch.allclose(x1, x2)
 
+
 @pytest.mark.torch
 def test_leapfrog():
     from deepchem.utils.differentiation_utils import leapfrog
@@ -1301,7 +1302,7 @@ def test_leapfrog():
     def hamiltonian_fn(z):
         p, q = z
         return p**2 + q**2
-    
+
     p0 = torch.tensor([-0.0429839], requires_grad=True)
     q0 = torch.tensor([0.44432778], requires_grad=True)
     dt = 0.1
@@ -1309,4 +1310,5 @@ def test_leapfrog():
 
     trajectories = leapfrog(p0, q0, hamiltonian_fn, dt, N, is_hamiltonian=True)
 
-    assert trajectories.shape == (N, 2), f"Expected shape (100, 2), got {trajectories.shape}"
+    assert trajectories.shape == (
+        N, 2), f"Expected shape (100, 2), got {trajectories.shape}"
