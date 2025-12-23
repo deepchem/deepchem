@@ -10,8 +10,8 @@ class DistributedTrainer():
     model to multiple GPUs and nodes. To achieve this, it uses
     `Lightning <https://lightning.ai/>`_ under the hood. A DeepChem model
     is converted to a `LightningModule <https://lightning.ai/docs/pytorch/stable/common/lightning_module.html>`_
-    using :class:`~deepchem.models.lightning.DCLightningModule` and a DeepChem dataset
-    is converted to a PyTorch iterable dataset using :class:`~deepchem.models.lightning.DCLightningDatasetModule`.
+    using :class:`~deepchem.models.dc_lightning.DCLightningModule` and a DeepChem dataset
+    is converted to a PyTorch iterable dataset using :class:`~deepchem.models.dc_lightning.DCLightningDatasetModule`.
     The model and dataset are then trained using Lightning `Trainer <https://lightning.ai/docs/pytorch/stable/common/trainer.html>`_.
 
     Example
@@ -91,7 +91,7 @@ class DistributedTrainer():
             A deepchem Dataset for training
         """
         import lightning as L
-        from deepchem.models.lightning import DCLightningModule, DCLightningDatasetModule
+        from deepchem.models.dc_lightning import DCLightningModule, DCLightningDatasetModule
         lit_model = DCLightningModule(model)
         lit_dataset = DCLightningDatasetModule(dataset,
                                                batch_size=self.batch_size)

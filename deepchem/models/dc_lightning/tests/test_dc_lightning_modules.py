@@ -11,8 +11,8 @@ except ImportError:
 
 try:
     import lightning as L
-    from deepchem.models.lightning.dc_lightning_dataset_module import DCLightningDatasetModule
-    from deepchem.models.lightning.dc_lightning_module import DCLightningModule
+    from deepchem.models.dc_lightning.dc_lightning_dataset_module import DCLightningDatasetModule
+    from deepchem.models.dc_lightning.dc_lightning_module import DCLightningModule
     PYTORCH_LIGHTNING_IMPORT_FAILED = False
 except ImportError:
     PYTORCH_LIGHTNING_IMPORT_FAILED = True

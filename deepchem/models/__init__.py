@@ -26,7 +26,7 @@ try:
     from deepchem.models.gan import GAN, WGAN
     from deepchem.models.molgan import BasicMolGANModel
     from deepchem.models.text_cnn import TextCNNModel
-    from deepchem.models.atomic_conv import AtomicConvModel
+    from deepchem.models.tf_models.atomic_conv import AtomicConvModel
     from deepchem.models.chemnet_models import Smiles2Vec, ChemCeption
 except ModuleNotFoundError as e:
     logger.warning(
@@ -49,6 +49,7 @@ try:
     from deepchem.models.torch_models import CNN
     from deepchem.models.torch_models import ScaledDotProductAttention, SelfAttention
     from deepchem.models.torch_models import GroverReadout
+    from deepchem.models.acnn import AtomConvModel
 except ModuleNotFoundError as e:
     logger.warning(
         f'Skipped loading some PyTorch models, missing a dependency. {e}')
@@ -73,7 +74,7 @@ except ImportError as e:
 
 # Pytorch-lightning modules import
 try:
-    from deepchem.models.lightning import DCLightningModule, DCLightningDatasetModule
+    from deepchem.models.dc_lightning import DCLightningModule, DCLightningDatasetModule
     from deepchem.models.trainer import DistributedTrainer
 except ModuleNotFoundError as e:
     logger.warning(
