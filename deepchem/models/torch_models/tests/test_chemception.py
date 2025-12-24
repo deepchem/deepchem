@@ -236,10 +236,6 @@ def test_chemception_compare_with_tf_impl():
     tf_model_predictions = np.load(tf_regression_output)
     torch_model_predictions = torch_model.predict(dataset)
 
-    diff = tf_model_predictions - torch_model_predictions
-    print(f"Max absolute difference: {np.max(np.abs(diff))}")
-    print(f"Mean difference: {np.mean(diff)}")
-
     assert np.allclose(tf_model_predictions,
                        torch_model_predictions,
                        atol=1e-6,
