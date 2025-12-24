@@ -190,35 +190,31 @@ class ChemCeption(nn.Module):
 class ChemCeptionModel(ModularTorchModel):
     """
     Modular wrapper around ChemCeption for flexible pretraining and finetuning.
-
     This class provides a `ModularTorchModel` interface for ChemCeption. It
-    allows building, training, and fine-tuning ChemCeption with configurable
-    inception blocks, tasks, and modes (regression or classification).
+    allows building and training ChemCeption with configurable
+    inception blocks and modes (regression or classification).
 
     Parameters
     ----------
-    task : {'pretraining', 'finetuning'}, default='finetuning'
-        Whether the model is used for pretraining (frozen components)
-        or finetuning (trainable components).
+    img_spec : str, default='std'
+        Image specification, determines input channels.
+        `'std'` → 1 channel, otherwise 4 channels.
     img_size : int, default=80
         Size of the input image (height and width).
     base_filters : int, default=16
         Number of filters
+    inception_blocks : dict, optional
+        Dictionary controlling the number of Inception-ResNet blocks per stage.
+        Example: ``{"A": 3, "B": 3, "C": 3}``.
     n_tasks : int, default=10
         Number of prediction tasks.
     n_classes : int, optional, default=2
         Number of output classes per task (classification only).
+    augment : bool, default=False
+        If True, enable real-time image augmentation during training.
     mode : {'regression', 'classification'}, default='classification'
         Determines whether the model outputs regression values or
         class probabilities.
-    img_spec : str, default='std'
-        Image specification, determines input channels.
-        `'std'` → 1 channel, otherwise 4 channels.
-    inception_blocks : dict, optional
-        Dictionary controlling the number of Inception-ResNet blocks per stage.
-        Example: ``{"A": 3, "B": 3, "C": 3}``.
-    augment : bool, default=False
-        If True, enable real-time image augmentation during training.
     **kwargs : dict
         Additional keyword arguments passed to `ModularTorchModel`.
     Examples
@@ -229,8 +225,6 @@ class ChemCeptionModel(ModularTorchModel):
     >>> import deepchem as dc
     >>> from deepchem.feat import SmilesToImage
     >>> from deepchem.models.torch_models.chemception import ChemCeptionModel
-    >>> import tempfile
-    >>> tempdir = tempfile.TemporaryDirectory()
     >>> n_samples = 6
     >>> img_size = 80
     >>> n_tasks = 10
@@ -249,7 +243,6 @@ class ChemCeptionModel(ModularTorchModel):
     ...     n_classes=n_classes,
     ...     mode='classification',
     ...     learning_rate=1e-4,
-    ...     model_dir=tempdir.name
     ... )
     >>> pretrain_loss = pretrain_model.fit(dataset_pt, nb_epoch=2)
     >>> pretrain_model.save_checkpoint()
@@ -259,7 +252,6 @@ class ChemCeptionModel(ModularTorchModel):
     ...     n_classes=n_classes,
     ...     mode='regression',
     ...     learning_rate=1e-4,
-    ...     model_dir=tempdir.name
     ... )
     >>> finetune_model.load_from_pretrained(source_model=pretrain_model,
     ...                                 components=[
