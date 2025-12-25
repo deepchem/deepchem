@@ -660,15 +660,15 @@ class SingletaskStratifiedSplitter(Splitter):
         """
         self.task_number = task_number
 
-    # FIXME: Signature of "k_fold_split" incompatible with supertype "Splitter"
-    def k_fold_split(  # type: ignore [override]
+
+    def k_fold_split(
             self,
             dataset: Dataset,
             k: int,
             directories: Optional[List[str]] = None,
             seed: Optional[int] = None,
             log_every_n: Optional[int] = None,
-            **kwargs) -> List[Dataset]:
+            **kwargs) -> List[Tuple[Dataset, Dataset]]:
         """
         Splits compounds into k-folds using stratified sampling.
         Overriding base class k_fold_split.
@@ -688,25 +688,45 @@ class SingletaskStratifiedSplitter(Splitter):
 
         Returns
         -------
-        fold_datasets: List[Dataset]
-            List of dc.data.Dataset objects
+        List[Tuple[Dataset, Dataset]]
+            List of length k tuples of (train, cv) where `train` and `cv` are both `Dataset`.
         """
-        logger.info("Computing K-fold split")
-        if directories is None:
-            directories = [tempfile.mkdtemp() for _ in range(k)]
-        else:
-            assert len(directories) == k
+        logger.info("Computing K-fold split (SingletaskStratifiedSplitter)")
 
+        if directories is None:
+            directories = [tempfile.mkdtemp() for _ in range(2 * k)]
+        else:
+            assert len(directories) == 2 * k
+
+        # 2. Stratification Logic
         y_s = dataset.y[:, self.task_number]
         sortidx = np.argsort(y_s)
-        sortidx_list = np.array_split(sortidx, k)
+        stratified_folds = np.array_split(sortidx, k)
 
+        # 3. The Loop (Simpler & Stateless)
         fold_datasets = []
+        
         for fold in range(k):
-            fold_dir = directories[fold]
-            fold_ind = sortidx_list[fold]
-            fold_dataset = dataset.select(fold_ind, fold_dir)
-            fold_datasets.append(fold_dataset)
+            train_dir = directories[2 * fold]
+            cv_dir = directories[2 * fold + 1]
+
+            # A. Identify Validation Indices (For this specific fold)
+            fold_inds = stratified_folds[fold]
+            
+            # B. Identify Training Indices (All OTHER folds combined)
+            # We construct this by looking at the original 'stratified_folds' list
+            train_folds = [stratified_folds[i] for i in range(k) if i != fold]
+            train_inds = np.concatenate(train_folds)
+            
+            # C. Create Datasets directly from the ORIGINAL dataset
+            # This avoids the "shrinking index" bug that would appear if implemented exactly
+            # same as the base class k_fold_split implementation.
+            # .select() handles the disk writing to the specific directories.
+            train_dataset = dataset.select(train_inds, select_dir=train_dir)
+            cv_dataset = dataset.select(fold_inds, select_dir=cv_dir)
+            
+            fold_datasets.append((train_dataset, cv_dataset))
+            
         return fold_datasets
 
     def split(

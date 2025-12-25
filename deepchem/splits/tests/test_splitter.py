@@ -614,3 +614,45 @@ class TestSplitter(unittest.TestCase):
             cv_folds[1][1])
         assert len(multitask_dataset) == len(cv_folds[2][0]) + len(
             cv_folds[2][1])
+
+    def test_singletask_stratified_k_fold_split_signature(self):
+        """
+        Test that SingletaskStratifiedSplitter.k_fold_split returns
+        List[Tuple[Dataset, Dataset]] matching the base Splitter API.
+        
+        This is a regression test for the FIXME that was fixed to ensure
+        LSP compliance.
+        """
+        # Create a dataset with binary labels for stratification
+        n_samples = 100
+        n_features = 10
+        X = np.random.rand(n_samples, n_features)
+        y = np.random.randint(0, 2, size=(n_samples, 1))
+        dataset = dc.data.NumpyDataset(X, y)
+
+        k = 3
+        splitter = dc.splits.SingletaskStratifiedSplitter(task_number=0)
+        folds = splitter.k_fold_split(dataset, k)
+
+        # Verify return type structure
+        assert isinstance(folds, list)
+        assert len(folds) == k
+
+        for fold_idx, fold in enumerate(folds):
+            # Each fold should be a tuple of (train, cv)
+            assert isinstance(fold, tuple), \
+                f"Fold {fold_idx} is not a tuple, got {type(fold)}"
+            assert len(fold) == 2, \
+                f"Fold {fold_idx} tuple length is {len(fold)}, expected 2"
+
+            train_dataset, cv_dataset = fold
+            
+            # Both should be Dataset objects
+            assert isinstance(train_dataset, dc.data.Dataset), \
+                f"Train dataset in fold {fold_idx} is not a Dataset"
+            assert isinstance(cv_dataset, dc.data.Dataset), \
+                f"CV dataset in fold {fold_idx} is not a Dataset"
+
+            # Train + CV should equal total dataset size
+            assert len(train_dataset) + len(cv_dataset) == n_samples, \
+                f"Fold {fold_idx}: train({len(train_dataset)}) + cv({len(cv_dataset)}) != {n_samples}"
