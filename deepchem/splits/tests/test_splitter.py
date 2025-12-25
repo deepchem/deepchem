@@ -619,7 +619,6 @@ class TestSplitter(unittest.TestCase):
         """
         Test that SingletaskStratifiedSplitter.k_fold_split returns
         List[Tuple[Dataset, Dataset]] matching the base Splitter API.
-        
         This is a regression test for the FIXME that was fixed to ensure
         LSP compliance.
         """
@@ -646,7 +645,7 @@ class TestSplitter(unittest.TestCase):
                 f"Fold {fold_idx} tuple length is {len(fold)}, expected 2"
 
             train_dataset, cv_dataset = fold
-            
+
             # Both should be Dataset objects
             assert isinstance(train_dataset, dc.data.Dataset), \
                 f"Train dataset in fold {fold_idx} is not a Dataset"
