@@ -643,10 +643,10 @@ class SingletaskStratifiedSplitter(Splitter):
     >>> n_tasks = 10
     >>> X = np.random.rand(n_samples, n_features)
     >>> y = np.random.rand(n_samples, n_tasks)
-    >>> w = np.ones_like(y)
-    >>> dataset = DiskDataset.from_numpy(np.ones((100,n_tasks)), np.ones((100,n_tasks)))
+    >>> dataset = DiskDataset.from_numpy(X, y)
     >>> splitter = SingletaskStratifiedSplitter(task_number=5)
-    >>> train_dataset, test_dataset = splitter.train_test_split(dataset)
+    >>> splits = splitter.k_fold_split(dataset, 3)
+    >>> train_dataset, valid_dataset = splits[0]
     """
 
     def __init__(self, task_number: int = 0):
@@ -660,54 +660,56 @@ class SingletaskStratifiedSplitter(Splitter):
         """
         self.task_number = task_number
 
-    # FIXME: Signature of "k_fold_split" incompatible with supertype "Splitter"
     def k_fold_split(  # type: ignore [override]
-            self,
-            dataset: Dataset,
-            k: int,
-            directories: Optional[List[str]] = None,
-            seed: Optional[int] = None,
-            log_every_n: Optional[int] = None,
-            **kwargs) -> List[Dataset]:
+        self,
+        dataset: Dataset,
+        k: int,
+        directories: Optional[List[str]] = None,
+        seed: Optional[int] = None,
+        log_every_n: Optional[int] = None,
+        **kwargs
+    ) -> List[Tuple[Dataset, Dataset]]:
         """
         Splits compounds into k-folds using stratified sampling.
-        Overriding base class k_fold_split.
-
-        Parameters
-        ----------
-        dataset: Dataset
-            Dataset to be split.
-        k: int
-            Number of folds to split `dataset` into.
-        directories: List[str], optional (default None)
-            List of length k filepaths to save the result disk-datasets.
-        seed: int, optional (default None)
-            Random seed to use.
-        log_every_n: int, optional (default None)
-            Log every n examples (not currently used).
 
         Returns
         -------
-        fold_datasets: List[Dataset]
-            List of dc.data.Dataset objects
+        List[Tuple[Dataset, Dataset]]
+            List of (train_dataset, validation_dataset) tuples.
         """
-        logger.info("Computing K-fold split")
+        logger.info("Computing K-fold stratified split")
+
+        if seed is not None:
+            np.random.seed(seed)
+
         if directories is None:
             directories = [tempfile.mkdtemp() for _ in range(k)]
         else:
             assert len(directories) == k
 
+        # Stratify based on a single task
         y_s = dataset.y[:, self.task_number]
         sortidx = np.argsort(y_s)
         sortidx_list = np.array_split(sortidx, k)
 
-        fold_datasets = []
+        # Create individual folds
+        folds: List[Dataset] = []
         for fold in range(k):
             fold_dir = directories[fold]
-            fold_ind = sortidx_list[fold]
-            fold_dataset = dataset.select(fold_ind, fold_dir)
-            fold_datasets.append(fold_dataset)
-        return fold_datasets
+            fold_indices = sortidx_list[fold]
+            fold_dataset = dataset.select(fold_indices, fold_dir)
+            folds.append(fold_dataset)
+
+        # Build (train, validation) pairs
+        split_datasets: List[Tuple[Dataset, Dataset]] = []
+        for i in range(k):
+            valid_dataset = folds[i]
+            train_dataset = DiskDataset.merge(
+                [folds[j] for j in range(k) if j != i]
+            )
+            split_datasets.append((train_dataset, valid_dataset))
+
+        return split_datasets
 
     def split(
         self,
@@ -721,30 +723,11 @@ class SingletaskStratifiedSplitter(Splitter):
         """
         Splits compounds into train/validation/test using stratified sampling.
 
-        Parameters
-        ----------
-        dataset: Dataset
-            Dataset to be split.
-        frac_train: float, optional (default 0.8)
-            Fraction of dataset put into training data.
-        frac_valid: float, optional (default 0.1)
-            Fraction of dataset put into validation data.
-        frac_test: float, optional (default 0.1)
-            Fraction of dataset put into test data.
-        seed: int, optional (default None)
-            Random seed to use.
-        log_every_n: int, optional (default None)
-            Log every n examples (not currently used).
-
         Returns
         -------
         Tuple[np.ndarray, np.ndarray, np.ndarray]
-            A tuple of train indices, valid indices, and test indices.
-            Each indices is a numpy array.
+            Train, validation, and test indices.
         """
-        # JSG Assert that split fractions can be written as proper fractions over 10.
-        # This can be generalized in the future with some common demoninator determination.
-        # This will work for 80/20 train/test or 80/10/10 train/valid/test (most use cases).
         np.testing.assert_equal(frac_train + frac_valid + frac_test, 1.)
         np.testing.assert_equal(
             10 * frac_train + 10 * frac_valid + 10 * frac_test, 10.)
@@ -759,13 +742,14 @@ class SingletaskStratifiedSplitter(Splitter):
         train_cutoff = int(np.round(frac_train * split_cd))
         valid_cutoff = int(np.round(frac_valid * split_cd)) + train_cutoff
 
-        train_idx: np.ndarray = np.array([])
-        valid_idx: np.ndarray = np.array([])
-        test_idx: np.ndarray = np.array([])
+        train_idx: np.ndarray = np.array([], dtype=int)
+        valid_idx: np.ndarray = np.array([], dtype=int)
+        test_idx: np.ndarray = np.array([], dtype=int)
 
         while sortidx.shape[0] >= split_cd:
             sortidx_split, sortidx = np.split(sortidx, [split_cd])
-            shuffled = np.random.permutation(range(split_cd))
+            shuffled = np.random.permutation(split_cd)
+
             train_idx = np.hstack(
                 [train_idx, sortidx_split[shuffled[:train_cutoff]]])
             valid_idx = np.hstack(
@@ -775,9 +759,10 @@ class SingletaskStratifiedSplitter(Splitter):
 
         # Append remaining examples to train
         if sortidx.shape[0] > 0:
-            np.hstack([train_idx, sortidx])
+            train_idx = np.hstack([train_idx, sortidx])
 
-        return (train_idx, valid_idx, test_idx)
+        return train_idx, valid_idx, test_idx
+
 
 
 class IndexSplitter(Splitter):
