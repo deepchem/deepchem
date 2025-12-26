@@ -7,7 +7,7 @@ import numpy as np
 import deepchem as dc
 from deepchem.data import NumpyDataset
 from deepchem.splits import IndexSplitter
-
+import tempfile
 
 def load_sparse_multitask_dataset():
     """Load sparse tox multitask data, sample dataset."""
@@ -135,9 +135,54 @@ class TestSplitter(unittest.TestCase):
             [train_data, valid_data, test_data])
         assert sorted(merged_dataset.ids) == (sorted(solubility_dataset.ids))
 
-    # TODO(rbharath): The IndexSplitter() had a bug with splitting sharded
-    # data. Make a test for properly splitting of sharded data. Perhaps using
-    # reshard() to handle this?
+   
+
+    def test_index_splitter_on_sharded_dataset(self):
+        """
+        Test IndexSplitter works correctly on a dataset distributed across
+        multiple file shards.
+        
+        This serves as a regression test for a historic bug where IndexSplitter
+        struggled with sharded data.
+        """
+        # 1. Setup Data
+        n_samples = 100
+        n_features = 5
+        X = np.random.rand(n_samples, n_features)
+        y = np.random.rand(n_samples, 1)
+        # Use a temporary directory to avoid clutter
+        with tempfile.TemporaryDirectory() as data_dir:
+            dataset = dc.data.DiskDataset.from_numpy(X, y, data_dir=data_dir)
+
+            # 2. FORCE SHARDING (The critical step requested in the TODO)
+            # We explicitly set shard_size=10. For 100 samples, this creates 
+            # 10 separate files on disk (shards).
+            dataset.reshard(shard_size=10)
+            
+            # Verify we actually have multiple shards
+            assert dataset.get_number_shards() == 10
+
+            # 3. Split
+            splitter = dc.splits.IndexSplitter()
+            # 80/20 split means accessing data across multiple shard boundaries
+            train, test = splitter.train_test_split(dataset, frac_train=0.8)
+
+            # 4. Verify Sizes
+            assert len(train) == 80
+            assert len(test) == 20
+
+            # 5. Verify Data Integrity
+            # The 80th sample (index 79) should be the last item in the train set.
+            # We compare the feature vector to ensure the splitter grabbed 
+            # the correct data from the specific shard.
+            last_train_sample = train.X[-1]
+            original_sample_at_79 = X[79]
+            
+            np.testing.assert_array_almost_equal(
+                last_train_sample, 
+                original_sample_at_79, 
+                err_msg="Splitter failed to retrieve correct data from shards"
+            )
 
     def test_singletask_scaffold_split(self):
         """
