@@ -1251,7 +1251,7 @@ def commutator(A: torch.Tensor, B: torch.Tensor) -> torch.Tensor:
 
 
 class LieGroup:
-    """Abstract base class for Lie groups used in LieConv _[1].
+    """Abstract base class for Lie groups used in LieConv _[1] (https://github.com/mfinzi/LieConv).
 
     This class represents continuous Lie groups acting on
     Euclidean data, as required by LieConv-style equivariant neural networks _[1].
@@ -1562,7 +1562,7 @@ class LieGroup:
 
 
 class T(LieGroup):
-    """k-dimensional translation group R^k adapted from _[1].
+    """k-dimensional translation group R^k adapted from _[1] (https://github.com/mfinzi/LieConv).
 
     This Lie group (T) represents pure translations acting on R^k.
 
