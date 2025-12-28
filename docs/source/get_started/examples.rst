@@ -42,7 +42,7 @@ Before jumping in to examples, we'll import our libraries and ensure our doctest
 Delaney (ESOL)
 ----------------
 
-Examples of training models on the Delaney (ESOL) dataset included in `MoleculeNet <./moleculenet.html>`_.
+Examples of training models on the Delaney (ESOL) dataset included in :doc:`MoleculeNet <../api_reference/moleculenet>`.
 
 We'll be using its :code:`smiles` field to train models to predict its experimentally measured solvation energy (:code:`expt`).
 
