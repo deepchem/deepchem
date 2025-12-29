@@ -3,11 +3,11 @@ from typing import Union, List
 import torch
 import warnings
 try:
-    from dqc.utils.datastruct import ValGrad
+    from deepchem.utils.dft_utils.data.datastruct import ValGrad
     from deepchem.utils.dftutils import SpinParam
-    from dqc.api.getxc import get_xc
-    from dqc.xc.base_xc import BaseXC
-    from dqc.utils.safeops import safenorm, safepow
+    from deepchem.utils.dft_utils.api.getxc import get_xc
+    from deepchem.utils.dft_utils.xc.base_xc import BaseXC
+    from deepchem.utils.safeops_utils import safenorm, safepow
 except Exception as e:
     warnings.warn(f"Import error: {e}")
 
