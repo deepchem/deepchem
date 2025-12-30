@@ -109,3 +109,5 @@ env.yml
 **/*.ipynb_checkpoints/
 
 .database/
+deepchem/.DS_Store
+.DS_Store

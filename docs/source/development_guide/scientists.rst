@@ -140,7 +140,7 @@ What if I want to release data? Can DeepChem help?
 
 If you are interested in open sourcing data, the DeepChem project
 maintains the
-[MoleculeNet](https://deepchem.readthedocs.io/en/latest/moleculenet.html)
+`MoleculeNet <https://deepchem.readthedocs.io/en/latest/moleculenet.html>`_
 suite of datasets. Adding your dataset to MoleculeNet can be a
 powerful way to ensure that a broad community of users can access your
 released data in convenient fashion. It's important to note that
