@@ -6,8 +6,7 @@ import shutil
 import pickle
 try:
     import torch
-    from deepchem.models.torch_models.text_cnn import default_dict, TextCNN
-    from deepchem.models.torch_models import TextCNNModel
+    from deepchem.models.torch_models.text_cnn import default_dict, TextCNN, TextCNNModel
     import torch.nn as nn
     has_torch = True
 except ModuleNotFoundError:
@@ -261,3 +260,158 @@ def test_textcnn_compare_with_tf_impl():
                   'rb') as f:
             tf_outputs = pickle.load(f)
         assert np.allclose(torch_outputs, tf_outputs, rtol=1e-5, atol=1e-6)
+
+
+@pytest.mark.torch
+def test_textcnn_empty_and_short_smiles():
+    """Test TextCNN behavior with empty and very short SMILES strings.
+
+    This test verifies that the model can handle edge cases including:
+    - Empty strings
+    - Single character SMILES
+    - Very short molecules
+
+    The model should handle these gracefully due to seq_length protection
+    (seq_length = max(calculated_length, max_kernel_size)) and padding.
+    """
+    np.random.seed(123)
+    n_tasks = 1
+
+    # Create dataset with empty and very short SMILES
+    # Empty string, single atom, two atoms, three atoms
+    smiles = ["", "C", "CC", "CCO"]
+    # Add some labels for each SMILES (arbitrary values for testing)
+    labels = np.array([[0.0], [1.0], [0.0], [1.0]])
+
+    dataset = dc.data.NumpyDataset(X=np.array(smiles), y=labels, ids=smiles)
+
+    # Build char_dict - should handle empty and short SMILES
+    char_dict, length = TextCNNModel.build_char_dict(dataset)
+
+    # Note: build_char_dict returns calculated length (max_len * 1.2)
+    # The TextCNN constructor will ensure seq_length >= max(kernel_sizes)
+
+    batch_size = 4
+    model = TextCNNModel(n_tasks,
+                         char_dict=char_dict,
+                         seq_length=length,
+                         batch_size=batch_size,
+                         learning_rate=0.001,
+                         use_queue=False,
+                         mode="regression")
+
+    # Verify the model's seq_length is at least max kernel size (20)
+    assert model.model.seq_length >= 20, f"Model seq_length should be at least 20, got {model.model.seq_length}"
+
+    # Make predictions - should work without errors
+    predictions = model.predict(dataset)
+
+    # Verify output shape (n_samples, n_tasks, 1) for regression
+    assert predictions.shape == (
+        4, 1, 1), f"Expected shape (4, 1, 1), got {predictions.shape}"
+
+    # Verify predictions are valid numbers (not NaN or Inf)
+    assert np.all(
+        np.isfinite(predictions)), "Predictions contain NaN or Inf values"
+
+
+@pytest.mark.torch
+def test_textcnn_long_sequences():
+    """Test TextCNN with extremely long SMILES sequences.
+
+    This test verifies the model's behavior with SMILES that are much longer
+    than typical molecules. The model should handle these either by proper
+    padding/truncation or by raising an informative error.
+    """
+    np.random.seed(123)
+    n_tasks = 1
+
+    # Create a very long SMILES string (simulating large polymers/dendrimers)
+    # Using valid SMILES characters to create a long sequence
+    normal_smiles = "CCO"
+    # Create a SMILES with 1000+ characters
+    long_smiles = "C" * 500 + "N" * 500
+
+    smiles = [normal_smiles, long_smiles]
+    labels = np.array([[0.0], [1.0]])
+
+    dataset = dc.data.NumpyDataset(X=np.array(smiles), y=labels, ids=smiles)
+
+    # Build char_dict with long sequence
+    char_dict, length = TextCNNModel.build_char_dict(dataset)
+
+    # Verify seq_length was calculated with the long SMILES
+    # Should be approximately 1000 * 1.2 = 1200
+    assert length > 1000, f"seq_length should account for long SMILES, got {length}"
+
+    batch_size = 2
+    model = TextCNNModel(n_tasks,
+                         char_dict=char_dict,
+                         seq_length=length,
+                         batch_size=batch_size,
+                         learning_rate=0.001,
+                         use_queue=False,
+                         mode="regression")
+
+    # Make predictions - should work without errors
+    predictions = model.predict(dataset)
+
+    # Verify output shape (n_samples, n_tasks, 1) for regression
+    assert predictions.shape == (
+        2, 1, 1), f"Expected shape (2, 1, 1), got {predictions.shape}"
+
+    # Verify predictions are valid numbers
+    assert np.all(
+        np.isfinite(predictions)), "Predictions contain NaN or Inf values"
+
+
+@pytest.mark.torch
+def test_textcnn_invalid_characters():
+    """Test TextCNN error handling for invalid SMILES characters.
+
+    This test verifies two scenarios:
+    1. Invalid characters in training data get added to char_dict automatically
+    2. Characters not in char_dict during inference raise ValueError
+
+    The second scenario tests the error path at line 414 in text_cnn.py which
+    was previously untested.
+    """
+    np.random.seed(123)
+    n_tasks = 1
+
+    # Scenario 1: Invalid characters in training data
+    # These should be automatically added to char_dict
+    train_smiles = ["CCO", "C=O", "CC(C)O"]
+    train_labels = np.array([[0.0], [1.0], [0.0]])
+    train_dataset = dc.data.NumpyDataset(X=np.array(train_smiles),
+                                         y=train_labels,
+                                         ids=train_smiles)
+
+    # Build char_dict from training data
+    char_dict, length = TextCNNModel.build_char_dict(train_dataset)
+
+    batch_size = 3
+    model = TextCNNModel(n_tasks,
+                         char_dict=char_dict,
+                         seq_length=length,
+                         batch_size=batch_size,
+                         learning_rate=0.001,
+                         use_queue=False,
+                         mode="regression")
+
+    # This should work fine
+    predictions = model.predict(train_dataset)
+    assert predictions.shape == (3, 1, 1)
+
+    # Scenario 2: New invalid character during inference
+    # Create a SMILES with a character not in the training char_dict
+    # Using a Unicode character that's unlikely to be in standard SMILES
+    test_smiles_invalid = ["C☺O"]  # ☺ not in char_dict
+    test_labels = np.array([[0.0]])
+    test_dataset = dc.data.NumpyDataset(X=np.array(test_smiles_invalid),
+                                        y=test_labels,
+                                        ids=test_smiles_invalid)
+
+    # This should raise ValueError because ☺ is not in char_dict
+    with pytest.raises(ValueError, match="character not found in dict"):
+        model.predict(test_dataset)
