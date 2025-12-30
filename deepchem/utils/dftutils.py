@@ -1,6 +1,7 @@
 """
 Density Functional Theory Utilities
-Derived from: https://github.com/mfkasim1/xcnn/blob/f2cb9777da2961ac553f256ecdcca3e314a538ca/xcdnn2/kscalc.py """
+Derived from: https://github.com/mfkasim1/xcnn/blob/f2cb9777da2961ac553f256ecdcca3e314a538ca/xcdnn2/kscalc.py
+"""
 import hashlib
 import warnings
 from dataclasses import dataclass
@@ -12,6 +13,8 @@ except Exception as e:
     warnings.warn("Could not import torch. Skipping tests." + str(e))
 
 from deepchem.utils.differentiation_utils import EditableModule
+
+from deepchem.utils.dft_utils.qccalc.base_qccalc import BaseQCCalc as DFTUtilsBaseQCCalc
 
 T = TypeVar('T')
 
@@ -152,7 +155,7 @@ class KSCalc(object):
     https://github.com/diffqc/dqc/blob/master/dqc/qccalc/ks.py
     """
 
-    def __init__(self, qc: "BaseQCCalc"):
+    def __init__(self, qc: Union["BaseQCCalc", "DFTUtilsBaseQCCalc"]):
         self.qc = qc
 
     def energy(self) -> torch.Tensor:
@@ -173,8 +176,10 @@ class KSCalc(object):
         """
         dm = self.qc.aodm()
         if isinstance(dm, SpinParam):
-            dmtot = dm.u + dm.d
+            dmtot: torch.Tensor = dm.u + dm.d
         else:
+            # mypy needs explicit assertion that dm is torch.Tensor here
+            assert isinstance(dm, torch.Tensor)
             dmtot = dm
         return dmtot
 

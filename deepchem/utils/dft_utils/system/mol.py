@@ -452,6 +452,51 @@ class Mol(BaseSystem):
         """
         return self._efield
 
+    def requires_grid(self) -> bool:
+        """Check if the system requires a grid.
+
+        Returns
+        -------
+        bool
+            True if the system requires a grid, False otherwise.
+
+        """
+        return True
+
+    def make_copy(self, **kwargs) -> BaseSystem:
+        """Make a copy of the system with modified parameters.
+
+        Parameters
+        ----------
+        **kwargs
+            Parameters to override in the copy.
+
+        Returns
+        -------
+        BaseSystem
+            A copy of the system with modified parameters.
+
+        """
+        # Get the current parameters with kwargs overrides
+        moldesc = kwargs.get('moldesc', (self._atomzs, self._atompos))
+        basis = kwargs.get('basis', self._basis_inp)
+        grid = kwargs.get('grid', self._grid_inp)
+        spin = kwargs.get('spin', self._spin)
+        charge = kwargs.get('charge', self._charge)
+        efield = kwargs.get('efield', self._efield)
+        dtype = kwargs.get('dtype', self._dtype)
+        device = kwargs.get('device', self._device)
+
+        # Create a new instance with explicit parameters
+        return Mol(moldesc,
+                   basis,
+                   grid=grid,
+                   spin=spin,
+                   charge=charge,
+                   efield=efield,
+                   dtype=dtype,
+                   device=device)
+
 
 def _parse_basis(atomzs: torch.Tensor,
                  basis: BasisInpType) -> List[List[CGTOBasis]]:
@@ -478,14 +523,14 @@ def _parse_basis(atomzs: torch.Tensor,
     natoms = len(atomzs)
 
     if isinstance(basis, str):
-        return [loadbasis("%d:%s" % (atomz, basis)) for atomz in atomzs]
+        return [loadbasis("%d:%s" % (atomz, basis), device=atomzs.device) for atomz in atomzs]
 
     elif isinstance(basis, dict):
         # convert the basis key into atomz
         basis_int: Dict[int, List[CGTOBasis]] = {}
         for k, v in basis.items():
             atz = int(get_atomz(k))
-            bas = v if isinstance(v, list) else loadbasis("%d:%s" % (atz, v))
+            bas = v if isinstance(v, list) else loadbasis("%d:%s" % (atz, v), device=atomzs.device)
             basis_int[atz] = bas
         return [basis_int[int(atomz)] for atomz in atomzs]
 
@@ -502,7 +547,7 @@ def _parse_basis(atomzs: torch.Tensor,
         # list of str
         elif isinstance(basis[0], str):
             return [
-                loadbasis("%d:%s" % (atz, b))
+                loadbasis("%d:%s" % (atz, b), device=atomzs.device)
                 for (atz, b) in zip(atomzs, basis)
             ]  # type: ignore
 

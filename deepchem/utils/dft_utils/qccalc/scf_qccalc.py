@@ -313,6 +313,24 @@ class SCF_QCCalc(BaseQCCalc):
             (isinstance(dm, SpinParam) and self._polarized), type(dm)
         return self._engine.dm2energy(dm)
 
+    def getparamnames(self, methodname: str, prefix: str = "") -> List[str]:
+        """Return a list with the parameter names corresponding to the given method.
+
+        Parameters
+        ----------
+        methodname: str
+            The name of the method to get the parameter names from.
+        prefix: str
+            Prefix for the parameter names.
+
+        Returns
+        -------
+        List[str]
+            List of parameter names of methodname.
+
+        """
+        return self._engine.getparamnames(methodname, prefix=prefix)
+
     def _get_zero_dm(self) -> Union[SpinParam[torch.Tensor], torch.Tensor]:
         """get the initial dm that are all zeros
 
