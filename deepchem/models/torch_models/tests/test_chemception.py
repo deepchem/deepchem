@@ -283,7 +283,7 @@ def test_chemception_modular_fit_restore():
 @pytest.mark.torch
 def test_chemception_load_from_pretrained():
     """Test to ensure the model can be pretrained in classification mode,
-    reloaded in regression mode and weigts of all layers except the prediction head are copied"""
+    reloaded in regression mode and weights of all layers except the prediction head are copied"""
     from deepchem.models.torch_models import ChemCeptionModel
 
     n_tasks = 5
@@ -330,7 +330,7 @@ def test_chemception_load_from_pretrained():
                                       'reduction_B'
                                   ])
 
-    # asserting that weight matches after loading
+    # asserting that weights match after loading
     for param_name in model_pt.model.state_dict().keys():
         if 'output_layer' not in param_name:
             assert np.allclose(
