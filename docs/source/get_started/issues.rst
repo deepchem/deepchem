@@ -11,7 +11,7 @@ save you some headache by listing features that we know are partially or complet
 broken.
 
 *Note: This list is likely to be non-exhaustive. If we missed something, 
-please let us know [here](https://github.com/deepchem/deepchem/issues/2376).*
+please let us know `here <https://github.com/deepchem/deepchem/issues/2376>`_.*
 
 +--------------------------------+-------------------+---------------------------------------------------+
 | Feature                        | Deepchem response | Tracker and notes                                 |
@@ -31,7 +31,7 @@ been thoroughly tested to the level of other Deepchem modules, and could be
 potentially problematic in production environments.
 
 *Note: This list is likely to be non-exhaustive. If we missed something, 
-please let us know [here](https://github.com/deepchem/deepchem/issues/2376).*
+please let us know `here <https://github.com/deepchem/deepchem/issues/2376>`_*
 
 +--------------------------------+---------------------------------------------------+
 | Feature                        | Tracker and notes                                 |

@@ -42,7 +42,7 @@ Before jumping in to examples, we'll import our libraries and ensure our doctest
 Delaney (ESOL)
 ----------------
 
-Examples of training models on the Delaney (ESOL) dataset included in `MoleculeNet <./moleculenet.html>`_.
+Examples of training models on the Delaney (ESOL) dataset included in :ref:`delaney-datasets`.
 
 We'll be using its :code:`smiles` field to train models to predict its experimentally measured solvation energy (:code:`expt`).
 
@@ -82,8 +82,8 @@ First, we'll load the dataset with :func:`load_delaney() <deepchem.molnet.load_d
 
 GraphConvModel
 ^^^^^^^^^^^^^^
-The default `featurizer <./featurizers.html>`_ for Delaney is :code:`ECFP`, short for
-`"Extended-connectivity fingerprints." <./featurizers.html#circularfingerprint>`_
+The default :doc:`featurizer <../api_reference/featurizers>` for Delaney is :code:`ECFP`, short for
+:ref:`Extended-connectivity fingerprints <circularfingerprint>`
 For a :class:`GraphConvModel <deepchem.models.GraphConvModel>`, we'll reload our datasets with :code:`featurizer='GraphConv'`:
 
 .. doctest:: delaney
