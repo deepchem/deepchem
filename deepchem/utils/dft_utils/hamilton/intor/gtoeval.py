@@ -671,7 +671,7 @@ def gto_evaluator(wrapper: LibcintWrapper, shortname: str, rgrid: torch.Tensor,
     non0tab = np.ones(((ngrid + BLKSIZE - 1) // BLKSIZE, nshells),
                       dtype=np.int8)
     rgrid = rgrid.contiguous()
-    coords = np.asarray(rgrid, dtype=np.float64, order='F')
+    coords = np.asarray(rgrid.cpu(), dtype=np.float64, order='F')
     ao_loc = np.asarray(wrapper.full_shell_to_aoloc, dtype=np.int32)
 
     c_shls = (ctypes.c_int * 2)(*wrapper.shell_idxs)

@@ -100,7 +100,7 @@ class LibcintWrapper(object):
             atomz = atombasis.atomz
             #                charge    ptr_coord, nucl model (unused for standard nucl model)
             atm_list.append([int(atomz), ptr_env, 1, ptr_env + NDIM, 0, 0])
-            env_list.extend(atombasis.pos.detach())
+            env_list.extend(atombasis.pos.detach().cpu().numpy())
             env_list.append(0.0)
             ptr_env += NDIM + 1
 
@@ -134,8 +134,8 @@ class LibcintWrapper(object):
                     ptr_env + ngauss,
                     0
                 ])
-                env_list.extend(shell.alphas.detach())
-                env_list.extend(shell.coeffs.detach())
+                env_list.extend(shell.alphas.detach().cpu().numpy())
+                env_list.extend(shell.coeffs.detach().cpu().numpy())
                 ptr_env += 2 * ngauss
 
                 # add the alphas and coeffs to the parameters list

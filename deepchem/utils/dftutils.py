@@ -1,6 +1,7 @@
 """
 Density Functional Theory Utilities
-Derived from: https://github.com/mfkasim1/xcnn/blob/f2cb9777da2961ac553f256ecdcca3e314a538ca/xcdnn2/kscalc.py """
+Derived from: https://github.com/mfkasim1/xcnn/blob/f2cb9777da2961ac553f256ecdcca3e314a538ca/xcdnn2/kscalc.py
+"""
 import hashlib
 import warnings
 from abc import abstractmethod, abstractproperty

@@ -588,7 +588,7 @@ class HamiltonCGTO(BaseHamilton):
                                        dm)  # (spin) value: (*BD, nr)
         edens = self.xc.get_edensityxc(densinfo)  # (*BD, nr)
 
-        return torch.sum(self.grid.get_dvolume() * edens, dim=-1)
+        return torch.sum(self.grid.get_dvolume() * edens.to(self.device), dim=-1)
 
     # free parameters for variational method
     def ao_orb_params2dm(

@@ -402,7 +402,7 @@ class HamiltonCGTO_PBC(HamiltonCGTO):
         # overloading from hcgto
 
         vext = potinfo.value
-        vb = potinfo.value * self.basis
+        vb = potinfo.value.to(self.basis.device) * self.basis
 
         if self.xcfamily in [2, 4]:  # GGA or MGGA
             assert potinfo.grad is not None  # (..., ndim, nrgrid)

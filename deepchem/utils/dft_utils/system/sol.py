@@ -79,7 +79,7 @@ class Sol(BaseSystem):
 
         # get the AtomCGTOBasis & the hamiltonian
         atomzs, atompos = parse_moldesc(soldesc, dtype, device)
-        allbases = _parse_basis(atomzs, basis)  # list of list of CGTOBasis
+        allbases: List[List[CGTOBasis]] = _parse_basis(atomzs, basis)  # list of list of CGTOBasis
         atombases = [AtomCGTOBasis(atomz=atz, bases=bas, pos=atpos)
                      for (atz, bas, atpos) in zip(atomzs, allbases, atompos)]
         self._atombases = atombases
