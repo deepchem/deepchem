@@ -119,7 +119,7 @@ def gto_ft_evaluator(wrapper: LibcintWrapper, gvgrid: torch.Tensor) -> torch.Ten
     atm, bas, env = wrapper.atm_bas_env
 
     # prepare the gvgrid
-    GvT = np.asarray(gvgrid.detach().numpy().T, order="C")
+    GvT = np.asarray(gvgrid.detach().cpu().numpy().T, order="C")
     nGv = gvgrid.shape[0]
 
     # prepare the output matrix

@@ -124,8 +124,8 @@ class PBCFTIntor(object):
 
         assert len(wrappers) > 0
         wrapper0 = wrappers[0]
-        kpts_inp_np = kpts_inp.detach().numpy()  # (nk, ndim)
-        GvT = np.asarray(gvgrid_inp.detach().numpy().T, order="C")  # (ng, ndim)
+        kpts_inp_np = kpts_inp.detach().cpu().numpy()  # (nk, ndim)
+        GvT = np.asarray(gvgrid_inp.detach().cpu().numpy().T, order="C")  # (ng, ndim)
         opname = int_nmgr.get_ft_intgl_name(wrapper0.spherical)
         lattice = wrapper0.lattice
         assert isinstance(lattice, Lattice)
@@ -137,7 +137,7 @@ class PBCFTIntor(object):
         # estimate the rcut and the lattice translation vectors
         coeffs, alphas, _ = wrapper0.params
         rcut = estimate_ovlp_rcut(options.precision, coeffs, alphas)
-        ls = np.asarray(lattice.get_lattice_ls(rcut=rcut))
+        ls = np.asarray(lattice.get_lattice_ls(rcut=rcut).cpu())
 
         self.int_type = int_nmgr.int_type
         self.wrappers = wrappers
