@@ -676,6 +676,16 @@ SE3TransformerModel
 .. autoclass:: deepchem.models.torch_models.SE3TransformerModel
   :members:
   
+ChemCeption
+----------------
+.. autoclass:: deepchem.models.torch_models.ChemCeption
+  :members:
+
+ChemCeptionModel
+----------------
+.. autoclass:: deepchem.models.torch_models.ChemCeptionModel
+  :members:
+
 PyTorch Lightning Models
 ========================
 
@@ -768,9 +778,4 @@ DistributedTrainer
 ------------------
 
 .. autoclass:: deepchem.trainer.DistributedTrainer
-  :members:
-
-ChemCeption
-----------------
-.. autoclass:: deepchem.models.torch_models.ChemCeption.ChemCeption
   :members:

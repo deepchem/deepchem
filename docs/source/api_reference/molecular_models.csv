@@ -2,7 +2,7 @@ Model,Reference,Type,Acceptable Featurizers,Backend,Comment
 ScScoreModel,`ref <https://pubs.acs.org/doi/abs/10.1021/acs.jcim.7b00622>`_,Classifier,CircularFingerprint ,Keras,
 AtomicConvModel,`ref <https://arxiv.org/abs/1703.10603>`_,Classifier/ Regressor,ComplexNeighborListFragmentAtomicCoordinates,Keras,
 AttentiveFPModel,`ref <https://pubs.acs.org/doi/10.1021/acs.jmedchem.9b00959>`_,Classifier/ Regressor,MolGraphConvFeaturizer,PyTorch,
-ChemCeption,`ref <https://arxiv.org/abs/1706.06689>`_,Classifier/ Regressor,SmilesToImage,Keras,
+ChemCeption,`ref <https://arxiv.org/abs/1706.06689>`_,Classifier/ Regressor,SmilesToImage,Keras/PyTorch,
 DAGModel,`ref <https://pubs.acs.org/doi/abs/10.1021/ci400187y>`_,Classifier/ Regressor,ConvMolFeaturizer,Keras,use DAGTransformer
 GATModel,`ref <https://arxiv.org/abs/1710.10903>`_,Classifier/ Regressor,MolGraphConvFeaturizer,DGL/PyTorch,
 GCNModel,`ref <https://arxiv.org/abs/1609.02907>`_,Classifier/ Regressor,MolGraphConvFeaturizer,DGL/PyTorch,
