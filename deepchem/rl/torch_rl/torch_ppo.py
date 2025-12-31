@@ -78,7 +78,7 @@ class PPO(object):
     Implements the Proximal Policy Optimization (PPO) algorithm for reinforcement learning.
 
     The algorithm is described in Schulman et al, "Proximal Policy Optimization Algorithms"
-    (https://openai-public.s3-us-west-2.amazonaws.com/blog/2017-07/ppo/ppo-arxiv.pdf).
+    (https://arxiv.org/abs/1707.06347).
     This class requires the policy to output two quantities: a vector giving the probability of
     taking each action, and an estimate of the value function for the current state.  It
     optimizes both outputs at once using a loss that is the sum of three terms:
