@@ -73,7 +73,7 @@ We make use of GitHub Pages to serve our static website. GitHub Pages
 connects to the certificate in Certificate Manager. We set CNAME for
 www.deepchem.io, and an A-record for deepchem.io.
 
-The GitHub Pages repository is [deepchem/deepchem.github.io](https://github.com/deepchem/deepchem.github.io).
+The GitHub Pages repository is `deepchem/deepchem.github.io <https://github.com/deepchem/deepchem.github.io>`_.
 
 GoDaddy
 -------
