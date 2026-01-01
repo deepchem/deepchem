@@ -1,8 +1,6 @@
 # DeepChem Docs Overview
 
-This directory contains the DeepChem docs. DeepChem's docs aim to
-serve as another resource to complement our collection of tutorials
-and examples.
+"This directory contains the DeepChem documentation. The documentation aims to serve as an additional resource..."
 
 ## Building the Documentation
 
