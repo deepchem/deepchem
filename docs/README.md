@@ -13,6 +13,8 @@ $ make html
 // clean build
 $ make clean html
 $ open build/html/index.html
+These commands install the required dependencies and generate the HTML version of the documentation for local preview.
+
 ```
 
 If you want to confirm logs in more details,
