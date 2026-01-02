@@ -107,8 +107,9 @@ class TFN(nn.Module):
         blocks = self._build_gcn(self.fibers, self.n_tasks)
         self.equiv_graph_conv_block, self.pool_block, self.fc_block = blocks
 
-    def _build_gcn(self, fibers: Dict[str, Fiber],
-                   out_dim: int) -> Tuple[nn.ModuleList, nn.ModuleList, nn.ModuleList]:
+    def _build_gcn(
+            self, fibers: Dict[str, Fiber],
+            out_dim: int) -> Tuple[nn.ModuleList, nn.ModuleList, nn.ModuleList]:
         """
         Build the Tensor field networks block.
 
@@ -129,7 +130,7 @@ class TFN(nn.Module):
             List of fully connected layers after pooling.
         """
 
-        equiv_graph_conv_block : List[LayerType] = []
+        equiv_graph_conv_block: List[LayerType] = []
         fin = fibers['in']
         for i in range(self.num_layers - 1):
             equiv_graph_conv_block.append(
@@ -148,7 +149,7 @@ class TFN(nn.Module):
 
         pool_block = [SE3MaxPooling()]
 
-        fc_block : List[Union[nn.Linear, nn.ReLU]] = []
+        fc_block: List[Union[nn.Linear, nn.ReLU]] = []
         fc_block.append(nn.Linear(self.num_channels_out, self.num_channels_out))
         fc_block.append(nn.ReLU(inplace=True))
         fc_block.append(nn.Linear(self.num_channels_out, out_dim))
