@@ -5,16 +5,13 @@ import hashlib
 import warnings
 from dataclasses import dataclass
 from abc import abstractmethod, abstractproperty
-from typing import Union, List, TypeVar, Generic, Callable, TYPE_CHECKING
+from typing import Union, List, TypeVar, Generic, Callable
 try:
     import torch
 except Exception as e:
     warnings.warn("Could not import torch. Skipping tests." + str(e))
 
 from deepchem.utils.differentiation_utils import EditableModule
-
-if TYPE_CHECKING:
-    from deepchem.utils.dft_utils.qccalc.base_qccalc import BaseQCCalc as DFTUtilsBaseQCCalc
 
 T = TypeVar('T')
 
@@ -155,7 +152,7 @@ class KSCalc(object):
     https://github.com/diffqc/dqc/blob/master/dqc/qccalc/ks.py
     """
 
-    def __init__(self, qc: Union["BaseQCCalc", "DFTUtilsBaseQCCalc"]):
+    def __init__(self, qc: BaseQCCalc):
         self.qc = qc
 
     def energy(self) -> torch.Tensor:
