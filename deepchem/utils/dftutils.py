@@ -152,7 +152,7 @@ class KSCalc(object):
     https://github.com/diffqc/dqc/blob/master/dqc/qccalc/ks.py
     """
 
-    def __init__(self, qc: "BaseQCCalc"):
+    def __init__(self, qc: BaseQCCalc):
         self.qc = qc
 
     def energy(self) -> torch.Tensor:
@@ -173,8 +173,10 @@ class KSCalc(object):
         """
         dm = self.qc.aodm()
         if isinstance(dm, SpinParam):
-            dmtot = dm.u + dm.d
+            dmtot: torch.Tensor = dm.u + dm.d
         else:
+            # mypy needs explicit assertion that dm is torch.Tensor here
+            assert isinstance(dm, torch.Tensor)
             dmtot = dm
         return dmtot
 
