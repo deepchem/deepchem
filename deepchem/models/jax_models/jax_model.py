@@ -250,7 +250,9 @@ class JaxModel(Model):
             Set this to 0 to disable automatic checkpointing.
         restore: bool
             if True, restore the model from the most recent checkpoint and continue training
-            from there.  If False, retrain the model from scratch.
+            from there. If False, do not load a checkpoint from disk. Note that if the model
+            has already been trained, setting restore=False will continue training from the
+            current weights in memory;it does not reset the model weights to random initialization.
         variables: list of hk.Variable
             the variables to train.  If None (the default), all trainable variables in
             the model are used.

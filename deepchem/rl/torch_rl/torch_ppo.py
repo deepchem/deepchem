@@ -288,7 +288,9 @@ class PPO(object):
             the time interval at which to save checkpoints, measured in seconds
         restore: bool
             if True, restore the model from the most recent checkpoint and continue training
-            from there.  If False, retrain the model from scratch.
+            from there. If False, do not load a checkpoint from disk. Note that if the model
+            has already been trained, setting restore=False will continue training from the
+            current weights in memory;it does not reset the model weights to random initialization.
         """
         step_count: int = 0
         workers: List[_Worker] = []
