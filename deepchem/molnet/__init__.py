@@ -46,3 +46,17 @@ from deepchem.molnet.dnasim import simulate_motif_counting
 from deepchem.molnet.dnasim import simple_motif_embedding
 from deepchem.molnet.dnasim import motif_density
 from deepchem.molnet.dnasim import simulate_single_motif_detection
+
+# Benchmark Dashboard
+from deepchem.molnet.benchmark_dashboard import (
+    BenchmarkRunner,
+    BenchmarkConfig,
+    BenchmarkResult,
+    quick_benchmark,
+    list_available_datasets,
+    list_available_models,
+    run_benchmark_cli,
+    CLASSIFICATION_DATASETS,
+    REGRESSION_DATASETS,
+    ALL_DATASETS,
+)
