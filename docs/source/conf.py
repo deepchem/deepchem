@@ -90,6 +90,9 @@ html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
 
+# Custom CSS file to fix table overflow issues
+html_css_files = ['custom.css']
+
 # The name of an image file (relative to this directory) to place at the top
 # of the sidebar.
 html_logo = '_static/logo.png'
