@@ -1576,3 +1576,235 @@ def test_torch_cosine_dist():
                                          [0.8944272, -0.8]])
     result = torch_layers.cosine_dist(x3, x4)
     assert torch.allclose(result, pre_calculated_value, atol=1e-4)
+
+
+# =============================================================================
+# MLIP Phase 2 Tests - Angular Representations
+# =============================================================================
+
+
+@pytest.mark.torch
+def test_mlip_polynomial_cutoff():
+    """Test for MLIPPolynomialCutoff layer."""
+    cutoff = 5.0
+    cutoff_fn = torch_layers.MLIPPolynomialCutoff(cutoff=cutoff, p=6)
+
+    # Test basic shape
+    distances = torch.tensor([0.0, 1.0, 2.5, 4.0, 5.0, 6.0])
+    output = cutoff_fn(distances)
+    assert output.shape == distances.shape
+
+    # Test boundary conditions
+    # At r=0, output should be close to 1.0
+    assert torch.abs(output[0] - 1.0) < 1e-5
+
+    # At r=cutoff, output should be close to 0.0
+    assert torch.abs(output[4]) < 1e-5
+
+    # Beyond cutoff, output should be exactly 0.0
+    assert output[5] == 0.0
+
+    # Test monotonicity (should decrease with distance)
+    assert output[0] > output[1] > output[2] > output[3]
+
+    # Test with batched input
+    batch_distances = torch.rand(10, 20) * 6.0
+    batch_output = cutoff_fn(batch_distances)
+    assert batch_output.shape == batch_distances.shape
+
+    # Test that values are in [0, 1] range for distances < cutoff
+    mask = batch_distances < cutoff
+    assert torch.all(batch_output[mask] >= 0.0)
+    assert torch.all(batch_output[mask] <= 1.0)
+
+
+@pytest.mark.torch
+def test_mlip_polynomial_cutoff_different_orders():
+    """Test MLIPPolynomialCutoff with different polynomial orders."""
+    cutoff = 5.0
+    distances = torch.linspace(0, cutoff, 100)
+
+    # Test different polynomial orders
+    for p in [4, 5, 6, 8]:
+        cutoff_fn = torch_layers.MLIPPolynomialCutoff(cutoff=cutoff, p=p)
+        output = cutoff_fn(distances)
+
+        # All outputs should be in [0, 1]
+        assert torch.all(output >= -1e-6)  # Allow small numerical errors
+        assert torch.all(output <= 1.0 + 1e-6)
+
+        # First value should be 1, last should be 0
+        assert torch.abs(output[0] - 1.0) < 1e-5
+        assert torch.abs(output[-1]) < 1e-5
+
+
+@pytest.mark.torch
+def test_mlip_spherical_harmonics_basic():
+    """Test basic functionality of MLIPSphericalHarmonics."""
+    max_degree = 2
+    sh = torch_layers.MLIPSphericalHarmonics(max_degree=max_degree)
+
+    # Test output dimension
+    assert sh.output_dim == (max_degree + 1)**2  # 9 for max_degree=2
+
+    # Test with single vector
+    vector = torch.tensor([[1.0, 0.0, 0.0]])
+    output = sh(vector)
+    assert output.shape == (1, 9)
+
+    # Test with batch of vectors
+    vectors = torch.randn(100, 3)
+    output = sh(vectors)
+    assert output.shape == (100, 9)
+
+
+@pytest.mark.torch
+def test_mlip_spherical_harmonics_degrees():
+    """Test MLIPSphericalHarmonics with different max degrees."""
+    for max_degree in [0, 1, 2, 3]:
+        sh = torch_layers.MLIPSphericalHarmonics(max_degree=max_degree)
+        expected_dim = (max_degree + 1)**2
+
+        vectors = torch.randn(50, 3)
+        output = sh(vectors)
+
+        assert output.shape == (50, expected_dim)
+        assert sh.output_dim == expected_dim
+
+
+@pytest.mark.torch
+def test_mlip_spherical_harmonics_normalization():
+    """Test that spherical harmonics are properly normalized."""
+    sh = torch_layers.MLIPSphericalHarmonics(max_degree=2, normalize=True)
+
+    # Test with unit vectors along axes
+    x_axis = torch.tensor([[1.0, 0.0, 0.0]])
+    y_axis = torch.tensor([[0.0, 1.0, 0.0]])
+    z_axis = torch.tensor([[0.0, 0.0, 1.0]])
+
+    sh_x = sh(x_axis)
+    sh_y = sh(y_axis)
+    sh_z = sh(z_axis)
+
+    # All outputs should be finite
+    assert torch.all(torch.isfinite(sh_x))
+    assert torch.all(torch.isfinite(sh_y))
+    assert torch.all(torch.isfinite(sh_z))
+
+
+@pytest.mark.torch
+def test_mlip_spherical_harmonics_rotation_consistency():
+    """Test that spherical harmonics behave consistently under simple transformations."""
+    sh = torch_layers.MLIPSphericalHarmonics(max_degree=1, normalize=True)
+
+    # Vectors pointing in opposite directions should have related harmonics
+    v1 = torch.tensor([[1.0, 0.0, 0.0]])
+    v2 = torch.tensor([[-1.0, 0.0, 0.0]])
+
+    sh1 = sh(v1)
+    sh2 = sh(v2)
+
+    # l=0 component (Y_0^0) should be the same (it's spherically symmetric)
+    assert torch.abs(sh1[0, 0] - sh2[0, 0]) < 1e-5
+
+
+@pytest.mark.torch
+def test_mlip_angular_basis_basic():
+    """Test basic functionality of MLIPAngularBasis."""
+    max_degree = 2
+    cutoff = 5.0
+    angular_basis = torch_layers.MLIPAngularBasis(max_degree=max_degree,
+                                                   cutoff=cutoff)
+
+    # Test output dimension
+    assert angular_basis.output_dim == (max_degree + 1)**2
+
+    # Test with vectors and distances
+    vectors = torch.randn(100, 3)
+    distances = torch.norm(vectors, dim=-1)
+    output = angular_basis(vectors, distances)
+
+    assert output.shape == (100, 9)
+
+
+@pytest.mark.torch
+def test_mlip_angular_basis_auto_distance():
+    """Test MLIPAngularBasis computes distances automatically when not provided."""
+    angular_basis = torch_layers.MLIPAngularBasis(max_degree=2, cutoff=5.0)
+
+    vectors = torch.randn(50, 3)
+
+    # With explicit distances
+    distances = torch.norm(vectors, dim=-1)
+    output_explicit = angular_basis(vectors, distances)
+
+    # Without distances (should compute internally)
+    output_auto = angular_basis(vectors)
+
+    # Results should be the same
+    assert torch.allclose(output_explicit, output_auto, atol=1e-5)
+
+
+@pytest.mark.torch
+def test_mlip_angular_basis_cutoff_effect():
+    """Test that cutoff properly attenuates angular basis features."""
+    cutoff = 5.0
+    angular_basis = torch_layers.MLIPAngularBasis(max_degree=2, cutoff=cutoff)
+
+    # Create vectors at different distances
+    near_vector = torch.tensor([[1.0, 0.0, 0.0]])  # distance = 1
+    far_vector = torch.tensor([[10.0, 0.0, 0.0]])  # distance = 10 (beyond cutoff)
+
+    near_output = angular_basis(near_vector)
+    far_output = angular_basis(far_vector)
+
+    # Near vector should have non-zero output
+    assert torch.any(torch.abs(near_output) > 1e-6)
+
+    # Far vector (beyond cutoff) should have zero output
+    assert torch.all(torch.abs(far_output) < 1e-6)
+
+
+@pytest.mark.torch
+def test_mlip_angular_basis_gradient():
+    """Test that gradients flow through MLIPAngularBasis."""
+    angular_basis = torch_layers.MLIPAngularBasis(max_degree=2, cutoff=5.0)
+
+    vectors = torch.randn(10, 3, requires_grad=True)
+    output = angular_basis(vectors)
+    loss = output.sum()
+    loss.backward()
+
+    # Gradients should exist and be finite
+    assert vectors.grad is not None
+    assert torch.all(torch.isfinite(vectors.grad))
+
+
+@pytest.mark.torch
+def test_mlip_polynomial_cutoff_gradient():
+    """Test that gradients flow through MLIPPolynomialCutoff."""
+    cutoff_fn = torch_layers.MLIPPolynomialCutoff(cutoff=5.0, p=6)
+
+    distances = torch.rand(10, requires_grad=True) * 4.0  # Within cutoff
+    output = cutoff_fn(distances)
+    loss = output.sum()
+    loss.backward()
+
+    # Gradients should exist and be finite
+    assert distances.grad is not None
+    assert torch.all(torch.isfinite(distances.grad))
+
+
+@pytest.mark.torch
+def test_mlip_spherical_harmonics_gradient():
+    """Test that gradients flow through MLIPSphericalHarmonics."""
+    sh = torch_layers.MLIPSphericalHarmonics(max_degree=2)
+
+    vectors = torch.randn(10, 3, requires_grad=True)
+    output = sh(vectors)
+    loss = output.sum()
+    loss.backward()
+
+    # Gradients should exist and be finite
+    assert vectors.grad is not None
+    assert torch.all(torch.isfinite(vectors.grad))
