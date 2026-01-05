@@ -126,7 +126,7 @@ def test_tfn_equivariance():
     )
 
     _ = model.fit(dataset, nb_epoch=10)
-    preds = model.predict(dataset)
+    preds = model.predict(dataset) 
 
     axis = np.array([1.0, 1.0, 1.0])  # Rotate around (1,1,1) axis
     angle = np.pi / 4  # 45-degree rotation
