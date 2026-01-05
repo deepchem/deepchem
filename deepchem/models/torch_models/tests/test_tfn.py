@@ -135,6 +135,8 @@ def test_tfn_equivariance():
     for i, feats in enumerate(features):
         feats.edge_features = new_coords[i]
 
+    # Since in this test predictions are scalar values, checking for equivariance
+    # is the same as checking for invariance.
     preds_rot = model.predict(dataset)
 
     if os.path.exists("cache"):
