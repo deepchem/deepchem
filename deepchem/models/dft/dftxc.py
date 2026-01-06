@@ -67,7 +67,7 @@ class DFTXC(torch.nn.Module):
                                  self.nnmodel,
                                  aweight0=self.aweight0)
 
-    def forward(self, inputs):
+    def forward(self, inputs: list) -> list[torch.Tensor]:
         """
         Parameters
         ----------
@@ -186,7 +186,7 @@ class XCModel(TorchModel):
 
     def _prepare_batch(
             self,
-            batch) -> Tuple[List[Any], List[torch.Tensor], List[torch.Tensor]]:
+            batch: Tuple[Any, Any, Any]) -> Tuple[List[Any], List[torch.Tensor], List[torch.Tensor]]:
         """
         Method to compute inputs, labels and weight for the Torch Model.
 
