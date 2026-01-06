@@ -3,12 +3,14 @@ from torch.autograd import grad
 from typing import Callable
 
 
-def leapfrog(p: torch.Tensor,
-             q: torch.Tensor,
+def leapfrog(q0: torch.Tensor,
+             p0: torch.Tensor,
              fcn: Callable[..., torch.Tensor],
              dt: float,
-             N: int,
-             is_hamiltonian: bool = True) -> torch.Tensor:
+             T: int,
+             is_hamiltonian: bool = True,
+             device='cpu',
+             enable_graph=True) -> torch.Tensor:
     """
     Leapfrog integrator for simulating Hamiltonian or general dynamics.
 
@@ -18,19 +20,23 @@ def leapfrog(p: torch.Tensor,
 
     Parameters
     ----------
-    p : torch.Tensor
-        Initial momentum tensor, shape (1,)
-    q : torch.Tensor
+    q0 : torch.Tensor
         Initial position tensor, shape (1,)
+    p0 : torch.Tensor
+        Initial momentum tensor, shape (1,)
     fcn : callable
         If is_hamiltonian=True: Function that returns Hamiltonian H(z) where z=[p,q]
         If is_hamiltonian=False: FuncCallabletion that returns derivatives [dp/dt, dq/dt]
     dt : float
         Time step size for integration
-    N : int
-        Number of steps to simulate
+    T : int
+        Number of time-steps to simulate
     is_hamiltonian : bool
         boolean flag for indicating either hamiltonian or non-hamiltonian function
+    device : str
+        The device to compute leapfrog method, Default value is "cpu"
+    enable_graph : bool
+        flag to enable/disable gradients
 
     Returns
     -------
@@ -40,16 +46,15 @@ def leapfrog(p: torch.Tensor,
     Examples
     --------
     >>> import torch
-    >>> def hamiltonian_fn(z):
-    ...     p, q = z
-    ...     return p**2 + q**2
-    >>> p0 = torch.tensor([-0.0429839], requires_grad=True)
-    >>> q0 = torch.tensor([0.44432778], requires_grad=True)
+    >>> def hamiltonian_fn(q, p):
+    ...     return q**2 + p**2
+    >>> q0 = torch.rand(1).unsqueeze(0)
+    >>> p0 = torch.rand(1).unsqueeze(0)
     >>> dt = 0.1
-    >>> N = 100
-    >>> trajectories = leapfrog(p0, q0, hamiltonian_fn, dt, N, is_hamiltonian=True)
+    >>> T = 100
+    >>> trajectories = leapfrog(p0, q0, hamiltonian_fn, dt, T, is_hamiltonian=True)
     >>> trajectories.shape
-    torch.Size([100, 2])
+    torch.Size([100, 1, 2])
 
     References
     ----------
@@ -60,51 +65,54 @@ def leapfrog(p: torch.Tensor,
 
     """
 
-    trajectories = torch.empty((N, 2))
+    trajectories = torch.empty((T, q0.shape[0], q0.shape[1] * 2),
+                               requires_grad=False).to(device)
 
-    p = p.clone().requires_grad_(True)
-    q = q.clone().requires_grad_(True)
+    q = q0
+    p = p0
+    q.requires_grad_()
+    p.requires_grad_()
 
+    # checking if "fcn" follows hamiltonian "T + V" format otherwise continue with else block for non-hamiltonian
     if is_hamiltonian:
-        hamilt = fcn(torch.cat([p, q], dim=-1))
-        dpdt = -grad(hamilt.sum(), q)[0]
+        hamilt = fcn(q, p)
+        dpdt = -grad(hamilt.sum(), q, create_graph=enable_graph)[0]
 
-        for i in range(N):
+        for i in range(T):
 
             p_half = p + (dt / 2) * dpdt
 
-            trajectories[i, :1] = p.detach()
-            trajectories[i, 1:] = q.detach()
+            trajectories[i, :, :q0.shape[1]] = q
+            trajectories[i, :, q0.shape[1]:] = p
 
-            hamil = fcn(torch.cat([p_half, q], dim=-1))
-            dqdt = grad(hamil.sum(), p_half)[0]
+            hamil = fcn(q, p_half)
+            dqdt = grad(hamil.sum(), p_half, create_graph=enable_graph)[0]
             q_next = q + dt * dqdt
 
-            hamil = fcn(torch.cat([p_half, q_next], dim=-1))
-            dpdt = -grad(hamil.sum(), q_next)[0]
+            hamil = fcn(q_next, p_half)
+            dpdt = -grad(hamil.sum(), q_next, create_graph=enable_graph)[0]
             p_next = p_half + (dt / 2) * dpdt
 
-            p, q = p_next, q_next
-
+            q, p = q_next, p_next
     else:
-        time_drvt = fcn((p, q))
+        time_drvt = fcn((q, p))
         dpdt = time_drvt[0]
 
-        for i in range(N):
+        for i in range(T):
 
             p_half = p + dpdt * (dt / 2)
 
-            trajectories[i, :1] = p
-            trajectories[i, 1:] = q
+            trajectories[i, :q0.shape[0]] = q
+            trajectories[i, q0.shape[0]:] = p
 
-            time_drvt = fcn((p_half, q))
+            time_drvt = fcn((q, p_half))
             dqdt = time_drvt[1]
             q_next = q + dqdt * dt
 
-            time_drvt = fcn((p_half, q_next))
+            time_drvt = fcn((q_next, p_half))
             dpdt = time_drvt[0]
             p_next = p_half + dpdt * (dt / 2)
 
-            p, q = p_next, q_next
+            q, p = q_next, p_next
 
     return trajectories
