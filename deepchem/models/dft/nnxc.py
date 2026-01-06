@@ -1,15 +1,9 @@
 from abc import abstractmethod
 from typing import Union, List
 import torch
-import warnings
-try:
-    from dqc.utils.datastruct import ValGrad
-    from deepchem.utils.dftutils import SpinParam
-    from dqc.api.getxc import get_xc
-    from dqc.xc.base_xc import BaseXC
-    from dqc.utils.safeops import safenorm, safepow
-except Exception as e:
-    warnings.warn(f"Import error: {e}")
+
+from deepchem.utils.dft_utils import SpinParam, get_xc, ValGrad, BaseXC
+from deepchem.utils import safenorm, safepow
 
 
 class BaseNNXC(BaseXC, torch.nn.Module):

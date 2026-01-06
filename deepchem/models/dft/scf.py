@@ -3,14 +3,11 @@ from abc import abstractmethod
 from typing import Union
 import torch
 import numpy as np
-import warnings
-try:
-    from dqc.qccalc.ks import KS
-    from deepchem.feat.dft_data import DFTEntry, DFTSystem
-    from deepchem.utils.dftutils import KSCalc, hashstr, SpinParam
-    from deepchem.models.dft.nnxc import BaseNNXC, HybridXC
-except Exception as e:
-    warnings.warn(f"Import error: {e}")
+
+from deepchem.feat.dft_data import DFTEntry, DFTSystem
+from deepchem.utils.dftutils import KSCalc, hashstr
+from deepchem.utils.dft_utils import SpinParam, KS
+from deepchem.models.dft.nnxc import BaseNNXC, HybridXC
 
 
 class XCNNSCF(torch.nn.Module):
@@ -77,7 +74,7 @@ class XCNNSCF(torch.nn.Module):
         self.xc = xc
 
     @abstractmethod
-    def get_xc(self) -> HybridXC:
+    def get_xc(self) -> Union[BaseNNXC, HybridXC]:
         """
         Returns
         -------
