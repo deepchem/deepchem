@@ -1296,18 +1296,52 @@ def test_terminate_param():
 
 
 @pytest.mark.torch
-def test_leapfrog():
+def test_leapfrog_hamiltonian():
     from deepchem.utils.differentiation_utils import leapfrog
 
+    # example of harmonic oscillator, assuming k=1 and m=1
     def hamiltonian_fn(q, p):
-        return q**2 + p**2
+        return 0.5 * q**2 + 0.5 * p**2
 
     q0 = torch.rand(1).unsqueeze(0)
     p0 = torch.rand(1).unsqueeze(0)
     dt = 0.1
-    T = 100
+    T = 10
 
-    trajectories = leapfrog(p0, q0, hamiltonian_fn, dt, T, is_hamiltonian=True)
+    trajectory = leapfrog(p0, q0, hamiltonian_fn, dt, T, is_hamiltonian=True)
 
-    assert trajectories.shape == (
-        T, 1, 2), f"Expected shape (100, 1, 2), got {trajectories.shape}"
+    energies = []
+    for i in range(T):
+        q = trajectory[i, :, :1]
+        p = trajectory[i, :, 1:]
+        E = hamiltonian_fn(q, p)
+        energies.append(E)
+
+    initial_energy = energies[0]
+    final_energy = energies[-1]
+
+    assert abs(final_energy -
+               initial_energy) < 0.01, "Energy drift value is too high"
+
+
+@pytest.mark.torch
+def test_leapfrog_non_hamiltonian():
+    from deepchem.utils.differentiation_utils import leapfrog
+
+    # derivatives are decaying (energy values)
+    def derivatives_fn(q, p):
+        return (-p, -q)
+
+    q0 = torch.tensor([[1.0]])
+    p0 = torch.tensor([[1.0]])
+    dt = 0.01
+    T = 10
+
+    trajectory = leapfrog(q0, p0, derivatives_fn, dt, T, is_hamiltonian=False)
+
+    q_final = trajectory[-1, :, :1]
+    p_final = trajectory[-1, :, 1:]
+
+    # both values starts to decay towards 0
+    assert q_final.abs() < q0.abs(), "q should decay"
+    assert p_final.abs() < p0.abs(), "p should decay"
