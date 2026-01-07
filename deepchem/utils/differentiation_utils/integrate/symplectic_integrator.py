@@ -95,21 +95,21 @@ def leapfrog(q0: torch.Tensor,
 
             q, p = q_next, p_next
     else:
-        time_drvt = fcn((q, p))
+        time_drvt = fcn(q, p)
         dpdt = time_drvt[0]
 
         for i in range(T):
 
             p_half = p + dpdt * (dt / 2)
 
-            trajectories[i, :q0.shape[0]] = q
-            trajectories[i, q0.shape[0]:] = p
+            trajectories[i, :, :q0.shape[0]] = q
+            trajectories[i, :, q0.shape[0]:] = p
 
-            time_drvt = fcn((q, p_half))
+            time_drvt = fcn(q, p_half)
             dqdt = time_drvt[1]
             q_next = q + dqdt * dt
 
-            time_drvt = fcn((q_next, p_half))
+            time_drvt = fcn(q_next, p_half)
             dpdt = time_drvt[0]
             p_next = p_half + dpdt * (dt / 2)
 
