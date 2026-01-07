@@ -103,6 +103,8 @@ Clintox Datasets
 
 .. autofunction:: deepchem.molnet.load_clintox
 
+.. _delaney-dataset:
+
 Delaney Datasets
 ----------------
 
