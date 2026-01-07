@@ -1297,6 +1297,9 @@ def test_terminate_param():
 
 @pytest.mark.torch
 def test_leapfrog_hamiltonian():
+    """
+    Test case to check energy remains conserved in a trajectory or not
+    """
     from deepchem.utils.differentiation_utils import leapfrog
 
     # example of harmonic oscillator, assuming k=1 and m=1
@@ -1326,9 +1329,12 @@ def test_leapfrog_hamiltonian():
 
 @pytest.mark.torch
 def test_leapfrog_non_hamiltonian():
+    """
+    Test case for non-hamiltonian function to check if energy value is decaying or not
+    """
     from deepchem.utils.differentiation_utils import leapfrog
 
-    # derivatives are decaying (energy values)
+    # decaying derivatives (energy values)
     def derivatives_fn(q, p):
         return (-p, -q)
 
