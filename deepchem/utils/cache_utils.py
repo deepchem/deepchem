@@ -5,7 +5,7 @@ import torch
 import numpy as np
 try:
     import h5py
-except:
+except ImportError:
     warnings.warn("h5py is not installed, cache will not work.")
 import os
 import sys
