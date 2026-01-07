@@ -850,9 +850,31 @@ for additional information regarding equivariance and Deepchem's support for equ
 
 .. autofunction:: deepchem.utils.equivariance_utils.fiber2head
 
-.. autofunction:: deepchem.utils.equivariance_utils.LieGroup
+.. autoclass:: deepchem.utils.equivariance_utils.LieGroup
+  :members:
 
-.. autofunction:: deepchem.utils.equivariance_utils.T
+.. autoclass:: deepchem.utils.equivariance_utils.T
+  :members:
+
+.. autofunction:: deepchem.utils.equivariance_utils.sinc
+
+.. autofunction:: deepchem.utils.equivariance_utils.sincc
+
+.. autofunction:: deepchem.utils.equivariance_utils.cosc
+
+.. autofunction:: deepchem.utils.equivariance_utils.coscc
+
+.. autofunction:: deepchem.utils.equivariance_utils.sinc_inv
+
+.. autofunction:: deepchem.utils.equivariance_utils.cross_matrix
+
+.. autofunction:: deepchem.utils.equivariance_utils.uncross_matrix
+
+.. autoclass:: deepchem.utils.equivariance_utils.SO3
+  :members:
+
+.. autoclass:: deepchem.utils.equivariance_utils.SE3
+  :members:
 
 Miscellaneous Utilities
 -----------------------
