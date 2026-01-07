@@ -604,11 +604,16 @@ class TestLieGroup(unittest.TestCase):
             def log(self, g: torch.Tensor) -> torch.Tensor:
                 return g
 
-            def lifted_elems(self, xyz: torch.Tensor, nsamples: int):
-                if nsamples != 1:
+            def lifted_elems(
+                self,
+                points: torch.Tensor,
+                n_samples: int,
+                **kwargs,
+            ):
+                if n_samples != 1:
                     raise ValueError(
                         "Translations are Abelian; nsamples must be 1.")
-                return xyz, None
+                return points, None
 
             def components2matrix(self, a: torch.Tensor) -> torch.Tensor:
                 return torch.diag_embed(a)
@@ -636,7 +641,7 @@ class TestLieGroup(unittest.TestCase):
     @unittest.skipIf(not has_torch, "torch is not available")
     def test_lifted_elems(self) -> None:
         xyz = torch.tensor([[0.0, 1.0], [2.0, 3.0]])
-        a, q = self.G.lifted_elems(xyz, nsamples=1)
+        a, q = self.G.lifted_elems(xyz, n_samples=1)
         self.assertTrue(torch.allclose(a, xyz))
         self.assertIsNone(q)
 
@@ -644,7 +649,7 @@ class TestLieGroup(unittest.TestCase):
     def test_lifted_elems_invalid_nsamples(self) -> None:
         xyz = torch.zeros(2, 2)
         with self.assertRaises(ValueError):
-            self.G.lifted_elems(xyz, nsamples=2)
+            self.G.lifted_elems(xyz, n_samples=2)
 
     @unittest.skipIf(not has_torch, "torch is not available")
     def test_distance_translation(self) -> None:
@@ -708,17 +713,17 @@ class TestTranslationLieGroup(unittest.TestCase):
     @unittest.skipIf(not has_torch, "torch is not available")
     def test_lifted_elems(self) -> None:
         """Lifting should return the input and no quotient."""
-        xyz = torch.tensor([[0.0, 1.0], [2.0, 3.0]])
-        a, q = self.G.lifted_elems(xyz, nsamples=1)
-        self.assertTrue(torch.allclose(a, xyz))
+        points = torch.tensor([[0.0, 1.0], [2.0, 3.0]])
+        a, q = self.G.lifted_elems(points, n_samples=1)
+        self.assertTrue(torch.allclose(a, points))
         self.assertIsNone(q)
 
     @unittest.skipIf(not has_torch, "torch is not available")
     def test_lifted_elems_invalid_nsamples(self) -> None:
         """Translations do not support multiple samples."""
-        xyz = torch.zeros(2, 2)
+        points = torch.zeros(2, 2)
         with self.assertRaises(ValueError):
-            self.G.lifted_elems(xyz, nsamples=2)
+            self.G.lifted_elems(points, n_samples=2)
 
     @unittest.skipIf(not has_torch, "torch is not available")
     def test_distance_translation(self) -> None:
@@ -774,3 +779,244 @@ class TestTranslationLieGroup(unittest.TestCase):
         self.assertTrue(torch.allclose(embedded, expected))
         self.assertEqual(v_exp.shape, (2, 1))
         self.assertEqual(m_exp.shape, (2,))
+
+
+class TestSpecialFunctions(unittest.TestCase):
+    """Unit tests for special functions (sinc, sincc, sinc_inv, cosc, and coscc)"""
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_sinc_zero(self) -> None:
+        """sinc(0) should equal 1."""
+        from deepchem.utils.equivariance_utils import sinc
+        x = torch.tensor(0.0)
+        self.assertTrue(torch.allclose(sinc(x), torch.tensor(1.0)))
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_sinc_matches_definition(self) -> None:
+        """sinc(x) should match sin(x)/x away from zero."""
+        from deepchem.utils.equivariance_utils import sinc
+        x = torch.tensor([0.5, 1.0, 2.0])
+        expected = torch.sin(x) / x
+        self.assertTrue(torch.allclose(sinc(x), expected, atol=1e-6))
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_sinc_inv_identity(self) -> None:
+        """sinc(x) * sinc_inv(x) should be approximately 1."""
+        from deepchem.utils.equivariance_utils import sinc_inv, sinc
+        x = torch.tensor([0.1, 0.5, 1.0])
+        prod = sinc(x) * sinc_inv(x)
+        self.assertTrue(torch.allclose(prod, torch.ones_like(x), atol=1e-5))
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_sincc_zero_limit(self) -> None:
+        """sincc(0) should approach 1/6."""
+        from deepchem.utils.equivariance_utils import sincc
+        x = torch.tensor(0.0)
+        self.assertTrue(torch.allclose(sincc(x), torch.tensor(1 / 6)))
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_cosc_zero_limit(self) -> None:
+        """cosc(0) should approach 1/2."""
+        from deepchem.utils.equivariance_utils import cosc
+        x = torch.tensor(0.0)
+        self.assertTrue(torch.allclose(cosc(x), torch.tensor(0.5)))
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_coscc_zero_limit(self) -> None:
+        """coscc(0) should approach 1/12."""
+        from deepchem.utils.equivariance_utils import coscc
+        x = torch.tensor(0.0)
+        self.assertTrue(torch.allclose(coscc(x), torch.tensor(1 / 12)))
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_shape_preservation(self) -> None:
+        """All special functions should preserve input shape."""
+        from deepchem.utils.equivariance_utils import sinc, sincc, sinc_inv, cosc, coscc
+        x = torch.randn(4, 3, 2)
+        for fn in (sinc, sincc, cosc, coscc, sinc_inv):
+            self.assertEqual(fn(x).shape, x.shape)
+
+
+class TestCrossMatrix(unittest.TestCase):
+    """Unit tests for cross_matrix and uncross_matrix."""
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_skew_symmetric(self) -> None:
+        """cross_matrix should produce skew-symmetric matrices."""
+        from deepchem.utils.equivariance_utils import cross_matrix
+        k = torch.randn(3)
+        K = cross_matrix(k)
+        self.assertTrue(torch.allclose(K + K.T, torch.zeros_like(K)))
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_cross_uncross_inverse(self) -> None:
+        """uncross_matrix(cross_matrix(k)) should recover k."""
+        from deepchem.utils.equivariance_utils import uncross_matrix, cross_matrix
+        k = torch.randn(5, 3)
+        k_rec = uncross_matrix(cross_matrix(k))
+        self.assertTrue(torch.allclose(k, k_rec, atol=1e-6))
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_cross_product_action(self) -> None:
+        """cross_matrix(k) @ v should equal k × v."""
+        from deepchem.utils.equivariance_utils import cross_matrix
+        k = torch.tensor([1.0, 2.0, 3.0])
+        v = torch.tensor([4.0, 5.0, 6.0])
+
+        Kv = cross_matrix(k) @ v
+        expected = torch.cross(k, v)
+
+        self.assertTrue(torch.allclose(Kv, expected))
+
+
+class TestSO3LieGroup(unittest.TestCase):
+    """Unit tests for the SO(3) Lie group."""
+
+    def setUp(self) -> None:
+        self.G = equivariance_utils.SO3(alpha=0.5)
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_exp_log_identity(self) -> None:
+        """exp(log(R)) should recover the rotation."""
+        w = torch.tensor([0.3, -0.2, 0.1])
+        R = self.G.exp(w)
+        w_rec = self.G.log(R)
+        self.assertTrue(torch.allclose(w, w_rec, atol=1e-5))
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_rotation_matrix_properties(self) -> None:
+        """Rotation matrices should be orthogonal with det=1."""
+        w = torch.randn(3)
+        R = self.G.exp(w)
+
+        I_m = torch.eye(3)
+        self.assertTrue(torch.allclose(R @ R.T, I_m, atol=1e-5))
+        self.assertTrue(
+            torch.allclose(torch.det(R), torch.tensor(1.0), atol=1e-5))
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_lifted_elems(self) -> None:
+        """SO(3) lifting should return algebra elements and quotient."""
+        pts = torch.randn(4, 3)
+        a, q = self.G.lifted_elems(pts, n_samples=5)
+
+        self.assertEqual(a.shape, (20, 3))
+        self.assertEqual(q.shape, (20, 1))
+        self.assertFalse(torch.allclose(q, torch.zeros_like(q)))
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_distance_rotation_only(self) -> None:
+        """Distance should reduce to alpha * ||omega||."""
+        abq = torch.tensor([[3.0, 4.0, 0.0]])
+        d = self.G.distance(abq)
+        expected = 0.5 * torch.tensor([5.0])
+        self.assertTrue(torch.allclose(d, expected))
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_elems2pairs(self) -> None:
+        """Pairwise relative rotations should be computed."""
+        a = torch.zeros(2, 3)
+        pairs = self.G.elems2pairs(a)
+
+        self.assertEqual(pairs.shape, (2, 2, 3))
+        self.assertTrue(torch.allclose(pairs[0, 0], torch.zeros(3)))
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_identity_exp(self) -> None:
+        """exp(0) should be identity."""
+        w = torch.zeros(3)
+        R = self.G.exp(w)
+        self.assertTrue(torch.allclose(R, torch.eye(3)))
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_log_identity(self) -> None:
+        """log(I) should be zero."""
+        R = torch.eye(3)
+        w = self.G.log(R)
+        self.assertTrue(torch.allclose(w, torch.zeros(3)))
+
+
+class TestSE3LieGroup(unittest.TestCase):
+    """Unit tests for the SE(3) Lie group."""
+
+    def setUp(self) -> None:
+        self.G = equivariance_utils.SE3(alpha=0.3)
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_exp_log_identity(self) -> None:
+        """exp(log(T)) should recover the transformation."""
+        w = torch.tensor([0.2, -0.1, 0.3, 1.0, 2.0, -1.0])
+        T = self.G.exp(w)
+        w_rec = self.G.log(T)
+        self.assertTrue(torch.allclose(w, w_rec, atol=1e-5))
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_homogeneous_matrix_structure(self) -> None:
+        """SE(3) elements should be valid homogeneous matrices."""
+        w = torch.randn(6)
+        T = self.G.exp(w)
+
+        self.assertTrue(torch.allclose(T[3], torch.tensor([0.0, 0.0, 0.0,
+                                                           1.0])))
+        self.assertTrue(
+            torch.allclose(T[:3, :3] @ T[:3, :3].T, torch.eye(3), atol=1e-5))
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_lifted_elems(self) -> None:
+        """SE(3) lifting should return algebra elements and no quotient."""
+        pts = torch.randn(2, 4, 3)
+        a, q = self.G.lifted_elems(pts, n_samples=3)
+
+        self.assertEqual(a.shape, (2, 12, 6))
+        self.assertIsNone(q)
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_distance_rotation_translation(self) -> None:
+        """Distance should combine rotation and translation."""
+        abq = torch.tensor([[3.0, 4.0, 0.0, 6.0, 8.0, 0.0]])
+        d = self.G.distance(abq)
+        alpha = 0.3
+
+        expected = alpha * 5.0 + (1 - alpha) * 10.0
+        self.assertTrue(torch.allclose(d, torch.tensor([expected])))
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_elems2pairs(self) -> None:
+        """Pairwise relative rigid motions should be computed."""
+        a = torch.zeros(2, 6)
+        pairs = self.G.elems2pairs(a)
+
+        self.assertEqual(pairs.shape, (2, 2, 6))
+        self.assertTrue(torch.allclose(pairs[0, 0], torch.zeros(6)))
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_identity_exp(self) -> None:
+        """exp(0) should be identity transform."""
+        w = torch.zeros(6)
+        T = self.G.exp(w)
+        self.assertTrue(torch.allclose(T, torch.eye(4)))
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_log_identity(self) -> None:
+        """log(I) should be zero."""
+        T = torch.eye(4)
+        w = self.G.log(T)
+        self.assertTrue(torch.allclose(w, torch.zeros(6)))
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_translation_only(self) -> None:
+        """Translation transformation should not affect rotations."""
+        w = torch.tensor([0.0, 0.0, 0.0, 1.0, 2.0, 3.0])
+        T = self.G.exp(w)
+
+        self.assertTrue(torch.allclose(T[:3, :3], torch.eye(3)))
+        self.assertTrue(torch.allclose(T[:3, 3], torch.tensor([1.0, 2.0, 3.0])))
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_distance_separates_components(self) -> None:
+        """Distance should combine rotation and translation norms."""
+        abq = torch.tensor([[3.0, 4.0, 0.0, 6.0, 8.0, 0.0]])
+        d = self.G.distance(abq)
+        alpha = 0.3
+        expected = alpha * 5.0 + (1 - alpha) * 10.0
+        self.assertTrue(torch.allclose(d, torch.tensor([expected])))
