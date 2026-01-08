@@ -150,10 +150,18 @@ class NNLDA(BaseNNXC):
         """
         if isinstance(densinfo, ValGrad):  # unpolarized case
             n = densinfo.value.unsqueeze(-1)  # (*BD, nr, 1)
+            # Handle complex tensors from PBC calculations (take real part)
+            if n.is_complex():
+                n = n.real
             xi = torch.zeros_like(n)
         else:  # polarized case
             nu = densinfo.u.value.unsqueeze(-1)
             nd = densinfo.d.value.unsqueeze(-1)
+            # Handle complex tensors from PBC calculations (take real part)
+            if nu.is_complex():
+                nu = nu.real
+            if nd.is_complex():
+                nd = nd.real
             n = nu + nd  # (*BD, nr, 1)
             xi = (nu - nd) / (n + 1e-18)  # avoiding nan
 
@@ -257,18 +265,35 @@ class NNPBE(BaseNNXC):
         if isinstance(densinfo, ValGrad):  # unpolarized case
             assert densinfo.grad is not None
             n = densinfo.value.unsqueeze(-1)  # (*BD, nr, 1)
+            grad = densinfo.grad
+            # Handle complex tensors from PBC calculations (take real part)
+            if n.is_complex():
+                n = n.real
+            if grad.is_complex():
+                grad = grad.real
             xi = torch.zeros_like(n)
             n_offset = n + 1e-18  # avoiding nan
-            s = safenorm(densinfo.grad, dim=0).unsqueeze(-1)
+            s = safenorm(grad, dim=0).unsqueeze(-1)
         else:  # polarized case
             assert densinfo.u.grad is not None
             assert densinfo.d.grad is not None
             nu = densinfo.u.value.unsqueeze(-1)
             nd = densinfo.d.value.unsqueeze(-1)
+            grad_u = densinfo.u.grad
+            grad_d = densinfo.d.grad
+            # Handle complex tensors from PBC calculations (take real part)
+            if nu.is_complex():
+                nu = nu.real
+            if nd.is_complex():
+                nd = nd.real
+            if grad_u.is_complex():
+                grad_u = grad_u.real
+            if grad_d.is_complex():
+                grad_d = grad_d.real
             n = nu + nd  # (*BD, nr, 1)
             n_offset = n + 1e-18  # avoiding nan
             xi = (nu - nd) / n_offset
-            s = safenorm(densinfo.u.grad + densinfo.d.grad, dim=0).unsqueeze(-1)
+            s = safenorm(grad_u + grad_d, dim=0).unsqueeze(-1)
 
         # normalize the gradient
         s = s / a * safepow(n, -4.0 / 3)
