@@ -550,9 +550,9 @@ class DMPNNFeaturizer(MolecularFeaturizer):
                                                        self.features_generators)
         # Creates GraphData representation (preserves the existing API)
         graph_data = GraphData(node_features=f_atoms,
-                         edge_index=edge_index,
-                         edge_features=f_bonds,
-                         global_features=global_features)
+                               edge_index=edge_index,
+                               edge_features=f_bonds,
+                               global_features=global_features)
         # Conditionally cache mapper transformation for performance
         if self.cache_mapper:
             # Lazy import to avoid unnecessary torch dependencies during featurization

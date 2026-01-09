@@ -448,6 +448,7 @@ class DMPNN(nn.Module):
 
         return final_output
 
+
 class DMPNNFeatures:
     """Cached container for pre-processed DMPNN features.
 
@@ -470,7 +471,7 @@ class DMPNNFeatures:
         Global molecular features
     """
 
-    __slots__= (
+    __slots__ = (
         'atom_features',
         'f_ini_atoms_bonds',
         'atom_to_incoming_bonds',
@@ -478,21 +479,18 @@ class DMPNNFeatures:
         'global_features',
     )
 
-    def __init__(
-        self,
-        atom_features: np.ndarray,
-        f_ini_atoms_bonds: np.ndarray,
-        atom_to_incoming_bonds: List,
-        mapping: np.ndarray,
-        global_features: Optional[np.ndarray] = None
-    ):
+    def __init__(self,
+                 atom_features: np.ndarray,
+                 f_ini_atoms_bonds: np.ndarray,
+                 atom_to_incoming_bonds: np.ndarray,
+                 mapping: np.ndarray,
+                 global_features: Optional[np.ndarray] = None):
         """Initialize DMPNNFeatures with pre-computed arrays."""
         self.atom_features = atom_features
         self.f_ini_atoms_bonds = f_ini_atoms_bonds
         self.atom_to_incoming_bonds = atom_to_incoming_bonds
         self.mapping = mapping
         self.global_features = global_features
-
 
     @classmethod
     def from_mapper(cls, mapper: '_MapperDMPNN') -> 'DMPNNFeatures':
@@ -508,13 +506,11 @@ class DMPNNFeatures:
         DMPNNFeatures
             Cached features object
         """
-        return cls(
-            atom_features = mapper.atom_features,
-            f_ini_atoms_bonds = mapper.f_ini_atoms_bonds,
-            atom_to_incoming_bonds = mapper.atom_to_incoming_bonds,
-            mapping = mapper.mapping,
-            global_features = mapper.global_features
-        )
+        return cls(atom_features=mapper.atom_features,
+                   f_ini_atoms_bonds=mapper.f_ini_atoms_bonds,
+                   atom_to_incoming_bonds=mapper.atom_to_incoming_bonds,
+                   mapping=mapper.mapping,
+                   global_features=mapper.global_features)
 
     def to_tuple(self):
         """Convert to tuple format expected by model.
@@ -525,14 +521,13 @@ class DMPNNFeatures:
             (atom_features, f_ini_atoms_bonds, atom_to_incoming_bonds,
                 mapping, global_features)
         """
-        return(
+        return (
             self.atom_features,
             self.f_ini_atoms_bonds,
             self.atom_to_incoming_bonds,
             self.mapping,
             self.global_features,
         )
-
 
 
 class DMPNNModel(TorchModel):
@@ -816,8 +811,9 @@ class DMPNNModel(TorchModel):
                 max_num_bonds: int = 1
 
                 for graph in X_b:
-                    # Checked for called mapper output (OPTIMIZED PATH)
-                    if hasattr(graph, '_cached_dmpnn') and graph._cached_dmpnn is not None:
+                    # Checked for cached mapper output (OPTIMIZED PATH)
+                    if hasattr(graph, '_cached_dmpnn'
+                              ) and graph._cached_dmpnn is not None:
                         # Use pre-computed features directly
                         # Avoids repeated _MapperDMPNN construction
                         graph_tuple = graph._cached_dmpnn.to_tuple()
