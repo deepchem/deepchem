@@ -404,15 +404,15 @@ class DMPNNFeaturizer(MolecularFeaturizer):
     .. [1] Kearnes, Steven, et al. "Molecular graph convolutions: moving beyond fingerprints."
         Journal of computer-aided molecular design 30.8 (2016):595-608.
 
+    Note
+    ----
+        This class requires RDKit to be installed.
+
         When cache_mapper=True (default), this featurizer caches the internal
         _MapperDMPNN transformation on the returned GraphData object (_cached_dmpnn
         attribute) to avoid repeated computation during model training. This optimization
-        provides 2-3x training speedup and is transparent to users while maintaining full
+        provides ~1.6-2x training speedup and is transparent to users while maintaining full
         backward compatibility. Set cache_mapper=False for memory-constrained scenarios.
-
-        Note
-    ----
-    This class requires RDKit to be installed.
 
     """
 

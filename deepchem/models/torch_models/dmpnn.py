@@ -811,7 +811,7 @@ class DMPNNModel(TorchModel):
                 max_num_bonds: int = 1
 
                 for graph in X_b:
-                    # Checked for cached mapper output (OPTIMIZED PATH)
+                    # Checked for cached mapper output (OPTIMIZED PATH).
                     if hasattr(graph, '_cached_dmpnn'
                               ) and graph._cached_dmpnn is not None:
                         # Use pre-computed features directly
@@ -830,7 +830,7 @@ class DMPNNModel(TorchModel):
                         pyg_graph['atom_to_incoming_bonds'].shape[1])
                     pyg_graphs_list.append(pyg_graph)
 
-                # pad all mappings to maximum number of incoming bonds in the batch
+                # Pad all mappings to maximum number of incoming bonds in the batch
                 for graph in pyg_graphs_list:
                     required_padding: int = max_num_bonds - graph[
                         'atom_to_incoming_bonds'].shape[1]
