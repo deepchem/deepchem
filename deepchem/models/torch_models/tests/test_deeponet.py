@@ -72,7 +72,8 @@ def test_deeponetmodel_fit_and_predict():
     n_samples = 20
 
     # Create concatenated input: X = [branch_data | trunk_data]
-    branch_data = np.random.randn(n_samples, branch_input_dim).astype(np.float32)
+    branch_data = np.random.randn(n_samples,
+                                  branch_input_dim).astype(np.float32)
     trunk_data = np.random.randn(n_samples, trunk_input_dim).astype(np.float32)
     X = np.concatenate([branch_data, trunk_data], axis=1)
     y = np.random.randn(n_samples, 1).astype(np.float32)
@@ -98,7 +99,8 @@ def test_deeponetmodel_restore():
     trunk_input_dim = 3
     n_samples = 20
 
-    branch_data = np.random.randn(n_samples, branch_input_dim).astype(np.float32)
+    branch_data = np.random.randn(n_samples,
+                                  branch_input_dim).astype(np.float32)
     trunk_data = np.random.randn(n_samples, trunk_input_dim).astype(np.float32)
     X = np.concatenate([branch_data, trunk_data], axis=1)
     y = np.random.randn(n_samples, 1).astype(np.float32)
@@ -136,7 +138,8 @@ def test_deeponetmodel_overfit():
     n_samples = 10
 
     np.random.seed(42)
-    branch_data = np.random.randn(n_samples, branch_input_dim).astype(np.float32)
+    branch_data = np.random.randn(n_samples,
+                                  branch_input_dim).astype(np.float32)
     trunk_data = np.random.randn(n_samples, trunk_input_dim).astype(np.float32)
     X = np.concatenate([branch_data, trunk_data], axis=1)
     y = np.random.randn(n_samples, 1).astype(np.float32)
