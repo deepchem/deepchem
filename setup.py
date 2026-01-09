@@ -17,7 +17,12 @@ extras = {
         'dgllife'
     ],
     'tensorflow': ['tensorflow', 'tensorflow_probability', 'tensorflow_addons'],
-    'dqc': ['dqc', 'xitorch', 'torch==2.2.1', 'pylibxc2']
+    'dqc': ['dqc', 'xitorch', 'torch==2.2.1', 'pylibxc2'],
+    'bench': [
+        'streamlit>=1.28.0',
+        'plotly>=5.18.0',
+        'kaleido'  # For static plot export
+    ]
 }
 
 
@@ -83,4 +88,10 @@ setup(name='deepchem',
           'rdkit',
       ],
       extras_require=extras,
-      python_requires='>=3.7,<3.13')
+      python_requires='>=3.7,<3.13',
+      entry_points={
+          'console_scripts': [
+              'deepchem-benchmark=deepchem.bench.cli:main',
+              'deepchem-benchmark-dashboard=deepchem.bench.streamlit_app:run_streamlit_app'
+          ]
+      })
