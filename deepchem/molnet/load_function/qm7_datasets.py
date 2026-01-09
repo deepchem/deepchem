@@ -11,18 +11,19 @@ QM7_MAT_UTL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/qm7.mat"
 QM7_CSV_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/qm7.csv"
 QM7B_MAT_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/qm7b.mat"
 GDB7_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/gdb7.tar.gz"
+GDB7_V2_URL = "https://deepchemdata.s3.us-west-1.amazonaws.com/datasets/gdb7_v2.tar.gz"
 QM7_TASKS = ["u0_atom"]
 
 
 class _QM7Loader(_MolnetLoader):
 
     def create_dataset(self) -> Dataset:
-        dataset_file = os.path.join(self.data_dir, "gdb7.sdf")
+        dataset_file = os.path.join(self.data_dir, "gdb7_v2.sdf")
         if not os.path.exists(dataset_file):
-            dc.utils.data_utils.download_url(url=GDB7_URL,
+            dc.utils.data_utils.download_url(url=GDB7_V2_URL,
                                              dest_dir=self.data_dir)
             dc.utils.data_utils.untargz_file(
-                os.path.join(self.data_dir, "gdb7.tar.gz"), self.data_dir)
+                os.path.join(self.data_dir, "gdb7_v2.tar.gz"), self.data_dir)
         loader = dc.data.SDFLoader(tasks=self.tasks,
                                    featurizer=self.featurizer,
                                    sanitize=True)
@@ -94,6 +95,12 @@ def load_qm7(
     versions of RDKit.  Note that this may subtly affect benchmarking
     results on this
     dataset.
+
+    Update 7 Jan 2026
+    -----------------
+    The URL for qm7 dataset is updated to GDB7_V2_URL as the sdf file from
+    GDB7_URL contains 4 additional molecules (containing 1 or 2 hydrogen atoms) which
+    were not part of the original QM7 dataset that had only 7165 molecules.
 
     References
     ----------

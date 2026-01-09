@@ -1027,7 +1027,7 @@ def test_se3_transformer_equivariance():
 @pytest.mark.torch
 def test_se3_transformer_save_restore():
     """
-    Test saving and restoring the InceptionV3 model
+    Test saving and restoring SE3Transformer model
     """
     from deepchem.models.torch_models import SE3TransformerModel
     import tempfile

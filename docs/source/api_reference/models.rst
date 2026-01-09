@@ -686,6 +686,11 @@ SE3TransformerModel
 .. autoclass:: deepchem.models.torch_models.SE3TransformerModel
   :members:
   
+TFNModel
+--------------------
+.. autoclass:: deepchem.models.torch_models.TFNModel
+  :members:
+  
 PyTorch Lightning Models
 ========================
 
