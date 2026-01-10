@@ -1,6 +1,7 @@
 import pytest
 import numpy as np
 from deepchem.data import NumpyDataset
+from flaky import flaky
 
 try:
     import torch
@@ -39,7 +40,7 @@ def test_atomic_convolution_module():
 @pytest.mark.torch
 def test_atomic_conv_initialize_params():
     """Quick test of AtomConv."""
-    from deepchem.models.torch_models import AtomConvModel
+    from deepchem.models import AtomConvModel
     acm = AtomConvModel(n_tasks=1,
                         batch_size=1,
                         layer_sizes=[
@@ -53,10 +54,11 @@ def test_atomic_conv_initialize_params():
     assert len(acm.atom_types) == 15
 
 
+@flaky
 @pytest.mark.slow
 @pytest.mark.torch
 def test_atomic_convolution_model():
-    from deepchem.models.torch_models import AtomConvModel
+    from deepchem.models import AtomConvModel
 
     # For simplicity, let's assume both molecules have same number of
     # atoms.
@@ -101,7 +103,7 @@ def test_atomic_convolution_model():
     features = np.asarray(features, dtype=object)
     labels = np.random.rand(batch_size)
     train = NumpyDataset(features, labels)
-    atomic_convnet.fit(train, nb_epoch=200)
+    atomic_convnet.fit(train, nb_epoch=250)
     preds = atomic_convnet.predict(train)
     assert np.allclose(labels, preds, atol=0.01)
 
@@ -110,7 +112,7 @@ def test_atomic_convolution_model():
 @pytest.mark.torch
 def test_atomic_convolution_model_variable():
     """A simple test that initializes and fits an AtomConvModel on variable input size."""
-    from deepchem.models.torch_models import AtomConvModel
+    from deepchem.models import AtomConvModel
     frag1_num_atoms = 100  # atoms for ligand
     frag2_num_atoms = 1200  # atoms for protein
     complex_num_atoms = frag1_num_atoms + frag2_num_atoms

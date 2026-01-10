@@ -23,8 +23,8 @@ class DCLightningModule(L.LightningModule):
 
     >>> import deepchem as dc
     >>> import lightning as L
-    >>> from deepchem.models.lightning.dc_lightning_dataset_module import DCLightningDatasetModule
-    >>> from deepchem.models.lightning.dc_lightning_module import DCLightningModule
+    >>> from deepchem.models.dc_lightning.dc_lightning_dataset_module import DCLightningDatasetModule
+    >>> from deepchem.models.dc_lightning.dc_lightning_module import DCLightningModule
     >>> from deepchem.feat import MolGraphConvFeaturizer
     >>>
     >>> # Load and prepare dataset

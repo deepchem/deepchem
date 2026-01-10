@@ -22,7 +22,7 @@ class AtomConvModel(TorchModel):
 
     Examples
     --------
-    >>> from deepchem.models.torch_models import AtomConvModel
+    >>> from deepchem.models import AtomConvModel
     >>> from deepchem.data import NumpyDataset
     >>> frag1_num_atoms = 100 # atoms for ligand
     >>> frag2_num_atoms = 1200 # atoms for protein

@@ -11,7 +11,7 @@ from deepchem.feat import AtomicConvFeaturizer
 
 try:
     import tensorflow as tf  # noqa: F401
-    from deepchem.models import atomic_conv
+    from deepchem.models.tf_models import atomic_conv
     has_tensorflow = True
 except:
     has_tensorflow = False
@@ -134,9 +134,9 @@ def test_atomic_conv_with_feat():
     """A simple test for running an atomic convolution on featurized data."""
     dir_path = os.path.dirname(os.path.realpath(__file__))
     ligand_file = os.path.join(dir_path,
-                               "../../feat/tests/data/3zso_ligand_hyd.pdb")
-    protein_file = os.path.join(dir_path,
-                                "../../feat/tests/data/3zso_protein_noH.pdb")
+                               "../../../feat/tests/data/3zso_ligand_hyd.pdb")
+    protein_file = os.path.join(
+        dir_path, "../../../feat/tests/data/3zso_protein_noH.pdb")
     # Pulled from PDB files. For larger datasets with more PDBs, would use
     # max num atoms instead of exact.
     frag1_num_atoms = 44  # for ligand atoms
