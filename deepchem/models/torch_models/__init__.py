@@ -54,6 +54,7 @@ from deepchem.models.torch_models.fno import FNO, FNOModel
 from deepchem.models.torch_models.lnn import LNN, LNNModel
 from deepchem.models.torch_models.se3_transformer import SE3Transformer, SE3TransformerModel
 from deepchem.models.torch_models.tfn import TFN, TFNModel
+from deepchem.models.torch_models.deeponet import DeepONet, DeepONetModel
 
 try:
     from deepchem.models.torch_models.dmpnn import DMPNN, DMPNNModel
