@@ -113,22 +113,24 @@ class InceptionResnetA(nn.Module):
         """
         super(InceptionResnetA, self).__init__()
 
-        self.branch1 = nn.Conv2d(in_channels, out_channels, kernel_size=1)
+        self.branch1 = nn.Sequential(
+            nn.Conv2d(in_channels, out_channels, kernel_size=1), nn.ReLU())
 
         self.branch2 = nn.Sequential(
-            nn.Conv2d(in_channels, out_channels, kernel_size=1),
-            nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1))
+            nn.Conv2d(in_channels, out_channels, kernel_size=1), nn.ReLU(),
+            nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1),
+            nn.ReLU())
 
         self.branch3 = nn.Sequential(
-            nn.Conv2d(in_channels, out_channels, kernel_size=1),
+            nn.Conv2d(in_channels, out_channels, kernel_size=1), nn.ReLU(),
             nn.Conv2d(out_channels,
                       int(out_channels * 1.5),
                       kernel_size=3,
-                      padding=1),
+                      padding=1), nn.ReLU(),
             nn.Conv2d(int(out_channels * 1.5),
                       out_channels * 2,
                       kernel_size=3,
-                      padding=1))
+                      padding=1), nn.ReLU())
 
         self.conv_linear = nn.Conv2d(out_channels * 4,
                                      in_channels,
@@ -199,19 +201,20 @@ class InceptionResnetB(nn.Module):
         super().__init__()
 
         # Branch 1: 1x1 Convolution
-        self.branch1 = nn.Conv2d(in_channels, out_channels, kernel_size=1)
+        self.branch1 = nn.Sequential(
+            nn.Conv2d(in_channels, out_channels, kernel_size=1), nn.ReLU())
 
         # Branch 2: 1x1 → 1x7 → 7x1 Convolutions
         self.branch2 = nn.Sequential(
-            nn.Conv2d(in_channels, out_channels, kernel_size=1),
+            nn.Conv2d(in_channels, out_channels, kernel_size=1), nn.ReLU(),
             nn.Conv2d(out_channels,
                       int(out_channels * 1.25),
                       kernel_size=(1, 7),
-                      padding=(0, 3)),
+                      padding=(0, 3)), nn.ReLU(),
             nn.Conv2d(int(out_channels * 1.25),
                       int(out_channels * 1.5),
                       kernel_size=(7, 1),
-                      padding=(3, 0)))
+                      padding=(3, 0)), nn.ReLU())
 
         # Project concatenated features back to input channel dimension
         self.conv_linear = nn.Conv2d(out_channels + int(out_channels * 1.5),
@@ -283,19 +286,20 @@ class InceptionResnetC(nn.Module):
         super().__init__()
 
         # Branch 1: 1x1 Convolution
-        self.branch1 = nn.Conv2d(in_channels, out_channels, kernel_size=1)
+        self.branch1 = nn.Sequential(
+            nn.Conv2d(in_channels, out_channels, kernel_size=1), nn.ReLU())
 
         # Branch 2: 1x1 → 1x3 → 3x1 Convolutions
         self.branch2 = nn.Sequential(
-            nn.Conv2d(in_channels, out_channels, kernel_size=1),
+            nn.Conv2d(in_channels, out_channels, kernel_size=1), nn.ReLU(),
             nn.Conv2d(out_channels,
                       int(out_channels * 1.16),
                       kernel_size=(1, 3),
-                      padding=(0, 1)),
+                      padding=(0, 1)), nn.ReLU(),
             nn.Conv2d(int(out_channels * 1.16),
                       int(out_channels * 1.33),
                       kernel_size=(3, 1),
-                      padding=(1, 0)))
+                      padding=(1, 0)), nn.ReLU())
 
         # Project concatenated features back to input channel dimension
         self.conv_linear = nn.Conv2d(out_channels + int(out_channels * 1.33),
