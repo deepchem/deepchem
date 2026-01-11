@@ -14,7 +14,7 @@ except ModuleNotFoundError:
 @pytest.mark.skipif(not has_torch, reason="PyTorch is not installed")
 def test_deeponet_construction():
     """Test that DeepONet base model can be constructed with correct attributes."""
-    from deepchem.models.torch_models.deeponet import DeepONet
+    from deepchem.models.torch_models import DeepONet
     model = DeepONet(branch_input_dim=10,
                      trunk_input_dim=3,
                      branch_hidden=(64, 64),
@@ -32,7 +32,7 @@ def test_deeponet_construction():
 @pytest.mark.skipif(not has_torch, reason="PyTorch is not installed")
 def test_deeponet_forward_shape():
     """Test that DeepONet forward pass returns the correct output shape."""
-    from deepchem.models.torch_models.deeponet import DeepONet
+    from deepchem.models.torch_models import DeepONet
     model = DeepONet(branch_input_dim=10,
                      trunk_input_dim=3,
                      branch_hidden=(64, 64),
@@ -137,7 +137,6 @@ def test_deeponetmodel_overfit():
     trunk_input_dim = 2
     n_samples = 10
 
-    np.random.seed(42)
     branch_data = np.random.randn(n_samples,
                                   branch_input_dim).astype(np.float32)
     trunk_data = np.random.randn(n_samples, trunk_input_dim).astype(np.float32)
@@ -156,6 +155,8 @@ def test_deeponetmodel_overfit():
     model.fit(dataset, nb_epoch=500)
 
     pred = model.predict_on_batch(X)
-    mse = np.mean((pred - y)**2)
+    regression_metric = dc.metrics.Metric(dc.metrics.mean_squared_error,
+                                          mode='regression')
+    mse = regression_metric.compute_metric(y, pred)
 
     assert mse < 0.1, f"DeepONetModel failed to overfit: MSE = {mse}"
