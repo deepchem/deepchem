@@ -681,6 +681,16 @@ TFNModel
 .. autoclass:: deepchem.models.torch_models.TFNModel
   :members:
   
+ChemCeption
+----------------
+.. autoclass:: deepchem.models.torch_models.ChemCeption
+  :members:
+
+ChemCeptionModel
+----------------
+.. autoclass:: deepchem.models.torch_models.ChemCeptionModel
+  :members:
+
 PyTorch Lightning Models
 ========================
 
