@@ -155,3 +155,10 @@ def test_get_dtype_memsize():
     from deepchem.utils.pytorch_utils import get_dtype_memsize
     assert get_dtype_memsize(torch.tensor(1, dtype=torch.float32)) == 4
     assert get_dtype_memsize(torch.tensor(1, dtype=torch.float64)) == 8
+
+
+@pytest.mark.torch
+def test_get_complex_dtype():
+    from deepchem.utils import get_complex_dtype
+    assert get_complex_dtype(torch.tensor([12.3]).dtype) == torch.complex64
+

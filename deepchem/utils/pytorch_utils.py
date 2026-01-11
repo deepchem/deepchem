@@ -588,3 +588,24 @@ def get_dtype_memsize(a: torch.Tensor) -> int:
     else:
         raise TypeError("Unknown tensor type: %s" % a.dtype)
     return size
+
+
+def get_complex_dtype(dtype: torch.dtype) -> torch.dtype:
+    """Corresponding complex type given the real floating point datatype.
+    
+    Examples
+    --------
+    >>> import torch
+    >>> from deepchem.utils import get_complex_dtype
+    >>> a = torch.tensor([1.2, 23.4])
+    >>> a_new = a.to(get_complex_dtype(a.dtype))
+    >>> a_new
+    tensor([ 1.2000+0.j, 23.4000+0.j])
+    """
+    if dtype == torch.float32:
+        return torch.complex64
+    elif dtype == torch.float64:
+        return torch.complex128
+    else:
+        raise TypeError("Unsupported datatype %s for conversion to complex" % dtype)
+
