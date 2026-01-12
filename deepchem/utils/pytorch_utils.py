@@ -592,7 +592,7 @@ def get_dtype_memsize(a: torch.Tensor) -> int:
 
 def get_complex_dtype(dtype: torch.dtype) -> torch.dtype:
     """Corresponding complex type given the real floating point datatype.
-    
+
     Examples
     --------
     >>> import torch
@@ -607,5 +607,5 @@ def get_complex_dtype(dtype: torch.dtype) -> torch.dtype:
     elif dtype == torch.float64:
         return torch.complex128
     else:
-        raise TypeError("Unsupported datatype %s for conversion to complex" % dtype)
-
+        raise TypeError("Unsupported datatype %s for conversion to complex" %
+                        dtype)
