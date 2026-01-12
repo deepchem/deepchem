@@ -36,22 +36,22 @@ jobs:
         sudo rm -rf /opt/hostedtoolcache/CodeQL
         sudo rm -rf /opt/hostedtoolcache/CodeQL
     - uses: actions/checkout@v4
-    - name: Cache pip modules for Linux
+    - name: Cache uv (Linux)
       if: runner.os == 'Linux'
       uses: actions/cache@v4
       with:
-        path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('requirements/**') }}
+        path: ~/.cache/uv
+        key: ${{ runner.os }}-uv-${{ hashFiles('requirements/**') }}
         restore-keys: |
-          ${{ runner.os }}-pip-
-    - name: Cache pip modules for MacOS
+          ${{ runner.os }}-uv-
+    - name: Cache uv (MacOS)
       if: runner.os == 'macOS'
       uses: actions/cache@v4
       with:
-        path: ~/Library/Caches/pip
-        key: ${{ matrix.os }}-pip-${{ hashFiles('requirements/**') }}
+        path: ~/Library/Caches/uv
+        key: ${{ matrix.os }}-uv-${{ hashFiles('requirements/**') }}
         restore-keys: |
-          ${{ runner.os }}-pip-
+          ${{ runner.os }}-uv-
     - name: Install miniconda
       uses: conda-incubator/setup-miniconda@v3
       with:
@@ -90,11 +90,11 @@ jobs:
         python-version: ['3.9', '3.11']
     steps:
     - uses: actions/checkout@v4
-    - name: Cache pip packages for Windows
+    - name: Cache uv (Windows)
       uses: actions/cache@v4
       with:
-        path: ~\AppData\Local\pip\Cache
-        key: ${{ matrix.os }}-pip-${{ hashFiles('env.*.yml') }}
+        path: ~\AppData\Local\uv\Cache
+        key: ${{ matrix.os }}-uv-${{ hashFiles('env.*.yml') }}
     - name: Install miniconda
       uses: conda-incubator/setup-miniconda@v3
       with:
