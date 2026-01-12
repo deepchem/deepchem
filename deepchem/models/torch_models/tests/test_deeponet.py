@@ -115,7 +115,8 @@ def test_deeponetmodel_restore():
     model.fit(dataset, nb_epoch=1)
     pred = model.predict_on_batch(X)
 
-    # Create new instance and restore from checkpoint
+    # Save and restore model
+    model.save_checkpoint()
     restored_model = DeepONetModel(branch_input_dim=branch_input_dim,
                                    trunk_input_dim=trunk_input_dim,
                                    batch_size=5,
