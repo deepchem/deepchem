@@ -1581,7 +1581,7 @@ class T(LieGroup):
     >>> G = T(k=2)
     >>> x = torch.tensor([[0.0, 0.0],
     ...                   [1.0, 2.0]])
-    >>> a, q = G.lifted_elems(x, nsamples=1)
+    >>> a, q = G.lifted_elems(x, n_samples=1)
     >>> a
     tensor([[0., 0.],
             [1., 2.]])
@@ -1986,6 +1986,11 @@ def cross_matrix(k: torch.Tensor) -> torch.Tensor:
            NeurIPS 2020, https://arxiv.org/abs/2002.12880
     """
     K = torch.zeros(*k.shape[:-1], 3, 3, device=k.device, dtype=k.dtype)
+    # Construct the atrix of the form:
+    # [k]_x =
+    # [[  0,   -k_z,   k_y],
+    #  [ k_z,    0,   -k_x],
+    #  [-k_y,  k_x,    0 ]]
     K[..., 0, 1] = -k[..., 2]
     K[..., 0, 2] = k[..., 1]
     K[..., 1, 0] = k[..., 2]
@@ -2029,9 +2034,9 @@ def uncross_matrix(K: torch.Tensor) -> torch.Tensor:
            NeurIPS 2020, https://arxiv.org/abs/2002.12880
     """
     k = torch.zeros(*K.shape[:-2], 3, device=K.device, dtype=K.dtype)
-    k[..., 0] = (K[..., 2, 1] - K[..., 1, 2]) / 2
-    k[..., 1] = (K[..., 0, 2] - K[..., 2, 0]) / 2
-    k[..., 2] = (K[..., 1, 0] - K[..., 0, 1]) / 2
+    k[..., 0] = (K[..., 2, 1] - K[..., 1, 2]) / 2  # k_x
+    k[..., 1] = (K[..., 0, 2] - K[..., 2, 0]) / 2  # k_y
+    k[..., 2] = (K[..., 1, 0] - K[..., 0, 1]) / 2  # k_z
     return k
 
 
@@ -2160,7 +2165,8 @@ class SO3(LieGroup):
         >>> torch.allclose(w, w_rec, atol=1e-5)
         True
         """
-        trR = R[..., 0, 0] + R[..., 1, 1] + R[..., 2, 2]
+        trR = R[..., 0, 0] + R[..., 1, 1] + R[
+            ..., 2, 2]  # to compute the trace: tr(R)= R11​+R22​+R33
         costheta = ((trR - 1) / 2).clamp(min=-1, max=1).unsqueeze(-1)
         theta = torch.acos(costheta)
         return uncross_matrix(R) * sinc_inv(theta)
@@ -2496,34 +2502,65 @@ class SE3(SO3):
         True
         """
         bs, n = points.shape[:2]
+        device = points.device
+        dtype = points.dtype
 
+        # Sample random unit quaternions to represent rotations in SO(3).
+        # When lifting a point x ∈ R^3 to SE(3), we associate it with a
+        # transformation g = (R, t), where R ∈ SO(3) is a rotation and t ∈ R^3 is a translation (point location).
+
+        # The orientation R is not determined by the point x alone, so there are
+        # infinitely many valid SE(3) elements corresponding to the same point.
+        # To account for all possible orientations, LieConv approximates an
+        # integral over SO(3) using Monte Carlo sampling.
+
+        # If per_point=True, each point (molecule in a batch) receives its own independent set of
+        # sampled rotations (local frames). Otherwise, all points in a batch
+        # share the same sampled rotations (global frame).
         if self.per_point:
-            q = torch.randn(bs,
-                            n,
-                            n_samples,
-                            4,
-                            device=points.device,
-                            dtype=points.dtype)
+            q = torch.randn(bs, n, n_samples, 4, device=device, dtype=dtype)
         else:
-            q = torch.randn(bs,
-                            1,
-                            n_samples,
-                            4,
-                            device=points.device,
-                            dtype=points.dtype)
+            q = torch.randn(bs, 1, n_samples, 4, device=device, dtype=dtype)
 
+        # Normalize 4D Gaussian vectors to obtain random unit quaternions on S^3,
+        # which parameterize rotations in SO(3).
+        # This corresponds to sampling rotations according to the Haar measure to not
+        # depend on any coordinate system.
+
+        # These samples are used to approximate integrals of the form:
+        #   ∫_{SO(3)} f(R) dμ_Haar(R)
+        # via Monte Carlo:
+        #   ≈ (1 / n_samples) ∑_i f(R(q_i))
         q /= torch.norm(q, dim=-1, keepdim=True)
 
+        # Convert unit quaternions to axis–angle (Lie algebra) representation.
+        # Each unit quaternion q = (w, v) corresponds to a rotation with
+        # angle θ and axis v / ||v||. This step maps quaternions into elements
+        # of so(3).
         theta_2 = torch.atan2(
-            torch.norm(q[..., 1:], dim=-1),
-            q[..., 0],
+            torch.norm(q[..., 1:],
+                       dim=-1),  # slicing vectorial component -> û*sin(theta/2)
+            q[..., 0],  # slicing scalar component -> cos(theta/2)
         ).unsqueeze(-1)
 
-        so3_elem = 2 * sinc_inv(theta_2) * q[..., 1:]
-        se3_elem = torch.cat([so3_elem, torch.zeros_like(so3_elem)], dim=-1)
+        # Form se(3) elements with rotation part from so(3) and zero translation.
+        # At this stage, we have pure rotational Lie algebra elements:
+        #   (ω, 0) ∈ se(3)
+        so3_elem = 2 * sinc_inv(theta_2) * q[
+            ..., 1:]  # slicing vectorial component -> û*sin(theta/2)
+        se3_elem = torch.cat(
+            [so3_elem, torch.zeros_like(so3_elem)],
+            dim=-1,
+        )
 
+        # Map the sampled Lie algebra elements to SE(3) via the exponential map.
+        # This produces rigid transformations with rotation R and zero translation.
         R = self.exp(se3_elem)
 
+        # Construct pure translation transforms:
+        # Each point x ∈ R^3 is represented as an SE(3) element with:
+        #   - identity rotation
+        #   - translation equal to x
         T = torch.zeros(bs,
                         n,
                         n_samples,
@@ -2531,10 +2568,17 @@ class SE3(SO3):
                         4,
                         device=points.device,
                         dtype=points.dtype)
-        T[..., :, :] = torch.eye(4, device=points.device, dtype=points.dtype)
-        T[..., :3, 3] = points[:, :, None, :]
+        T[..., :, :] = torch.eye(
+            4, device=points.device, dtype=points.dtype
+        )  # Identity rotation and zero translation in remaining matrix components.
+        T[..., :3,
+          3] = points[:, :,
+                      None, :]  # Fill the translation column of each SE(3) matrix with the point coordinates.
 
+        # Compose translations with sampled rotations and map back to se(3).
         a = self.log(T @ R)
+
+        # Flatten the samples into shape (B, N * n_samples, 6).
         return a.reshape(bs, n * n_samples, 6), None
 
     def distance(self, abq_pairs: torch.Tensor) -> torch.Tensor:
