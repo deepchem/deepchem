@@ -17,6 +17,12 @@ DEFAULT_INCEPTION_BLOCKS = {"A": 3, "B": 3, "C": 3}
 
 class ChemCeption(nn.Module):
     """
+    Note: This class is an internal class to be used by ChemCeptionModel class. It is not meant to be
+    used directly by the end user. It assumes that the different components of ChemCeption are
+    already built and provided to it. Using this class directly with incorrecct components can lead to
+    errors during forward pass. Using it with ChemCeptionModel is recommended and gives additional 
+    capabilities like pretraining and finetuning.
+
     Implements the ChemCeption model that leverages the representational capacities
     of convolutional neural networks (CNNs) to predict molecular properties.
 
