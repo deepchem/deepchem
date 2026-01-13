@@ -162,3 +162,11 @@ def test_get_complex_dtype():
     from deepchem.utils import get_complex_dtype
     assert get_complex_dtype(torch.tensor([12.3]).dtype) == torch.complex64
 
+
+@pytest.mark.torch
+def test_unweighted_coul_ft():
+    from deepchem.utils import unweighted_coul_ft
+    inputs = torch.tensor([[1., 2], [3, 4]])
+    target = 4 * torch.pi / torch.sum(inputs**2, dim=1)
+    result = unweighted_coul_ft(inputs)
+    assert torch.allclose(result, target)

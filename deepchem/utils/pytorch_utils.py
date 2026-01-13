@@ -559,12 +559,39 @@ def estimate_ovlp_rcut(precision: float, coeffs: torch.Tensor,
     langmom = 1
     C = (coeffs * coeffs + 1e-200) * (2 * langmom + 1) * alphas / precision
     r0 = torch.tensor(20.0, dtype=coeffs.dtype, device=coeffs.device)
-    for i in range(2):
+    for _ in range(2):
         r0 = torch.sqrt(
             2.0 * torch.log(C *
                             (r0 * r0 * alphas)**(langmom + 1) + 1.) / alphas)
-    rcut = float(torch.max(r0).detach())
+    rcut = float(torch.max(r0).detach().cpu())
     return rcut
+
+
+def unweighted_coul_ft(gvgrids: torch.FloatTensor) -> torch.Tensor:
+    """Unweighted fourier transform of the coulomb kernel: 4*pi/|gv|^2
+
+    Examples
+    --------
+    >>> from deepchem.utils import unweighted_coul_ft
+    >>> unweighted_coul_ft(torch.tensor([[1., 2], [3, 4]]))
+    tensor([2.5133, 0.5027])
+
+    Parameters
+    ----------
+    gvgrids: torch.FloatTensor
+        Reciprocal space vector. Quantities like electron density and hartree
+        potential are evaluated on this. (ngv, ndim)
+
+    Returns
+    -------
+    torch.FloatTensor
+        Unweighted fourier transform of gvgrids. (ngv,)
+
+    """
+    gnorm2 = torch.einsum("xd,xd->x", gvgrids, gvgrids)
+    gnorm2[gnorm2 < 1e-12] = torch.inf
+    coulft = 4 * torch.pi / gnorm2
+    return coulft
 
 
 def get_dtype_memsize(a: torch.Tensor) -> int:
