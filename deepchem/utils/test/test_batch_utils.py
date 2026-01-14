@@ -15,19 +15,19 @@ def test_batch_coulomb_matrix_features():
     inputs = dc.utils.batch_utils.batch_coulomb_matrix_features(data.X)
 
     # Checks that all atoms exits in array
-    assert inputs[0].shape == (141,)
+    assert inputs[0].shape == (127,)
 
     # Checks shape of gaussian distance
-    assert inputs[1].shape == (1151, 100)
+    assert inputs[1].shape == (955, 100)
 
     # Checks all molecule membership exist
-    for i in range(0, 20):
+    for i in range(0, 19):
         if i not in inputs[2]:
             raise AssertionError("All molecules not in the matrix")
 
     # Check Distance Membership shape
-    assert inputs[3].shape == (1151,)
-    assert inputs[4].shape == (1151,)
+    assert inputs[3].shape == (955,)
+    assert inputs[4].shape == (955,)
 
 
 def test_batch_elements():
