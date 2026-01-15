@@ -25,7 +25,14 @@ from deepchem.models.wandblogger import WandbLogger
 
 
 def is_npu_available():
-    # checking if importing torch_npu works
+    """
+    Checks if a Huawei Ascend NPU is available and the torch_npu library is installed.
+
+    Returns
+    -------
+    bool
+        True if NPU is available, False otherwise, without causing error if torch_npu is not installed.
+    """
     try:
         import torch_npu
         return torch.npu.is_available()
