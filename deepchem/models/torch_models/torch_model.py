@@ -23,6 +23,15 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Tupl
 from deepchem.utils.typing import LossFn, OneOrMany
 from deepchem.models.wandblogger import WandbLogger
 
+
+def is_npu_available():
+    # checking if importing torch_npu works
+    try:
+        import torch_npu
+        return torch.npu.is_available()
+    except (ImportError, AttributeError):
+        return False
+
 try:
     import wandb
     wandb.ensure_configured()
@@ -197,18 +206,12 @@ class TorchModel(Model):
                 device = torch.device('cuda')
             elif torch.backends.mps.is_available():
                 device = torch.device('mps')
+            elif is_npu_available():
+                # is_npu_available is a method to check is npu is available in a safe way
+                evice = torch.device('npu')
             else:
-                try:
-                    #checking if torch_npu is installed
-                    import torch_npu    
-                    if torch.npu.is_available():   
-                        #checking is npu is available
-                        device = torch.device('npu')
-                    else:
-                        device = torch.device('cpu')
-                except ImportError:
-                    device = torch.device('cpu')
-
+                device = torch.device('cpu')
+                    
 
         self.device = device
         self.model = model.to(device)
