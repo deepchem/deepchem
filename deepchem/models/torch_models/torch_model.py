@@ -198,7 +198,18 @@ class TorchModel(Model):
             elif torch.backends.mps.is_available():
                 device = torch.device('mps')
             else:
-                device = torch.device('cpu')
+                try:
+                    #checking if torch_npu is installed
+                    import torch_npu    
+                    if torch.npu.is_available():   
+                        #checking is npu is available
+                        device = torch.device('npu')
+                    else:
+                        device = torch.device('cpu')
+                except ImportError:
+                    device = torch.device('cpu')
+
+
         self.device = device
         self.model = model.to(device)
 
