@@ -207,7 +207,7 @@ class TorchModel(Model):
             elif torch.backends.mps.is_available():
                 device = torch.device('mps')
             elif is_npu_available():
-                # is_npu_available is a method to check is npu is available in a safe way
+                # is_npu_available is a method to check if npu is available in a safe way
                 evice = torch.device('npu')
             else:
                 device = torch.device('cpu')
