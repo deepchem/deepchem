@@ -211,8 +211,6 @@ class TorchModel(Model):
                 evice = torch.device('npu')
             else:
                 device = torch.device('cpu')
-                    
-
         self.device = device
         self.model = model.to(device)
 
