@@ -5,9 +5,7 @@ import numpy as np
 import math
 import unittest
 from unittest.mock import patch
-from deepchem.models.torch_models.torch_model import TorchModel
-import sys
-import deepchem.models.torch_models.torch_model
+import deepchem.models.torch_models.torch_model as tm
 
 try:
     import torch
@@ -540,20 +538,24 @@ def test_npu_device_selection():
     """
     Tests that the NPU device is correctly selected when available.
     """
-    with patch.object(deepchem.models.torch_models.torch_model, 'is_npu_available', return_value=True):
-        with patch('torch.device') as mock_device_constructor:
-            pytorch_model = torch.nn.Linear(10, 10)
-            dc_model = TorchModel(pytorch_model, loss=dc.models.losses.L2Loss())
-            mock_device_constructor.assert_any_call('npu')
+    with patch.object(tm, 'is_npu_available', return_value=True):
+        with patch('torch.cuda.is_available', return_value=False):
+            with patch('torch.backends.mps.is_available', return_value=False):
+                with patch('torch.device') as mock_device_constructor:
+                    mock_device_constructor.return_value.type = 'npu'
+                    pytorch_model = torch.nn.Linear(10, 10)
+                    dc_model = tm.TorchModel(pytorch_model, loss=dc.models.losses.L2Loss())
+                    mock_device_constructor.assert_any_call('npu')
+                    assert dc_model.device.type == 'npu'
 
 @pytest.mark.torch
 def test_npu_fallback():
     """
     Tests that it correctly falls back to CPU if NPU is NOT available.
     """
-    with patch.object(deepchem.models.torch_models.torch_model, 'is_npu_available', return_value=False):
+    with patch.object(tm, 'is_npu_available', return_value=False):
         with patch('torch.cuda.is_available', return_value=False):
             with patch('torch.backends.mps.is_available', return_value=False):
                 pytorch_model = torch.nn.Linear(10, 10)
-                TorchModel(pytorch_model, loss=dc.models.losses.L2Loss())
+                dc_model = tm.TorchModel(pytorch_model, loss=dc.models.losses.L2Loss())
                 assert dc_model.device.type == 'cpu'
