@@ -555,5 +555,5 @@ def test_npu_fallback():
         with patch('torch.cuda.is_available', return_value=False):
             with patch('torch.backends.mps.is_available', return_value=False):
                 pytorch_model = torch.nn.Linear(10, 10)
-                dc_model = TorchModel(pytorch_model, loss=dc.models.losses.L2Loss())
+                TorchModel(pytorch_model, loss=dc.models.losses.L2Loss())
                 assert dc_model.device.type == 'cpu'
