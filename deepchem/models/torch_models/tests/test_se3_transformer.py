@@ -1021,7 +1021,7 @@ def test_se3_transformer_equivariance():
     if os.path.exists("cache"):
         shutil.rmtree("cache")
 
-    assert np.allclose(preds_rot, preds, atol=1e-05) 
+    assert np.allclose(preds_rot, preds, atol=1e-05)
 
 
 @pytest.mark.torch
