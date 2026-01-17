@@ -1,7 +1,3 @@
-
-
-import pandas as pd
-import inspect
 import logging
 from typing import List, Optional
 
@@ -17,7 +13,7 @@ from deepchem.utils.typing import OneOrMany
 logger = logging.getLogger(__name__)
 
 
-class HiddenMarkovModel(Model): 
+class HiddenMarkovModel(Model):
     """
     DeepChem-compatible wrapper for scikit-learn–style Hidden Markov Models.
 
@@ -27,7 +23,7 @@ class HiddenMarkovModel(Model):
     reloading of HMMs using DeepChem datasets and utilities.
     """
 
-    def __init__(self, 
+    def __init__(self,
                  model: BaseEstimator,
                  model_dir: Optional[str] = None,
                  **kwargs):
