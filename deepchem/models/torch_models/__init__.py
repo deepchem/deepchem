@@ -52,6 +52,8 @@ from deepchem.models.torch_models.hnn import HNN, HNNModel
 from deepchem.models.torch_models.ChemCeption import ChemCeption
 from deepchem.models.torch_models.fno import FNO, FNOModel
 from deepchem.models.torch_models.lnn import LNN, LNNModel
+from deepchem.models.torch_models.mlip import MLIPModel
+from deepchem.models.torch_models.nequip import NequIP
 from deepchem.models.torch_models.se3_transformer import SE3Transformer, SE3TransformerModel
 from deepchem.models.torch_models.tfn import TFN, TFNModel
 
