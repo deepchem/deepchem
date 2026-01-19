@@ -1,5 +1,7 @@
 import torch
 import torch.nn as nn
+import numpy as np
+import deepchem as dc
 
 from deepchem.models.torch_models.olmo import OLMoPropertyModel
 
@@ -12,8 +14,8 @@ class DummyBackbone(nn.Module):
         self.hidden_dim = hidden_dim
 
     def forward(self, input_ids, attention_mask = None):
-        bacth_size, seq_len = input_ids.shape
-        return torch.randn(bacth_size, seq_len, self.hidden_dim)
+        batch_size, seq_len = input_ids.shape
+        return torch.randn(batch_size, seq_len, self.hidden_dim, requires_grad=True)
     
 
 def test_olmo_property_model_forward():
@@ -35,3 +37,30 @@ def test_olmo_property_model_forward():
 
 
     assert outputs.shape == (batch_size, 1)
+
+
+def test_olmo_overfits():
+    """Test that OLMoPropertyModel can overfit a tiny dataset."""
+    torch.manual_seed(0)
+    np.random.seed(0)
+
+    # Tiny fake dataset
+    X = np.random.randint(0, 10, size=(4, 5)).astype(np.int64)
+    y = np.ones((4, 1), dtype = np.float32)
+
+    dataset = dc.data.NumpyDataset(X, y)
+
+    hidden_dim = 32
+    backbone = DummyBackbone(hidden_dim=hidden_dim)
+    model = OLMoPropertyModel(backbone = backbone, hidden_dim = hidden_dim)
+
+    dc_model = dc.models.TorchModel(
+        model=model,
+        loss=dc.models.losses.L2Loss(),
+        batch_size=2,
+        learning_rate=0.05,
+    )
+
+    final_loss = dc_model.fit(dataset, nb_epoch=30)
+
+    assert final_loss < 0.1
