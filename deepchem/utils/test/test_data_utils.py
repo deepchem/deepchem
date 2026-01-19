@@ -93,6 +93,8 @@ def test_qm9_molecules_charge_neutrality_sanitize_false():
                                          tmpdir)
 
         qm9_sdf = os.path.join(tmpdir, "qm9.sdf")
+        if not os.path.isfile(qm9_sdf):
+            qm9_sdf = os.path.join(tmpdir, "qm9", "qm9.sdf")
         assert os.path.isfile(qm9_sdf)
 
         # Read SDF file with RDKit (no sanitization)
@@ -121,6 +123,8 @@ def test_qm9_molecules_charge_neutrality_sanitize_true():
                                          tmpdir)
 
         qm9_sdf = os.path.join(tmpdir, "qm9.sdf")
+        if not os.path.isfile(qm9_sdf):
+            qm9_sdf = os.path.join(tmpdir, "qm9", "qm9.sdf")
         assert os.path.isfile(qm9_sdf)
 
         # Read SDF file with RDKit (with sanitization)
