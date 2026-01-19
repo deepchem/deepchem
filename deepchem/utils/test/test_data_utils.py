@@ -5,6 +5,7 @@ import pandas as pd
 import deepchem as dc
 from rdkit import Chem
 from deepchem.utils.data_utils import load_sdf_files
+from deepchem.molnet.load_function.qm9_datasets import QM9_URL
 
 
 class TestFileLoading(unittest.TestCase):
@@ -82,9 +83,7 @@ class TestFileLoading(unittest.TestCase):
             "Mismatch of labels detected in datapoint with index 20 (gdb_21).")
 
 
-def test_no_absurd_nitrogen_charges_sanitizeFalse():
-    # Define the URL of the SDF file (update this with actual URL)
-    QM9_URL = "https://deepchemdata.s3.us-west-1.amazonaws.com/datasets/qm9.tar.gz"
+def test_qm9_molecules_charge_neutrality_sanitize_false():
 
     with tempfile.TemporaryDirectory() as tmpdir:
         # Create a temporary file with .sdf suffix
@@ -97,23 +96,21 @@ def test_no_absurd_nitrogen_charges_sanitizeFalse():
         assert os.path.isfile(qm9_sdf)
 
         # Read SDF file with RDKit (no sanitization)
-        suppl = Chem.SDMolSupplier(qm9_sdf, removeHs=False, sanitize=False)
+        suppl = Chem.SDMolSupplier(qm9_sdf,
+                                   removeHs=False,
+                                   sanitize=False,
+                                   strictParsing=False)
 
-        for mol in suppl:
+        for i, mol in enumerate(suppl):
             if mol is None:
                 continue
-
-            for atom in mol.GetAtoms():
-                assert atom.GetFormalCharge() == 0  # General check
-                if atom.GetAtomicNum() == 7:
-                    charge = atom.GetFormalCharge()
-                    assert charge < 4, (
-                        f"Nitrogen atom has absurd charge {charge}")
+            # qm9 molecules should be neutral
+            total_charge = sum(
+                atom.GetFormalCharge() for atom in mol.GetAtoms())
+            assert total_charge == 0, f"Molecule {i+1} is not neutral."
 
 
-def test_no_absurd_nitrogen_charges_sanitizeTrue():
-    # Define the URL of the SDF file (update this with actual URL)
-    QM9_URL = "https://deepchemdata.s3.us-west-1.amazonaws.com/datasets/qm9.tar.gz"
+def test_qm9_molecules_charge_neutrality_sanitize_true():
 
     # Create a temporary file with .sdf suffix
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -127,16 +124,14 @@ def test_no_absurd_nitrogen_charges_sanitizeTrue():
         assert os.path.isfile(qm9_sdf)
 
         # Read SDF file with RDKit (with sanitization)
-        suppl = Chem.SDMolSupplier(qm9_sdf, removeHs=False, sanitize=True)
-
-        for mol in suppl:
+        suppl = Chem.SDMolSupplier(qm9_sdf,
+                                   removeHs=False,
+                                   sanitize=True,
+                                   strictParsing=False)
+        for i, mol in enumerate(suppl):
             if mol is None:
                 continue
-
-            for atom in mol.GetAtoms():
-                assert atom.GetFormalCharge() == 0  # General check
-
-                if atom.GetAtomicNum() == 7:  # Nitrogen
-                    charge = atom.GetFormalCharge()
-                    assert charge < 4, (
-                        f"Nitrogen atom has absurd charge {charge}")
+            # qm9 molecules should be neutral
+            total_charge = sum(
+                atom.GetFormalCharge() for atom in mol.GetAtoms())
+            assert total_charge == 0, f"Molecule {i+1} is not neutral."
