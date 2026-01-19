@@ -1,6 +1,8 @@
 """
 Test featurizers for inorganic crystals.
 """
+import pytest
+pytest.importorskip("pymatgen")
 import unittest
 import numpy as np
 
