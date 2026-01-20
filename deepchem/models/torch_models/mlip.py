@@ -7,6 +7,8 @@ except ImportError:
     pass
 from deepchem.models.torch_models.torch_model import TorchModel
 
+from typing import List, Tuple, Optional
+
 
 class _MLIPWrapper(nn.Module):
     """
@@ -18,7 +20,9 @@ class _MLIPWrapper(nn.Module):
         super(_MLIPWrapper, self).__init__()
         self.module = module
 
-    def forward(self, inputs):
+    def forward(
+        self, inputs: List[torch.Tensor]
+    ) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
         # Unpack the list [graph, atomic_numbers]
         g, z = inputs
         return self.module(g, z)
@@ -27,14 +31,14 @@ class _MLIPWrapper(nn.Module):
 class MLIPModel(TorchModel):
     """
     A generic Machine Learning Interatomic Potential Wrapper.
-    
+
     This model wraps an arbitrary backbone (e.g. NequIP, Allegro) that implements
     the MLIP signature (takes graph+atoms, outputs energy+forces) and provides
     standard DeepChem functionality:
     - Training Loop
     - Batching (DGL)
     - Composite Loss (Energy + Forces)
-    
+
     Parameters
     ----------
     module : nn.Module
@@ -43,8 +47,25 @@ class MLIPModel(TorchModel):
         Learning rate.
     energy_weight : float
         Weight for energy loss term.
-    force_weight : float
         Weight for force loss term.
+
+    Examples
+    --------
+    >>> import torch
+    >>> import deepchem as dc
+    >>> from deepchem.models.torch_models.mlip import MLIPModel
+    >>> try:
+    ...     import dgl
+    ...     # Define a dummy backbone that outputs Energy and Forces
+    ...     class DummyBackbone(torch.nn.Module):
+    ...         def forward(self, g, z):
+    ...             energy = torch.tensor([[1.0]])
+    ...             forces = torch.zeros((g.num_nodes(), 3))
+    ...             return energy, forces
+    ...     backbone = DummyBackbone()
+    ...     model = MLIPModel(backbone)
+    ... except ImportError:
+    ...     pass
     """
 
     def __init__(self,
@@ -272,7 +293,7 @@ class MLIPModel(TorchModel):
                           pad_batches=False):
         """
         Creates a generator that iterates batches for a dataset.
-        
+
         Overrides TorchModel.default_generator to force pad_batches=False.
         MLIP models deal with ragged inputs (different graph sizes, different force vectors)
         that NumpyDataset.pad_batch() essentially corrupts by trying to stack them.

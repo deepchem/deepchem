@@ -52,10 +52,15 @@ from deepchem.models.torch_models.hnn import HNN, HNNModel
 from deepchem.models.torch_models.ChemCeption import ChemCeption
 from deepchem.models.torch_models.fno import FNO, FNOModel
 from deepchem.models.torch_models.lnn import LNN, LNNModel
-from deepchem.models.torch_models.mlip import MLIPModel
-from deepchem.models.torch_models.nequip import NequIP
 from deepchem.models.torch_models.se3_transformer import SE3Transformer, SE3TransformerModel
 from deepchem.models.torch_models.tfn import TFN, TFNModel
+
+try:
+    import dgl
+    from deepchem.models.torch_models.mlip import MLIPModel
+    from deepchem.models.torch_models.nequip import NequIP
+except (ImportError, ModuleNotFoundError, OSError):
+    logger.warning("Could not import DGL-dependent models (MLIPModel, NequIP).")
 
 try:
     from deepchem.models.torch_models.dmpnn import DMPNN, DMPNNModel
@@ -64,7 +69,7 @@ try:
     from deepchem.models.torch_models.gnn3d import Net3D, InfoMax3DModular
     from deepchem.models.torch_models.weavemodel_pytorch import Weave, WeaveModel
     from deepchem.models.torch_models.mxmnet import MXMNet
-except ModuleNotFoundError as e:
+except (ModuleNotFoundError, OSError) as e:
     logger.warning(
         f'Skipped loading modules with pytorch-geometric dependency, missing a dependency. {e}'
     )
