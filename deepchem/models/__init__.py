@@ -26,7 +26,6 @@ try:
     from deepchem.models.gan import GAN, WGAN
     from deepchem.models.molgan import BasicMolGANModel
     from deepchem.models.text_cnn import TextCNNModel
-    from deepchem.models.atomic_conv import AtomicConvModel as AtomicConvModelTF
     from deepchem.models.chemnet_models import Smiles2Vec, ChemCeption
 except ModuleNotFoundError as e:
     logger.warning(
