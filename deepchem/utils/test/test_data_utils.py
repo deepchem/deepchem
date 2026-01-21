@@ -1,7 +1,11 @@
-import unittest
 import os
+import unittest
+import tempfile
 import pandas as pd
+import deepchem as dc
+from rdkit import Chem
 from deepchem.utils.data_utils import load_sdf_files
+from deepchem.molnet.load_function.qm9_datasets import QM9_URL
 
 
 class TestFileLoading(unittest.TestCase):
@@ -77,3 +81,61 @@ class TestFileLoading(unittest.TestCase):
         self.assertTrue(
             all(y_loaded[19, :] == y_expected[20, :]),
             "Mismatch of labels detected in datapoint with index 20 (gdb_21).")
+
+
+def test_qm9_molecules_charge_neutrality_sanitize_false():
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        # Create a temporary file with .sdf suffix
+        dc.utils.data_utils.download_url(url=QM9_URL, dest_dir=tmpdir)
+
+        dc.utils.data_utils.untargz_file(os.path.join(tmpdir, "qm9.tar.gz"),
+                                         tmpdir)
+
+        qm9_sdf = os.path.join(tmpdir, "qm9.sdf")
+        if not os.path.isfile(qm9_sdf):
+            qm9_sdf = os.path.join(tmpdir, "qm9", "qm9.sdf")
+        assert os.path.isfile(qm9_sdf)
+
+        # Read SDF file with RDKit (no sanitization)
+        suppl = Chem.SDMolSupplier(qm9_sdf,
+                                   removeHs=False,
+                                   sanitize=False,
+                                   strictParsing=False)
+
+        for i, mol in enumerate(suppl):
+            if mol is None:
+                continue
+            # qm9 molecules should be neutral
+            total_charge = sum(
+                atom.GetFormalCharge() for atom in mol.GetAtoms())
+            assert total_charge == 0, f"Molecule {i+1} is not neutral."
+
+
+def test_qm9_molecules_charge_neutrality_sanitize_true():
+
+    # Create a temporary file with .sdf suffix
+    with tempfile.TemporaryDirectory() as tmpdir:
+
+        # Download and extract
+        dc.utils.data_utils.download_url(url=QM9_URL, dest_dir=tmpdir)
+        dc.utils.data_utils.untargz_file(os.path.join(tmpdir, "qm9.tar.gz"),
+                                         tmpdir)
+
+        qm9_sdf = os.path.join(tmpdir, "qm9.sdf")
+        if not os.path.isfile(qm9_sdf):
+            qm9_sdf = os.path.join(tmpdir, "qm9", "qm9.sdf")
+        assert os.path.isfile(qm9_sdf)
+
+        # Read SDF file with RDKit (with sanitization)
+        suppl = Chem.SDMolSupplier(qm9_sdf,
+                                   removeHs=False,
+                                   sanitize=True,
+                                   strictParsing=False)
+        for i, mol in enumerate(suppl):
+            if mol is None:
+                continue
+            # qm9 molecules should be neutral
+            total_charge = sum(
+                atom.GetFormalCharge() for atom in mol.GetAtoms())
+            assert total_charge == 0, f"Molecule {i+1} is not neutral."
