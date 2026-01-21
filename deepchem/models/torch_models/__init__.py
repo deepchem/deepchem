@@ -52,6 +52,7 @@ from deepchem.models.torch_models.hnn import HNN, HNNModel
 from deepchem.models.torch_models.ChemCeption import ChemCeption
 from deepchem.models.torch_models.fno import FNO, FNOModel
 from deepchem.models.torch_models.lnn import LNN, LNNModel
+from deepchem.models.torch_models.deeponet import DeepONet, DeepONetModel
 
 try:
     from deepchem.models.torch_models.dmpnn import DMPNN, DMPNNModel
