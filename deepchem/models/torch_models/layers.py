@@ -319,10 +319,14 @@ class CNNModule(nn.Module):
 
             in_shape = out_shape
 
-        self.classifier_ffn = nn.LazyLinear(self.n_tasks * self.n_classes)
-        self.output_layer = nn.LazyLinear(self.n_tasks)
-        self.uncertainty_layer = nn.LazyLinear(self.n_tasks)
+        # Input dim is equal to the number of filters in the last layer
+        # because Global Pooling reduces spatial dimensions to 1x1
+        input_dim = layer_filters[-1]
 
+        self.classifier_ffn = nn.Linear(input_dim, self.n_tasks * self.n_classes)
+        self.output_layer = nn.Linear(input_dim, self.n_tasks)
+        self.uncertainty_layer = nn.Linear(input_dim, self.n_tasks)
+        
     def forward(self, inputs: OneOrMany[torch.Tensor]) -> List[Any]:
         """
         Parameters
