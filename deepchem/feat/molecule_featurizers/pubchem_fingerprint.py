@@ -1,7 +1,33 @@
 import numpy as np
+import base64
+import json
+import urllib.request
+import urllib.parse
 
 from deepchem.utils.typing import RDKitMol
 from deepchem.feat.base_classes import MolecularFeaturizer
+
+
+def _get_pubchem_fingerprint(smiles: str) -> np.ndarray:
+    """Fetch and decode PubChem fingerprint via REST API."""
+
+    # Build the request (POST to handle special chars in SMILES)
+    url = "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/smiles/property/Fingerprint2D/JSON"
+    data = urllib.parse.urlencode({'smiles': smiles}).encode('utf-8')
+
+    # Make the request
+    request = urllib.request.Request(url, data=data)
+    with urllib.request.urlopen(request, timeout=30) as response:
+        result = json.loads(response.read().decode('utf-8'))
+
+    # Extract base64 fingerprint from response
+    fingerprint_b64 = result['PropertyTable']['Properties'][0]['Fingerprint2D']
+
+    # Decode: base64 → bytes → binary string → numpy array
+    fp_bytes = base64.b64decode(fingerprint_b64)
+    bits = ''.join(format(b, '08b') for b in fp_bytes[4:])  # skip 4-byte header
+
+    return np.array([int(b) for b in bits[:881]], dtype=np.int8)
 
 
 class PubChemFingerprint(MolecularFeaturizer):
@@ -17,8 +43,8 @@ class PubChemFingerprint(MolecularFeaturizer):
 
     Note
     -----
-    This class requires RDKit and PubChemPy to be installed.
-    PubChemPy use REST API to get the fingerprint, so you need the internet access.
+    This class requires RDKit to be installed.
+    Internet access is required to query the PubChem REST API.
 
     Examples
     --------
@@ -37,11 +63,8 @@ class PubChemFingerprint(MolecularFeaturizer):
         """Initialize this featurizer."""
         try:
             from rdkit import Chem  # noqa
-            import pubchempy as pcp  # noqa
         except ModuleNotFoundError:
-            raise ImportError("This class requires PubChemPy to be installed.")
-
-        self.get_pubchem_compounds = pcp.get_compounds
+            raise ImportError("This class requires RDKit to be installed.")
 
     def _featurize(self, datapoint: RDKitMol, **kwargs) -> np.ndarray:
         """
@@ -55,14 +78,13 @@ class PubChemFingerprint(MolecularFeaturizer):
         Returns
         -------
         np.ndarray
-            1D array of RDKit descriptors for `mol`. The length is 881.
+            1D array of PubChem fingerprint bits. The length is 881.
 
         """
         try:
             from rdkit import Chem
-            import pubchempy as pcp
         except ModuleNotFoundError:
-            raise ImportError("This class requires PubChemPy to be installed.")
+            raise ImportError("This class requires RDKit to be installed.")
         if 'mol' in kwargs:
             datapoint = kwargs.get("mol")
             raise DeprecationWarning(
@@ -70,6 +92,4 @@ class PubChemFingerprint(MolecularFeaturizer):
             )
 
         smiles = Chem.MolToSmiles(datapoint)
-        pubchem_compound = pcp.get_compounds(smiles, 'smiles')[0]
-        feature = [int(bit) for bit in pubchem_compound.cactvs_fingerprint]
-        return np.asarray(feature)
+        return _get_pubchem_fingerprint(smiles)
