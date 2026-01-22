@@ -731,8 +731,13 @@ class DMPNNModel(TorchModel):
 
                 for graph in X_b:
                     # generate concatenated feature vector and mappings
-                    mapper: _MapperDMPNN = _MapperDMPNN(graph)
-                    pyg_graph: _ModData = self._to_pyg_graph(mapper.values)
+                    # mapper: _MapperDMPNN = _MapperDMPNN(graph)
+                    # pyg_graph: _ModData = self._to_pyg_graph(mapper.values)
+                    graphData = (graph.atom_features, graph.f_ini_atoms_bonds,
+                                 graph.atom_to_incoming_bonds, graph.mapping,
+                                 graph.global_features)
+
+                    pyg_graph: _ModData = self._to_pyg_graph(graphData)
                     max_num_bonds = max(
                         max_num_bonds,
                         pyg_graph['atom_to_incoming_bonds'].shape[1])
@@ -753,3 +758,12 @@ class DMPNNModel(TorchModel):
                         value=-1)
 
                 yield (pyg_graphs_list, [y_b], [w_b])
+
+class WrappedFeatures(object):
+    def __init__(self, atom_features, f_ini_atoms_bonds,
+                 atom_to_incoming_bonds, mapping, global_features):
+        self.atom_features = atom_features
+        self.f_ini_atoms_bonds = f_ini_atoms_bonds
+        self.atom_to_incoming_bonds = atom_to_incoming_bonds
+        self.mapping = mapping
+        self.global_features = global_features
