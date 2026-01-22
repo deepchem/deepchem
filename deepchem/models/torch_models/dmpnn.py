@@ -482,7 +482,7 @@ class DMPNNFeatures:
     def __init__(self,
                  atom_features: np.ndarray,
                  f_ini_atoms_bonds: np.ndarray,
-                 atom_to_incoming_bonds: np.ndarray,
+                 atom_to_incoming_bonds: Union[List[List[int]], np.ndarray],
                  mapping: np.ndarray,
                  global_features: Optional[np.ndarray] = None):
         """Initialize DMPNNFeatures with pre-computed arrays."""
