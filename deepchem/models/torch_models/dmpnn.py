@@ -449,6 +449,87 @@ class DMPNN(nn.Module):
         return final_output
 
 
+class DMPNNFeatures:
+    """Cached container for pre-processed DMPNN features.
+
+    This class stores the output of _MapperDMPNN transformation
+    to avoid recomputing it for each batch during training.
+
+    Uses __slots__ for efficient pickling with DiskDataset.
+
+    Attributes
+    ----------
+    atom_features : np.ndarray
+        Atom features array
+    f_ini_atoms_bonds : np.ndarray
+        Initial atom-bond features
+    atom_to_incoming_bonds : List
+        Mapping from atoms to incoming bonds
+    mapping : np.ndarray
+        Index mapping array
+    global_features : Optional[np.ndarray]
+        Global molecular features
+    """
+
+    __slots__ = (
+        'atom_features',
+        'f_ini_atoms_bonds',
+        'atom_to_incoming_bonds',
+        'mapping',
+        'global_features',
+    )
+
+    def __init__(self,
+                 atom_features: np.ndarray,
+                 f_ini_atoms_bonds: np.ndarray,
+                 atom_to_incoming_bonds: Union[List[List[int]], np.ndarray],
+                 mapping: np.ndarray,
+                 global_features: Optional[np.ndarray] = None):
+        """Initialize DMPNNFeatures with pre-computed arrays."""
+        self.atom_features = atom_features
+        self.f_ini_atoms_bonds = f_ini_atoms_bonds
+        self.atom_to_incoming_bonds = atom_to_incoming_bonds
+        self.mapping = mapping
+        self.global_features = global_features
+
+    @classmethod
+    def from_mapper(cls, mapper: '_MapperDMPNN') -> 'DMPNNFeatures':
+        """Create DMPNNFeatures from a _MapperDMPNN instance.
+
+        Parameters
+        ----------
+        mapper : _MapperDMPNN
+            Mapper instance containing transformed features
+
+        Returns
+        -------
+        DMPNNFeatures
+            Cached features object
+        """
+        return cls(atom_features=mapper.atom_features,
+                   f_ini_atoms_bonds=mapper.f_ini_atoms_bonds,
+                   atom_to_incoming_bonds=mapper.atom_to_incoming_bonds,
+                   mapping=mapper.mapping,
+                   global_features=mapper.global_features)
+
+    def to_tuple(self):
+        """Convert to tuple format expected by model.
+
+        Returns
+        -------
+        tuple
+            (atom_features, f_ini_atoms_bonds, atom_to_incoming_bonds,
+                mapping, global_features)
+        """
+        return (
+            self.atom_features,
+            self.f_ini_atoms_bonds,
+            self.atom_to_incoming_bonds,
+            self.mapping,
+            self.global_features,
+        )
+
+
 class DMPNNModel(TorchModel):
     """Directed Message Passing Neural Network
 
@@ -730,15 +811,26 @@ class DMPNNModel(TorchModel):
                 max_num_bonds: int = 1
 
                 for graph in X_b:
-                    # generate concatenated feature vector and mappings
-                    mapper: _MapperDMPNN = _MapperDMPNN(graph)
-                    pyg_graph: _ModData = self._to_pyg_graph(mapper.values)
+                    # Checked for cached mapper output (OPTIMIZED PATH).
+                    if hasattr(graph, '_cached_dmpnn'
+                              ) and graph._cached_dmpnn is not None:
+                        # Use pre-computed features directly
+                        # Avoids repeated _MapperDMPNN construction
+                        graph_tuple = graph._cached_dmpnn.to_tuple()
+                    else:
+                        # This path handles:
+                        # - Old datasets without cache
+                        # - Featurizer with cache_mapper=False
+                        # - Manually created GraphData objects
+                        mapper = _MapperDMPNN(graph)
+                        graph_tuple = mapper.values
+                    pyg_graph = self._to_pyg_graph(graph_tuple)
                     max_num_bonds = max(
                         max_num_bonds,
                         pyg_graph['atom_to_incoming_bonds'].shape[1])
                     pyg_graphs_list.append(pyg_graph)
 
-                # pad all mappings to maximum number of incoming bonds in the batch
+                # Pad all mappings to maximum number of incoming bonds in the batch
                 for graph in pyg_graphs_list:
                     required_padding: int = max_num_bonds - graph[
                         'atom_to_incoming_bonds'].shape[1]

@@ -1,4 +1,7 @@
-from typing import Optional, Sequence
+from typing import Optional, Sequence, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from deepchem.models.torch_models.dmpnn import DMPNNFeatures
 
 import numpy as np
 
@@ -105,6 +108,9 @@ class GraphData:
 
         for key, value in self.kwargs.items():
             setattr(self, key, value)
+
+        # Cache for DMPNN featurizer optimizaiton
+        self._cache_dmpnn: Optional['DMPNNFeatures'] = None
 
     def __repr__(self) -> str:
         """Returns a string containing the printable representation of the object"""
