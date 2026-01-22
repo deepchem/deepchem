@@ -5,6 +5,6 @@ channels:
 dependencies:
   # - hhsuite // not available for Apple Silicon
   - vina
+  - boost
   - pip:
-    - vina
     - pysam
