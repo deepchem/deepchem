@@ -63,7 +63,7 @@ class _GraphConvTorchModel(nn.Module):
     >>> membership = torch.from_numpy(multi_mol.membership)
     >>> deg_adjs = [torch.from_numpy(i) for i in multi_mol.get_deg_adjacency_lists()[1:]]
     >>> args = [atom_features, degree_slice, membership, torch.tensor(2)] + deg_adjs
-    >>> model = _GraphConvTorchModel(out_channels, graph_conv_layers=[64, 64], number_input_features=[atom_features.shape[-1], 64],dense_layer_size=128,dropout=0.0,mode="classification",number_atom_features=75,n_classes=2,batch_normalize=False,uncertainty=False,batch_size=batch_size)
+    >>> model = _GraphConvTorchModel(out_channels, graph_conv_layers=[64, 64], number_input_features=atom_features.shape[-1], dense_layer_size=128,dropout=0.0,mode="classification",number_atom_features=75,n_classes=2,batch_normalize=False,uncertainty=False,batch_size=batch_size)
     >>> result = model(args)
     >>> len(result)
     3
@@ -76,7 +76,7 @@ class _GraphConvTorchModel(nn.Module):
 
     def __init__(self,
                  n_tasks: int,
-                 number_input_features: List[int],
+                 number_input_features: Union[List[int], int],
                  graph_conv_layers: List[int] = [64, 64],
                  dense_layer_size: int = 128,
                  dropout=0.0,
@@ -148,13 +148,13 @@ class _GraphConvTorchModel(nn.Module):
         ])
 
         self.batch_norms: nn.ModuleList = nn.ModuleList([
-            nn.BatchNorm1d(num_features=64,
+            nn.BatchNorm1d(num_features=num_features,
                            eps=1e-3,
                            momentum=0.99,
                            affine=True,
                            track_running_stats=True)
             if batch_normalize else nn.Identity()
-            for _ in range(len(graph_conv_layers))
+            for num_features in graph_conv_layers
         ])
         self.batch_norms.append(
             nn.BatchNorm1d(num_features=dense_layer_size,
@@ -271,7 +271,7 @@ class GraphConvModel(TorchModel):
     >>> dataset = dc.data.NumpyDataset(X, y)
     >>> classification_metric = dc.metrics.Metric(dc.metrics.roc_auc_score, np.mean, mode="classification")
     >>> batch_size = 10
-    >>> model = GraphConvModel(len(tasks), number_input_features=[75, 64], batch_size=batch_size, batch_normalize=False, mode='classification')
+    >>> model = GraphConvModel(len(tasks), number_input_features=75, batch_size=batch_size, batch_normalize=False, mode='classification')
     >>> loss = model.fit(dataset, nb_epoch=20)
 
     References
@@ -283,7 +283,7 @@ class GraphConvModel(TorchModel):
 
     def __init__(self,
                  n_tasks: int,
-                 number_input_features: List[int],
+                 number_input_features: Union[List[int], int] = 75,
                  graph_conv_layers: List[int] = [64, 64],
                  dense_layer_size: int = 128,
                  dropout: float = 0.0,
@@ -335,6 +335,9 @@ class GraphConvModel(TorchModel):
         self.n_classes: int = n_classes
         self.batch_size: int = batch_size
         self.uncertainty: bool = uncertainty
+        if isinstance(number_input_features, int):
+            number_input_features = [number_input_features
+                                    ] + graph_conv_layers[:-1]
         model = _GraphConvTorchModel(
             n_tasks,
             graph_conv_layers=graph_conv_layers,
