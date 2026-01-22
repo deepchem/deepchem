@@ -217,7 +217,7 @@ class HuggingFaceModel(TorchModel):
         2. A pretrain model has different number of target tasks for pretraining and a finetune
             model has different number of target tasks for finetuning. Thus, they both have different
             number of projection outputs in the last layer. To avoid a mismatch
-            in the weights of the output projection layer (last layer) between
+            in the weights of the output projection layer () between
             the pretrain model and current model, we delete the projection
             layers weights.
         """
