@@ -14,6 +14,7 @@ import multiprocessing
 from multiprocessing.dummy import Pool
 from ast import literal_eval as make_tuple
 from typing import Any, Dict, Iterable, Iterator, List, Optional, Sequence, Tuple, Union
+import bisect
 
 import numpy as np
 from numpy.typing import ArrayLike
@@ -1240,6 +1241,8 @@ class DiskDataset(Dataset):
         self._cached_shards: Optional[List] = None
         self._memory_cache_size = 20 * (1 << 20)  # 20 MB
         self._cache_used = 0
+        self._have_cumulative_sums = False
+        self._cumulative_sums = []
 
     @staticmethod
     def create_dataset(shard_generator: Iterable[Batch],
@@ -2629,6 +2632,36 @@ class DiskDataset(Dataset):
             y = load_from_disk(os.path.join(self.data_dir, row['ids']))
             total += len(y)
         return total
+
+    def _cumulative_sum(self) -> List[int]:
+        """Finds the cumulative sizes of the shards."""
+        self._shard_sizes = [self._get_shard_shape(i)[0][0] for i in range(self.get_number_shards())]
+        current_sum = 0
+        cumulative_sums = [(current_sum := current_sum + size) for size in self._shard_sizes]
+        return cumulative_sums
+
+    def __getitem__(self, index: int):
+        """Retrieves the sample at the given index."""
+        if not self._have_cumulative_sums:
+            self._have_cumulative_sums = True
+            self._cumulative_sums = self._cumulative_sum()
+        
+        # Determine which shard contains the index
+        shard_index = bisect.bisect_right(self._cumulative_sums, index) - 1
+        # Calculate local index within the shard
+        local_index = index - self._cumulative_sums[shard_index]
+        
+        # Load the shard data
+        shard = self.get_shard(shard_index)
+        X, y, w, ids = shard
+        
+        # Extract the sample (assuming X and y are present)
+        X_sample = X[local_index] if X is not None else None
+        y_sample = y[local_index] if y is not None else None
+        w_sample = w[local_index] if y is not None else None
+        ids_sample = ids[local_index] if ids is not None else None
+        
+        return (X_sample, y_sample, w_sample, ids_sample)
 
     def _get_shard_shape(self,
                          shard_num: int) -> Tuple[Shape, Shape, Shape, Shape]:
