@@ -559,12 +559,39 @@ def estimate_ovlp_rcut(precision: float, coeffs: torch.Tensor,
     langmom = 1
     C = (coeffs * coeffs + 1e-200) * (2 * langmom + 1) * alphas / precision
     r0 = torch.tensor(20.0, dtype=coeffs.dtype, device=coeffs.device)
-    for i in range(2):
+    for _ in range(2):
         r0 = torch.sqrt(
             2.0 * torch.log(C *
                             (r0 * r0 * alphas)**(langmom + 1) + 1.) / alphas)
-    rcut = float(torch.max(r0).detach())
+    rcut = float(torch.max(r0).detach().cpu())
     return rcut
+
+
+def unweighted_coul_ft(gvgrids: torch.FloatTensor) -> torch.Tensor:
+    """Unweighted fourier transform of the coulomb kernel: 4*pi/|gv|^2
+
+    Examples
+    --------
+    >>> from deepchem.utils import unweighted_coul_ft
+    >>> unweighted_coul_ft(torch.tensor([[1., 2], [3, 4]]))
+    tensor([2.5133, 0.5027])
+
+    Parameters
+    ----------
+    gvgrids: torch.FloatTensor
+        Reciprocal space vector. Quantities like electron density and hartree
+        potential are evaluated on this. (ngv, ndim)
+
+    Returns
+    -------
+    torch.FloatTensor
+        Unweighted fourier transform of gvgrids. (ngv,)
+
+    """
+    gnorm2 = torch.einsum("xd,xd->x", gvgrids, gvgrids)
+    gnorm2[gnorm2 < 1e-12] = torch.inf
+    coulft = 4 * torch.pi / gnorm2
+    return coulft
 
 
 def get_dtype_memsize(a: torch.Tensor) -> int:
@@ -588,3 +615,24 @@ def get_dtype_memsize(a: torch.Tensor) -> int:
     else:
         raise TypeError("Unknown tensor type: %s" % a.dtype)
     return size
+
+
+def get_complex_dtype(dtype: torch.dtype) -> torch.dtype:
+    """Corresponding complex type given the real floating point datatype.
+
+    Examples
+    --------
+    >>> import torch
+    >>> from deepchem.utils import get_complex_dtype
+    >>> a = torch.tensor([1.2, 23.4])
+    >>> a_new = a.to(get_complex_dtype(a.dtype))
+    >>> a_new
+    tensor([ 1.2000+0.j, 23.4000+0.j])
+    """
+    if dtype == torch.float32:
+        return torch.complex64
+    elif dtype == torch.float64:
+        return torch.complex128
+    else:
+        raise TypeError("Unsupported datatype %s for conversion to complex" %
+                        dtype)

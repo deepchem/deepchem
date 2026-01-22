@@ -2,10 +2,7 @@
 Density Functional Theory utilities.
 """
 # flake8: noqa
-import logging
-
-logger_ = logging.getLogger(__name__)
-
+import warnings
 from deepchem.utils.dft_utils.config import config
 
 try:
@@ -108,5 +105,4 @@ try:
     from deepchem.utils.dft_utils.qccalc.ks import KS
     from deepchem.utils.dft_utils.qccalc.ks import KSEngine
 except ModuleNotFoundError as e:
-    logger_.warning(
-        f'Skipped loading some Pytorch utilities, missing a dependency. {e}')
+    warnings.warn(f'Skipped loading DFT utilities, missing some dependencies: {e}')
