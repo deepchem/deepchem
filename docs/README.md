@@ -1,8 +1,6 @@
 # DeepChem Docs Overview
 
-This directory contains the DeepChem docs. DeepChem's docs aim to
-serve as another resource to complement our collection of tutorials
-and examples.
+"This directory contains the DeepChem documentation. The documentation aims to serve as an additional resource..."
 
 ## Building the Documentation
 
@@ -15,6 +13,8 @@ $ make html
 // clean build
 $ make clean html
 $ open build/html/index.html
+These commands install the required dependencies and generate the HTML version of the documentation for local preview.
+
 ```
 
 If you want to confirm logs in more details,
