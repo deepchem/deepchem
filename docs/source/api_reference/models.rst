@@ -635,6 +635,13 @@ MobileNetV2Model
 .. autoclass:: deepchem.models.torch_models.MobileNetV2Model
   :members:
 
+
+DeepVariant
+-----------
+
+.. autoclass:: deepchem.models.torch_models.DeepVariant
+  :members:
+
 MultitaskIRVClassifier
 ----------------
 
