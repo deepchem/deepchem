@@ -214,7 +214,7 @@ def load_image_files(input_files: List[str]) -> np.ndarray:
     # dtype=object allows for arrays(images here) of arbitrary size
     try:
         return np.array(images)
-    except:
+    except ValueError:
         return np.array(images, dtype=object)
 
 
