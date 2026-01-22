@@ -523,14 +523,14 @@ def _parse_basis(atomzs: torch.Tensor,
     natoms = len(atomzs)
 
     if isinstance(basis, str):
-        return [loadbasis("%d:%s" % (atomz, basis)) for atomz in atomzs]
+        return [loadbasis("%d:%s" % (atomz, basis), device=atomzs.device) for atomz in atomzs]
 
     elif isinstance(basis, dict):
         # convert the basis key into atomz
         basis_int: Dict[int, List[CGTOBasis]] = {}
         for k, v in basis.items():
             atz = int(get_atomz(k))
-            bas = v if isinstance(v, list) else loadbasis("%d:%s" % (atz, v))
+            bas = v if isinstance(v, list) else loadbasis("%d:%s" % (atz, v), device=atomzs.device)
             basis_int[atz] = bas
         return [basis_int[int(atomz)] for atomz in atomzs]
 
@@ -547,7 +547,7 @@ def _parse_basis(atomzs: torch.Tensor,
         # list of str
         elif isinstance(basis[0], str):
             return [
-                loadbasis("%d:%s" % (atz, b))
+                loadbasis("%d:%s" % (atz, b), device=atomzs.device)
                 for (atz, b) in zip(atomzs, basis)
             ]  # type: ignore
 
