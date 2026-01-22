@@ -198,12 +198,6 @@ class GroverFinetune(nn.Module):
         self.mode = mode
         # the hidden size here is the output size of last layer in mol_atom_from_atom_ffn and mol_atom_from_bond_ffn components.
         # it is necessary that aforementioned components produces output tensor of same size.
-        if self.mode == 'classification':
-            assert n_classes is not None
-            self.linear = nn.Linear(hidden_size,
-                                    out_features=n_tasks * n_classes)
-        elif self.mode == 'regression':
-            self.linear = nn.Linear(hidden_size, out_features=n_tasks)
 
     def forward(self, inputs):
         """
@@ -243,7 +237,6 @@ class GroverFinetune(nn.Module):
                 atom_ffn_output = torch.sigmoid(atom_ffn_output)
                 bond_ffn_output = torch.sigmoid(bond_ffn_output)
             output = (atom_ffn_output + bond_ffn_output) / 2
-            output = self.linear(output)
 
             if self.mode == 'classification':
                 if self.n_tasks == 1:
@@ -394,16 +387,19 @@ class GroverModel(ModularTorchModel):
         self.dropout = dropout
         self.depth = depth
         self.mode = mode
+        if self.mode == 'regression':
+            self.ffn_output_size = n_tasks
+            output_types = ['prediction']
+        elif self.mode == 'classification':
+            assert n_classes is not None
+            self.ffn_output_size = n_tasks*n_classes
+            output_types = ['prediction', 'loss']
+        else:
+            output_types = None
         self.n_tasks = n_tasks
         self.n_classes = n_classes
         self.components = self.build_components()
         self.model = self.build_model()
-        if self.mode == 'regression':
-            output_types = ['prediction']
-        elif self.mode == 'classification':
-            output_types = ['prediction', 'loss']
-        else:
-            output_types = None
         super().__init__(self.model,
                          self.components,
                          model_dir=self.model_dir,
@@ -412,7 +408,6 @@ class GroverModel(ModularTorchModel):
         # FIXME In the above step, we initialize modular torch model but
         # something is missing here. The attribute loss from TorchModel gets assigned `loss_func`
         # by super class initialization in ModularTorchModel but here we reinitialize it.
-        self.loss = self.get_loss_func()
 
     def build_components(self):
         """Builds components for grover pretraining and finetuning model.
@@ -715,8 +710,14 @@ class GroverModel(ModularTorchModel):
         elif self.model.training:
             dist_loss = nn.MSELoss()
             dist = dist_loss(preds[0], preds[1])
-            pred_loss1 = pred_loss(preds[0].mean(axis=-1).unsqueeze(-1), labels)
-            pred_loss2 = pred_loss(preds[1].mean(axis=-1).unsqueeze(-1), labels)
+            if self.mode == 'regression':
+                pred_loss1 = pred_loss(preds[0].mean(axis=-1).unsqueeze(-1), labels)
+                pred_loss2 = pred_loss(preds[1].mean(axis=-1).unsqueeze(-1), labels)
+            elif self.mode == 'classification':
+                pred_0 = preds[0].reshape([self.batch_size, self.n_tasks, self.n_classes])
+                pred_1 = preds[1].reshape([self.batch_size, self.n_tasks, self.n_classes])
+                pred_loss1 = pred_loss(pred_0[:, :, 1], labels)
+                pred_loss2 = pred_loss(pred_1[:, :, 1], labels)
             return pred_loss1 + pred_loss2 + dist_coff * dist
 
     def _create_ffn(self):
@@ -737,12 +738,34 @@ class GroverModel(ModularTorchModel):
         elif self.activation == 'prelu':
             activation = nn.PReLU()
 
-        ffn = [dropout, nn.Linear(first_linear_dim, self.ffn_hidden_size)]
-        for i in range(self.ffn_num_layers - 1):
+        if self.ffn_num_layers == 1:
+            ffn = [
+                dropout,
+                nn.Linear(first_linear_dim, self.ffn_output_size)
+            ]
+        else:
+            ffn = [
+                dropout,
+                nn.Linear(first_linear_dim, self.ffn_hidden_size)
+            ]
+            for _ in range(self.ffn_num_layers - 2):
+                ffn.extend([
+                    activation,
+                    dropout,
+                    nn.Linear(self.ffn_hidden_size, self.ffn_hidden_size),
+                ])
             ffn.extend([
-                activation, dropout,
-                nn.Linear(self.ffn_hidden_size, self.ffn_hidden_size)
+                activation,
+                dropout,
+                nn.Linear(self.ffn_hidden_size, self.ffn_output_size),
             ])
+
+        # ffn = [dropout, nn.Linear(first_linear_dim, self.ffn_hidden_size)]
+        # for i in range(self.ffn_num_layers - 1):
+        #     ffn.extend([
+        #         activation, dropout,
+        #         nn.Linear(self.ffn_hidden_size, self.ffn_hidden_size)
+        #     ])
 
         return nn.Sequential(*ffn)
 
