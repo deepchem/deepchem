@@ -4,6 +4,8 @@ import deepchem as dc
 import numpy as np
 import math
 import unittest
+from unittest.mock import patch
+import deepchem.models.torch_models.torch_model as tm
 
 try:
     import torch
@@ -17,6 +19,7 @@ try:
     has_wandb = True
 except:
     has_wandb = False
+
 
 
 @pytest.mark.torch
@@ -529,3 +532,30 @@ def test_torch_compile():
     model_output = np.argmax(model_output, axis=2)
 
     assert np.all(model_output == y)
+
+@pytest.mark.torch
+def test_npu_device_selection():
+    """
+    Tests that the NPU device is correctly selected when available.
+    """
+    with patch.object(tm, 'is_npu_available', return_value=True):
+        with patch('torch.cuda.is_available', return_value=False):
+            with patch('torch.backends.mps.is_available', return_value=False):
+                with patch('torch.device') as mock_device_constructor:
+                    mock_device_constructor.return_value.type = 'npu'
+                    pytorch_model = torch.nn.Linear(10, 10)
+                    dc_model = tm.TorchModel(pytorch_model, loss=dc.models.losses.L2Loss())
+                    mock_device_constructor.assert_any_call('npu')
+                    assert dc_model.device.type == 'npu'
+
+@pytest.mark.torch
+def test_npu_fallback():
+    """
+    Tests that it correctly falls back to CPU if NPU is NOT available.
+    """
+    with patch.object(tm, 'is_npu_available', return_value=False):
+        with patch('torch.cuda.is_available', return_value=False):
+            with patch('torch.backends.mps.is_available', return_value=False):
+                pytorch_model = torch.nn.Linear(10, 10)
+                dc_model = tm.TorchModel(pytorch_model, loss=dc.models.losses.L2Loss())
+                assert dc_model.device.type == 'cpu'
