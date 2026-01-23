@@ -8,7 +8,7 @@ from deepchem.molnet import load_bace_classification, load_delaney
 from deepchem.feat import WeaveFeaturizer
 try:
     import tensorflow as tf
-    from deepchem.models import WeaveModel
+    from deepchem.models.graph_models import WeaveModel
     has_tensorflow = True
 except:
     has_tensorflow = False

@@ -12,7 +12,7 @@ from deepchem.utils.data_utils import download_url, get_data_dir
 
 try:
     import tensorflow as tf
-    from deepchem.models import GraphConvModel, DAGModel, MPNNModel, DTNNModel
+    from deepchem.models.graph_models import GraphConvModel, DAGModel, MPNNModel, DTNNModel
     has_tensorflow = True
 except:
     has_tensorflow = False

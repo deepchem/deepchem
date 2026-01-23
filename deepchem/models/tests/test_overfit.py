@@ -855,7 +855,7 @@ def test_weave_singletask_classification_overfit():
     classification_metric = dc.metrics.Metric(dc.metrics.accuracy_score)
 
     batch_size = 10
-    model = dc.models.WeaveModel(n_tasks,
+    model = dc.models.graph_models.WeaveModel(n_tasks,
                                  batch_size=batch_size,
                                  learning_rate=0.0003,
                                  dropout=0.0,

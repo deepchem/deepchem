@@ -730,7 +730,7 @@ def test_weave_classification_reload():
     batch_size = 5
 
     model_dir = tempfile.mkdtemp()
-    model = dc.models.WeaveModel(n_tasks,
+    model = dc.models.graph_models.WeaveModel(n_tasks,
                                  batch_size=batch_size,
                                  learning_rate=0.01,
                                  mode="classification",
@@ -751,7 +751,7 @@ def test_weave_classification_reload():
     predset = dc.data.NumpyDataset(Xpred)
     origpred = model.predict(predset)
 
-    reloaded_model = dc.models.WeaveModel(n_tasks,
+    reloaded_model = dc.models.graph_models.WeaveModel(n_tasks,
                                           batch_size=batch_size,
                                           learning_rate=0.003,
                                           mode="classification",
@@ -1127,7 +1127,7 @@ def test_DTNN_regression_reload():
     n_tasks = y.shape[1]
 
     model_dir = tempfile.mkdtemp()
-    model = dc.models.DTNNModel(n_tasks,
+    model = dc.models.graph_models.DTNNModel(n_tasks,
                                 n_embedding=20,
                                 n_distance=100,
                                 learning_rate=1.0,
