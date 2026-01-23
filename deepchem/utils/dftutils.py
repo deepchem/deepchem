@@ -4,7 +4,7 @@ Derived from: https://github.com/mfkasim1/xcnn/blob/f2cb9777da2961ac553f256ecdcc
 import hashlib
 import warnings
 from abc import abstractmethod, abstractproperty
-from typing import Union, List
+from typing import List
 try:
     import torch
 except Exception as e:

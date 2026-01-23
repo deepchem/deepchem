@@ -731,11 +731,11 @@ def test_weave_classification_reload():
 
     model_dir = tempfile.mkdtemp()
     model = dc.models.graph_models.WeaveModel(n_tasks,
-                                 batch_size=batch_size,
-                                 learning_rate=0.01,
-                                 mode="classification",
-                                 dropouts=0.0,
-                                 model_dir=model_dir)
+                                              batch_size=batch_size,
+                                              learning_rate=0.01,
+                                              mode="classification",
+                                              dropouts=0.0,
+                                              model_dir=model_dir)
 
     # Fit trained model
     model.fit(dataset, nb_epoch=100)
@@ -752,11 +752,11 @@ def test_weave_classification_reload():
     origpred = model.predict(predset)
 
     reloaded_model = dc.models.graph_models.WeaveModel(n_tasks,
-                                          batch_size=batch_size,
-                                          learning_rate=0.003,
-                                          mode="classification",
-                                          dropouts=0.0,
-                                          model_dir=model_dir)
+                                                       batch_size=batch_size,
+                                                       learning_rate=0.003,
+                                                       mode="classification",
+                                                       dropouts=0.0,
+                                                       model_dir=model_dir)
     reloaded_model.restore()
 
     # Check predictions match on random sample
@@ -1128,21 +1128,21 @@ def test_DTNN_regression_reload():
 
     model_dir = tempfile.mkdtemp()
     model = dc.models.graph_models.DTNNModel(n_tasks,
-                                n_embedding=20,
-                                n_distance=100,
-                                learning_rate=1.0,
-                                model_dir=model_dir,
-                                mode="regression")
+                                             n_embedding=20,
+                                             n_distance=100,
+                                             learning_rate=1.0,
+                                             model_dir=model_dir,
+                                             mode="regression")
 
     # Fit trained model
     model.fit(dataset, nb_epoch=250)
 
-    reloaded_model = dc.models.DTNNModel(n_tasks,
-                                         n_embedding=20,
-                                         n_distance=100,
-                                         learning_rate=1.0,
-                                         model_dir=model_dir,
-                                         mode="regression")
+    reloaded_model = dc.models.graph_models.DTNNModel(n_tasks,
+                                                      n_embedding=20,
+                                                      n_distance=100,
+                                                      learning_rate=1.0,
+                                                      model_dir=model_dir,
+                                                      mode="regression")
     reloaded_model.restore()
 
     # Check predictions match on random sample
