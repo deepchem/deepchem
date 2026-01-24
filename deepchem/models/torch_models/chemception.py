@@ -4,7 +4,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import logging
-from typing import Dict, Type, Optional, Literal, Sequence
+from typing import Dict, Type, Optional, Literal, Sequence, Iterable, Tuple, List
+from deepchem.data import Dataset
 from deepchem.utils.typing import OneOrMany
 from deepchem.models.torch_models.chemnet_layers import Stem, InceptionResnetA, ReductionA, InceptionResnetB, ReductionB, InceptionResnetC
 from deepchem.models.torch_models import ModularTorchModel
@@ -483,12 +484,13 @@ class ChemCeptionModel(ModularTorchModel):
 
         return loss
 
-    def default_generator(self,
-                          dataset,
-                          epochs=1,
-                          mode='fit',
-                          deterministic=True,
-                          pad_batches=True):
+    def default_generator(
+            self,
+            dataset: Dataset,
+            epochs: int = 1,
+            mode: str = 'fit',
+            deterministic: bool = True,
+            pad_batches: bool = True) -> Iterable[Tuple[List, List, List]]:
         """ Create a generator that iterates batches for a dataset.
 
         Parameters
