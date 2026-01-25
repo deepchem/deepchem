@@ -1925,20 +1925,23 @@ class NeighborList(nn.Module):
         Parameters
         ----------
         inputs: torch.Tensor
-            Shape (num_atoms, ndim)
+            Shape (num_atoms, ndim) or (batch_size, num_atoms, ndim)
 
         Returns
         -------
         neighbor_list: torch.Tensor
-            Shape `(N_atoms, M_nbrs)`
+            Shape `(N_atoms, M_nbrs)` or `(batch_size, N_atoms, M_nbrs)`
         """
         if isinstance(inputs, SequenceCollection):
             if len(inputs) != 1:
                 raise ValueError("NeighborList can only have one input")
             inputs = inputs[0]
-        if len(inputs.shape) != 2:
-            # TODO(rbharath): Support batching
-            raise ValueError("Parent tensor must be (num_atoms, ndum)")
+        if len(inputs.shape) == 2:
+            inputs = inputs.unsqueeze(0)
+            return self.compute_nbr_list(inputs).squeeze(0)
+        elif len(inputs.shape) != 3:
+             # TODO(rbharath): Support batching
+             raise ValueError("Parent tensor must be (num_atoms, ndim) or (batch_size, num_atoms, ndim)")
         return self.compute_nbr_list(inputs)
 
     def compute_nbr_list(self, coords: torch.Tensor) -> torch.Tensor:
@@ -1949,43 +1952,50 @@ class NeighborList(nn.Module):
         Parameters
         ----------
         coords: torch.Tensor
-            Shape (N_atoms, ndim)
+            Shape (B, N_atoms, ndim)
 
         Returns
         -------
         nbr_list: torch.Tensor
-            Shape (N_atoms, M_nbrs) of atom indices
+            Shape (B, N_atoms, M_nbrs) of atom indices
         """
+        B = coords.shape[0]
         # Shape (n_cells, ndim)
         cells = self.get_cells()
 
-        # List of length N_atoms, each element of different length uniques_i
+        # List of length B*N_atoms, each element of different length uniques_i
         nbrs = self.get_atoms_in_nbrs(coords, cells)
-        padding = torch.full((self.M_nbrs,), -1)
+        padding = torch.full((self.M_nbrs,), -1).to(coords.device).long()
         padded_nbrs = [
             torch.concat([unique_nbrs, padding], 0) for unique_nbrs in nbrs
         ]
 
-        # List of length N_atoms, each element of different length uniques_i
-        # List of length N_atoms, each a tensor of shape
+        # List of length B*N_atoms, each element of different length uniques_i
+        # List of length B*N_atoms, each a tensor of shape
         # (uniques_i, ndim)
-        nbr_coords = [
-            torch.index_select(coords, 0, atom_nbrs) for atom_nbrs in nbrs
-        ]
+        nbr_coords = []
+        for i, atom_nbrs in enumerate(nbrs):
+             # Determine which batch this atom belongs to
+             batch_idx = i // self.N_atoms
+             # Select neighbors from that batch's coordinates
+             # atom_nbrs contains indices local to the molecule (0 to N-1)
+             nbr_coords.append(torch.index_select(coords[batch_idx], 0, atom_nbrs))
 
         # Add phantom atoms that exist far outside the box
         coord_padding = torch.full((self.M_nbrs, self.ndim),
-                                   2 * self.stop).to(torch.float)
+                                   2 * self.stop).to(torch.float).to(coords.device)
         padded_nbr_coords = [
             torch.cat([nbr_coord, coord_padding], 0) for nbr_coord in nbr_coords
         ]
 
-        # List of length N_atoms, each of shape (1, ndim)
-        atom_coords = torch.tensor_split(coords, self.N_atoms)
+        # List of length B*N_atoms, each of shape (1, ndim)
+        # Flatten coords to (B*N, D) then split
+        flat_coords = coords.reshape(-1, self.ndim)
+        atom_coords = torch.tensor_split(flat_coords, B * self.N_atoms)
 
         # TODO(rbharath): How does distance need to be modified here to
         # account for periodic boundary conditions?
-        # List of length N_atoms each of shape (M_nbrs)
+        # List of length B*N_atoms each of shape (M_nbrs)
         padded_dists = [
             torch.sum((atom_coord - padded_nbr_coord)**2, dim=-1)
             for (atom_coord,
@@ -1997,14 +2007,18 @@ class NeighborList(nn.Module):
             for padded_dist in padded_dists
         ]
 
-        # N_atoms elts of size (M_nbrs,) each
+        # B*N_atoms elts of size (M_nbrs,) each
         padded_neighbor_list = [
             torch.gather(padded_atom_nbrs, 0, padded_closest_nbr)
             for (padded_atom_nbrs,
                  padded_closest_nbr) in zip(padded_nbrs, padded_closest_nbrs)
         ]
 
-        neighbor_list = torch.stack(padded_neighbor_list)
+        # (B*N, M_nbrs)
+        neighbor_list_flat = torch.stack(padded_neighbor_list)
+        
+        # Reshape to (B, N, M_nbrs)
+        neighbor_list = neighbor_list_flat.view(B, self.N_atoms, self.M_nbrs)
 
         return neighbor_list
 
@@ -2015,52 +2029,86 @@ class NeighborList(nn.Module):
         Parameters
         ----------
         coords: torch.Tensor
-            Shape (N_atoms, ndim)
+            Shape (B, N_atoms, ndim)
         cells: torch.Tensor
+            Shape (n_cells, ndim)
 
         Returns
         -------
         atoms_in_nbrs: List[torch.Tensor]
-            (N_atoms, n_nbr_cells, M_nbrs)
+            List of length B * N_atoms, each element is a tensor of indices
         """
-        # Shape (N_atoms, 1)
+        B = coords.shape[0]
+        N_atoms = self.N_atoms
+        
+        # Shape (B, N_atoms, 1)
         cells_for_atoms = self.get_cells_for_atoms(coords, cells)
 
         # Find M_nbrs atoms closest to each cell
-        # Shape (n_cells, M_nbrs)
+        # Shape (B, n_cells, M_nbrs)
         closest_atoms = self.get_closest_atoms(coords, cells)
 
-        # Associate each cell with its neighbor cells. Assumes periodic boundary
-        # conditions, so does wrapround. O(constant)
+        # Associate each cell with its neighbor cells.
         # Shape (n_cells, n_nbr_cells)
         neighbor_cells = self.get_neighbor_cells(cells)
-
-        # Shape (N_atoms, n_nbr_cells)
-        neighbor_cells = torch.squeeze(
-            torch.index_select(neighbor_cells, 0,
-                               torch.squeeze(cells_for_atoms)))
-
-        # Shape (N_atoms, n_nbr_cells, M_nbrs)
-        atoms_in_nbrs = torch.index_select(closest_atoms, 0,
-                                           neighbor_cells.flatten())
-
-        # Shape (N_atoms, n_nbr_cells*M_nbrs)
-        atoms_in_nbrs = torch.reshape(atoms_in_nbrs, [self.N_atoms, -1])
-
-        # List of length N_atoms, each element length uniques_i
-        nbrs_per_atom = torch.split(atoms_in_nbrs, self.N_atoms)
-
-        uniques = [
-            torch.unique(atom_nbrs, sorted=False)
-            for atom_nbrs in nbrs_per_atom[0]
-        ]
-
-        # TODO(rbharath): FRAGILE! Uses fact that identity seems to be the first
-        # element removed to remove self from list of neighbors. Need to verify
-        # this holds more broadly or come up with robust alternative.
-        uniques = [unique[1:] for unique in uniques]
-
-        return uniques
+        
+        # We need to gather the atoms in neighbor cells for each atom.
+        # cells_for_atoms: (B, N, 1) tells us the cell index for each atom.
+        # neighbor_cells -> [cell_idx] -> [neighbor_cell_indices]
+        # closest_atoms -> [batch, cell_idx] -> [atom_indices]
+        
+        # First, match atoms to their neighbor cells.
+        # (C, n_nbr_cells) -> (B, N, n_nbr_cells)
+        neighbor_cells_expanded = neighbor_cells.unsqueeze(0).expand(B, -1, -1) # (B, C, n_nbr_cells)
+        
+        # Gather neighbor cells for each atom
+        # cells_for_atoms is (B, N, 1). We need to gather along dim 1 of neighbor_cells_expanded
+        # cells_for_atoms_rep = cells_for_atoms.expand(-1, -1, neighbor_cells.shape[1]) # (B, N, n_nbr_cells)
+        
+        # To use gather, indices must have same dims.
+        # We want to select from neighbor_cells (C, n_nbrs) using indices (B, N).
+        # Easier to flatten B*N temporarily or loop over B.
+        
+        atoms_in_nbrs_list = []
+        
+        # Loop over batch is simplest and likely efficient enough for typical batch sizes
+        for b in range(B):
+            # For this batch element:
+            # cell_indices: (N, 1)
+            cell_indices = cells_for_atoms[b]
+            
+            # nbr_cell_indices: (N, n_nbr_cells)
+            # neighbor_cells is (n_cells, n_nbr_cells)
+            # We select rows from neighbor_cells based on cell_indices
+            nbr_cell_indices = neighbor_cells[cell_indices.squeeze(-1)] 
+            
+            # Now we have the indices of cells that are neighbors to each atom's cell.
+            # We need to find which atoms are in those cells.
+            # closest_atoms[b]: (n_cells, M_nbrs)
+            
+            # Gather atoms from closest_atoms[b] using nbr_cell_indices
+            # nbr_cell_indices is (N, n_nbr_cells) flattened -> (N * n_nbr_cells)
+            flat_nbr_cell_indices = nbr_cell_indices.flatten()
+            
+            # atoms_in_cells: (N * n_nbr_cells, M_nbrs)
+            atoms_in_cells = closest_atoms[b][flat_nbr_cell_indices]
+            
+            # Reshape to (N, n_nbr_cells * M_nbrs)
+            atoms_per_atom = atoms_in_cells.view(N_atoms, -1)
+            
+            # Now get uniques for each atom
+            for i in range(N_atoms):
+                unique_nbrs = torch.unique(atoms_per_atom[i], sorted=False)
+                # Remove self (assumed to be first? logic from original code)
+                # TODO: The assumption that identity is first might be fragile, but preserving original logic.
+                if len(unique_nbrs) > 1:
+                     unique_nbrs = unique_nbrs[1:]
+                else:
+                    # If only self or empty?
+                    pass 
+                atoms_in_nbrs_list.append(unique_nbrs)
+                
+        return atoms_in_nbrs_list
 
     def get_closest_atoms(self, coords: torch.Tensor,
                           cells: torch.Tensor) -> torch.Tensor:
@@ -2071,32 +2119,33 @@ class NeighborList(nn.Module):
         Parameters
         ----------
         coords: torch.Tensor
-            (N_atoms, ndim) shape.
+            (B, N_atoms, ndim) shape.
         cells: torch.Tensor
             (n_cells, ndim) shape.
 
         Returns
         -------
         closest_inds: torch.Tensor
-            Of shape (n_cells, M_nbrs)
+            Of shape (B, n_cells, M_nbrs)
         """
         N_atoms, n_cells, ndim, M_nbrs = (self.N_atoms, self.n_cells, self.ndim,
                                           self.M_nbrs)
-        # Tile both cells and coords to form arrays of size (N_atoms*n_cells, ndim)
-        tiled_cells = torch.reshape(torch.tile(cells, (1, N_atoms)),
-                                    (N_atoms * n_cells, ndim))
-
-        # Shape (N_atoms*n_cells, ndim) after tile
-        tiled_coords = torch.tile(coords, (n_cells, 1))
-
-        # Shape (N_atoms*n_cells)
-        coords_vec = torch.sum((tiled_coords - tiled_cells)**2, dim=-1)
-        # Shape (n_cells, N_atoms)
-        coords_norm = torch.reshape(coords_vec, (n_cells, N_atoms))
-
-        # Find k atoms closest to this cell.
-        # Tensor of shape (n_cells, M_nbrs)
-        closest_inds = torch.topk(coords_norm, k=M_nbrs, largest=False)[1]
+        # coords: (B, N, D)
+        # cells: (C, D)
+        
+        # Expand for broadcasting
+        # coords: (B, 1, N, D)
+        coords_ex = coords.unsqueeze(1)
+        # cells: (1, C, 1, D)
+        cells_ex = cells.unsqueeze(0).unsqueeze(2)
+        
+        # Calculate squared distances
+        # (B, C, N)
+        dists = torch.sum((coords_ex - cells_ex)**2, dim=-1)
+        
+        # Find k atoms closest to each cell
+        # (B, C, M_nbrs)
+        closest_inds = torch.topk(dists, k=M_nbrs, largest=False, dim=-1)[1]
 
         return closest_inds
 
@@ -2107,26 +2156,28 @@ class NeighborList(nn.Module):
         Parameters
         ----------
         coords: torch.Tensor
-            Shape (N_atoms, ndim)
+            Shape (B, N_atoms, ndim)
         cells: torch.Tensor
             (n_cells, ndim) shape.
         Returns
         -------
         cells_for_atoms: torch.Tensor
-            Shape (N_atoms, 1)
+            Shape (B, N_atoms, 1)
         """
-        N_atoms, n_cells, ndim = self.N_atoms, self.n_cells, self.ndim
-        n_cells = int(n_cells)
-        # Tile both cells and coords to form arrays of size (N_atoms*n_cells, ndim)
-        tiled_cells = torch.tile(cells, (N_atoms, 1))
-
-        # Shape (N_atoms*n_cells, 1) after tile
-        tiled_coords = torch.reshape(torch.tile(coords, (1, n_cells)),
-                                     (n_cells * N_atoms, ndim))
-        coords_vec = torch.sum((tiled_coords - tiled_cells)**2, dim=-1)
-        coords_norm = torch.reshape(coords_vec, (N_atoms, n_cells))
-
-        closest_inds = torch.topk(coords_norm, k=1, largest=False)[1]
+        # coords: (B, N, D)
+        # cells: (C, D)
+        
+        # Expand for broadcasting
+        # coords: (B, N, 1, D)
+        coords_ex = coords.unsqueeze(2)
+        # cells: (1, 1, C, D)
+        cells_ex = cells.unsqueeze(0).unsqueeze(0)
+        
+        # Dists: (B, N, C)
+        dists = torch.sum((coords_ex - cells_ex)**2, dim=-1)
+        
+        # Closest cell index: (B, N, 1)
+        closest_inds = torch.topk(dists, k=1, largest=False, dim=-1)[1]
 
         return closest_inds
 
