@@ -499,6 +499,58 @@ class RandomGroupSplitter(Splitter):
 
         return train_idxs, valid_idxs, test_idxs
 
+    def k_fold_split(self,
+                     dataset: Dataset,
+                     k: int,
+                     directories: Optional[List[str]] = None,
+                     seed: Optional[int] = None,
+                     **kwargs) -> List[Tuple[Dataset, Dataset]]:
+        """Splits compounds into k-folds while preserving group integrity.
+
+        Parameters
+        ----------
+        dataset: Dataset
+            Dataset to do a k-fold split
+        k: int
+            Number of folds to split `dataset` into.
+        directories: List[str], optional (default None)
+            List of length 2*k filepaths to save the result disk-datasets.
+        seed: int, optional (default None)
+            Random seed to use.
+
+        Returns
+        -------
+        List[Tuple[Dataset, Dataset]]
+            List of length k tuples of (train, cv) where `train` and `cv` are
+            both `Dataset`.
+        """
+        assert len(self.groups) == dataset.X.shape[0]
+        directories = directories or [tempfile.mkdtemp() for _ in range(2 * k)]
+        if seed is not None:
+            np.random.seed(seed)
+
+        group_dict: Dict[Any, List[int]] = {}
+        for idx, g in enumerate(self.groups):
+            group_dict.setdefault(g, []).append(idx)
+
+        unique_groups = list(group_dict.keys())
+        np.random.shuffle(unique_groups)
+        group_folds = np.array_split(unique_groups, k)
+
+        return [
+            (dataset.select([
+                i
+                for j in range(k)
+                if j != f
+                for g in group_folds[j]
+                for i in group_dict[g]
+            ], directories[2 * f]),
+             dataset.select([i
+                             for g in group_folds[f]
+                             for i in group_dict[g]], directories[2 * f + 1]))
+            for f in range(k)
+        ]
+
 
 class RandomStratifiedSplitter(Splitter):
     """RandomStratified Splitter class.
