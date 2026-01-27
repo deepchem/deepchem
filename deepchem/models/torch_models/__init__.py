@@ -52,8 +52,6 @@ from deepchem.models.torch_models.hnn import HNN, HNNModel
 from deepchem.models.torch_models.ChemCeption import ChemCeption
 from deepchem.models.torch_models.fno import FNO, FNOModel
 from deepchem.models.torch_models.lnn import LNN, LNNModel
-from deepchem.models.torch_models.se3_transformer import SE3Transformer, SE3TransformerModel
-from deepchem.models.torch_models.tfn import TFN, TFNModel
 
 try:
     import dgl
@@ -70,6 +68,9 @@ try:
     from deepchem.models.torch_models.weavemodel_pytorch import Weave, WeaveModel
     from deepchem.models.torch_models.mxmnet import MXMNet
 except (ModuleNotFoundError, OSError) as e:
+    from deepchem.models.torch_models.se3_transformer import SE3Transformer, SE3TransformerModel
+    from deepchem.models.torch_models.tfn import TFN, TFNModel
+except ModuleNotFoundError as e:
     logger.warning(
         f'Skipped loading modules with pytorch-geometric dependency, missing a dependency. {e}'
     )

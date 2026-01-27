@@ -9,6 +9,7 @@ from typing import List, Optional, Tuple, Union
 
 GDB9_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/gdb9.tar.gz"
 QM9_CSV_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/qm9.csv"
+QM9_URL = "https://deepchemdata.s3.us-west-1.amazonaws.com/datasets/qm9.tar.gz"
 QM9_TASKS = [
     "mu", "alpha", "homo", "lumo", "gap", "r2", "zpve", "cv", "u0", "u298",
     "h298", "g298"
@@ -18,12 +19,12 @@ QM9_TASKS = [
 class _QM9Loader(_MolnetLoader):
 
     def create_dataset(self) -> Dataset:
-        dataset_file = os.path.join(self.data_dir, "gdb9.sdf")
+        dataset_file = os.path.join(self.data_dir, "qm9.sdf")
         if not os.path.exists(dataset_file):
-            dc.utils.data_utils.download_url(url=GDB9_URL,
+            dc.utils.data_utils.download_url(url=QM9_URL,
                                              dest_dir=self.data_dir)
             dc.utils.data_utils.untargz_file(
-                os.path.join(self.data_dir, "gdb9.tar.gz"), self.data_dir)
+                os.path.join(self.data_dir, "qm9.tar.gz"), self.data_dir)
         loader = dc.data.SDFLoader(tasks=self.tasks,
                                    featurizer=self.featurizer,
                                    sanitize=True)
