@@ -681,14 +681,14 @@ TFNModel
 .. autoclass:: deepchem.models.torch_models.TFNModel
   :members:
   
+ChemCeptionLayer
+----------------
+.. autoclass:: deepchem.models.torch_models.ChemCeptionLayer
+  :members:
+
 ChemCeption
 ----------------
 .. autoclass:: deepchem.models.torch_models.ChemCeption
-  :members:
-
-ChemCeptionModel
-----------------
-.. autoclass:: deepchem.models.torch_models.ChemCeptionModel
   :members:
 
 PyTorch Lightning Models

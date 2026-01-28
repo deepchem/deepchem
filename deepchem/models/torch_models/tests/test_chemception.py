@@ -52,10 +52,10 @@ def get_dataset(mode="classification",
 
 @pytest.mark.torch
 def test_chemception_forward():
-    """To check that the model class beneath ChemCeptionModel is working properly by ensuring its output has the expected shape"""
+    """To check that the model class beneath ChemCeption is working properly by ensuring its output has the expected shape"""
     import torch.nn as nn
     from deepchem.models.torch_models.chemnet_layers import Stem, InceptionResnetA, InceptionResnetB, InceptionResnetC, ReductionA, ReductionB
-    from deepchem.models.torch_models import ChemCeption
+    from deepchem.models.torch_models import ChemCeptionLayer
 
     DEFAULT_INCEPTION_BLOCKS = {"A": 3, "B": 3, "C": 3}
     base_filters = 16
@@ -106,7 +106,7 @@ def test_chemception_forward():
     input = image.permute(
         0, 3, 1, 2
     )  # to convert from channel last  (N,H,W,C) to pytorch default channel first (N,C,H,W) representation
-    model = ChemCeption(stem=components['stem'],
+    model = ChemCeptionLayer(stem=components['stem'],
                         inception_resnet_A=components['inception_resnet_A'],
                         reduction_A=components['reduction_A'],
                         inception_resnet_B=components['inception_resnet_B'],
@@ -128,7 +128,7 @@ def test_chemception_forward():
 @pytest.mark.torch
 def test_chemception_regression_overfit():
     """Overfit test the model to ensure it can learn a simple task."""
-    from deepchem.models.torch_models import ChemCeptionModel
+    from deepchem.models.torch_models import ChemCeption
     torch.manual_seed(123)
 
     n_tasks = 1
@@ -141,7 +141,7 @@ def test_chemception_regression_overfit():
                                   img_size=img_size,
                                   n_tasks=n_tasks)
 
-    model = ChemCeptionModel(n_tasks=n_tasks,
+    model = ChemCeption(n_tasks=n_tasks,
                              img_spec=img_spec,
                              img_size=img_size,
                              augment=False,
@@ -155,7 +155,7 @@ def test_chemception_regression_overfit():
 @pytest.mark.torch
 def test_chemception_classification_overfit():
     """Overfit test the model to ensure it can learn a simple task."""
-    from deepchem.models.torch_models import ChemCeptionModel
+    from deepchem.models.torch_models import ChemCeption
     torch.manual_seed(123)
 
     n_tasks = 5
@@ -168,7 +168,7 @@ def test_chemception_classification_overfit():
                                   img_size=img_size,
                                   n_tasks=n_tasks)
 
-    model = ChemCeptionModel(n_tasks=n_tasks,
+    model = ChemCeption(n_tasks=n_tasks,
                              img_spec=img_spec,
                              img_size=img_size,
                              augment=False,
@@ -182,7 +182,7 @@ def test_chemception_classification_overfit():
 @pytest.mark.torch
 def test_chemception_compare_with_tf_impl():
     """Compare the ouputs of tensorflow and torch 1implementations when model parameters are equal"""
-    from deepchem.models.torch_models import ChemCeptionModel
+    from deepchem.models.torch_models import ChemCeption
     tf_weights_dir = os.path.join(os.path.dirname(__file__),
                                   "assets/chemception/")
     tf_regression_output = os.path.join(
@@ -197,12 +197,11 @@ def test_chemception_compare_with_tf_impl():
                                   featurizer="smiles2img",
                                   img_spec=img_spec,
                                   n_tasks=n_tasks)
-    torch_model = ChemCeptionModel(n_tasks=n_tasks,
-                                   img_spec="std",
-                                   model_dir=None,
-                                   augment=False,
-                                   mode=mode)
-
+    torch_model = ChemCeption(n_tasks=n_tasks,
+                              img_spec="std",
+                              model_dir=None,
+                              augment=False,
+                              mode=mode)
     layers = [
         'stem', 'inception_resnet_A', 'reduction_A', 'inception_resnet_B',
         'reduction_B', 'inception_resnet_C', 'output_layer'
@@ -245,7 +244,7 @@ def test_chemception_compare_with_tf_impl():
 @pytest.mark.torch
 def test_chemception_modular_fit_restore():
     """Tests that the pretrainer can be restored from a checkpoint and resume training."""
-    from deepchem.models.torch_models import ChemCeptionModel
+    from deepchem.models.torch_models import ChemCeption
     torch.manual_seed(123)
 
     n_tasks = 1
@@ -258,7 +257,7 @@ def test_chemception_modular_fit_restore():
                                   img_size=img_size,
                                   n_tasks=n_tasks)
 
-    chemception1 = ChemCeptionModel(n_tasks=n_tasks,
+    chemception1 = ChemCeption(n_tasks=n_tasks,
                                     img_spec=img_spec,
                                     img_size=img_size,
                                     augment=False,
@@ -267,7 +266,7 @@ def test_chemception_modular_fit_restore():
     chemception1.fit(dataset, nb_epoch=300)
 
     # Create an identical model, do a single step of fitting with restore=True and make sure it got restored correctly.
-    chemception2 = ChemCeptionModel(n_tasks=n_tasks,
+    chemception2 = ChemCeption(n_tasks=n_tasks,
                                     img_spec=img_spec,
                                     img_size=img_size,
                                     model_dir=chemception1.model_dir,
@@ -284,7 +283,7 @@ def test_chemception_modular_fit_restore():
 def test_chemception_load_from_pretrained():
     """Test to ensure the model can be pretrained in classification mode,
     reloaded in regression mode and weights of all layers except the prediction head are copied"""
-    from deepchem.models.torch_models import ChemCeptionModel
+    from deepchem.models.torch_models import ChemCeption
 
     n_tasks = 5
     img_size = 80
@@ -301,14 +300,14 @@ def test_chemception_load_from_pretrained():
                                 img_size=img_size,
                                 n_tasks=n_tasks)
 
-    model_pt = ChemCeptionModel(n_tasks=n_tasks,
+    model_pt = ChemCeption(n_tasks=n_tasks,
                                 img_spec=img_spec,
                                 img_size=img_size,
                                 augment=False,
                                 mode='classification')
     model_pt.fit(dataset_pt, nb_epoch=1)
 
-    model_ft = ChemCeptionModel(n_tasks=n_tasks,
+    model_ft = ChemCeption(n_tasks=n_tasks,
                                 img_spec=img_spec,
                                 img_size=img_size,
                                 augment=False,

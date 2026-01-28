@@ -16,13 +16,13 @@ logger = logging.getLogger(__name__)
 DEFAULT_INCEPTION_BLOCKS = {"A": 3, "B": 3, "C": 3}
 
 
-class ChemCeption(nn.Module):
+class ChemCeptionLayer(nn.Module):
     """
-    Note: This is an internal class intended for use exclusively by the ChemCeptionModel
+    Note: This is an internal class intended for use exclusively by the 'ChemCeption'
     class and is not designed to be used directly by end users. It assumes that all required
     ChemCeption components have already been correctly constructed and passed to it.
     Using this class with missing or incorrectly configured components may result in errors
-    during the forward pass. It is strongly recommended to use ChemCeptionModel,which provides
+    during the forward pass. It is strongly recommended to use 'ChemCeption', which provides
     safer defaults and finer control over model behavior, such as loading, freezing,
     and unfreezing specific layers.
 
@@ -56,7 +56,7 @@ class ChemCeption(nn.Module):
     >>> import torch.nn as nn
     >>> import deepchem as dc
     >>> from deepchem.models.torch_models.chemnet_layers import Stem, InceptionResnetA, InceptionResnetB, InceptionResnetC, ReductionA, ReductionB
-    >>> from deepchem.models.torch_models import ChemCeption
+    >>> from deepchem.models.torch_models import ChemCeptionLayer
     >>> DEFAULT_INCEPTION_BLOCKS = {"A": 3, "B": 3, "C": 3}
     >>> base_filters = 16
     >>> img_spec = 'std'
@@ -87,7 +87,7 @@ class ChemCeption(nn.Module):
     ... else:
     ...        output_layer = components['fc_regression']
     >>> input = image.permute(0, 3, 1, 2) # to convert from channel last  (N,H,W,C) to pytorch default channel first (N,C,H,W) representation
-    >>> model = ChemCeption(stem=components['stem'],
+    >>> model = ChemCeptionLayer(stem=components['stem'],
     ...                       inception_resnet_A=components['inception_resnet_A'],
     ...                       reduction_A=components['reduction_A'],
     ...                       inception_resnet_B=components['inception_resnet_B'],
@@ -145,7 +145,7 @@ class ChemCeption(nn.Module):
         n_classes: int, default 2
             Number of classes (used only for classification)
         """
-        super(ChemCeption, self).__init__()
+        super(ChemCeptionLayer, self).__init__()
 
         self.mode = mode
         self.n_tasks = n_tasks
@@ -196,7 +196,7 @@ class ChemCeption(nn.Module):
             return x.view(-1, self.n_tasks, 1)
 
 
-class ChemCeptionModel(ModularTorchModel):
+class ChemCeption(ModularTorchModel):
     """
     Modular wrapper around ChemCeption for flexible pretraining and finetuning.
     This class provides a `ModularTorchModel` interface for ChemCeption. It
@@ -233,7 +233,7 @@ class ChemCeptionModel(ModularTorchModel):
     >>> import numpy as np
     >>> import deepchem as dc
     >>> from deepchem.feat import SmilesToImage
-    >>> from deepchem.models.torch_models.chemception import ChemCeptionModel
+    >>> from deepchem.models.torch_models.chemception import ChemCeption
     >>> n_samples = 6
     >>> img_size = 80
     >>> n_tasks = 10
@@ -246,7 +246,7 @@ class ChemCeptionModel(ModularTorchModel):
     >>> X_images = np.array([img.squeeze() for img in X_images])[:, np.newaxis, :, :]
     >>> dataset_pt = dc.data.NumpyDataset(X_images, y_pretrain)
     >>> dataset_ft = dc.data.NumpyDataset(X_images, y_finetune)
-    >>> pretrain_model = ChemCeptionModel(
+    >>> pretrain_model = ChemCeption(
     ...     img_size=img_size,
     ...     n_tasks=n_tasks,
     ...     n_classes=n_classes,
@@ -255,7 +255,7 @@ class ChemCeptionModel(ModularTorchModel):
     ... )
     >>> pretrain_loss = pretrain_model.fit(dataset_pt, nb_epoch=2)
     >>> pretrain_model.save_checkpoint()
-    >>> finetune_model = ChemCeptionModel(
+    >>> finetune_model = ChemCeption(
     ...     img_size=img_size,
     ...     n_tasks=n_tasks,
     ...     n_classes=n_classes,
@@ -407,7 +407,7 @@ class ChemCeptionModel(ModularTorchModel):
             output_layer = self.components['fc_classification']
         else:
             output_layer = self.components['fc_regression']
-        return ChemCeption(
+        return ChemCeptionLayer(
             stem=self.components['stem'],
             inception_resnet_A=self.components['inception_resnet_A'],
             reduction_A=self.components['reduction_A'],
