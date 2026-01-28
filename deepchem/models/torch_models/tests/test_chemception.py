@@ -107,16 +107,16 @@ def test_chemception_forward():
         0, 3, 1, 2
     )  # to convert from channel last  (N,H,W,C) to pytorch default channel first (N,C,H,W) representation
     model = ChemCeptionLayer(stem=components['stem'],
-                        inception_resnet_A=components['inception_resnet_A'],
-                        reduction_A=components['reduction_A'],
-                        inception_resnet_B=components['inception_resnet_B'],
-                        reduction_B=components['reduction_B'],
-                        inception_resnet_C=components['inception_resnet_C'],
-                        global_avg_pool=components['global_avg_pool'],
-                        output_layer=output_layer,
-                        mode=mode,
-                        n_tasks=n_tasks,
-                        n_classes=n_classes)
+                                inception_resnet_A=components['inception_resnet_A'],
+                                reduction_A=components['reduction_A'],
+                                inception_resnet_B=components['inception_resnet_B'],
+                                reduction_B=components['reduction_B'],
+                                inception_resnet_C=components['inception_resnet_C'],
+                                global_avg_pool=components['global_avg_pool'],
+                                output_layer=output_layer,
+                                mode=mode,
+                                n_tasks=n_tasks,
+                                n_classes=n_classes)
     output = model(input)
 
     # preditions
