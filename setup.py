@@ -16,7 +16,11 @@ extras = {
         'torch==2.2.1', 'torchvision', 'pytorch-lightning', 'dgl<2.2.1',
         'dgllife'
     ],
-    'tensorflow': ['tensorflow', 'tensorflow_probability', 'tensorflow_addons'],
+    'tensorflow': [
+        'tensorflow',
+        'tensorflow_probability',
+        "tensorflow_addons; python_version < '3.12'",
+    ],
     'dqc': ['dqc', 'xitorch', 'torch==2.2.1', 'pylibxc2']
 }
 

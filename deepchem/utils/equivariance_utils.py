@@ -1,5 +1,5 @@
 import math
-from typing import Optional, List, Dict, Tuple, Callable
+from typing import Optional, List, Dict, Tuple
 import torch
 from deepchem.models.torch_models.layers import Fiber
 from deepchem.utils.cache_utils import cached_dirpklgz
@@ -993,7 +993,7 @@ def change_basis_real_to_complex(
         k: int,
         dtype: Optional[torch.dtype] = None,
         device: Optional[torch.device] = None) -> torch.Tensor:
-    r"""Construct a transformation matrix to change the basis from real to complex spherical harmonics.
+    """Construct a transformation matrix to change the basis from real to complex spherical harmonics.
 
     This function constructs a transformation matrix Q that converts real spherical
     harmonics into complex spherical harmonics.
@@ -1248,3 +1248,1366 @@ def commutator(A: torch.Tensor, B: torch.Tensor) -> torch.Tensor:
             [ 12,   4]])
     """
     return torch.matmul(A, B) - torch.matmul(B, A)
+
+
+class LieGroup:
+    """Abstract base class for Lie groups used in LieConv [1] (https://github.com/mfinzi/LieConv).
+
+    This class represents continuous Lie groups acting on
+    Euclidean data, as required by LieConv-style equivariant neural networks [1].
+    Specific groups, like translations (T) or 3d roto-translations (SE(3)), or subclasses
+    must implement the group exponential and logarithm maps, as well
+    as a lifting procedure from Euclidean coordinates to group-aligned
+    representations.
+
+    Each group is characterized by:
+    - A representation space on which the group acts.
+    - A Lie algebra parameterization.
+    - An optional quotient (orbit) embedding.
+
+    Subclasses must implement at least:
+    - :meth:`exp` - the group exponential map
+    - :meth:`log` - the group logarithm map
+    - :meth:`lifted_elems` - lifting from Euclidean coordinates to Lie algebra elements
+
+    and define the attributes `rep_dim`, `lie_dim`, and `q_dim`.
+
+    Attributes
+    ----------
+    rep_dim : int
+        Dimension of the representation space on which the group acts
+        (e.g., 2 for SO(2) acting on R^2).
+    lie_dim : int
+        Dimension of the Lie algebra parameterization
+        (e.g., 1 for SO(2)).
+    q_dim : int
+        Dimension of the quotient space embedding X/G, if applicable
+        (e.g., 1 for SO(2) acting on R^2).
+
+    References
+    ----------
+    .. [1] Generalizing Convolutional Neural Networks for Equivariance
+           to Lie Groups on Arbitrary Continuous Data
+           Marc Finzi, Samuel Stanton, Pavel Izmailov, Andrew Gordon Wilson
+           NeurIPS 2020, https://arxiv.org/abs/2002.12880
+    """
+
+    rep_dim: int
+    lie_dim: int
+    q_dim: int
+
+    def __init__(self, alpha: float = 0.2):
+        """Initialize the Lie group.
+
+        Parameters
+        ----------
+        alpha : float, optional (default 0.2)
+            Parameter controlling the contribution of Lie group displacement
+            versus orbit (quotient-space) displacement in the distance metric.
+            Larger values emphasize group motion (orientation/rotation),
+            while smaller values emphasize orbit or spatial displacement.
+        """
+        super().__init__()
+        self.alpha = alpha
+
+    def exp(self, a: torch.Tensor) -> torch.Tensor:
+        """Exponential map from the Lie algebra to the Lie group.
+
+        Computes the group element
+        $\\exp\\left(\\sum_i a_i A_i\\right)$,
+        where $\\{A_i\\}$ are the generators of the Lie algebra and
+        $a \\in \\mathbb{R}^{\\text{lie\\_dim}}$ are the corresponding coefficients.
+
+        Parameters
+        ----------
+        a : torch.Tensor
+            Lie algebra coefficients taking values in
+            $\mathbb{R}^{\\text{lie\\_dim}}$.
+
+        Returns
+        -------
+        torch.Tensor
+            Group elements represented as matrices in
+            $\mathbb{R}^{\\text{rep\\_dim} \\times \\text{rep\\_dim}}$.
+        """
+        raise NotImplementedError
+
+    def log(self, u: torch.Tensor) -> torch.Tensor:
+        """Logarithm map from the Lie group to the Lie algebra.
+
+        Computes the Lie algebra element corresponding to a group element,
+        expressed in the chosen Lie algebra basis.
+
+        Parameters
+        ----------
+        u : torch.Tensor
+            Group elements represented as matrices in
+            $\mathbb{R}^{\\text{rep\\_dim} \\times \\text{rep\\_dim}}$.
+
+        Returns
+        -------
+        torch.Tensor
+            Lie algebra coefficients taking values in
+            $\mathbb{R}^{\\text{lie\\_dim}}$.
+        """
+        raise NotImplementedError
+
+    def lifted_elems(
+        self,
+        points: torch.Tensor,
+        n_samples: int,
+        **kwargs,
+    ) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
+        """Lift Euclidean coordinates into Lie algebra and quotient representations.
+
+        This method maps input points in Euclidean space to elements of the Lie
+        algebra, together with optional quotient (orbit) embeddings. For groups
+        with multivalued lifts, multiple samples may be generated per input point.
+
+        Parameters
+        ----------
+        points : torch.Tensor
+            Input points taking values in $\mathbb{R}^{\\text{rep\\_dim}}$.
+        n_samples : int
+            Number of lifted samples per point.
+
+        Returns
+        -------
+        a : torch.Tensor
+            Lie algebra elements taking values in $\mathbb{R}^{\\text{lie\\_dim}}$.
+        q : torch.Tensor or None
+            Quotient (orbit) embeddings taking values in
+            $\mathbb{R}^{\\text{q\\_dim}}$, or ``None`` if the quotient is trivial.
+        """
+        raise NotImplementedError
+
+    def inv(self, g: torch.Tensor) -> torch.Tensor:
+        """Compute the inverse of a group element.
+
+        Uses the identity $g^{-1} = \\exp(-\\log(g))$.
+
+        Parameters
+        ----------
+        g : torch.Tensor
+            Group elements represented as matrices in
+            $\mathbb{R}^{\\text{rep\\_dim} \\times \\text{rep\\_dim}}$.
+
+        Returns
+        -------
+        torch.Tensor
+            Inverse group elements in
+            $\mathbb{R}^{\\text{rep\\_dim} \\times \\text{rep\\_dim}}$.
+        """
+        return self.exp(-self.log(g))
+
+    def distance(self, abq_pairs: torch.Tensor) -> torch.Tensor:
+        """Compute the combined group and orbit distance.
+
+        The distance between two lifted points is defined as
+        $$
+        \\alpha \\, \\lVert \\Delta a \\rVert
+        + (1 - \\alpha) \\, \\lVert q_1 - q_2 \\rVert,
+        $$
+        where $\\Delta a = \\log(v^{-1} u)$ is the relative Lie algebra element and
+        $q_1, q_2$ are the corresponding quotient embeddings.
+
+        Parameters
+        ----------
+        abq_pairs : torch.Tensor
+            Concatenated relative Lie algebra and quotient components taking values in
+            $\mathbb{R}^{\\text{lie\\_dim} + 2\\,\\text{q\\_dim}}$.
+
+        Returns
+        -------
+        ArrayLike
+            Scalar distance values.
+        """
+        ab_dist = torch.norm(abq_pairs[..., :self.lie_dim], dim=-1)
+        if self.q_dim is None:
+            raise ValueError("q_dim must be defined to compute distance.")
+        if self.q_dim > 0:
+            qa = abq_pairs[..., self.lie_dim:self.lie_dim + self.q_dim]
+            qb = abq_pairs[..., self.lie_dim + self.q_dim:self.lie_dim +
+                           2 * self.q_dim]
+            qa_qb_dist = torch.norm(qa - qb, dim=-1)
+        else:
+            qa_qb_dist = torch.zeros_like(ab_dist)
+
+        return self.alpha * ab_dist + (1.0 - self.alpha) * qa_qb_dist
+
+    def lift(
+        self,
+        x: Tuple[torch.Tensor, torch.Tensor, torch.Tensor],
+        nsamples: int,
+        **kwargs,
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        """Lift inputs to pairwise Lie group representations.
+
+        This method lifts Euclidean points into the Lie algebra (and optional
+        quotient space), expands associated features and masks, and constructs
+        all pairwise relative group elements via the group logarithm.
+
+        Parameters
+        ----------
+        x : Tuple
+            Tuple ``(p, v, m)`` consisting of:
+            - ``p``: input points taking values in $\mathbb{R}^{\\text{rep\\_dim}}$
+            - ``v``: feature values associated with each point
+            - ``m``: binary mask indicating valid points
+        nsamples : int
+            Number of lifted samples per point.
+
+        Returns
+        -------
+        embedded_locations : torch.Tensor
+            Pairwise relative group elements, optionally augmented with quotient
+            embeddings, taking values in
+            $\mathbb{R}^{\\text{lie\\_dim} + 2\\,\\text{q\\_dim}}$.
+        expanded_v : torch.Tensor
+            Feature values expanded to align with pairwise group elements.
+        expanded_mask : torch.Tensor
+            Mask expanded to align with pairwise group elements.
+        """
+
+        p, v, m = x
+
+        expanded_a, expanded_q = self.lifted_elems(p, nsamples, **kwargs)
+
+        nsamples = expanded_a.shape[-2] // m.shape[-1]
+
+        # Expand features
+        expanded_v = v[...,
+                       None, :].repeat((1,) * len(v.shape[:-1]) + (nsamples, 1))
+        expanded_v = expanded_v.reshape(*expanded_a.shape[:-1], v.shape[-1])
+
+        # Expand mask
+        expanded_mask = m[...,
+                          None].repeat((1,) * len(v.shape[:-1]) + (nsamples,))
+        expanded_mask = expanded_mask.reshape(*expanded_a.shape[:-1])
+
+        paired_a = self.elems2pairs(expanded_a)
+
+        if expanded_q is not None:
+            q_in = expanded_q.unsqueeze(-2).expand(*paired_a.shape[:-1], 1)
+            q_out = expanded_q.unsqueeze(-3).expand(*paired_a.shape[:-1], 1)
+            embedded_locations = torch.cat([paired_a, q_in, q_out], dim=-1)
+        else:
+            embedded_locations = paired_a
+
+        return embedded_locations, expanded_v, expanded_mask
+
+    def expand_like(
+        self,
+        v: torch.Tensor,
+        m: torch.Tensor,
+        a: torch.Tensor,
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Expand features and masks to align with lifted Lie algebra elements.
+
+        This method replicates per-point feature values and masks so that they
+        correspond to the lifted Lie algebra elements produced by the group
+        lifting procedure.
+
+        Parameters
+        ----------
+        v : torch.Tensor
+            Feature values associated with input points.
+        m : torch.Tensor
+            Mask indicating valid input points.
+        a : torch.Tensor
+            Lifted Lie algebra elements used to determine the expansion.
+
+        Returns
+        -------
+        expanded_v : torch.Tensor
+            Feature values expanded to align with lifted Lie algebra elements.
+        expanded_mask : torch.Tensor
+            Mask expanded to align with lifted Lie algebra elements.
+        """
+
+        nsamples = a.shape[-2] // m.shape[-1]
+
+        expanded_v = v[...,
+                       None, :].repeat((1,) * len(v.shape[:-1]) + (nsamples, 1))
+        expanded_v = expanded_v.reshape(*a.shape[:2], v.shape[-1])
+
+        expanded_mask = m[...,
+                          None].repeat((1,) * len(v.shape[:-1]) + (nsamples,))
+        expanded_mask = expanded_mask.reshape(*a.shape[:2])
+
+        return expanded_v, expanded_mask
+
+    def elems2pairs(self, a: torch.Tensor) -> torch.Tensor:
+        """Compute pairwise relative Lie algebra elements.
+
+        For lifted elements $a_i, a_j \in \mathbb{R}^{\text{lie\_dim}}$, this method
+        computes the relative displacement
+        $\log\!\left(\exp(-a_j)\exp(a_i)\right)$
+        for all ordered pairs $(i, j)$.
+
+        Parameters
+        ----------
+        a : torch.Tensor
+            Lie algebra elements taking values in $\mathbb{R}^{\text{lie\_dim}}$.
+
+        Returns
+        -------
+        pairwise_lie_algebra : torch.Tensor
+            Pairwise relative Lie algebra elements.
+        """
+
+        vinv = self.exp(-a.unsqueeze(-3))
+        u = self.exp(a.unsqueeze(-2))
+        pairwise_lie_algebra = self.log(vinv @ u)
+        return pairwise_lie_algebra
+
+
+class T(LieGroup):
+    """k-dimensional translation group R^k adapted from [1] (https://github.com/mfinzi/LieConv).
+
+    This Lie group (T) represents pure translations acting on R^k.
+
+    Note that for the translation group the exponential and logarithm maps are
+    identities. Consequently, relative group elements reduce to simple subtraction.
+    In particular, in two dimensions this corresponds to the trivial difference
+    x_i − x_j for $x \in \mathbb{R}^2$.
+
+
+    The quotient space is trivial (q_dim = 0).
+
+    Examples
+    --------
+    >>> from deepchem.utils.equivariance_utils import T
+    >>> G = T(k=2)
+    >>> x = torch.tensor([[0.0, 0.0],
+    ...                   [1.0, 2.0]])
+    >>> a, q = G.lifted_elems(x, n_samples=1)
+    >>> a
+    tensor([[0., 0.],
+            [1., 2.]])
+    >>> pairs = G.elems2pairs(a)
+    >>> pairs
+    tensor([[[ 0.,  0.],
+             [-1., -2.]],
+    <BLANKLINE>
+            [[ 1.,  2.],
+             [ 0.,  0.]]])
+    >>> ab = pairs.reshape(-1, 2)
+    >>> G.distance(ab)
+    tensor([0.0000, 0.4472, 0.4472, 0.0000])
+
+    References
+    ----------
+    .. [1] Generalizing Convolutional Neural Networks for Equivariance
+           to Lie Groups on Arbitrary Continuous Data
+           Marc Finzi, Samuel Stanton, Pavel Izmailov, Andrew Gordon Wilson
+           NeurIPS 2020, https://arxiv.org/abs/2002.12880
+    """
+
+    def __init__(self, k: int, alpha: float = 0.2) -> None:
+        """Initialize the k-dimensional translation group.
+
+        Parameters
+        ----------
+        k : int
+            Dimension of the translation space R^k.
+        alpha : float, optional
+            Weighting factor for group displacement in the distance metric.
+        """
+        super().__init__(alpha=alpha)
+        self.rep_dim: int = k
+        self.lie_dim: int = k
+        self.q_dim: int = 0
+
+    def exp(self, a: torch.Tensor) -> torch.Tensor:
+        """Exponential map (identity for translations).
+
+        Parameters
+        ----------
+        a : torch.Tensor
+            Lie algebra coefficients taking values in $\mathbb{R}^{\text{lie\_dim}}$.
+
+        Returns
+        -------
+        torch.Tensor
+            Group elements of shape $\mathbb{R}^{\text{k}}$.
+        """
+        return a
+
+    def log(self, g: torch.Tensor) -> torch.Tensor:
+        """Logarithm map from the Lie group to the Lie algebra.
+
+        For the translation group, this map is the identity.
+
+        Parameters
+        ----------
+        g : torch.Tensor
+            Group elements taking values in $\mathbb{R}^k$.
+
+        Returns
+        -------
+        torch.Tensor
+            Lie algebra elements taking values in $\mathbb{R}^k$.
+        """
+        return g
+
+    def lifted_elems(
+        self,
+        points: torch.Tensor,
+        n_samples: int,
+        **kwargs,
+    ) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
+        """Lift Euclidean points into the Lie algebra.
+
+        For the translation group, the lift is unique since the group is Abelian
+        and simply connected; therefore `nsamples` must be 1.
+
+        Parameters
+        ----------
+        points : torch.Tensor
+            Input points taking values in $\mathbb{R}^k$.
+        n_samples : int
+            Number of lifted samples per point (must be 1).
+
+        Returns
+        -------
+        a : torch.Tensor
+            Lie algebra elements taking values in $\mathbb{R}^k$.
+        q : None
+            No quotient embedding for the translation group.
+        """
+        if n_samples != 1:
+            raise ValueError("Translation group is Abelian; nsamples must be 1")
+        return points, None
+
+    def elems2pairs(self, a: torch.Tensor) -> torch.Tensor:
+        """Compute pairwise Lie algebra differences.
+
+        For translations:
+            log(exp(-b) exp(a)) = a - b
+
+        Parameters
+        ----------
+        a : torch.Tensor
+            Lie algebra elements of shape (*, n, k).
+
+        Returns
+        -------
+        torch.Tensor
+            Pairwise differences of shape (*, n, n, k).
+        """
+        return a.unsqueeze(-2) - a.unsqueeze(-3)
+
+
+def sinc(x: torch.Tensor, tresh: float = 7e-02) -> torch.Tensor:
+    r"""Compute the normalized sinc function :math:`\mathrm{sinc}(x) = \sin(x) / x`.
+    This code was adapted from [1] (https://github.com/mfinzi/LieConv).
+
+    This implementation is numerically stable near :math:`x = 0` by using a
+    Taylor series expansion for small values of :math:`|x|`.
+
+    The Taylor approximation used is:
+
+    :math:`\mathrm{sinc}(x) \approx
+    1 - \frac{x^2}{6}
+    \left(1 - \frac{x^2}{20}
+    \left(1 - \frac{x^2}{42}\right)\right)`
+
+    Parameters
+    ----------
+    x : torch.Tensor
+        Input tensor.
+    tresh : float, optional (default 7e-02)
+        Threshold below which the Taylor expansion is used.
+
+    Returns
+    -------
+    torch.Tensor
+        Elementwise values of :math:`\sin(x) / x`.
+
+    Examples
+    --------
+    >>> import torch
+    >>> from deepchem.utils.equivariance_utils import sinc
+    >>> x = torch.tensor([0.0, 1e-3, 1.0])
+    >>> sinc(x)
+    tensor([1.0000, 1.0000, 0.8415])
+
+    References
+    ----------
+    .. [1] Generalizing Convolutional Neural Networks for Equivariance
+           to Lie Groups on Arbitrary Continuous Data
+           Marc Finzi, Samuel Stanton, Pavel Izmailov, Andrew Gordon Wilson
+           NeurIPS 2020, https://arxiv.org/abs/2002.12880
+    """
+    use_taylor = (x.abs() < tresh)
+    return torch.where(
+        use_taylor,
+        1 - (x**2) / 6 * (1 - (x**2) / 20 * (1 - (x**2) / 42)),
+        x.sin() / x,
+    )
+
+
+def sincc(x: torch.Tensor, tresh: float = 7e-02) -> torch.Tensor:
+    r"""Compute :math:`(1 - \mathrm{sinc}(x)) / x^2`.
+
+    This function arises frequently in Lie group exponential map expansions,
+    particularly for rotation groups such as :math:`\mathrm{SO}(3)`.
+    This code was adapted from [1] (https://github.com/mfinzi/LieConv).
+
+    Near :math:`x = 0`, the Taylor approximation is:
+
+    :math:`\frac{1 - \mathrm{sinc}(x)}{x^2} \approx
+    \frac{1}{6}
+    \left(1 - \frac{x^2}{20}
+    \left(1 - \frac{x^2}{42}
+    \left(1 - \frac{x^2}{72}\right)\right)\right)`
+
+    Parameters
+    ----------
+    x : torch.Tensor
+        Input tensor.
+    tresh : float, optional (default 7e-02)
+        Threshold below which the Taylor expansion is used.
+
+    Returns
+    -------
+    torch.Tensor
+        Elementwise values of :math:`(1 - \mathrm{sinc}(x)) / x^2`.
+
+    Examples
+    --------
+    >>> import torch
+    >>> from deepchem.utils.equivariance_utils import sincc
+    >>> x = torch.tensor([0.0, 1e-3, 1.0])
+    >>> sincc(x)
+    tensor([0.1667, 0.1667, 0.1585])
+
+    References
+    ----------
+    .. [1] Generalizing Convolutional Neural Networks for Equivariance
+           to Lie Groups on Arbitrary Continuous Data
+           Marc Finzi, Samuel Stanton, Pavel Izmailov, Andrew Gordon Wilson
+           NeurIPS 2020, https://arxiv.org/abs/2002.12880
+    """
+    use_taylor = (x.abs() < tresh)
+    return torch.where(
+        use_taylor,
+        1 / 6 * (1 - (x**2) / 20 * (1 - (x**2) / 42 * (1 - (x**2) / 72))),
+        (x - x.sin()) / x**3,
+    )
+
+
+def cosc(x: torch.Tensor, tresh: float = 7e-02) -> torch.Tensor:
+    r"""Compute :math:`(1 - \cos(x)) / x^2`.
+    This code was adapted from [1] (https://github.com/mfinzi/LieConv).
+
+    This function appears in second-order expansions of rotation matrices
+    and Lie group Jacobians.
+
+    Near :math:`x = 0`, the Taylor approximation is:
+
+    :math:`\frac{1 - \cos(x)}{x^2} \approx
+    \frac{1}{2}
+    \left(1 - \frac{x^2}{12}
+    \left(1 - \frac{x^2}{30}
+    \left(1 - \frac{x^2}{56}\right)\right)\right)`
+
+    Parameters
+    ----------
+    x : torch.Tensor
+        Input tensor.
+    tresh : float, optional (default 7e-02)
+        Threshold below which the Taylor expansion is used.
+
+    Returns
+    -------
+    torch.Tensor
+        Elementwise values of :math:`(1 - \cos(x)) / x^2`.
+
+    Examples
+    --------
+    >>> import torch
+    >>> from deepchem.utils.equivariance_utils import cosc
+    >>> x = torch.tensor([0.0, 1e-3, 1.0])
+    >>> cosc(x)
+    tensor([0.5000, 0.5000, 0.4597])
+
+    References
+    ----------
+    .. [1] Generalizing Convolutional Neural Networks for Equivariance
+           to Lie Groups on Arbitrary Continuous Data
+           Marc Finzi, Samuel Stanton, Pavel Izmailov, Andrew Gordon Wilson
+           NeurIPS 2020, https://arxiv.org/abs/2002.12880
+    """
+    use_taylor = (x.abs() < tresh)
+    return torch.where(
+        use_taylor,
+        1 / 2 * (1 - (x**2) / 12 * (1 - (x**2) / 30 * (1 - (x**2) / 56))),
+        (1 - x.cos()) / x**2,
+    )
+
+
+def coscc(x: torch.Tensor, tresh: float = 7e-02) -> torch.Tensor:
+    r"""Compute a higher-order cosine correction term used in
+    :math:`\mathrm{SO}(3)` Jacobians.
+    This code was adapted from [1] (https://github.com/mfinzi/LieConv).
+
+    This function corresponds to stabilized expressions involving
+    :math:`(1 - \cos(x))` and :math:`\sin(x)` that appear in inverse Jacobians
+    of the exponential map.
+
+    Near :math:`x = 0`, the Taylor approximation is:
+
+    :math:`\mathrm{coscc}(x) \approx
+    \frac{1}{12}
+    \left(1 + \frac{x^2}{60}
+    \left(1 + \frac{x^2}{42}
+    \left(1 + \frac{x^2}{40}\right)\right)\right)`
+
+    Parameters
+    ----------
+    x : torch.Tensor
+        Input tensor.
+    tresh : float, optional (default 7e-02)
+        Threshold below which the Taylor expansion is used.
+
+    Returns
+    -------
+    torch.Tensor
+        Elementwise correction values.
+
+    Examples
+    --------
+    >>> import torch
+    >>> from deepchem.utils.equivariance_utils import coscc
+    >>> x = torch.tensor([0.0, 1e-3, 1.0])
+    >>> coscc(x)
+    tensor([0.0833, 0.0833, 0.0848])
+
+    Notes
+    -----
+    The full expression includes safeguards against numerical instability
+    when :math:`\cos(x) \approx 1`.
+
+    References
+    ----------
+    .. [1] Generalizing Convolutional Neural Networks for Equivariance
+           to Lie Groups on Arbitrary Continuous Data
+           Marc Finzi, Samuel Stanton, Pavel Izmailov, Andrew Gordon Wilson
+           NeurIPS 2020, https://arxiv.org/abs/2002.12880
+    """
+    use_taylor = (x.abs() < tresh)
+
+    t_expand = 1 / 12 * (1 + (x**2) / 60 * (1 + (x**2) / 42 * (1 +
+                                                               (x**2) / 40)))
+    cos_term = (2 * (1 - x.cos())).clamp(min=1e-6)
+    full = (1 - x * x.sin() / cos_term) / x**2
+
+    return torch.where(use_taylor, t_expand, full)
+
+
+def sinc_inv(x: torch.Tensor, tresh: float = 7e-02) -> torch.Tensor:
+    r"""Compute the inverse sinc function :math:`x / \sin(x)`.
+    This code was adapted from [1] (https://github.com/mfinzi/LieConv).
+
+    Near :math:`x = 0`, the Taylor approximation is:
+
+    :math:`\frac{x}{\sin(x)} \approx
+    1 + \frac{x^2}{6} + \frac{7 x^4}{360}`
+
+    Parameters
+    ----------
+    x : torch.Tensor
+        Input tensor.
+    tresh : float, optional (default 7e-02)
+        Threshold below which the Taylor expansion is used.
+
+    Returns
+    -------
+    torch.Tensor
+        Elementwise values of :math:`x / \sin(x)`.
+
+    Examples
+    --------
+    >>> import torch
+    >>> from deepchem.utils.equivariance_utils import sinc_inv
+    >>> x = torch.tensor([0.0, 1e-3, 1.0])
+    >>> sinc_inv(x)
+    tensor([1.0000, 1.0000, 1.1884])
+
+    References
+    ----------
+    .. [1] Generalizing Convolutional Neural Networks for Equivariance
+           to Lie Groups on Arbitrary Continuous Data
+           Marc Finzi, Samuel Stanton, Pavel Izmailov, Andrew Gordon Wilson
+           NeurIPS 2020, https://arxiv.org/abs/2002.12880
+    """
+    use_taylor = (x.abs() < tresh)
+    t_expand = 1 + (1 / 6) * x**2 + (7 / 360) * x**4
+    return torch.where(use_taylor, t_expand, x / x.sin())
+
+
+def cross_matrix(k: torch.Tensor) -> torch.Tensor:
+    r"""Construct the skew-symmetric cross-product matrix for vectors in
+    :math:`\mathbb{R}^3`.
+    This code was adapted from [1] (https://github.com/mfinzi/LieConv).
+
+    This corresponds to the Hodge star operator mapping
+    :math:`\Lambda^1 \mathbb{R}^3 \rightarrow \Lambda^2 \mathbb{R}^3`,
+    such that for any :math:`v \in \mathbb{R}^3`,
+    :math:`k \times v = [k]_\times v`.
+
+    Parameters
+    ----------
+    k : torch.Tensor
+        Input vectors of shape :math:`(n, 3)`, where n is the dimension of k.
+
+    Returns
+    -------
+    torch.Tensor
+        Skew-symmetric matrices of shape :math:`(n, 3, 3)`.
+
+    Examples
+    --------
+    >>> import torch
+    >>> from deepchem.utils.equivariance_utils import cross_matrix
+    >>> k = torch.tensor([1.0, 2.0, 3.0])
+    >>> cross_matrix(k)
+    tensor([[ 0., -3.,  2.],
+            [ 3.,  0., -1.],
+            [-2.,  1.,  0.]])
+
+    References
+    ----------
+    .. [1] Generalizing Convolutional Neural Networks for Equivariance
+           to Lie Groups on Arbitrary Continuous Data
+           Marc Finzi, Samuel Stanton, Pavel Izmailov, Andrew Gordon Wilson
+           NeurIPS 2020, https://arxiv.org/abs/2002.12880
+    """
+    K = torch.zeros(*k.shape[:-1], 3, 3, device=k.device, dtype=k.dtype)
+    # Construct the atrix of the form:
+    # [k]_x =
+    # [[  0,   -k_z,   k_y],
+    #  [ k_z,    0,   -k_x],
+    #  [-k_y,  k_x,    0 ]]
+    K[..., 0, 1] = -k[..., 2]
+    K[..., 0, 2] = k[..., 1]
+    K[..., 1, 0] = k[..., 2]
+    K[..., 1, 2] = -k[..., 0]
+    K[..., 2, 0] = -k[..., 1]
+    K[..., 2, 1] = k[..., 0]
+    return K
+
+
+def uncross_matrix(K: torch.Tensor) -> torch.Tensor:
+    r"""Recover a vector in :math:`\mathbb{R}^3` from a skew-symmetric matrix.
+
+    This code was adapted from [1] (https://github.com/mfinzi/LieConv).
+    This is the inverse operation of :func:`cross_matrix`, corresponding to
+    the Hodge star mapping
+    :math:`\Lambda^2 \mathbb{R}^3 \rightarrow \Lambda^1 \mathbb{R}^3`.
+
+    Parameters
+    ----------
+    K : torch.Tensor
+        Skew-symmetric matrices of shape :math:`(n, 3, 3)`, where n is the dimension of K.
+
+    Returns
+    -------
+    torch.Tensor
+        Vectors of shape :math:`(n, 3)`.
+
+    Examples
+    --------
+    >>> import torch
+    >>> from deepchem.utils.equivariance_utils import uncross_matrix
+    >>> k = torch.tensor([1.0, 2.0, 3.0])
+    >>> uncross_matrix(cross_matrix(k))
+    tensor([1., 2., 3.])
+
+    References
+    ----------
+    .. [1] Generalizing Convolutional Neural Networks for Equivariance
+           to Lie Groups on Arbitrary Continuous Data
+           Marc Finzi, Samuel Stanton, Pavel Izmailov, Andrew Gordon Wilson
+           NeurIPS 2020, https://arxiv.org/abs/2002.12880
+    """
+    k = torch.zeros(*K.shape[:-2], 3, device=K.device, dtype=K.dtype)
+    k[..., 0] = (K[..., 2, 1] - K[..., 1, 2]) / 2  # k_x
+    k[..., 1] = (K[..., 0, 2] - K[..., 2, 0]) / 2  # k_y
+    k[..., 2] = (K[..., 1, 0] - K[..., 0, 1]) / 2  # k_z
+    return k
+
+
+class SO3(LieGroup):
+    r"""Special Orthogonal Group in 3D :math:`\mathrm{SO}(3)`.
+    This code was adapted from [1] (https://github.com/mfinzi/LieConv).
+
+    This class implements the Lie group of 3D rotations with exponential
+    and logarithmic maps between the Lie algebra
+    :math:`\mathfrak{so}(3) \cong \mathbb{R}^3`
+    and rotation matrices in :math:`\mathbb{R}^{3 \times 3}`.
+
+    Attributes
+    ----------
+    lie_dim : int
+        Dimension of the Lie algebra, equal to 3.
+    rep_dim : int
+        Representation dimension, equal to 3.
+    q_dim : int
+        Orbit identifier dimension, equal to 1.
+
+    Examples
+    --------
+    >>> import torch
+    >>> from deepchem.utils.equivariance_utils import SO3
+    >>> G = SO3()
+    >>> w = torch.tensor([0.0, 0.0, 1.0])
+    >>> R = G.exp(w)
+    >>> R.shape
+    torch.Size([3, 3])
+    >>> # Recover the Lie algebra element using the logarithmic map:
+    >>> w_rec = G.log(R)
+    >>> torch.allclose(w, w_rec, atol=1e-5)
+    True
+    >>> # Sample a batch of random rotations:
+    >>> R = G.sample(8)
+    >>> R.shape
+    torch.Size([8, 3, 3])
+    >>> # Lift 3D points into so3 using stabilizer sampling:
+    >>> points = torch.randn(4, 3)
+    >>> a, q = G.lifted_elems(points, n_samples=6)
+    >>> a.shape
+    torch.Size([24, 3])
+    >>> q.shape
+    torch.Size([24, 1])
+
+    References
+    ----------
+    .. [1] Generalizing Convolutional Neural Networks for Equivariance
+           to Lie Groups on Arbitrary Continuous Data
+           Marc Finzi, Samuel Stanton, Pavel Izmailov, Andrew Gordon Wilson
+           NeurIPS 2020, https://arxiv.org/abs/2002.12880
+    """
+
+    lie_dim: int = 3
+    rep_dim: int = 3
+    q_dim: int = 1
+
+    def __init__(self, alpha: float = 0.2):
+        """Initialize the :math:`\mathrm{SO}(3)` group.
+
+        Parameters
+        ----------
+        alpha : float, optional (default 0.2)
+            Weighting factor for the group displacement component
+            in the distance metric.
+        """
+        super().__init__()
+        self.alpha = alpha
+
+    def exp(self, w: torch.Tensor) -> torch.Tensor:
+        r"""Exponential map :math:`\exp : \mathfrak{so}(3) \rightarrow \mathrm{SO}(3)`.
+
+        Implements Rodrigues' rotation formula. The input vectors encode
+        axis–angle rotations, where the direction specifies the rotation
+        axis and the magnitude specifies the rotation angle.
+
+        Parameters
+        ----------
+        w : torch.Tensor
+            Lie algebra elements of shape :math:`(n, 3)`, where n is the dimension of w.
+
+        Returns
+        -------
+        torch.Tensor
+            Rotation matrices of shape :math:`(n, 3, 3)`.
+
+        Examples
+        --------
+        >>> from deepchem.utils.equivariance_utils import SO3
+        >>> import torch
+        >>> G = SO3()
+        >>> w = torch.tensor([0.0, 0.0, 1.0])
+        >>> R = G.exp(w)
+        >>> R.shape
+        torch.Size([3, 3])
+        """
+        theta = torch.norm(w, dim=-1)[..., None, None]
+        K = cross_matrix(w)
+        I_m = torch.eye(3, device=K.device, dtype=K.dtype)
+        return I_m + K * sinc(theta) + (K @ K) * cosc(theta)
+
+    def log(self, R: torch.Tensor) -> torch.Tensor:
+        r"""Logarithmic map :math:`\log : \mathrm{SO}(3) \rightarrow \mathfrak{so}(3)`.
+
+        Converts rotation matrices into axis–angle coordinates.
+
+        Parameters
+        ----------
+        R : torch.Tensor
+            Rotation matrices of shape :math:`(n, 3, 3)`, where n is the dimension of R.
+
+        Returns
+        -------
+        torch.Tensor
+            Lie algebra elements of shape :math:`(n, 3)`.
+
+        Examples
+        --------
+        >>> from deepchem.utils.equivariance_utils import SO3
+        >>> import torch
+        >>> G = SO3()
+        >>> w = torch.tensor([0.3, -0.2, 0.1])
+        >>> R = G.exp(w)
+        >>> w_rec = G.log(R)
+        >>> torch.allclose(w, w_rec, atol=1e-5)
+        True
+        """
+        trR = R[..., 0, 0] + R[..., 1, 1] + R[
+            ..., 2, 2]  # to compute the trace: tr(R)= R11​+R22​+R33
+        costheta = ((trR - 1) / 2).clamp(min=-1, max=1).unsqueeze(-1)
+        theta = torch.acos(costheta)
+        return uncross_matrix(R) * sinc_inv(theta)
+
+    def sample(
+        self,
+        *shape: int,
+        device: torch.device = torch.device("cpu"),
+        dtype: torch.dtype = torch.float32,
+    ) -> torch.Tensor:
+        """Sample random rotations from :math:`\mathrm{SO}(3)`.
+
+        Rotations are sampled by drawing random unit quaternions and
+        converting them to axis–angle form.
+
+        Parameters
+        ----------
+        *shape : int
+            Batch shape.
+        device : torch.device, optional
+            Target device.
+        dtype : torch.dtype, optional
+            Tensor data type.
+
+        Returns
+        -------
+        torch.Tensor
+            Rotation matrices of shape :math:`(*shape, 3, 3)`.
+
+        Examples
+        --------
+        >>> from deepchem.utils.equivariance_utils import SO3
+        >>> G = SO3()
+        >>> R = G.sample(8)
+        >>> R.shape
+        torch.Size([8, 3, 3])
+        """
+        q = torch.randn(*shape, 4, device=device, dtype=dtype)
+        q /= torch.norm(q, dim=-1, keepdim=True)
+
+        theta_2 = torch.atan2(
+            torch.norm(q[..., 1:], dim=-1),
+            q[..., 0],
+        ).unsqueeze(-1)
+
+        so3_elem = 2 * sinc_inv(theta_2) * q[..., 1:]
+        return self.exp(so3_elem)
+
+    def lifted_elems(
+        self,
+        points: torch.Tensor,
+        n_samples: int,
+        **kwargs,
+    ):
+        """Lift points in :math:`\mathbb{R}^3` to :math:`\mathrm{SO}(3)` elements.
+
+        Each point is lifted by aligning a reference axis with the direction
+        of the point and composing with samples from the stabilizer subgroup.
+
+        Parameters
+        ----------
+        points : torch.Tensor
+            Input points of shape :math:`(*, 3)`.
+        n_samples : int
+            Number of lifted group elements per point.
+
+        Returns
+        -------
+        a : torch.Tensor
+            Lie algebra elements of shape, where n is the dimension of `points`
+            :math:`(n, n_samples, 3)`.
+        q : torch.Tensor
+            Orbit identifiers of shape
+            :math:`(n, n_samples, 1)`.
+
+        Examples
+        --------
+        >>> from deepchem.utils.equivariance_utils import SO3
+        >>> import torch
+        >>> G = SO3()
+        >>> points = torch.randn(4, 3)
+        >>> a, q = G.lifted_elems(points, n_samples=6)
+        >>> a.shape
+        torch.Size([24, 3])
+        >>> q.shape
+        torch.Size([24, 1])
+        """
+        d = self.rep_dim
+        device, dtype = points.device, points.dtype
+
+        q = torch.randn(*points.shape[:-1],
+                        n_samples,
+                        4,
+                        device=device,
+                        dtype=dtype)
+        q /= torch.norm(q, dim=-1, keepdim=True)
+
+        theta = 2 * torch.atan2(
+            torch.norm(q[..., 1:], dim=-1),
+            q[..., 0],
+        ).unsqueeze(-1)
+
+        zhat = torch.zeros(*points.shape[:-1],
+                           n_samples,
+                           3,
+                           device=device,
+                           dtype=dtype)
+        zhat[..., 0] = 1.0
+        Rz = self.exp(zhat * theta)
+
+        r = torch.norm(points, dim=-1, keepdim=True)
+        p_hat = points / r.clamp(min=1e-5)
+
+        w = torch.cross(
+            zhat,
+            p_hat[..., None, :].expand_as(zhat),
+        )
+
+        sin = torch.norm(w, dim=-1)
+        cos = p_hat[..., None, 0]
+
+        angle = torch.atan2(sin, cos).unsqueeze(-1)
+        Rp = self.exp(w * sinc_inv(angle))
+
+        A = self.log(Rp @ Rz)
+
+        q_id = r[..., None, :].expand(*r.shape[:-1], n_samples, 1)
+        flat_q = q_id.reshape(*r.shape[:-2], r.shape[-2] * n_samples, 1)
+        flat_a = A.reshape(*points.shape[:-2], points.shape[-2] * n_samples, d)
+
+        return flat_a, flat_q
+
+
+class SE3(SO3):
+    r"""Special Euclidean Group in 3D, :math:`\mathrm{SE}(3)`.
+    This code was adapted from [1] (https://github.com/mfinzi/LieConv).
+
+    This class represents rigid body transformations in 3D, combining
+    rotations in :math:`\mathrm{SO}(3)` and translations in
+    :math:`\mathbb{R}^3`.
+
+    Elements of the Lie algebra
+    :math:`\mathfrak{se}(3)` are represented as 6D vectors
+    :math:`(\omega, v)`, where :math:`\omega \in \mathbb{R}^3` is the rotation vector
+    and :math:`v \in \mathbb{R}^3` is the translation vector.
+
+    The group elements are represented as homogeneous transformation
+    matrices in :math:`\mathbb{R}^{4 \times 4}`.
+
+    Attributes
+    ----------
+    lie_dim : int
+        Dimension of the Lie algebra, equal to 6.
+    rep_dim : int
+        Representation dimension, equal to 4.
+    q_dim : int
+        Quotient dimension, equal to 0 (trivial quotient).
+
+    Examples
+    --------
+    >>> import torch
+    >>> from deepchem.utils.equivariance_utils import SE3
+    >>> G = SE3()
+    >>> w = torch.tensor([0.0, 0.0, 1.0, 1.0, 0.0, 0.0])
+    >>> T = G.exp(w)
+    >>> T.shape
+    torch.Size([4, 4])
+    >>> # Recover the Lie algebra element using the logarithmic map:
+    >>> w_rec = G.log(T)
+    >>> torch.allclose(w, w_rec, atol=1e-5)
+    True
+    >>> # Lift a batch of 3D points into se3 elements:
+    >>> points = torch.randn(2, 5, 3)
+    >>> a, q = G.lifted_elems(points, n_samples=4)
+    >>> a.shape
+    torch.Size([2, 20, 6])
+    >>> q is None
+    True
+    >>> # Compute a weighted distance between relative transformations:
+    >>> G = SE3(alpha=0.5)
+    >>> rel = torch.randn(10, 6)
+    >>> d = G.distance(rel)
+    >>> d.shape
+    torch.Size([10])
+
+    References
+    ----------
+    .. [1] Generalizing Convolutional Neural Networks for Equivariance
+           to Lie Groups on Arbitrary Continuous Data
+           Marc Finzi, Samuel Stanton, Pavel Izmailov, Andrew Gordon Wilson
+           NeurIPS 2020, https://arxiv.org/abs/2002.12880
+    """
+
+    lie_dim: int = 6
+    rep_dim: int = 4
+    q_dim: int = 0
+
+    def __init__(self, alpha: float = 0.2, per_point: bool = True):
+        """Initialize the :math:`\mathrm{SE}(3)` group.
+
+        Parameters
+        ----------
+        alpha : float, optional (default 0.2)
+            Weighting factor between rotational and translational
+            components in the distance metric.
+        per_point : bool, optional (default True)
+            If ``True``, use a distinct random group element per point
+            when lifting inputs.
+        """
+        super().__init__()
+        self.alpha = alpha
+        self.per_point = per_point
+
+    def exp(self, w: torch.Tensor) -> torch.Tensor:
+        r"""Exponential map :math:`\exp : \mathfrak{se}(3) \rightarrow \mathrm{SE}(3)`.
+
+        Converts Lie algebra elements into homogeneous transformation matrices
+        using the closed-form Rodrigues expansion and the associated
+        left Jacobian.
+
+        Parameters
+        ----------
+        w : torch.Tensor
+            Lie algebra elements of shape :math:`(n, 6)`, where the first
+            three components correspond to rotation and the last three
+            to translation and n is the dimension of w.
+
+        Returns
+        -------
+        torch.Tensor
+            Homogeneous transformation matrices of shape
+            :math:`(n, 4, 4)`.
+
+        Examples
+        --------
+        >>> from deepchem.utils.equivariance_utils import SE3
+        >>> import torch
+        >>> G = SE3()
+        >>> w = torch.tensor([0.0, 0.0, 1.0, 1.0, 0.0, 0.0])
+        >>> T = G.exp(w)
+        >>> T.shape
+        torch.Size([4, 4])
+        """
+        theta = torch.norm(w[..., :3], dim=-1)[..., None, None]
+        K = cross_matrix(w[..., :3])
+        R = super().exp(w[..., :3])
+
+        I_m = torch.eye(3, device=w.device, dtype=w.dtype)
+        V = I_m + cosc(theta) * K + sincc(theta) * (K @ K)
+
+        U = torch.zeros(*w.shape[:-1], 4, 4, device=w.device, dtype=w.dtype)
+        U[..., :3, :3] = R
+        U[..., :3, 3] = (V @ w[..., 3:].unsqueeze(-1)).squeeze(-1)
+        U[..., 3, 3] = 1
+        return U
+
+    def log(self, U: torch.Tensor) -> torch.Tensor:
+        r"""Logarithmic map :math:`\log : \mathrm{SE}(3) \rightarrow \mathfrak{se}(3)`.
+
+        Converts homogeneous transformation matrices into Lie algebra
+        elements using the inverse left Jacobian.
+
+        Parameters
+        ----------
+        U : torch.Tensor
+            Homogeneous transformation matrices of shape
+            :math:`(n, 4, 4)`, where n is the dimension of U.
+
+        Returns
+        -------
+        torch.Tensor
+            Lie algebra elements of shape :math:`(n, 6)`.
+
+        Examples
+        --------
+        >>> from deepchem.utils.equivariance_utils import SE3
+        >>> import torch
+        >>> G = SE3()
+        >>> w = torch.randn(6)
+        >>> T = G.exp(w)
+        >>> w_rec = G.log(T)
+        >>> torch.allclose(w, w_rec, atol=1e-5)
+        True
+        """
+        w = super().log(U[..., :3, :3])
+
+        I_m = torch.eye(3, device=w.device, dtype=w.dtype)
+        K = cross_matrix(w[..., :3])
+        theta = torch.norm(w, dim=-1)[..., None, None]
+
+        cosccc = coscc(theta)
+        V_inv = I_m - K / 2 + cosccc * (K @ K)
+
+        u = (V_inv @ U[..., :3, 3].unsqueeze(-1)).squeeze(-1)
+        return torch.cat([w, u], dim=-1)
+
+    def lifted_elems(
+        self,
+        points: torch.Tensor,
+        n_samples: int,
+        **kwargs,
+    ) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
+        r"""Lift Euclidean points into :math:`\mathfrak{se}(3)` elements.
+
+        This method generates random rotations and combines them with
+        translations defined by the input points.
+
+        Parameters
+        ----------
+        points : torch.Tensor
+            Input points of shape :math:`(B, N, 3)`.
+        n_samples : int
+            Number of lifted samples per point.
+
+        Returns
+        -------
+        a : torch.Tensor
+            Lie algebra elements of shape
+            :math:`(B, N \cdot \text{n_samples}, 6)`.
+        q : None
+            No quotient embedding for :math:`\mathrm{SE}(3)`.
+
+        Examples
+        --------
+        >>> from deepchem.utils.equivariance_utils import SE3
+        >>> import torch
+        >>> G = SE3()
+        >>> points = torch.randn(2, 5, 3)
+        >>> a, q = G.lifted_elems(points, n_samples=4)
+        >>> a.shape
+        torch.Size([2, 20, 6])
+        >>> q is None
+        True
+        """
+        bs, n = points.shape[:2]
+        device = points.device
+        dtype = points.dtype
+
+        # Sample random unit quaternions to represent rotations in SO(3).
+        # When lifting a point x ∈ R^3 to SE(3), we associate it with a
+        # transformation g = (R, t), where R ∈ SO(3) is a rotation and t ∈ R^3 is a translation (point location).
+
+        # The orientation R is not determined by the point x alone, so there are
+        # infinitely many valid SE(3) elements corresponding to the same point.
+        # To account for all possible orientations, LieConv approximates an
+        # integral over SO(3) using Monte Carlo sampling.
+
+        # If per_point=True, each point (molecule in a batch) receives its own independent set of
+        # sampled rotations (local frames). Otherwise, all points in a batch
+        # share the same sampled rotations (global frame).
+        if self.per_point:
+            q = torch.randn(bs, n, n_samples, 4, device=device, dtype=dtype)
+        else:
+            q = torch.randn(bs, 1, n_samples, 4, device=device, dtype=dtype)
+
+        # Normalize 4D Gaussian vectors to obtain random unit quaternions on S^3,
+        # which parameterize rotations in SO(3).
+        # This corresponds to sampling rotations according to the Haar measure to not
+        # depend on any coordinate system.
+
+        # These samples are used to approximate integrals of the form:
+        #   ∫_{SO(3)} f(R) dμ_Haar(R)
+        # via Monte Carlo:
+        #   ≈ (1 / n_samples) ∑_i f(R(q_i))
+        q /= torch.norm(q, dim=-1, keepdim=True)
+
+        # Convert unit quaternions to axis–angle (Lie algebra) representation.
+        # Each unit quaternion q = (w, v) corresponds to a rotation with
+        # angle θ and axis v / ||v||. This step maps quaternions into elements
+        # of so(3).
+        theta_2 = torch.atan2(
+            torch.norm(q[..., 1:],
+                       dim=-1),  # slicing vectorial component -> û*sin(theta/2)
+            q[..., 0],  # slicing scalar component -> cos(theta/2)
+        ).unsqueeze(-1)
+
+        # Form se(3) elements with rotation part from so(3) and zero translation.
+        # At this stage, we have pure rotational Lie algebra elements:
+        #   (ω, 0) ∈ se(3)
+        so3_elem = 2 * sinc_inv(theta_2) * q[
+            ..., 1:]  # slicing vectorial component -> û*sin(theta/2)
+        se3_elem = torch.cat(
+            [so3_elem, torch.zeros_like(so3_elem)],
+            dim=-1,
+        )
+
+        # Map the sampled Lie algebra elements to SE(3) via the exponential map.
+        # This produces rigid transformations with rotation R and zero translation.
+        R = self.exp(se3_elem)
+
+        # Construct pure translation transforms:
+        # Each point x ∈ R^3 is represented as an SE(3) element with:
+        #   - identity rotation
+        #   - translation equal to x
+        T = torch.zeros(bs,
+                        n,
+                        n_samples,
+                        4,
+                        4,
+                        device=points.device,
+                        dtype=points.dtype)
+        T[..., :, :] = torch.eye(
+            4, device=points.device, dtype=points.dtype
+        )  # Identity rotation and zero translation in remaining matrix components.
+        T[..., :3,
+          3] = points[:, :,
+                      None, :]  # Fill the translation column of each SE(3) matrix with the point coordinates.
+
+        # Compose translations with sampled rotations and map back to se(3).
+        a = self.log(T @ R)
+
+        # Flatten the samples into shape (B, N * n_samples, 6).
+        return a.reshape(bs, n * n_samples, 6), None
+
+    def distance(self, abq_pairs: torch.Tensor) -> torch.Tensor:
+        r"""Compute a weighted distance in :math:`\mathfrak{se}(3)`.
+
+        The distance is defined as:
+        :math:`\alpha |\omega| + (1 - \alpha) |v|`,
+
+        where :math:`\omega` is the rotational component and
+        :math:`v` is the translational component.
+
+        Parameters
+        ----------
+        abq_pairs : torch.Tensor
+            Relative Lie algebra elements of shape :math:`(n, 6)`, where n is the dimension of `abq_pairs`.
+
+        Returns
+        -------
+        torch.Tensor
+            Scalar distance values of shape :math:`(n)`.
+
+        Examples
+        --------
+        >>> from deepchem.utils.equivariance_utils import SE3
+        >>> G = SE3(alpha=0.5)
+        >>> d = G.distance(torch.randn(10, 6))
+        >>> d.shape
+        torch.Size([10])
+        """
+        dist_rot = torch.norm(abq_pairs[..., :3], dim=-1)
+        dist_trans = torch.norm(abq_pairs[..., 3:], dim=-1)
+        return self.alpha * dist_rot + (1.0 - self.alpha) * dist_trans

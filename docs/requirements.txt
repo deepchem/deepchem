@@ -21,3 +21,4 @@ sphinx-copybutton
 sympy
 pysam
 pydantic
+torchdata<0.8.0
