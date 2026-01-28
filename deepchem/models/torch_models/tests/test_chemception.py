@@ -106,17 +106,18 @@ def test_chemception_forward():
     input = image.permute(
         0, 3, 1, 2
     )  # to convert from channel last  (N,H,W,C) to pytorch default channel first (N,C,H,W) representation
-    model = ChemCeptionLayer(stem=components['stem'],
-                                inception_resnet_A=components['inception_resnet_A'],
-                                reduction_A=components['reduction_A'],
-                                inception_resnet_B=components['inception_resnet_B'],
-                                reduction_B=components['reduction_B'],
-                                inception_resnet_C=components['inception_resnet_C'],
-                                global_avg_pool=components['global_avg_pool'],
-                                output_layer=output_layer,
-                                mode=mode,
-                                n_tasks=n_tasks,
-                                n_classes=n_classes)
+    model = ChemCeptionLayer(
+        stem=components['stem'],
+        inception_resnet_A=components['inception_resnet_A'],
+        reduction_A=components['reduction_A'],
+        inception_resnet_B=components['inception_resnet_B'],
+        reduction_B=components['reduction_B'],
+        inception_resnet_C=components['inception_resnet_C'],
+        global_avg_pool=components['global_avg_pool'],
+        output_layer=output_layer,
+        mode=mode,
+        n_tasks=n_tasks,
+        n_classes=n_classes)
     output = model(input)
 
     # preditions
@@ -142,10 +143,10 @@ def test_chemception_regression_overfit():
                                   n_tasks=n_tasks)
 
     model = ChemCeption(n_tasks=n_tasks,
-                             img_spec=img_spec,
-                             img_size=img_size,
-                             augment=False,
-                             mode=mode)
+                        img_spec=img_spec,
+                        img_size=img_size,
+                        augment=False,
+                        mode=mode)
 
     model.fit(dataset, nb_epoch=100)
     scores = model.evaluate(dataset, [metric])
@@ -169,10 +170,10 @@ def test_chemception_classification_overfit():
                                   n_tasks=n_tasks)
 
     model = ChemCeption(n_tasks=n_tasks,
-                             img_spec=img_spec,
-                             img_size=img_size,
-                             augment=False,
-                             mode=mode)
+                        img_spec=img_spec,
+                        img_size=img_size,
+                        augment=False,
+                        mode=mode)
 
     model.fit(dataset, nb_epoch=100)
     scores = model.evaluate(dataset, [metric])
@@ -258,20 +259,20 @@ def test_chemception_modular_fit_restore():
                                   n_tasks=n_tasks)
 
     chemception1 = ChemCeption(n_tasks=n_tasks,
-                                    img_spec=img_spec,
-                                    img_size=img_size,
-                                    augment=False,
-                                    mode=mode)
+                               img_spec=img_spec,
+                               img_size=img_size,
+                               augment=False,
+                               mode=mode)
 
     chemception1.fit(dataset, nb_epoch=300)
 
     # Create an identical model, do a single step of fitting with restore=True and make sure it got restored correctly.
     chemception2 = ChemCeption(n_tasks=n_tasks,
-                                    img_spec=img_spec,
-                                    img_size=img_size,
-                                    model_dir=chemception1.model_dir,
-                                    augment=False,
-                                    mode=mode)
+                               img_spec=img_spec,
+                               img_size=img_size,
+                               model_dir=chemception1.model_dir,
+                               augment=False,
+                               mode=mode)
 
     chemception2.fit(dataset, nb_epoch=1, restore=True)
 
@@ -301,17 +302,17 @@ def test_chemception_load_from_pretrained():
                                 n_tasks=n_tasks)
 
     model_pt = ChemCeption(n_tasks=n_tasks,
-                                img_spec=img_spec,
-                                img_size=img_size,
-                                augment=False,
-                                mode='classification')
+                           img_spec=img_spec,
+                           img_size=img_size,
+                           augment=False,
+                           mode='classification')
     model_pt.fit(dataset_pt, nb_epoch=1)
 
     model_ft = ChemCeption(n_tasks=n_tasks,
-                                img_spec=img_spec,
-                                img_size=img_size,
-                                augment=False,
-                                mode='regression')
+                           img_spec=img_spec,
+                           img_size=img_size,
+                           augment=False,
+                           mode='regression')
 
     # asserting that weights are not same before reloading
     for param_name in model_pt.model.state_dict().keys():
