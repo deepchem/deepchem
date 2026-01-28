@@ -89,8 +89,13 @@ except ImportError as e:
         f'Skipped loading biological sequence featurizer, missing a dependency. {e}'
     )
 
-from deepchem.feat.deepvariant_featurizer import RealignerFeaturizer
-from deepchem.feat.deepvariant_pileup_featurizer import PileupFeaturizer
+try:
+    from deepchem.feat.deepvariant_featurizer import RealignerFeaturizer
+    from deepchem.feat.deepvariant_pileup_featurizer import PileupFeaturizer
+except (ImportError, FileNotFoundError, OSError) as e:
+    logger.warning(
+        f'Skipped loading deepvariant featurizers, missing a dependency. {e}'
+    )
 
 # tokenizers
 try:

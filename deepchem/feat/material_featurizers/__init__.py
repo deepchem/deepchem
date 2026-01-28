@@ -7,3 +7,4 @@ from deepchem.feat.material_featurizers.sine_coulomb_matrix import SineCoulombMa
 from deepchem.feat.material_featurizers.cgcnn_featurizer import CGCNNFeaturizer
 from deepchem.feat.material_featurizers.elemnet_featurizer import ElemNetFeaturizer
 from deepchem.feat.material_featurizers.lcnn_featurizer import LCNNFeaturizer
+from deepchem.feat.material_featurizers.m3gnet_featurizer import M3GNetFeaturizer
