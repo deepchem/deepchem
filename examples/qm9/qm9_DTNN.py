@@ -5,7 +5,15 @@ from __future__ import unicode_literals
 import numpy as np
 np.random.seed(123)
 import tensorflow as tf
-tf.random.set_seed(123)
+try:
+    tf.random.set_seed(123)
+except AttributeError:
+    try:
+        import tensorflow.compat.v1 as tf_v1
+        tf_v1.disable_v2_behavior()
+        tf_v1.set_random_seed(123)
+    except Exception:
+        print("Warning: Could not set TensorFlow random seed for reproducibility.")
 import deepchem as dc
 
 # Load Tox21 dataset
@@ -16,12 +24,12 @@ train_dataset, valid_dataset, test_dataset = datasets
 metric = [dc.metrics.Metric(dc.metrics.pearson_r2_score, mode="regression")]
 
 # Batch size of models
-batch_size = 50
-n_embedding = 20
+batch_size = 100
+n_embedding = 100
 n_distance = 51
 distance_min = -1.
-distance_max = 9.2
-n_hidden = 15
+distance_max = 18.
+n_hidden = 100
 model = dc.models.DTNNModel(
     len(tasks),
     n_embedding=n_embedding,
@@ -31,19 +39,23 @@ model = dc.models.DTNNModel(
     distance_max=distance_max,
     output_activation=False,
     batch_size=batch_size,
-    learning_rate=0.0001,
+    learning_rate=0.001,
     use_queue=False,
     mode="regression")
 
 # Fit trained model
-model.fit(train_dataset, nb_epoch=20)
+model.fit(train_dataset, nb_epoch=50)
 
 print("Evaluating model")
 train_scores = model.evaluate(train_dataset, metric, transformers)
 valid_scores = model.evaluate(valid_dataset, metric, transformers)
+test_scores = model.evaluate(test_dataset, metric, transformers)
 
 print("Train scores")
 print(train_scores)
 
 print("Validation scores")
 print(valid_scores)
+
+print("Test scores")
+print(test_scores)
