@@ -48,6 +48,59 @@ def test_pairwise_distance_diagonal_zeros():
     assert torch.allclose(diagonal, torch.zeros_like(diagonal), atol=1e-6)
 
 
+def test_pairwise_distance_custom_norm():
+    """Test layer works with different p-norms."""
+    coords = torch.randn(2, 5, 3)
+    
+    # L1 norm (Manhattan distance)
+    layer_l1 = DifferentiablePairwiseDistanceLayer(p=1.0)
+    distances_l1 = layer_l1(coords)
+    expected_l1 = torch.cdist(coords, coords, p=1.0)
+    assert torch.allclose(distances_l1, expected_l1)
+    
+    # L2 norm (Euclidean distance)
+    layer_l2 = DifferentiablePairwiseDistanceLayer(p=2.0)
+    distances_l2 = layer_l2(coords)
+    expected_l2 = torch.cdist(coords, coords, p=2.0)
+    assert torch.allclose(distances_l2, expected_l2)
+    
+    # Different norms produce different results
+    assert not torch.allclose(distances_l1, distances_l2)
+
+
+def test_pairwise_distance_invalid_shape_2d():
+    """Test that 2D input raises ValueError."""
+    layer = DifferentiablePairwiseDistanceLayer()
+    coords_2d = torch.randn(10, 3)
+    
+    with pytest.raises(ValueError, match="Expected 3D input tensor"):
+        layer(coords_2d)
+
+
+def test_pairwise_distance_invalid_shape_4d():
+    """Test that 4D input raises ValueError."""
+    layer = DifferentiablePairwiseDistanceLayer()
+    coords_4d = torch.randn(2, 5, 3, 1)
+    
+    with pytest.raises(ValueError, match="Expected 3D input tensor"):
+        layer(coords_4d)
+
+
+def test_pairwise_distance_batch_consistency():
+    """Test that batch processing is consistent with single examples."""
+    layer = DifferentiablePairwiseDistanceLayer()
+    
+    # Create batched input
+    coords_batched = torch.randn(3, 7, 3)
+    distances_batched = layer(coords_batched)
+    
+    # Process individually
+    for i in range(3):
+        coords_single = coords_batched[i:i+1]
+        distances_single = layer(coords_single)
+        assert torch.allclose(distances_batched[i], distances_single[0])
+
+
 @pytest.mark.skipif(not torch.cuda.is_available(),
                     reason="CUDA not available")
 def test_pairwise_distance_gpu_compatibility():
@@ -56,3 +109,4 @@ def test_pairwise_distance_gpu_compatibility():
     coords = torch.randn(2, 5, 3, device='cuda')
     distances = layer(coords)
     assert distances.device.type == 'cuda'
+
