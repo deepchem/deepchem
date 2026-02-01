@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from typing import Dict, Type
 from deepchem.models.torch_models.chemnet_layers import Stem, InceptionResnetA, ReductionA, InceptionResnetB, ReductionB, InceptionResnetC
-
+import warnings
 DEFAULT_INCEPTION_BLOCKS = {"A": 3, "B": 3, "C": 3}
 
 
@@ -30,9 +30,10 @@ class ChemCeption(nn.Module):
     a Global Average Pooling, and a fully-connected layer maps the features to
     downstream outputs.
 
-    In the ChemCeption paper, the authors perform real-time image augmentation by
-    rotating images between 0 to 180 degrees. This can be done during model
-    training by setting the augment argument to True.
+    In the ChemCeption paper, the authors perform real-time image augmentation
+    by rotating images between 0 and 180 degrees. The PyTorch implementation
+    currently does not include augmentation support; the `augment` argument is
+    retained for API compatibility.
 
     Example
     -------
@@ -102,7 +103,11 @@ class ChemCeption(nn.Module):
         self.n_classes = n_classes
         self.augment = augment
         self.mode = mode
-
+        if self.augment:
+            warnings.warn(
+                "Image augmentation is currently unused in the PyTorch ChemCeption implementation.",
+                UserWarning,
+            )
         in_channels = 1 if img_spec == "std" else 4
 
         self.stem = Stem(in_channels=in_channels, out_channels=base_filters)
