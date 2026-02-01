@@ -1,4 +1,4 @@
-"""Tests for Hidden Markov Model wrapper."""
+"""Tests for Hidden Markov Model Wrapper."""
 import numpy as np
 import pytest
 import deepchem as dc

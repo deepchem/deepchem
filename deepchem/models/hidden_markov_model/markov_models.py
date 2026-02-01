@@ -9,122 +9,106 @@ from deepchem.data import Dataset
 from deepchem.trans import Transformer, undo_transforms
 from deepchem.utils.data_utils import load_from_disk, save_to_disk
 from deepchem.utils.typing import OneOrMany
+import numpy as np
 
 logger = logging.getLogger(__name__)
 
 
 class HiddenMarkovModel(Model):
     """
-    DeepChem-compatible wrapper for scikit-learn–style Hidden Markov Models.
-
-    This class adapts a Hidden Markov Model (HMM) that follows the scikit-learn
-    estimator interface (e.g., from `hmmlearn`) so that it can be used inside
-    the DeepChem `Model` API. It enables training, prediction, saving, and
-    reloading of HMMs using DeepChem datasets and utilities.
+    Docstring for HiddenMarkovModel
     """
 
-    def __init__(self,
-                 model: BaseEstimator,
-                 model_dir: Optional[str] = None,
-                 **kwargs):
-        """
-        Initialize the HiddenMarkovModel wrapper.
-
-        Parameters
-        ----------
-        model : BaseEstimator
-            A scikit-learn–compatible Hidden Markov Model instance
-            (for example, `hmmlearn.hmm.GaussianHMM`).
-        model_dir : Optional[str], default=None
-            Directory where the model will be saved and loaded from.
-        **kwargs
-            Additional keyword arguments passed to the DeepChem `Model` base class.
-        """
+    def __init__(self, model, model_dir: Optional[str] = None, **kwargs):
         super(HiddenMarkovModel, self).__init__(model, model_dir, **kwargs)
         self.model = model
 
-    def fit(self, dataset: Dataset, lengths=None) -> None:
+    def fit(self, dataset: Dataset, lengths = None) -> None:
         """
-        Fit the Hidden Markov Model on a DeepChem dataset.
-
-        This method extracts the feature matrix from the dataset and trains
-        the underlying HMM using sequence length information.
-
-        Parameters
-        ----------
-        dataset : Dataset
-            A DeepChem `Dataset` containing the input sequences in `dataset.X`.
-        lengths : Optional[list], default=None
-            A list specifying the lengths of individual sequences in `dataset.X`.
-            If not provided, all sequences are assumed to be of length 1.
+        Docstring for fit
+        
+        :param self: Description
+        :param dataset: Description
+        :type dataset: Dataset
+        :param lengths: Description
         """
+
         X = dataset.X
         if lengths is None:
-            lengths = [1] * len(X.shape)
+            lengths = np.asarray([X.shape[0]])
 
         self.model.fit(X, lengths)
         return
-
-    def predict(self,
-                dataset: Dataset,
-                transformers: List[Transformer] = [],
-                lengths=None) -> OneOrMany[np.ndarray]:
+    
+    def predict(self, dataset:Dataset, lengths = None) -> OneOrMany[np.ndarray]:
         """
-        Generate predictions for a DeepChem dataset.
-
-        The method runs inference using the underlying HMM and then applies
-        inverse transformations (if any) to return predictions in the original
-        data space.
-
-        Parameters
-        ----------
-        dataset : Dataset
-            A DeepChem `Dataset` containing input sequences in `dataset.X`.
-        transformers : List[Transformer], default=[]
-            List of DeepChem transformers used during preprocessing. These are
-            reversed before returning predictions.
-        lengths : Optional[list], default=None
-            A list specifying the lengths of individual sequences. If not provided,
-            all sequences are assumed to be of length 1.
-
-        Returns
-        -------
-        OneOrMany[np.ndarray]
-            Model predictions after undoing the applied transformers.
+        Docstring for predict
+        
+        :param self: Description
+        :param dataset: Description
+        :type dataset: Dataset
+        :param lengths: Description
+        :return: Description
+        :rtype: OneOrMany[ndarray]
         """
         X = dataset.X
-        if lengths is None:
-            lengths = [1] * len(X.shape)
-
-        y_pred = self.model.predict(X, lengths)
-        return undo_transforms(y_pred, transformers)
-
-    def predict_on_batch(self, X: Dataset, lengths=None):
+        _, state_sequence = self.model.predict(X, lengths)
+        return state_sequence # We can not be undoing the transforms over here since Hidden Markov Models are doing Unsupervised Learning and we can not use it for Supervised LearningH
+    
+    def predict_proba(self, dataset:Dataset, lengths = None) -> np.ndarray:
         """
-        Generate predictions for a single batch of data.
-
-        This method attempts to return probabilistic predictions if the
-        underlying model supports `predict_proba`. Otherwise, it falls back
-        to standard predictions.
-
-        Parameters
-        ----------
-        X : Dataset
-            A DeepChem `Dataset` containing a batch of input data in `X.X`.
-        lengths : Optional[list], default=None
-            A list specifying the sequence lengths for the batch.
-
-        Returns
-        -------
-        np.ndarray
-            Predicted labels or probabilities for the batch.
+        Docstring for predict_proba
+        
+        :param self: Description
+        :param dataset: Description
+        :type dataset: Dataset
+        :param lengths: Description
+        :return: Description
+        :rtype: ndarray
         """
-        X = X.X
-        try:
-            return self.model.predict_proba(X, lengths)
-        except AttributeError:
-            return self.model.predict(X, lengths)
-
+        X = dataset.X
+        _, posteriors = self.model.predict_proba(X, lengths)
+        return posteriors
+    
+    def score_samples(self, dataset:Dataset, lengths = None): # Output is a tuple
+        """
+        Docstring for score_samples
+        
+        :param self: Description
+        :param dataset: Description
+        :type dataset: Dataset
+        :param lengths: Description
+        """
+        X = dataset.X
+        return self.model.score_samples(X, lengths)
+    
+    def score(self, dataset:Dataset, lengths = None) -> float:
+        """
+        Docstring for score
+        
+        :param self: Description
+        :param dataset: Description
+        :type dataset: Dataset
+        :param lengths: Description
+        :return: Description
+        :rtype: float
+        """
+        X = dataset.X
+        return self.model.score(X, lengths)
+    
+    def decode(self, dataset:Dataset, lengths = None, algorithm = None): # Output is a Tuple
+        """
+        Docstring for decode
+        
+        :param self: Description
+        :param dataset: Description
+        :type dataset: Dataset
+        :param lengths: Description
+        :param algorithm: Description
+        """
+        X = dataset.X
+        log_prob, state_sequence = self.model.decode(X, lengths, algorithm)
+        return log_prob, state_sequence
     def save(self):
         """
         Save the underlying HMM model to disk.
