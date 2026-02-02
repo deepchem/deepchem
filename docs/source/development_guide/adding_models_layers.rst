@@ -64,6 +64,8 @@ If your model supports both classification and regression, you should handle the
 
 .. code-block:: python
 
+    from deepchem.models.losses import L2Loss, SparseSoftmaxCrossEntropy
+
     def __init__(self, n_tasks, mode='regression', n_classes=2, **kwargs):
         self.mode = mode
         if mode == 'classification':
@@ -133,14 +135,39 @@ A Complete Test Example
         n_tasks = 1
         n_samples = 10
         n_features = 3
+        np.random.seed(42)
         X = np.random.rand(n_samples, n_features)
-        y = np.random.rand(n_samples, n_tasks)
+        y = np.sum(X, axis=1, keepdims=True)  # Deterministic labels
         dataset = dc.data.NumpyDataset(X, y)
 
         model = MyCustomModel(d_input=n_features, d_output=n_tasks)
-        model.fit(dataset, nb_epoch=100)
+        model.fit(dataset, nb_epoch=1000)
         scores = model.evaluate(dataset, [dc.metrics.Metric(dc.metrics.pearson_r2_score)])
         assert scores['pearson_r2_score'] > 0.9
+
+Reloading Test Example
+^^^^^^^^^^^^^^^^^^^^^^
+
+It is also important to ensure that the model can be correctly saved and restored.
+
+.. code-block:: python
+
+    @pytest.mark.torch
+    def test_custom_model_reload():
+        n_tasks = 1
+        n_features = 3
+        model = MyCustomModel(d_input=n_features, d_output=n_tasks)
+        model.save_checkpoint()
+
+        model_reloaded = MyCustomModel(d_input=n_features, d_output=n_tasks,
+                                        model_dir=model.model_dir)
+        model_reloaded.restore()
+
+        # Check that predictions match
+        X = np.random.rand(5, n_features)
+        y1 = model.predict_on_batch(X)
+        y2 = model_reloaded.predict_on_batch(X)
+        assert np.allclose(y1, y2)
 
 Summary Checklist
 -----------------
