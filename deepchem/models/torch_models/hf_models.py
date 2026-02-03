@@ -21,7 +21,37 @@ if TYPE_CHECKING:
 
 
 class HuggingFaceModel(TorchModel):
-    r"""Wrapper class that wraps HuggingFace models as DeepChem models
+    r
+Notes
+-----
+When `task="generation"`, `HuggingFaceModel.predict()` bypasses the standard
+`TorchModel` prediction pipeline and directly calls `transformers`
+`model.generate()`.
+
+This is required because text generation does not follow the
+(inputs, labels, weights) batch structure used for supervised learning.
+
+Example
+-------
+>>> import deepchem as dc
+>>> from transformers import AutoTokenizer, AutoModelForCausalLM
+>>> from deepchem.models.torch_models.hf_models import HuggingFaceModel
+>>>
+>>> tokenizer = AutoTokenizer.from_pretrained("gpt2")
+>>> tokenizer.pad_token = tokenizer.eos_token
+>>> model = AutoModelForCausalLM.from_pretrained("gpt2")
+>>>
+>>> hf_model = HuggingFaceModel(
+...     model=model,
+...     tokenizer=tokenizer,
+...     task="generation"
+... )
+>>>
+>>> dataset = dc.data.NumpyDataset(X=["The molecule binds to"])
+>>> outputs = hf_model.predict(dataset, max_length=20)
+>>> outputs[0]
+
+"""Wrapper class that wraps HuggingFace models as DeepChem models
 
     The class provides a wrapper for wrapping models from HuggingFace
     ecosystem in DeepChem and training it via DeepChem's api. The reason
