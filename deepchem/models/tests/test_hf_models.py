@@ -1,3 +1,4 @@
+
 import importlib.util
 import pytest
 
@@ -29,5 +30,6 @@ def test_huggingface_generation_from_prompt():
     outputs = hf_model.predict(dataset, max_length=20)
 
     assert isinstance(outputs, list)
-    assert len(outputs) > 0
+    assert len(outputs) == 1
     assert isinstance(outputs[0], str)
+    assert outputs[0].startswith("The molecule binds to")
