@@ -23,9 +23,7 @@ def test_huggingface_generation_from_prompt():
         batch_size=1,
     )
 
-    dataset = dc.data.NumpyDataset(
-        X=["The molecule binds to"]
-    )
+    dataset = dc.data.NumpyDataset(X=["The molecule binds to"])
 
     outputs = hf_model.predict(dataset, max_length=20)
 
