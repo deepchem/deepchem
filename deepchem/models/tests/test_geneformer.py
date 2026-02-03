@@ -1,12 +1,8 @@
-import os
-import unittest
 import pytest
 import numpy as np
-import deepchem as dc
 from deepchem.data import NumpyDataset
 
 try:
-    import torch
     from transformers import BertConfig
     from deepchem.models.torch_models.geneformer import DeepChemGeneformer
 
@@ -70,12 +66,10 @@ def test_geneformer_overfit():
     gen = model.default_generator(dataset)
     inputs, labels, weights = next(gen)
     # inputs[0] is input_ids, inputs[1] is attention_mask
-    assert (
-        inputs[0].shape[0] == 2
-    ), f"Expected batch size 2, but got {inputs[0].shape[0]}"
-    assert (
-        inputs[0].dtype == np.int64
-    ), f"Expected input_ids dtype int64, but got {inputs[0].dtype}"
+    assert (inputs[0].shape[0] == 2
+           ), f"Expected batch size 2, but got {inputs[0].shape[0]}"
+    assert (inputs[0].dtype == np.int64
+           ), f"Expected input_ids dtype int64, but got {inputs[0].dtype}"
 
     # Verify that the first token ID of the first sample matches the highest-value gene index
     assert (

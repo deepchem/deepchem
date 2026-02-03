@@ -62,7 +62,9 @@ class GeneformerModule(nn.Module):
         else:
             self.classifier = nn.Linear(hidden_size, n_tasks)
 
-    def forward(self, inputs: Union[List[torch.Tensor], torch.Tensor]) -> torch.Tensor:
+    def forward(
+            self, inputs: Union[List[torch.Tensor],
+                                torch.Tensor]) -> torch.Tensor:
         """
         Forward pass.
 
@@ -92,14 +94,10 @@ class GeneformerModule(nn.Module):
         if attention_mask is not None:
             # Mask out padding tokens from the average
             # Expanding mask from (Batch, Seq_Len) to (Batch, Seq_Len, 1) so that element wise multiplation
-            input_mask_expanded = (
-                attention_mask.unsqueeze(-1)
-                .expand(outputs.last_hidden_state.size())
-                .float()
-            )
+            input_mask_expanded = (attention_mask.unsqueeze(-1).expand(
+                outputs.last_hidden_state.size()).float())
             sum_embeddings = torch.sum(
-                outputs.last_hidden_state * input_mask_expanded, 1
-            )
+                outputs.last_hidden_state * input_mask_expanded, 1)
             sum_mask = torch.clamp(input_mask_expanded.sum(1), min=1e-9)
             embedding = sum_embeddings / sum_mask
         else:
@@ -144,47 +142,43 @@ class DeepChemGeneformer(TorchModel):
 
     """
 
-    def __init__(
-        self,
-        hf_model_name: str = "ctheodoris/Geneformer",
-        model_config: Optional[Any] = None,
-        mode: str = "classification",
-        n_tasks: int = 1,
-        max_length: int = 2048,
-        **kwargs
-    ):
+    def __init__(self,
+                 hf_model_name: str = "ctheodoris/Geneformer",
+                 model_config: Optional[Any] = None,
+                 mode: str = "classification",
+                 n_tasks: int = 1,
+                 max_length: int = 2048,
+                 **kwargs):
         self.mode = mode
         self.n_tasks = n_tasks
         self.hf_model_name = hf_model_name
         self.model_config = model_config
         self.max_length = max_length
 
-        module = GeneformerModule(
-            hf_model_name=hf_model_name, config=model_config, n_tasks=n_tasks, mode=mode
-        )
+        module = GeneformerModule(hf_model_name=hf_model_name,
+                                  config=model_config,
+                                  n_tasks=n_tasks,
+                                  mode=mode)
 
         if mode == "classification":
             if n_tasks == 1:
                 criterion = nn.CrossEntropyLoss(reduction="none")
-                self.loss_fn = lambda outputs, labels, weights: (
-                    criterion(outputs[0], labels) * weights.squeeze()
-                ).mean()
+                self.loss_fn = lambda outputs, labels, weights: (criterion(
+                    outputs[0], labels) * weights.squeeze()).mean()
             else:
                 criterion = nn.BCEWithLogitsLoss(reduction="none")
-                self.loss_fn = lambda outputs, labels, weights: (
-                    criterion(outputs[0], labels) * weights
-                ).mean()
+                self.loss_fn = lambda outputs, labels, weights: (criterion(
+                    outputs[0], labels) * weights).mean()
         elif mode == "regression":
             criterion = nn.MSELoss(reduction="none")
-            self.loss_fn = lambda outputs, labels, weights: (
-                criterion(outputs[0], labels) * weights
-            ).mean()
+            self.loss_fn = lambda outputs, labels, weights: (criterion(
+                outputs[0], labels) * weights).mean()
         else:
             raise ValueError("mode must be 'classification' or 'regression'")
 
-        super(DeepChemGeneformer, self).__init__(
-            model=module, loss=self.loss_fn, **kwargs
-        )
+        super(DeepChemGeneformer, self).__init__(model=module,
+                                                 loss=self.loss_fn,
+                                                 **kwargs)
 
     def default_generator(
         self,
@@ -219,15 +213,16 @@ class DeepChemGeneformer(TorchModel):
             A generator yielding (inputs, labels, weights).
         """
         for batch in dataset.iterbatches(
-            batch_size=self.batch_size,
-            epochs=epochs,
-            deterministic=deterministic,
-            pad_batches=pad_batches,
+                batch_size=self.batch_size,
+                epochs=epochs,
+                deterministic=deterministic,
+                pad_batches=pad_batches,
         ):
             X, y, w, ids = batch
 
             is_counts = False
-            if isinstance(X, np.ndarray) and np.issubdtype(X.dtype, np.floating):
+            if isinstance(X, np.ndarray) and np.issubdtype(
+                    X.dtype, np.floating):
                 is_counts = True
 
             processed_seqs = []
@@ -240,13 +235,14 @@ class DeepChemGeneformer(TorchModel):
                     nz_indices = np.flatnonzero(sample)
                     nz_values = sample[nz_indices]
                     sorted_nz_indices = nz_indices[np.argsort(-nz_values)]
-                    seq = sorted_nz_indices[: self.max_length]
+                    seq = sorted_nz_indices[:self.max_length]
                 else:
-                    seq = sample[: self.max_length]
+                    seq = sample[:self.max_length]
                 processed_seqs.append(seq)
 
             # Determine max length in this batch for padding
-            batch_max_len = max(len(s) for s in processed_seqs) if processed_seqs else 0
+            batch_max_len = max(
+                len(s) for s in processed_seqs) if processed_seqs else 0
             # Ensure at least 1 for empty samples
             batch_max_len = max(1, batch_max_len)
 
@@ -262,7 +258,8 @@ class DeepChemGeneformer(TorchModel):
             inputs = [input_ids, attention_mask]
             yield (inputs, y, w)
 
-    def _prepare_batch(self, batch: Tuple[Any, Any, Any]) -> Tuple[Any, Any, Any]:
+    def _prepare_batch(self, batch: Tuple[Any, Any,
+                                          Any]) -> Tuple[Any, Any, Any]:
         """
         Prepare batch for the model by casting to appropriate types and moving to device.
 
@@ -280,10 +277,12 @@ class DeepChemGeneformer(TorchModel):
         input_ids, attention_mask = inputs
 
         # Cast to torch.long for HF compatibility
-        input_ids_t = torch.as_tensor(input_ids, dtype=torch.long, device=self.device)
-        attention_mask_t = torch.as_tensor(
-            attention_mask, dtype=torch.long, device=self.device
-        )
+        input_ids_t = torch.as_tensor(input_ids,
+                                      dtype=torch.long,
+                                      device=self.device)
+        attention_mask_t = torch.as_tensor(attention_mask,
+                                           dtype=torch.long,
+                                           device=self.device)
 
         processed_inputs = [input_ids_t, attention_mask_t]
 
