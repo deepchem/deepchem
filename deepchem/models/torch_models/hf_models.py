@@ -563,19 +563,36 @@ class HuggingFaceModel(TorchModel):
         else:
             return np.array(final_results)
 
-    def fill_mask(
-        self,
-        inputs: Union[str, List[str]],
-        top_k: int = 5
-    ) -> Union[List[Dict], List[List[Dict]]]:
-        """
-        Fill a single masked token in a sequence using a masked language model.
+        def fill_mask(self,
+                  inputs: Union[str, List[str]],
+                  top_k: int = 5) -> Union[List[Dict], List[List[Dict]]]:
+        """Implements the HuggingFace 'fill_mask' pipeline from HuggingFace.
+        https://huggingface.co/docs/transformers/main_classes/pipelines
 
-        Each input sequence must contain exactly one mask token.
+        Takes as input a sequence or list of sequences where each sequence
+        contains a single masked position and returns a list of dictionaries per sequence
+        containing the filled sequence, the token, and the score for that token.
+
+        Parameters
+        ----------
+        inputs : Union[str, List[str]]
+            One or several texts (or one list of texts) with masked tokens.
+        top_k : int, optional
+            The number of predictions to return for each mask. Default is 5.
+
+        Returns
+        -------
+        Union[List[Dict], List[List[Dict]]]
+            A list or a list of list of dictionaries with the following keys:
+            - sequence (str): The corresponding input with the mask token prediction.
+            - score (float): The corresponding probability.
+            - token (int): The predicted token id (to replace the masked one).
+            - token_str (str): The predicted token (to replace the masked one)
         """
         self._ensure_built()
         self.model.eval()
 
+        
         if isinstance(inputs, str):
             inputs = [inputs]
 
@@ -597,20 +614,32 @@ class HuggingFaceModel(TorchModel):
                     f"but found {mask_positions.numel()} in: {text}"
                 )
 
+            mask_pos = mask_positions[0].item()
+
             with torch.no_grad():
                 outputs = self.model(**encoded)
 
-            logits = outputs.logits[0, mask_positions, :]
+            logits = outputs.logits[0, mask_pos, :]
             probs = torch.softmax(logits, dim=-1)
 
-            top_ids = torch.topk(probs, top_k, dim=-1).indices[0].tolist()
+            top_probs, top_ids = torch.topk(probs, top_k)
 
             results: List[Dict] = []
-            for token_id in top_ids:
-                token_str = self.tokenizer.convert_ids_to_tokens(token_id)
+            for i in range(top_k):
+                token_id = top_ids[i].item()
+                token_str = self.tokenizer.decode([token_id])
+                score = top_probs[i].item()
+
+                
+                filled_tokens = encoded["input_ids"][0].clone()
+                filled_tokens[mask_pos] = token_id
+
+                
+                filled_sequence = self.tokenizer.decode(filled_tokens, skip_special_tokens=False)
+
                 results.append({
-                    "sequence": text.replace(self.tokenizer.mask_token, token_str),
-                    "score": probs[0, token_id].item(),
+                    "sequence": filled_sequence,
+                    "score": score,
                     "token": token_id,
                     "token_str": token_str,
                 })
