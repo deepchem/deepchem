@@ -563,7 +563,7 @@ class HuggingFaceModel(TorchModel):
         else:
             return np.array(final_results)
 
-        def fill_mask(self,
+            def fill_mask(self,
                   inputs: Union[str, List[str]],
                   top_k: int = 5) -> Union[List[Dict], List[List[Dict]]]:
         """Implements the HuggingFace 'fill_mask' pipeline from HuggingFace.
@@ -592,7 +592,7 @@ class HuggingFaceModel(TorchModel):
         self._ensure_built()
         self.model.eval()
 
-        
+        # Ensure that the inputs are made into a list of len() >= 1.
         if isinstance(inputs, str):
             inputs = [inputs]
 
@@ -622,6 +622,7 @@ class HuggingFaceModel(TorchModel):
             logits = outputs.logits[0, mask_pos, :]
             probs = torch.softmax(logits, dim=-1)
 
+            # Get top-k predictions with their scores
             top_probs, top_ids = torch.topk(probs, top_k)
 
             results: List[Dict] = []
@@ -646,4 +647,5 @@ class HuggingFaceModel(TorchModel):
 
             all_results.append(results)
 
+        
         return all_results[0] if len(all_results) == 1 else all_results
