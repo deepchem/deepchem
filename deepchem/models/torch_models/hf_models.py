@@ -558,8 +558,6 @@ class HuggingFaceModel(TorchModel):
                 final_variances.append(np.concatenate(v, axis=0))
             return zip(final_results, final_variances)
 
-            
-
         if len(final_results) == 1:
             return final_results[0]
         else:
@@ -570,11 +568,30 @@ class HuggingFaceModel(TorchModel):
                   top_k: int = 5) -> Union[List[Dict], List[List[Dict]]]:
         """
         Fill masked tokens in input sequences.
+        
+        Parameters
+        ----------
+        inputs : str or list of str
+            Input sequences containing exactly one mask token each.
+        top_k : int, default 5
+            Number of predictions to return per mask.
+            
+        Returns
+        -------
+        list or list of lists
+            For single input: list of prediction dicts.
+            For multiple inputs: list of such lists.
+            Each dict contains: 'sequence', 'score', 'token', 'token_str'.
+            
+        Raises
+        ------
+        ValueError
+            If any input doesn't have exactly one mask token.
         """
         self._ensure_built()
         self.model.eval()
 
-        
+        # Handle single input
         single_input = isinstance(inputs, str)
         if single_input:
             inputs = [inputs]
@@ -587,7 +604,7 @@ class HuggingFaceModel(TorchModel):
                 return_tensors="pt"
             ).to(self.device)
 
-            
+            # Find mask position
             mask_token_id = self.tokenizer.mask_token_id
             mask_positions = torch.where(
                 encoded["input_ids"][0] == mask_token_id
@@ -601,21 +618,21 @@ class HuggingFaceModel(TorchModel):
             
             mask_pos = mask_positions[0].item()
 
-            
+            # Get predictions
             with torch.no_grad():
                 outputs = self.model(**encoded)
                 logits = outputs.logits[0, mask_pos, :]
                 probs = torch.softmax(logits, dim=-1)
 
-            
+            # Top-k predictions
             top_probs, top_ids = torch.topk(probs, top_k)
             
-            
+            # Build results
             predictions = []
             for prob, token_id in zip(top_probs.tolist(), top_ids.tolist()):
                 token_str = self.tokenizer.decode([token_id])
                 
-                
+                # Create filled sequence
                 filled_tokens = encoded["input_ids"][0].clone()
                 filled_tokens[mask_pos] = token_id
                 filled_sequence = self.tokenizer.decode(filled_tokens, skip_special_tokens=True)
