@@ -25,8 +25,18 @@ if TYPE_CHECKING:
 
 
 class HuggingFaceModel(TorchModel):
-    """Wrap HuggingFace transformers for use in DeepChem."""
+    """Wrap HuggingFace transformers for use in DeepChem.
     
+    This allows using pre-trained transformers (like RoBERTa, BERT) for
+    molecular tasks via DeepChem's training API. Useful for comparing
+    transformer-based approaches with other DeepChem models.
+    
+    Handles tasks like masked language modeling (pretraining), regression,
+    and classification for molecular property prediction.
+    
+    Note: Tokenization happens on-the-fly from SMILES strings.
+    """
+
     def __init__(
             self,
             model: 'PreTrainedModel',
@@ -34,6 +44,13 @@ class HuggingFaceModel(TorchModel):
             task: Optional[str] = None,
             config: Optional[Dict] = None,
             **kwargs):
+        """
+        Args:
+            model: HuggingFace model (e.g., RobertaForMaskedLM)
+            tokenizer: Corresponding tokenizer
+            task: 'mlm', 'regression', 'classification', or None
+            config: Optional model config for loading checkpoints
+        """
         self.task = task
         self.tokenizer = tokenizer
 
@@ -45,7 +62,61 @@ class HuggingFaceModel(TorchModel):
             self.data_collator = None
 
         self.config = config or {}
+        
+        # HuggingFace models compute loss internally
         super().__init__(model=model, loss=None, **kwargs)
+
+    def load_from_pretrained(
+            self,
+            model_dir: Optional[str] = None,
+            from_hf_checkpoint: bool = False):
+        """Load from checkpoint.
+        
+        If from_hf_checkpoint=True, loads directly from HuggingFace hub.
+        Otherwise loads from DeepChem checkpoint.
+        
+        For finetuning, we drop classifier weights since they likely
+        don't match the new task.
+        """
+        if model_dir is None:
+            model_dir = self.model_dir
+
+        if from_hf_checkpoint:
+            # Load directly from HuggingFace
+            if self.task == 'mlm':
+                self.model = AutoModelForMaskedLM.from_pretrained(
+                    model_dir, **self.config)
+            elif self.task in ['regression', 'classification']:
+                self.model = AutoModelForSequenceClassification.from_pretrained(
+                    model_dir, **self.config)
+            else:
+                self.model = AutoModel.from_pretrained(model_dir, **self.config)
+        else:
+            # Load from DeepChem checkpoint
+            checkpoints = sorted(self.get_checkpoints(model_dir))
+            if not checkpoints:
+                raise ValueError('No checkpoint found')
+                
+            checkpoint = checkpoints[0]
+            data = torch.load(checkpoint, map_location=self.device)
+            
+            # Clean up state dict for loading
+            state_dict = data['model_state_dict']
+            
+            # Handle DDP wrapper if present
+            state_dict = {k.replace('module.', ''): v 
+                         for k, v in state_dict.items()}
+            
+            # Drop classifier weights for finetuning
+            keys_to_drop = [
+                'classifier.out_proj.weight', 'classifier.out_proj.bias',
+                'classifier.dense.weight', 'classifier.dense.bias'
+            ]
+            for key in keys_to_drop:
+                if key in state_dict:
+                    del state_dict[key]
+            
+            self.model.load_state_dict(state_dict, strict=False)
 
     def _prepare_batch(self, batch: Tuple[Any, Any, Any]):
         """Convert batch to HuggingFace format."""
@@ -132,16 +203,17 @@ class HuggingFaceModel(TorchModel):
 
             optimizer.zero_grad()
             outputs = self.model(**inputs)
-            
+
             batch_loss = outputs.get("loss")
             batch_loss.backward()
             optimizer.step()
-            
+
             if lr_schedule is not None:
                 lr_schedule.step()
 
             self._global_step += 1
             current_step = self._global_step
+
             avg_loss += batch_loss.item()
             averaged_batches += 1
 
@@ -149,13 +221,13 @@ class HuggingFaceModel(TorchModel):
             if current_step % self.log_frequency == 0:
                 avg_loss_current = avg_loss / averaged_batches
                 logger.info(f'Step {current_step}: loss {avg_loss_current:.4f}')
-                
+
                 if all_losses is not None:
                     all_losses.append(avg_loss_current)
-                    
+
                 if self.tensorboard:
                     self._log_scalar_to_tensorboard('loss', batch_loss, current_step)
-                    
+
                 avg_loss = 0.0
                 averaged_batches = 0
 
@@ -260,7 +332,7 @@ class HuggingFaceModel(TorchModel):
             predictions = []
             for prob, token_id in zip(top_probs.tolist(), top_ids.tolist()):
                 token_str = self.tokenizer.decode([token_id])
-                
+
                 # Create filled sequence
                 filled_tokens = encoded["input_ids"][0].clone()
                 filled_tokens[mask_pos] = token_id
