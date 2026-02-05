@@ -562,6 +562,7 @@ class DMPNNFeaturizer(MolecularFeaturizer):
 
             # _cached_dmpnn is pickle-safe (uses __slots__)
             # and avoids repeated mapper construction during training.
-            graph_data._cached_dmpnn = DMPNNFeatures.from_mapper(mapper)
+            graph_data._cached_dmpnn = DMPNNFeatures.from_mapper(mapper) # type: ignore[attr-defined]
+            # NumPy arrays are used internally; runtime type is safe but mypy cannot infer this.
 
         return graph_data

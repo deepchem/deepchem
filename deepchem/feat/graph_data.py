@@ -257,9 +257,14 @@ class GraphData:
         graph_copy.kwargs = {}
         for key, value in self.kwargs.items():
             if isinstance(value, np.ndarray):
-                value = torch.from_numpy(value).to(device)
-                graph_copy.kwargs[key] = value
-                setattr(graph_copy, key, value)
+                # Normalize to numeric numpy array (handles lists and object arrays)
+                arr = np.asanyarray(value)
+                if arr.dtype == object:
+                    pass
+                else:
+                    value = torch.from_numpy(arr).to(device)
+            graph_copy.kwargs[key] = value
+            setattr(graph_copy, key, value)
 
         return graph_copy
 

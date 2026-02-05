@@ -488,7 +488,11 @@ class DMPNNFeatures:
         """Initialize DMPNNFeatures with pre-computed arrays."""
         self.atom_features = atom_features
         self.f_ini_atoms_bonds = f_ini_atoms_bonds
-        self.atom_to_incoming_bonds = atom_to_incoming_bonds
+        # Normalize to numeric numpy array (handles lists and object arrays)
+        arr = np.asanyarray(atom_to_incoming_bonds)
+        if arr.dtype == object:
+            arr = np.asarray(atom_to_incoming_bonds, dtype=np.int64)
+        self.atom_to_incoming_bonds = arr
         self.mapping = mapping
         self.global_features = global_features
 
