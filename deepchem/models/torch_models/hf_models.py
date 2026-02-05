@@ -558,45 +558,28 @@ class HuggingFaceModel(TorchModel):
                 final_variances.append(np.concatenate(v, axis=0))
             return zip(final_results, final_variances)
 
+            
+
         if len(final_results) == 1:
             return final_results[0]
         else:
             return np.array(final_results)
 
-            def fill_mask(self,
+    def fill_mask(self,
                   inputs: Union[str, List[str]],
                   top_k: int = 5) -> Union[List[Dict], List[List[Dict]]]:
-        """Implements the HuggingFace 'fill_mask' pipeline from HuggingFace.
-        https://huggingface.co/docs/transformers/main_classes/pipelines
-
-        Takes as input a sequence or list of sequences where each sequence
-        contains a single masked position and returns a list of dictionaries per sequence
-        containing the filled sequence, the token, and the score for that token.
-
-        Parameters
-        ----------
-        inputs : Union[str, List[str]]
-            One or several texts (or one list of texts) with masked tokens.
-        top_k : int, optional
-            The number of predictions to return for each mask. Default is 5.
-
-        Returns
-        -------
-        Union[List[Dict], List[List[Dict]]]
-            A list or a list of list of dictionaries with the following keys:
-            - sequence (str): The corresponding input with the mask token prediction.
-            - score (float): The corresponding probability.
-            - token (int): The predicted token id (to replace the masked one).
-            - token_str (str): The predicted token (to replace the masked one)
+        """
+        Fill masked tokens in input sequences.
         """
         self._ensure_built()
         self.model.eval()
 
-        # Ensure that the inputs are made into a list of len() >= 1.
-        if isinstance(inputs, str):
+        
+        single_input = isinstance(inputs, str)
+        if single_input:
             inputs = [inputs]
 
-        all_results: List[List[Dict]] = []
+        all_results = []
 
         for text in inputs:
             encoded = self.tokenizer(
@@ -604,48 +587,46 @@ class HuggingFaceModel(TorchModel):
                 return_tensors="pt"
             ).to(self.device)
 
+            
+            mask_token_id = self.tokenizer.mask_token_id
             mask_positions = torch.where(
-                encoded["input_ids"] == self.tokenizer.mask_token_id
-            )[1]
-
-            if mask_positions.numel() != 1:
+                encoded["input_ids"][0] == mask_token_id
+            )[0]
+            
+            if len(mask_positions) != 1:
                 raise ValueError(
                     f"Expected exactly one mask token `{self.tokenizer.mask_token}`, "
-                    f"but found {mask_positions.numel()} in: {text}"
+                    f"but found {len(mask_positions)} in: {text}"
                 )
-
+            
             mask_pos = mask_positions[0].item()
 
+            
             with torch.no_grad():
                 outputs = self.model(**encoded)
+                logits = outputs.logits[0, mask_pos, :]
+                probs = torch.softmax(logits, dim=-1)
 
-            logits = outputs.logits[0, mask_pos, :]
-            probs = torch.softmax(logits, dim=-1)
-
-            # Get top-k predictions with their scores
+            
             top_probs, top_ids = torch.topk(probs, top_k)
-
-            results: List[Dict] = []
-            for i in range(top_k):
-                token_id = top_ids[i].item()
+            
+            
+            predictions = []
+            for prob, token_id in zip(top_probs.tolist(), top_ids.tolist()):
                 token_str = self.tokenizer.decode([token_id])
-                score = top_probs[i].item()
-
+                
                 
                 filled_tokens = encoded["input_ids"][0].clone()
                 filled_tokens[mask_pos] = token_id
-
+                filled_sequence = self.tokenizer.decode(filled_tokens, skip_special_tokens=True)
                 
-                filled_sequence = self.tokenizer.decode(filled_tokens, skip_special_tokens=False)
-
-                results.append({
+                predictions.append({
                     "sequence": filled_sequence,
-                    "score": score,
+                    "score": prob,
                     "token": token_id,
                     "token_str": token_str,
                 })
 
-            all_results.append(results)
+            all_results.append(predictions)
 
-        
-        return all_results[0] if len(all_results) == 1 else all_results
+        return all_results[0] if single_input else all_results
