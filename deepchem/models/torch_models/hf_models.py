@@ -16,8 +16,6 @@ from deepchem.models.torch_models import TorchModel
 from deepchem.trans import Transformer, undo_transforms
 from deepchem.utils.typing import LossFn, OneOrMany
 from transformers.data.data_collator import DataCollatorForLanguageModeling
-from transformers.models.auto import AutoModel, AutoModelForSequenceClassification
-
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
@@ -56,6 +54,9 @@ class HuggingFaceModel(TorchModel):
         self.tokenizer = tokenizer
         
         # Setup data collator for MLM if needed
+        # NOTE: fill_mask is task-agnostic and does not depend on self.task.
+        # It directly uses the model's MLM head when available.
+
         if self.task == 'mlm':
             self.data_collator = DataCollatorForLanguageModeling(
                 tokenizer=tokenizer)
@@ -164,13 +165,15 @@ class HuggingFaceModel(TorchModel):
                       max_checkpoints_to_keep: int = 5,
                       checkpoint_interval: int = 1000,
                       restore: bool = False,
-                      variables: Optional[Union[List[torch.nn.Parameter],
-                                                torch.nn.ParameterList]] = None,
+                      variables: Optional[Union[List[torch.nn.Parameter],torch.nn.ParameterList]] = None,
                       loss: Optional[LossFn] = None,
-                      callbacks: Union[Callable, List[Callable]] = [],
+                      callbacks: Optional[Union[Callable, List[Callable]]] = None, 
                       all_losses: Optional[List[float]] = None) -> float:
         """Standard training loop - mostly inherited from TorchModel."""
-        if not isinstance(callbacks, SequenceCollection):
+        
+        if callbacks is None:
+            callbacks = []
+        elif not isinstance(callbacks, SequenceCollection):
             callbacks = [callbacks]
             
         self._ensure_built()
@@ -280,14 +283,19 @@ class HuggingFaceModel(TorchModel):
             for i, arr in enumerate(batch_results):
                 results[i].append(arr)
 
-        # Combine batches
+        # Combine batches with transformer support
         if results:
             final = [np.concatenate(r, axis=0) for r in results]
             
+            if transformers:
+                if len(final) != 1:
+                    raise ValueError(
+                        "undo_transforms only supported for single-output models"
+                    )
+                final[0] = undo_transforms(final[0], transformers)
+
             # Handle single output case
-            if len(final) == 1:
-                return final[0]
-            return final
+            return final[0] if len(final) == 1 else final
             
         return None
 
