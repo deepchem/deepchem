@@ -56,17 +56,24 @@ class _CATHLoader(_MolnetLoader):
         features = self.featurizer.featurize(pdb_files)
 
         # Filter out failed featurizations (empty arrays)
-        valid_indices = [i for i, f in enumerate(features) if f.size > 0]
+        # Features is a list of arrays with variable lengths
+        valid_data = [(f, labels[i], ids[i]) 
+                     for i, f in enumerate(features) if f.size > 0]
 
-        if len(valid_indices) == 0:
+        if len(valid_data) == 0:
             raise ValueError("All featurizations failed")
 
-        features = features[valid_indices]
-        labels = labels[valid_indices]
-        ids = [ids[i] for i in valid_indices]
+        features = [d[0] for d in valid_data]
+        labels = np.array([d[1] for d in valid_data])
+        ids = [d[2] for d in valid_data]
+
+        # Convert to object array to handle variable-length proteins
+        features_array = np.empty(len(features), dtype=object)
+        for i, f in enumerate(features):
+            features_array[i] = f
 
         # Create dataset
-        dataset = dc.data.NumpyDataset(X=features, y=labels, ids=ids)
+        dataset = dc.data.NumpyDataset(X=features_array, y=labels, ids=ids)
 
         return dataset
 

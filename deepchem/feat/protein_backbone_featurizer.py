@@ -19,10 +19,13 @@ class ProteinBackboneFeaturizer(Featurizer):
     from PDB structures. It is designed for use with protein structure generation
     models like RFDiffusion that operate on backbone geometry.
 
-    The featurizer returns an array of shape (L, 3, 3) where:
+    Each protein is featurized as an array of shape (L, 3, 3) where:
     - L is the number of residues
     - The second dimension corresponds to [N, CA, C] atoms
     - The third dimension contains [x, y, z] coordinates in Angstroms
+
+    Since proteins have variable lengths, this featurizer returns a list of
+    numpy arrays rather than a single stacked array.
 
     This class requires BioPython to be installed.
 
@@ -41,8 +44,10 @@ class ProteinBackboneFeaturizer(Featurizer):
     ...     pdb_file = f.name
     >>> featurizer = dc.feat.ProteinBackboneFeaturizer()
     >>> features = featurizer.featurize([pdb_file])
-    >>> features.shape
-    (1, 1, 3, 3)
+    >>> len(features)
+    1
+    >>> features[0].shape
+    (1, 3, 3)
     >>> os.unlink(pdb_file)
 
     References
@@ -65,6 +70,42 @@ class ProteinBackboneFeaturizer(Featurizer):
                 "ProteinBackboneFeaturizer requires BioPython to be installed. "
                 "Install it with: pip install biopython")
         self.max_length = max_length
+    
+    def featurize(self, datapoints, log_every_n=1000, **kwargs):
+        """Calculate features for datapoints.
+        
+        Parameters
+        ----------
+        datapoints : Iterable[str]
+            Paths to PDB files.
+        log_every_n : int, default 1000
+            Log every n datapoints.
+        
+        Returns
+        -------
+        list of np.ndarray
+            List of arrays, each of shape (L, 3, 3) containing backbone
+            atom coordinates for one protein.
+        """
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        datapoints = list(datapoints)
+        features = []
+        for i, point in enumerate(datapoints):
+            if i % log_every_n == 0:
+                logger.info("Featurizing datapoint %i" % i)
+            try:
+                feat = self._featurize(point, **kwargs)
+                if feat.size > 0:  # Only append non-empty arrays
+                    features.append(feat)
+                else:
+                    logger.warning(f"Failed to featurize datapoint {i}. Skipping.")
+            except Exception as e:
+                logger.warning(f"Failed to featurize datapoint {i}: {e}. Skipping.")
+        
+        # Return as list, not numpy array, since proteins have variable lengths
+        return features
 
     def _featurize(self, datapoint: str, **kwargs) -> np.ndarray:
         """Extract backbone coordinates from a PDB file.
