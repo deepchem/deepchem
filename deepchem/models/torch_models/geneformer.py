@@ -1,308 +1,316 @@
-import logging
-from typing import Optional, Union, List, Tuple, Any, Iterable
-
+from typing import Any, Dict, List, Optional, Tuple
 import numpy as np
-import torch
-import torch.nn as nn
-from deepchem.models.torch_models import TorchModel
-from deepchem.data import Dataset
-
-logger = logging.getLogger(__name__)
-
+from deepchem.models.torch_models.hf_models import HuggingFaceModel
+from transformers import AutoConfig, AutoModel, AutoModelForSequenceClassification
+from transformers.modeling_utils import PreTrainedModel
 try:
-    from transformers import AutoModel
-except ImportError:
-    pass
+    import torch
+    has_torch = True
+except:
+    has_torch = False
 
 
-class GeneformerModule(nn.Module):
-    """
-     The PyTorch Module representing the Geneformer wrapper.
+class Geneformer(HuggingFaceModel):
+    """DeepChem wrapper for the Geneformer single-cell foundation model.
 
-    I'm using the Geneformer backbone because it’s already pre-trained on a massive amount
-    of single-cell data.It’s based on BERT, so it uses self-attention to rank gene expression patterns
-    rather than just looking at raw counts.I've wrapped the main model with a classification head so we can use
-    those gene patterns to actually predict (cell types/disease states/etc.)
+    This class provides a DeepChem-compatible interface for Geneformer,
+    a transformer-based foundation model pre-trained on large-scale
+    single-cell transcriptomic data. The model uses Rank-Value Encoding
+    to represent gene expression patterns as token sequences.
 
-     Parameters
-     ----------
-     hf_model_name: str
-         Name of the Hugging Face model to load.
-     config: Any, optional
-         Configuration object for the model (e.g. BertConfig). If provided,
-         model is initialized from config instead of pre-trained weights.
-     n_tasks: int
-         Number of tasks/classes.
-     mode: str
-         'classification' or 'regression'.
+    Unlike text-based models (e.g., ChemBERTa), Geneformer receives
+    pre-featurized integer token sequences from the dataset rather than
+    raw strings. The GeneformerFeaturizer should be used during dataset
+    creation to convert gene expression counts to token IDs.
+
+    Supported Tasks
+    ---------------
+    - 'classification': Single or multi-label classification (e.g., cell type)
+    - 'regression': Continuous value prediction (e.g., gene expression levels)
+    - 'mtr': Multi-task regression
+
+    Parameters
+    ----------
+    task : str
+        The learning task type. Must be one of 'classification', 'regression',
+        or 'mtr' (multi-task regression).
+    hf_model_name : str, default 'ctheodoris/Geneformer'
+        The HuggingFace model identifier for loading pre-trained weights.
+    n_tasks : int, default 1
+        Number of prediction targets. For classification with n_tasks=1,
+        binary classification is assumed.
+    config : Dict[str, Any], optional
+        Additional configuration parameters passed to the HuggingFace model.
+        Useful for customizing model architecture or initializing from scratch.
+
+    Examples
+    --------
+    >>> from deepchem.models.torch_models.geneformer import Geneformer
+    >>> from transformers import BertConfig
+    >>> # Initialize with custom config for testing (avoids downloading weights)
+    >>> config = {'vocab_size': 100, 'hidden_size': 16, 'num_hidden_layers': 1,
+    ...           'num_attention_heads': 2, 'intermediate_size': 32}
+    >>> model = Geneformer(task='classification', n_tasks=1, config=config)
+
+    Notes
+    -----
+    - Input data should be pre-featurized using GeneformerFeaturizer
+    - The model expects input_ids as integer arrays (not raw text)
+    - Attention masks are computed automatically based on padding tokens (0)
+
+    References
+    ----------
+    .. [1] Theodoris, C.V., et al. "Transfer learning enables predictions
+        in network biology." Nature (2023).
+
+    See Also
+    --------
+    deepchem.feat.molecule_featurizers.GeneformerFeaturizer : Featurizer for
+        converting gene expression counts to token sequences.
     """
 
     def __init__(
         self,
-        hf_model_name: str,
-        config: Optional[Any] = None,
+        task: str,
+        hf_model_name: str = 'ctheodoris/Geneformer',
         n_tasks: int = 1,
-        mode: str = "classification",
-    ):
-        super(GeneformerModule, self).__init__()
-        self.n_tasks = n_tasks
-        self.mode = mode
-
-        if config is not None:
-            self.model = AutoModel.from_config(config)
-        else:
-            self.model = AutoModel.from_pretrained(hf_model_name)
-
-        hidden_size = self.model.config.hidden_size
-
-        # For classification with 1 task we use CrossEntropyLoss which expects (batch, 2) output for binary classification.
-        # basically even if it is a single binary classification we are putting as 2 classes.
-        if mode == "classification" and n_tasks == 1:
-            self.classifier = nn.Linear(hidden_size, 2)
-        else:
-            self.classifier = nn.Linear(hidden_size, n_tasks)
-
-    def forward(
-            self, inputs: Union[List[torch.Tensor],
-                                torch.Tensor]) -> torch.Tensor:
-        """
-        Forward pass.
+        config: Optional[Dict[str, Any]] = None,
+        **kwargs
+    ) -> None:
+        """Initialize the Geneformer model.
 
         Parameters
         ----------
-        inputs: Union[List[torch.Tensor], torch.Tensor]
-            A list containing [input_ids, attention_mask] or just input_ids.
-
-        Returns
-        -------
-        torch.Tensor
-            Logits or predictions.
+        task : str
+            The learning task type ('classification', 'regression', or 'mtr').
+        hf_model_name : str, default 'ctheodoris/Geneformer'
+            HuggingFace model identifier.
+        n_tasks : int, default 1
+            Number of prediction targets.
+        config : Dict[str, Any], optional
+            Model configuration parameters.
+        **kwargs
+            Additional arguments passed to HuggingFaceModel.
         """
-        if isinstance(inputs, (list, tuple)):
-            input_ids = inputs[0]
-            attention_mask = inputs[1] if len(inputs) > 1 else None
-        else:
-            input_ids = inputs
-            attention_mask = None
-
-        # Forward pass through HF model
-        outputs = self.model(input_ids=input_ids, attention_mask=attention_mask)
-
-        # Geneformer is BERT based so without using CLS I'm using mean pooling
-
-        # outputs.last_hidden_state: (Batch, Seq_Len, Hidden)
-        if attention_mask is not None:
-            # Mask out padding tokens from the average
-            # Expanding mask from (Batch, Seq_Len) to (Batch, Seq_Len, 1) so that element wise multiplation
-            input_mask_expanded = (attention_mask.unsqueeze(-1).expand(
-                outputs.last_hidden_state.size()).float())
-            sum_embeddings = torch.sum(
-                outputs.last_hidden_state * input_mask_expanded, 1)
-            sum_mask = torch.clamp(input_mask_expanded.sum(1), min=1e-9)
-            embedding = sum_embeddings / sum_mask
-        else:
-            # Simple mean if no mask provided
-            embedding = torch.mean(outputs.last_hidden_state, dim=1)
-
-        logits = self.classifier(embedding)
-        return logits
-
-
-class DeepChemGeneformer(TorchModel):
-    """
-    DeepChem wrapper for Geneformer foundation model.
-
-    I have added a DeepChem compatible wrapper for Geneformer to make it easier to run on the custom datasets.
-    The goal here is to let users plug Geneformer's pre-trained biology weights directly into the existing pipelines,
-    specifically for things like classifying cell types or predicting expression levels without having to rewrite
-    the training loop from scratch
-
-    Parameters
-    ----------
-    hf_model_name: str, default 'ctheodoris/Geneformer'
-        The HuggingFace model identifier.
-    model_config: Any, optional
-        A configuration object (e.g. transformers.BertConfig) to initialize the
-        model randomly without downloading weights. Useful for testing.
-    mode: str, default 'classification'
-        The task mode: 'classification' or 'regression'.
-    n_tasks: int, default 1
-        Number of tasks.
-    max_length: int, default 2048
-        Maximum sequence length for the Geneformer model.
-    **kwargs:
-        Additional arguments passed to the TorchModel constructor.
-
-    Example
-    -------
-    >>> from deepchem.models.torch_models.geneformer import DeepChemGeneformer
-    >>> from transformers import BertConfig
-    >>> config = BertConfig(vocab_size=100, hidden_size=16, num_hidden_layers=1, num_attention_heads=2, intermediate_size=32)
-    >>> model = DeepChemGeneformer(hf_model_name='ctheodoris/Geneformer', model_config=config, n_tasks=1, mode='classification')
-
-    """
-
-    def __init__(self,
-                 hf_model_name: str = "ctheodoris/Geneformer",
-                 model_config: Optional[Any] = None,
-                 mode: str = "classification",
-                 n_tasks: int = 1,
-                 max_length: int = 2048,
-                 **kwargs):
-        self.mode = mode
         self.n_tasks = n_tasks
         self.hf_model_name = hf_model_name
-        self.model_config = model_config
-        self.max_length = max_length
+        self._config_dict = config if config else {}
 
-        module = GeneformerModule(hf_model_name=hf_model_name,
-                                  config=model_config,
-                                  n_tasks=n_tasks,
-                                  mode=mode)
+        # Validate task
+        valid_tasks = ['classification', 'regression', 'mtr']
+        if task not in valid_tasks:
+            raise ValueError(
+                f"Invalid task '{task}'. Must be one of {valid_tasks}"
+            )
 
-        if mode == "classification":
-            if n_tasks == 1:
-                criterion = nn.CrossEntropyLoss(reduction="none")
-                self.loss_fn = lambda outputs, labels, weights: (criterion(
-                    outputs[0], labels) * weights.squeeze()).mean()
-            else:
-                criterion = nn.BCEWithLogitsLoss(reduction="none")
-                self.loss_fn = lambda outputs, labels, weights: (criterion(
-                    outputs[0], labels) * weights).mean()
-        elif mode == "regression":
-            criterion = nn.MSELoss(reduction="none")
-            self.loss_fn = lambda outputs, labels, weights: (criterion(
-                outputs[0], labels) * weights).mean()
-        else:
-            raise ValueError("mode must be 'classification' or 'regression'")
+        # Build the HuggingFace model
+        model = self._build_model(task, n_tasks)
 
-        super(DeepChemGeneformer, self).__init__(model=module,
-                                                 loss=self.loss_fn,
-                                                 **kwargs)
+        # Initialize parent class
+        # Note: HuggingFaceModel expects a tokenizer, but Geneformer uses
+        # pre-featurized inputs. We pass None and override _prepare_batch.
+        super(Geneformer, self).__init__(
+            model=model,
+            tokenizer=None,  # type: ignore
+            task=task,
+            config=self._config_dict,
+            **kwargs
+        )
 
-    def default_generator(
-        self,
-        dataset: Dataset,
-        epochs: int = 1,
-        mode: str = "fit",
-        deterministic: bool = True,
-        pad_batches: bool = True,
-    ) -> Iterable[Tuple[Any, Any, Any]]:
-        """
-        Create a generator that yields batches of data from the dataset.
-
-        Performs Rank-Value encoding for gene expression counts. Genes are
-        sorted by their expression values in descending order.
+    def _build_model(self, task: str, n_tasks: int) -> 'PreTrainedModel':
+        """Build the HuggingFace model based on task type.
 
         Parameters
         ----------
-        dataset: Dataset
-            The DeepChem dataset to iterate over.
-        epochs: int
-            Number of epochs to iterate.
-        mode: str
-            Iteration mode.
-        deterministic: bool
-            Whether to iterate deterministically.
-        pad_batches: bool
-            Whether to pad batches to the batch size.
+        task : str
+            The learning task type.
+        n_tasks : int
+            Number of prediction targets.
 
         Returns
         -------
-        Iterable[Tuple[Any, Any, Any]]
-            A generator yielding (inputs, labels, weights).
+        PreTrainedModel
+            The configured HuggingFace model.
         """
-        for batch in dataset.iterbatches(
-                batch_size=self.batch_size,
-                epochs=epochs,
-                deterministic=deterministic,
-                pad_batches=pad_batches,
-        ):
-            X, y, w, ids = batch
+        if self._config_dict:
+            # Initialize from config (random weights)
+            hf_config = AutoConfig.for_model(
+                model_type='bert',
+                **self._config_dict
+            )
 
-            is_counts = False
-            if isinstance(X, np.ndarray) and np.issubdtype(
-                    X.dtype, np.floating):
-                is_counts = True
-
-            processed_seqs = []
-            for i in range(len(X)):
-                sample = X[i]
-                if is_counts:
-                    # Rank-Value Encoding: Filter zero-expression genes and sort
-                    # indices by expression value descending.
-                    # We assume indices correspond to Geneformer token IDs for MVP.
-                    nz_indices = np.flatnonzero(sample)
-                    nz_values = sample[nz_indices]
-                    sorted_nz_indices = nz_indices[np.argsort(-nz_values)]
-                    seq = sorted_nz_indices[:self.max_length]
+            if task == 'classification':
+                if n_tasks == 1:
+                    hf_config.problem_type = 'single_label_classification'
+                    hf_config.num_labels = 2  # Binary classification
                 else:
-                    seq = sample[:self.max_length]
-                processed_seqs.append(seq)
+                    hf_config.problem_type = 'multi_label_classification'
+                    hf_config.num_labels = n_tasks
+            elif task in ['regression', 'mtr']:
+                hf_config.problem_type = 'regression'
+                hf_config.num_labels = n_tasks
 
-            # Determine max length in this batch for padding
-            batch_max_len = max(
-                len(s) for s in processed_seqs) if processed_seqs else 0
-            # Ensure at least 1 for empty samples
-            batch_max_len = max(1, batch_max_len)
+            model = AutoModelForSequenceClassification.from_config(hf_config)
+        else:
+            # Load pre-trained model
+            if task == 'classification':
+                if n_tasks == 1:
+                    problem_type = 'single_label_classification'
+                    num_labels = 2
+                else:
+                    problem_type = 'multi_label_classification'
+                    num_labels = n_tasks
+            else:
+                problem_type = 'regression'
+                num_labels = n_tasks
 
-            input_ids = np.zeros((len(X), batch_max_len), dtype=np.int64)
-            attention_mask = np.zeros((len(X), batch_max_len), dtype=np.int64)
+            model = AutoModelForSequenceClassification.from_pretrained(
+                self.hf_model_name,
+                problem_type=problem_type,
+                num_labels=num_labels,
+                trust_remote_code=True
+            )
 
-            for i, seq in enumerate(processed_seqs):
-                length = len(seq)
-                if length > 0:
-                    input_ids[i, :length] = seq
-                    attention_mask[i, :length] = 1
+        return model
 
-            inputs = [input_ids, attention_mask]
-            yield (inputs, y, w)
+    def _prepare_batch(
+        self,
+        batch: Tuple[Any, Any, Any]
+    ) -> Tuple[Dict[str, torch.Tensor], Optional[torch.Tensor], Optional[torch.Tensor]]:
+        """Prepare a batch of pre-featurized data for model input.
 
-    def _prepare_batch(self, batch: Tuple[Any, Any,
-                                          Any]) -> Tuple[Any, Any, Any]:
-        """
-        Prepare batch for the model by casting to appropriate types and moving to device.
+        Unlike text-based models that tokenize strings in this method,
+        Geneformer receives pre-featurized token IDs from the dataset.
+        This method converts the numpy arrays to PyTorch tensors,
+        generates attention masks, and moves data to the appropriate device.
 
         Parameters
         ----------
-        batch: Tuple[Any, Any, Any]
-            The batch of data (inputs, labels, weights).
+        batch : Tuple[Any, Any, Any]
+            A tuple of (inputs, labels, weights) where:
+            - inputs: numpy array of shape (batch_size, seq_length) containing
+              integer token IDs
+            - labels: numpy array of target values (or None for prediction)
+            - weights: numpy array of sample weights
 
         Returns
         -------
-        Tuple[Any, Any, Any]
-            The processed batch.
+        Tuple[Dict[str, torch.Tensor], Optional[torch.Tensor], Optional[torch.Tensor]]
+            A tuple containing:
+            - inputs_dict: Dictionary with 'input_ids', 'attention_mask', and
+              optionally 'labels' for the HuggingFace model
+            - labels: PyTorch tensor of labels (or None)
+            - weights: PyTorch tensor of weights (or None)
         """
-        inputs, y, w = batch
-        input_ids, attention_mask = inputs
+        X, y, w = batch
 
-        # Cast to torch.long for HF compatibility
-        input_ids_t = torch.as_tensor(input_ids,
-                                      dtype=torch.long,
-                                      device=self.device)
-        attention_mask_t = torch.as_tensor(attention_mask,
-                                           dtype=torch.long,
-                                           device=self.device)
+        # Handle case where X might be wrapped in a list/tuple
+        if isinstance(X, (list, tuple)):
+            input_ids = X[0]
+        else:
+            input_ids = X
 
-        processed_inputs = [input_ids_t, attention_mask_t]
+        # Convert to numpy if needed
+        if not isinstance(input_ids, np.ndarray):
+            input_ids = np.array(input_ids)
 
-        y_t = None
+        # Create attention mask: 1 for non-padding tokens, 0 for padding
+        # Assumes padding token is 0
+        attention_mask = (input_ids != 0).astype(np.int64)
+
+        # Convert to PyTorch tensors and move to device
+        input_ids_t = torch.as_tensor(
+            input_ids,
+            dtype=torch.long,
+            device=self.device
+        )
+        attention_mask_t = torch.as_tensor(
+            attention_mask,
+            dtype=torch.long,
+            device=self.device
+        )
+
+        # Build inputs dictionary for HuggingFace model
+        inputs_dict: Dict[str, torch.Tensor] = {
+            'input_ids': input_ids_t,
+            'attention_mask': attention_mask_t,
+        }
+
+        # Process labels
+        y_t: Optional[torch.Tensor] = None
         if y is not None:
+            # Handle wrapped labels
+            if isinstance(y, (list, tuple)):
+                y = y[0]
             y_t = torch.as_tensor(y, device=self.device)
-            if self.mode == "classification":
+
+            if self.task == 'classification':
                 if self.n_tasks == 1:
+                    # Binary classification with CrossEntropyLoss
                     y_t = y_t.long()
                     # Squeeze (N, 1) -> (N) for CrossEntropyLoss
                     if y_t.dim() == 2 and y_t.shape[1] == 1:
                         y_t = y_t.squeeze(1)
                 else:
+                    # Multi-label classification with BCEWithLogitsLoss
                     y_t = y_t.float()
             else:
+                # Regression
                 y_t = y_t.float()
 
-        if w is not None:
-            w_t = torch.as_tensor(w, device=self.device, dtype=torch.float)
-        else:
-            w_t = None
+            inputs_dict['labels'] = y_t
 
-        return processed_inputs, y_t, w_t
+        # Process weights
+        w_t: Optional[torch.Tensor] = None
+        if w is not None:
+            w_t = torch.as_tensor(w, dtype=torch.float, device=self.device)
+
+        return inputs_dict, y_t, w_t
+
+    def load_from_pretrained(
+        self,
+        model_dir: Optional[str] = None,
+        from_hf_checkpoint: bool = False
+    ) -> None:
+        """Load model weights from a pretrained checkpoint.
+
+        Parameters
+        ----------
+        model_dir : str, optional
+            Directory containing the model checkpoint. If None, uses self.model_dir.
+        from_hf_checkpoint : bool, default False
+            If True, loads directly from a HuggingFace checkpoint using
+            from_pretrained(). If False, loads from a DeepChem checkpoint.
+
+        Notes
+        -----
+        When loading from a HuggingFace checkpoint, the model architecture
+        should match the checkpoint being loaded.
+        """
+        if model_dir is None:
+            model_dir = self.model_dir
+
+        if from_hf_checkpoint:
+            # Determine configuration based on current task
+            if self.task == 'classification':
+                if self.n_tasks == 1:
+                    problem_type = 'single_label_classification'
+                    num_labels = 2
+                else:
+                    problem_type = 'multi_label_classification'
+                    num_labels = self.n_tasks
+            else:
+                problem_type = 'regression'
+                num_labels = self.n_tasks
+
+            self.model = AutoModelForSequenceClassification.from_pretrained(
+                model_dir,
+                problem_type=problem_type,
+                num_labels=num_labels,
+                trust_remote_code=True,
+                **self._config_dict
+            )
+        else:
+            # Use parent class method for DeepChem checkpoints
+            super().load_from_pretrained(model_dir, from_hf_checkpoint=False)
+
