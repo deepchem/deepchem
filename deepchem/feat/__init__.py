@@ -76,6 +76,8 @@ from deepchem.feat.material_featurizers import LCNNFeaturizer
 from deepchem.feat.atomic_conformation import AtomicConformation
 from deepchem.feat.atomic_conformation import AtomicConformationFeaturizer
 
+from deepchem.feat.protein_backbone_featurizer import ProteinBackboneFeaturizer
+
 from deepchem.feat.huggingface_featurizer import HuggingFaceFeaturizer
 
 # biological sequence featurizers
