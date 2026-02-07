@@ -57,8 +57,8 @@ class Featurizer(object):
         try:
             return np.asarray(features)
         except ValueError as e:
-            logger.warning(f'Exception occures:{e}')
-            return np.asarray(features,dtype=object)
+            logger.warning(f'Exception occurred:{e}')
+            return np.asarray(features, dtype=object)
 
     def __call__(self, datapoints: Iterable[Any], **kwargs):
         """Calculate features for datapoints.
