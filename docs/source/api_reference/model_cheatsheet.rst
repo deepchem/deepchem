@@ -43,4 +43,13 @@ The following models were designed specifically for (inorganic) materials.
     :width: 100%
     :header-rows: 1
 
+**Equivariant**
+
+These are models that are equivariant to rotations and translations in 3D space.
+
+.. csv-table:: Equivariant models
+    :file: ./equivariant_models.csv
+    :width: 100%
+    :header-rows: 1
+
 
