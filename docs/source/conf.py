@@ -100,6 +100,14 @@ html_theme_options = {
     'display_version': True,
 }
 
+html_css_files = [
+    'dark_mode.css',
+]
+
+html_js_files = [
+    'theme_toggle.js',
+]
+
 copybutton_remove_prompts = True
 
 # -- Source code links ---------------------------------------------------
