@@ -19,7 +19,7 @@ This folder contains CSV files that define the order in which tutorials are to b
 4. Commit both the tutorial notebook and CSV file in your PR.
 
 # Common Checks
-- Check for mismatch of title in csv and name of notebook .See that they are same .
--Check for the order of tutorials in the csv file.
+- Check for mismatch of title in csv and name of notebook .See that they are same.
+- Check for the order of tutorials in the csv file.
 
 
