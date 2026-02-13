@@ -8,7 +8,7 @@ This folder contains CSV files that define the order in which tutorials are to b
  
  
  # Example :
-  - introduction-to-deepchem.csv this appears on the website as it is ordered over here.
+  - introduction-to-deepchem.csv the tutorials appear on the website as they are ordered in it.
 
 
 #Adding your own tutorial
