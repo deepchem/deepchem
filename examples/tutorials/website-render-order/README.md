@@ -3,8 +3,8 @@
 
 This folder contains CSV files that define the order in which tutorials are to be rendered on the DeepChem's website.
 
--Each file define the order and group tutorials for a specified section on the website.
--The files are named according to the section they define the order for to be displayed on the website
+- Each file define the order and group tutorials for a specified section on the website.
+- The files are named according to the section they define the order for to be displayed on the website
  
  
  # Example :
