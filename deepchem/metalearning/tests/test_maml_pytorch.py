@@ -58,10 +58,14 @@ class TestMAML(unittest.TestCase):
                 self.phase = np.pi * np.random.random()
 
             def get_batch(self):
-                x = torch.tensor(
-                    np.random.uniform(-5.0, 5.0, (self.batch_size, 1)))
+                device = self.w1.device 
+                
+                x_np = np.random.uniform(-5.0, 5.0, (self.batch_size, 1))
+                y_np = self.amplitude * np.sin(x_np + self.phase)
+                
                 return [
-                    x, torch.tensor(self.amplitude * np.sin(x + self.phase))
+                    torch.tensor(x_np, device=device),
+                    torch.tensor(y_np, device=device)
                 ]
 
             def parameters(self):
@@ -84,11 +88,11 @@ class TestMAML(unittest.TestCase):
             maml.restore()
             batch = learner.get_batch()
             loss, outputs = maml.predict_on_batch(batch)
-            loss = loss.detach().numpy()
+            loss = loss.detach().cpu().numpy()
             loss1.append(np.sqrt(loss))
             maml.train_on_current_task()
             loss, outputs = maml.predict_on_batch(batch)
-            loss = loss.detach().numpy()
+            loss = loss.detach().cpu().numpy()
             loss2.append(np.sqrt(loss))
 
         # Initially the model should do a bad job of fitting the sine function.
@@ -105,7 +109,7 @@ class TestMAML(unittest.TestCase):
         new_maml = MAML(SineLearner(), model_dir=maml.model_dir)
         new_maml.restore()
         loss, outputs = new_maml.predict_on_batch(batch)
-        loss = loss.detach().numpy()
+        loss = loss.detach().cpu().numpy()
         assert np.sqrt(loss) == loss1[-1]
 
         # Do the same thing, only using the "restore" argument to fit().
@@ -113,5 +117,5 @@ class TestMAML(unittest.TestCase):
         new_maml = MAML(SineLearner(), model_dir=maml.model_dir)
         new_maml.fit(0, restore=True)
         loss, outputs = new_maml.predict_on_batch(batch)
-        loss = loss.detach().numpy()
+        loss = loss.detach().cpu().numpy()
         assert np.sqrt(loss) == loss1[-1]
