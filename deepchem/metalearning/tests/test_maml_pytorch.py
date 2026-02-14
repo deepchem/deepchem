@@ -58,11 +58,11 @@ class TestMAML(unittest.TestCase):
                 self.phase = np.pi * np.random.random()
 
             def get_batch(self):
-                device = self.w1.device 
-                
+                device = self.w1.device
+
                 x_np = np.random.uniform(-5.0, 5.0, (self.batch_size, 1))
                 y_np = self.amplitude * np.sin(x_np + self.phase)
-                
+
                 return [
                     torch.tensor(x_np, device=device),
                     torch.tensor(y_np, device=device)
