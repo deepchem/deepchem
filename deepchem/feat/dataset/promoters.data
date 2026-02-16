@@ -1,0 +1,106 @@
++,S10,		tactagcaatacgcttgcgttcggtggttaagtatgtataatgcgcgggcttgtcgt
++,AMPC,		tgctatcctgacagttgtcacgctgattggtgtcgttacaatctaacgcatcgccaa
++,AROH,		gtactagagaactagtgcattagcttatttttttgttatcatgctaaccacccggcg
++,DEOP2,	aattgtgatgtgtatcgaagtgtgttgcggagtagatgttagaatactaacaaactc
++,LEU1_TRNA,	tcgataattaactattgacgaaaagctgaaaaccactagaatgcgcctccgtggtag
++,MALEFG,	aggggcaaggaggatggaaagaggttgccgtataaagaaactagagtccgtttaggt
++,MALK,		cagggggtggaggatttaagccatctcctgatgacgcatagtcagcccatcatgaat
++,RECA,		tttctacaaaacacttgatactgtatgagcatacagtataattgcttcaacagaaca
++,RPOB,		cgacttaatatactgcgacaggacgtccgttctgtgtaaatcgcaatgaaatggttt
++,RRNAB_P1,	ttttaaatttcctcttgtcaggccggaataactccctataatgcgccaccactgaca
++,RRNAB_P2,	gcaaaaataaatgcttgactctgtagcgggaaggcgtattatgcacaccccgcgccg
++,RRNDEX_P2,	cctgaaattcagggttgactctgaaagaggaaagcgtaatatacgccacctcgcgac
++,RRND_P1,	gatcaaaaaaatacttgtgcaaaaaattgggatccctataatgcgcctccgttgaga
++,RRNE_P1,	ctgcaatttttctattgcggcctgcggagaactccctataatgcgcctccatcgaca
++,RRNG_P1,	tttatatttttcgcttgtcaggccggaataactccctataatgcgccaccactgaca
++,RRNG_P2,	aagcaaagaaatgcttgactctgtagcgggaaggcgtattatgcacaccgccgcgcc
++,RRNX_P1,	atgcatttttccgcttgtcttcctgagccgactccctataatgcgcctccatcgaca
++,TNAA,		aaacaatttcagaatagacaaaaactctgagtgtaataatgtagcctcgtgtcttgc
++,TYRT,		tctcaacgtaacactttacagcggcgcgtcatttgatatgatgcgccccgcttcccg
++,ARAC,		gcaaataatcaatgtggacttttctgccgtgattatagacacttttgttacgcgttt
++,LACI,		gacaccatcgaatggcgcaaaacctttcgcggtatggcatgatagcgcccggaagag
++,MALT,		aaaaacgtcatcgcttgcattagaaaggtttctggccgaccttataaccattaatta
++,TRP,		tctgaaatgagctgttgacaattaatcatcgaactagttaactagtacgcaagttca
++,TRPP2,	accggaagaaaaccgtgacattttaacacgtttgttacaaggtaaaggcgacgccgc
++,THR,		aaattaaaattttattgacttaggtcactaaatactttaaccaatataggcatagcg
++,BIOB,		ttgtcataatcgacttgtaaaccaaattgaaaagatttaggtttacaagtctacacc
++,FOL,		catcctcgcaccagtcgacgacggtttacgctttacgtatagtggcgacaatttttt
++,UVRBP1,	tccagtataatttgttggcataattaagtacgacgagtaaaattacatacctgcccg
++,UVRBP3,	acagttatccactattcctgtggataaccatgtgtattagagttagaaaacacgagg
++,LEXA,		tgtgcagtttatggttccaaaatcgccttttgctgtatatactcacagcataactgt
++,PORI-L,	ctgttgttcagtttttgagttgtgtataacccctcattctgatcccagcttatacgg
++,SPOT42,	attacaaaaagtgctttctgaactgaacaaaaaagagtaaagttagtcgcgtagggt
++,M1RNA,	atgcgcaacgcggggtgacaagggcgcgcaaaccctctatactgcgcgccgaagctg
++,GLNS,		taaaaaactaacagttgtcagcctgtcccgcttataagatcatacgccgttatacgt
++,TUFB,		atgcaattttttagttgcatgaactcgcatgtctccatagaatgcgcgctacttgat
++,SUBB-E,	ccttgaaaaagaggttgacgctgcaaggctctatacgcataatgcgccccgcaacgc
++,STR,		tcgttgtatatttcttgacaccttttcggcatcgccctaaaattcggcgtcctcata
++,SPC,		ccgtttattttttctacccatatccttgaagcggtgttataatgccgcgccctcgat
++,RPOA,		ttcgcatatttttcttgcaaagttgggttgagctggctagattagccagccaatctt
++,RPLJ,		tgtaaactaatgcctttacgtgggcggtgattttgtctacaatcttacccccacgta
++,PORI-R,	gatcgcacgatctgtatacttatttgagtaaattaacccacgatcccagccattctt
++,ALAS,		aacgcatacggtattttaccttcccagtcaagaaaacttatcttattcccacttttc
++,ARABAD,	ttagcggatcctacctgacgctttttatcgcaactctctactgtttctccatacccg
++,BIOA,		gccttctccaaaacgtgttttttgttgttaattcggtgtagacttgtaaacctaaat
++,DEOP1,	cagaaacgttttattcgaacatcgatctcgtcttgtgttagaattctaacatacggt
++,GALP2,	cactaatttattccatgtcacacttttcgcatctttgttatgctatggttatttcat
++,HIS,		atataaaaaagttcttgctttctaacgtgaaagtggtttaggttaaaagacatcagt
++,HISJ,		caaggtagaatgctttgccttgtcggcctgattaatggcacgatagtcgcatcggat
++,ILVGEDA,	ggccaaaaaatatcttgtactatttacaaaacctatggtaactctttaggcattcct
++,LACP1,	taggcaccccaggctttacactttatgcttccggctcgtatgttgtgtggaattgtg
++,LPP,		ccatcaaaaaaatattctcaacataaaaaactttgtgtaatacttgtaacgctacat
++,TRPR,		tggggacgtcgttactgatccgcacgtttatgatatgctatcgtactctttagcgag
++,UVRB_P2,	tcagaaatattatggtgatgaactgtttttttatccagtataatttgttggcataat
+-, 867,		atatgaacgttgagactgccgctgagttatcagctgtgaacgacattctggcgtcta
+-,1169,		cgaacgagtcaatcagaccgctttgactctggtattactgtgaacattattcgtctc
+-, 802,		caatggcctctaaacgggtcttgaggggttttttgctgaaaggaggaactatatgcg
+-, 521,		ttgacctactacgccagcattttggcggtgtaagctaaccattccggttgactcaat
+-, 918,		cgtctatcggtgaacctccggtatcaacgctggaaggtgacgctaacgcagatgcag
+-,1481,		gccaatcaatcaagaacttgaagggtggtatcagccaacagcctgacatccttcgtt
+-,1024,		tggatggacgttcaacattgaggaaggcataacgctactacctgatgtttactccaa
+-,1149,		gaggtggctatgtgtatgaccgaacgagtcaatcagaccgctttgactctggtatta
+-, 313,		cgtagcgcatcagtgctttcttactgtgagtacgcaccagcgccagaggacgacgac
+-, 780,		cgaccgaagcgagcctcgtcctcaatggcctctaaacgggtcttgaggggttttttg
+-,1384,		ctacggtgggtacaatatgctggatggagatgcgttcacttctggtctactgactcg
+-, 507,		atagtctcagagtcttgacctactacgccagcattttggcggtgtaagctaaccatt
+-,  39,		aactcaaggctgatacggcgagacttgcgagccttgtccttgcggtacacagcagcg
+-,1203,		ttactgtgaacattattcgtctccgcgactacgatgagatgcctgagtgcttccgtt
+-, 988,		tattctcaacaagattaaccgacagattcaatctcgtggatggacgttcaacattga
+-,1171,		aacgagtcaatcagaccgctttgactctggtattactgtgaacattattcgtctccg
+-, 753,		aagtgcttagcttcaaggtcacggatacgaccgaagcgagcctcgtcctcaatggcc
+-, 630,		gaagaccacgcctcgccaccgagtagacccttagagagcatgtcagcctcgacaact
+-, 660,		ttagagagcatgtcagcctcgacaacttgcataaatgctttcttgtagacgtgccct
+-,1216,		tattcgtctccgcgactacgatgagatgcctgagtgcttccgttactggattgtcac
+-, 835,		tgctgaaaggaggaactatatgcgctcatacgatatgaacgttgagactgccgctga
+-,  35,		catgaactcaaggctgatacggcgagacttgcgagccttgtccttgcggtacacagc
+-,1218,		ttcgtctccgcgactacgatgagatgcctgagtgcttccgttactggattgtcacca
+-, 668,		catgtcagcctcgacaacttgcataaatgctttcttgtagacgtgccctacgcgctt
+-, 413,		aggaggaactacgcaaggttggaacatcggagagatgccagccagcgcacctgcacg
+-, 991,		tctcaacaagattaaccgacagattcaatctcgtggatggacgttcaacattgagga
+-, 751,		tgaagtgcttagcttcaaggtcacggatacgaccgaagcgagcctcgtcctcaatgg
+-, 850,		ctatatgcgctcatacgatatgaacgttgagactgccgctgagttatcagctgtgaa
+-,  93,		gcggcagcacgtttccacgcggtgagagcctcaggattcatgtcgatgtcttccggt
+-,1108,		atccctaatgtctacttccggtcaatccatctacgttaaccgaggtggctatgtgta
+-, 915,		tggcgtctatcggtgaacctccggtatcaacgctggaaggtgacgctaacgcagatg
+-,1019,		tctcgtggatggacgttcaacattgaggaaggcataacgctactacctgatgtttac
+-,  19,		tattggcttgctcaagcatgaactcaaggctgatacggcgagacttgcgagccttgt
+-,1320,		tagagggtgtactccaagaagaggaagatgaggctagacgtctctgcatggagtatg
+-,  91,		cagcggcagcacgtttccacgcggtgagagcctcaggattcatgtcgatgtcttccg
+-, 217,		ttacgttggcgaccgctaggactttcttgttgattttccatgcggtgttttgcgcaa
+-, 957,		acgctaacgcagatgcagcgaacgctcggcgtattctcaacaagattaaccgacaga
+-, 260,		ggtgttttgcgcaatgttaatcgctttgtacacctcaggcatgtaaacgtcttcgta
+-, 557,		aaccattccggttgactcaatgagcatctcgatgcagcgtactcctacatgaataga
+-,1355,		agacgtctctgcatggagtatgagatggactacggtgggtacaatatgctggatgga
+-, 244,		tgttgattttccatgcggtgttttgcgcaatgttaatcgctttgtacacctcaggca
+-, 464,		tgcacgggttgcgatagcctcagcgtattcaggtgcgagttcgatagtctcagagtc
+-, 296,		aggcatgtaaacgtcttcgtagcgcatcagtgctttcttactgtgagtacgcaccag
+-, 648,		ccgagtagacccttagagagcatgtcagcctcgacaacttgcataaatgctttcttg
+-, 230,		cgctaggactttcttgttgattttccatgcggtgttttgcgcaatgttaatcgcttt
+-,1163,		tatgaccgaacgagtcaatcagaccgctttgactctggtattactgtgaacattatt
+-,1321,		agagggtgtactccaagaagaggaagatgaggctagacgtctctgcatggagtatga
+-, 663,		gagagcatgtcagcctcgacaacttgcataaatgctttcttgtagacgtgccctacg
+-, 799,		cctcaatggcctctaaacgggtcttgaggggttttttgctgaaaggaggaactatat
+-, 987,		gtattctcaacaagattaaccgacagattcaatctcgtggatggacgttcaacattg
+-,1226,		cgcgactacgatgagatgcctgagtgcttccgttactggattgtcaccaaggcttcc
+-, 794,		ctcgtcctcaatggcctctaaacgggtcttgaggggttttttgctgaaaggaggaac
+-,1442,		taacattaataaataaggaggctctaatggcactcattagccaatcaatcaagaact

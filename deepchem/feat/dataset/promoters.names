@@ -1,0 +1,84 @@
+1. Title of Database: E. coli promoter gene sequences (DNA)
+                      with associated imperfect domain theory
+
+2. Sources:
+   (a) Creators: 
+       - promoter instances: C. Harley (CHARLEY@McMaster.CA) and R. Reynolds 
+       - non-promoter instances and domain theory: M. Noordewier
+         -- (non-promoters derived from work of lab of Prof. Tom Record, 
+             University of Wisconsin Biochemistry Department)
+   (b) Donor: M. Noordewier and J. Shavlik, {noordewi,shavlik}@cs.wisc.edu
+   (c) Date received: 6/30/90
+
+3. Past Usage:
+   (a) biological: 
+       -- Harley, C. and Reynolds, R. 1987.  
+          "Analysis of E. Coli Promoter Sequences."
+          Nucleic Acids Research, 15:2343-2361.
+       machine learning:
+       -- Towell, G., Shavlik, J. and Noordewier, M. 1990.
+          "Refinement of Approximate Domain Theories by Knowledge-Based
+          Artificial Neural Networks." In Proceedings of the Eighth National
+          Conference on Artificial Intelligence (AAAI-90).
+   (b) attributes predicted: member/non-member of class of sequences with
+       biological promoter activity (promoters initiate the process of gene
+       expression).
+   (c) Results of study indicated that machine learning techniques (neural
+       networks, nearest neighbor, contributors' KBANN system) performed as
+       well/better than classification based on canonical pattern matching
+       (method used in biological literature).
+
+4. Relevant Information Paragraph:
+   This dataset has been developed to help evaluate a "hybrid" learning
+   algorithm ("KBANN") that uses examples to inductively refine preexisting
+   knowledge.  Using a "leave-one-out" methodology, the following errors
+   were produced by various ML algorithms.  (See Towell, Shavlik, &
+   Noordewier, 1990, for details.)
+
+	    System	 Errors		Comments
+	    ------	 ------		--------
+	     KBANN	  4/106		a hybrid ML system
+	     BP		  8/106		std backprop with one hidden layer
+	     O'Neill	 12/106		ad hoc technique from the bio. lit.
+	     Near-Neigh  13/106		a nearest-neighbor algo (k=3)
+	     ID3	 19/106		Quinlan's decision-tree builder
+	     	
+   Type of domain: non-numeric, nominal (one of A, G, T, C)
+   -- Note: DNA nucleotides can be grouped into a hierarchy, as shown below:
+
+		      X (any)
+		    /   \
+	  (purine) R     Y (pyrimidine)
+		  / \   / \
+		 A   G T   C
+
+ 
+5. Number of Instances: 106
+
+6. Number of Attributes: 59
+   -- class (positive or negative)
+   -- instance name
+   -- 57 sequential nucleotide ("base-pair") positions
+
+7. Attribute information:
+   -- Statistics for numeric domains: No numeric features used.
+   -- Statistics for non-numeric domains
+      -- Frequencies:  Promoters Non-Promoters
+                       --------- -------------
+               A        27.7%     24.4%
+               G        20.0%     25.4%
+               T        30.2%     26.5%
+               C        22.1%     23.7%
+
+   Attribute #:  Description:
+   ============  ============
+             1   One of {+/-}, indicating the class ("+" = promoter).
+             2   The instance name (non-promoters named by position in the
+                 1500-long nucleotide sequence provided by T. Record).
+          3-59   The remaining 57 fields are the sequence, starting at 
+                 position -50 (p-50) and ending at position +7 (p7). Each of
+                 these fields is filled by one of {a, g, t, c}.
+
+8. Missing Attribute Values: none
+
+9. Class Distribution: 50% (53 positive instances, 53 negative instances)
