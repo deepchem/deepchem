@@ -29,7 +29,7 @@ DTNNStep, Encodes the atom's interaction with other atoms according to distance 
 DTNNGather, This Layer gathers the inputs got from the step layer according to atom_membership and calculates the total Molecular Energy, "[n_embedding, n_outputs, layer_sizes, output_activation, initializer, activation]"
 EdgeNetwork, Submodule designed for message passing in graph neural networks, "[n_pair_features, n_hidden, init]"
 WeaveLayer, Graph convolutional layer combining atom and bond features from local neighborhoods, "[n_atom_input_feat, n_pair_input_feat, n_atom_output_feat, n_pair_output_feat, n_hidden_AA, n_hidden_PA, n_hidden_AP, n_hidden_PP, update_pair, init_, activation, batch_normalize]"
-WeaveGather, Implements the weave-gathering section of weave convolutions, "[batch_size, n_input, gaussian_expand, compress_post_gaussian_expansion, init,  activation]"
+WeaveGather, Implements the weave-gathering section of weave convolutions, "[batch_size, n_input, gaussian_expand, compress_post_gaussian_expansion, init, activation]"
 _MXMNetEnvelope, Helper envelope function for MXMNet that applies smooth cutoff to radial basis functions using polynomial decay, "[exponent]"
 MXMNetBesselBasisLayer, Computes Bessel basis functions for radial distance representation with envelope cutoff in MXMNet model, "[num_radial, cutoff, envelope_exponent]"
 VariationalRandomizer, Adds random noise to the embedding and includes a corresponding loss, "[embedding_dimension, annealing_start_step, annealing_final_step]"
@@ -63,4 +63,3 @@ SE3GraphNorm, SE(3)-equivariant graph normalization layer normalizing features p
 SE3PartialEdgeConv, SE(3)-equivariant partial convolution mapping node features to edge features for attention mechanism value embeddings, "[f_in, f_out, edge_dim, x_ij]"
 SE3ResidualAttention, SE(3)-equivariant residual attention block with multi-head attention and skip connections for graph neural networks, "[f_in, f_out, edge_dim, div, n_heads, learnable_skip, skip, selfint, x_ij]"
 SpectralConv, N-dimensional Fourier layer applying FFT on spatial dimensions with learned complex multiplication in frequency domain, "[in_channels, out_channels, modes, dims]"
-

@@ -1,5 +1,5 @@
 ﻿Layer, Description, Key Arguments
-InteratomicL2Distances,Compute (squared) L2 Distances between atoms given neighbors, "[N_atoms, M_nbrs, ndim]"
+InteratomicL2Distances, Compute (squared) L2 Distances between atoms given neighbors, "[N_atoms, M_nbrs, ndim]"
 GraphConv, The graph convolution combines per-node feature vectors in a nonlinear fashion with the feature vectors for neighboring nodes, "[out_channel, min_deg, max_deg, activation_fn]"
 GraphPool, This layer does a max-pooling over the feature vectors of atoms in a neighborhood,"[min_degree, max_degree]"
 GraphGather, A GraphGather layer pools node-level feature vectors to create a graph feature vector, "[batch_size, activation_fn]"
@@ -8,7 +8,7 @@ MolGANAggregationLayer, Performs aggregation on tensor resulting from convolutio
 MolGANMultiConvolutionLayer, It takes outputs of previous convolution layer and uses them as inputs for the next one, "[units, activation, dropout_rate, edges]"
 MolGANEncoderLayer, Combines graph convolution and aggregation for molecular encoding, "[units, activation, dropout_rate, edges]"
 LSTMStep, This layer performs a single step LSTM update, "[output_dim, input_dim, activation_fn, init_fn, inner_init_fn, inner_activation_fn]"
-AttnLSTMEmbedding,The AttnLSTM embedding adjusts two sets of vectors i.e. "test" and "support" sets, "[n_test, n_support, n_feat, max_depth]"
+AttnLSTMEmbedding, The AttnLSTM embedding adjusts two sets of vectors i.e. "test" and "support" sets, "[n_test, n_support, n_feat, max_depth]"
 IterRefLSTMEmbedding, Iterative refinement LSTM that modifies both test and support sets, "[n_test, n_support, n_feat, max_depth]"
 SwitchedDropout, Apply dropout based on an input, "[rate]"
 WeightedLinearCombo, Computes a weighted linear combination of input layers with the weights defined by trainable variables, "[std]"
