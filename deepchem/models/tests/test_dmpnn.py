@@ -7,7 +7,7 @@ import os
 try:
     import torch
     has_torch = True
-except:
+except Exception:
     has_torch = False
 
 

@@ -99,7 +99,7 @@ class LCNNBlock(nn.Module):
         """
         try:
             import dgl.function as fn
-        except:
+        except Exception:
             raise ImportError("This class requires DGL to be installed.")
         G = G.local_var()
         G.ndata['x'] = node_feats
@@ -377,7 +377,7 @@ class LCNN(nn.Module):
         """
         try:
             import dgl
-        except:
+        except Exception:
             raise ImportError("This class requires DGL to be installed.")
         G = G.local_var()
         node_feats = G.ndata.pop('x')
@@ -526,7 +526,7 @@ class LCNNModel(TorchModel):
         """
         try:
             import dgl
-        except:
+        except Exception:
             raise ImportError("This class requires DGL to be installed.")
 
         inputs, labels, weights = batch

@@ -9,7 +9,7 @@ import pytest
 try:
     from deepchem.models.torch_models.dmpnn import _MapperDMPNN
     has_torch = True
-except:
+except Exception:
     has_torch = False
 
 # Set up tests.

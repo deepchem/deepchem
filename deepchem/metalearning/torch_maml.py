@@ -13,7 +13,7 @@ try:
     from deepchem.metalearning import MetaLearner
     import torch
     has_pytorch = True
-except:
+except Exception:
     has_pytorch = False
 
 

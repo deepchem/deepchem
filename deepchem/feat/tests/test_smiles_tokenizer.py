@@ -8,7 +8,7 @@ try:
     from transformers import RobertaForMaskedLM
     from deepchem.feat.smiles_tokenizer import SmilesTokenizer
     has_transformers = True
-except:
+except Exception:
     has_transformers = False
 
 

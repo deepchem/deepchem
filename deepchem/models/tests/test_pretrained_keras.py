@@ -41,7 +41,7 @@ try:
             return model, loss, output_types
 
     has_tensorflow = True
-except:
+except Exception:
     has_tensorflow = False
 
 
