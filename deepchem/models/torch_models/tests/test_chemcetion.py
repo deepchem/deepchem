@@ -5,7 +5,7 @@ try:
     import torch
     from deepchem.models.torch_models import ChemCeption
     has_torch = True
-except:
+except Exception:
     has_torch = False
 
 

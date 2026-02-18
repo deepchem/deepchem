@@ -5,7 +5,7 @@ try:
     from deepchem.models import TextCNNModel
     from deepchem.models.text_cnn import default_dict
     has_tensorflow = True
-except:
+except Exception:
     has_tensorflow = False
 
 

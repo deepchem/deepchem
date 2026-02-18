@@ -8,7 +8,7 @@ try:
     import torch
     import torch.nn.functional as F
     has_pytorch = True
-except:
+except Exception:
     has_pytorch = False
 
 

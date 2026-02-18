@@ -11,7 +11,7 @@ try:
     import xgboost
     import lightgbm
     has_xgboost_and_lightgbm = True
-except:
+except Exception:
     has_xgboost_and_lightgbm = False
 
 import deepchem as dc

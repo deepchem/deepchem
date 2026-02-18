@@ -15,13 +15,13 @@ from deepchem.feat import create_char_to_idx
 try:
     import tensorflow as tf
     has_tensorflow = True
-except:
+except Exception:
     has_tensorflow = False
 
 try:
     import torch  # noqa: F401
     has_torch = True
-except:
+except Exception:
     has_torch = False
 
 

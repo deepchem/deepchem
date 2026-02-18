@@ -14,7 +14,7 @@ try:
     import tensorflow as tf
     from deepchem.models import GraphConvModel, DAGModel, MPNNModel, DTNNModel
     has_tensorflow = True
-except:
+except Exception:
     has_tensorflow = False
 
 from flaky import flaky
