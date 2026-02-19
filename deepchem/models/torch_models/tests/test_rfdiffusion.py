@@ -326,11 +326,18 @@ class TestRFDiffusionModel:
                                  batch_size=4,
                                  learning_rate=1e-3)
 
-        loss_early = model.fit(dataset, nb_epoch=2)
-        loss_late = model.fit(dataset, nb_epoch=20)
+        # Collect losses over many epochs to smooth out noise
+        losses = []
+        for _ in range(50):
+            loss = model.fit(dataset, nb_epoch=1)
+            losses.append(loss)
+
+        # Average of first 5 vs last 5 epochs
+        avg_early = np.mean(losses[:5])
+        avg_late = np.mean(losses[-5:])
 
         # Loss should decrease after more training
-        assert loss_late < loss_early
+        assert avg_late < avg_early
 
     def test_generate_shape(self):
         """Test that generate produces correct output shape."""
