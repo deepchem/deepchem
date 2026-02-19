@@ -2257,7 +2257,20 @@ class DiskDataset(Dataset):
         # cache to make room for this one, because we'll probably want that other
         # shard again before the next time we want this one.  So just cache as many
         # as we can and then stop.
-
+        arrays = [X, ids]
+        if y is not None:
+            arrays.append(y)
+        if w is not None:
+            arrays.append(w)
+        for arr in arrays:
+            if isinstance(arr, np.ndarray) and arr.dtype == object:
+                import warnings
+                warnings.warn(
+                    "Object dtype detected in DiskDataset shard. "
+                    "Memory size cannot be estimated accurately. "
+                    "Skipping caching for this shard."
+                )
+                return (X, y, w, ids)
         shard = _Shard(X, y, w, ids)
         shard_size = X.nbytes + ids.nbytes
         if y is not None:
