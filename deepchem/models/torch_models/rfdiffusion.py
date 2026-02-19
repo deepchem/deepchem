@@ -545,17 +545,20 @@ class CosineSchedule:
         device = x_t.device
         noise_pred = model([x_t, t])
 
+        # Use CPU indices for schedule tensor indexing (buffers stay on CPU)
+        t_cpu = t.cpu()
+
         # Predict x0
-        sqrt_recip = self.sqrt_recip_alpha_cumprod[t].to(device)
-        sqrt_recipm1 = self.sqrt_recipm1_alpha_cumprod[t].to(device)
+        sqrt_recip = self.sqrt_recip_alpha_cumprod[t_cpu].to(device)
+        sqrt_recipm1 = self.sqrt_recipm1_alpha_cumprod[t_cpu].to(device)
         while sqrt_recip.dim() < x_t.dim():
             sqrt_recip = sqrt_recip.unsqueeze(-1)
             sqrt_recipm1 = sqrt_recipm1.unsqueeze(-1)
         x0_pred = sqrt_recip * x_t - sqrt_recipm1 * noise_pred
 
         # Posterior mean
-        coef1 = self.posterior_mean_coef1[t].to(device)
-        coef2 = self.posterior_mean_coef2[t].to(device)
+        coef1 = self.posterior_mean_coef1[t_cpu].to(device)
+        coef2 = self.posterior_mean_coef2[t_cpu].to(device)
         while coef1.dim() < x_t.dim():
             coef1 = coef1.unsqueeze(-1)
             coef2 = coef2.unsqueeze(-1)
@@ -567,7 +570,7 @@ class CosineSchedule:
         while nonzero_mask.dim() < x_t.dim():
             nonzero_mask = nonzero_mask.unsqueeze(-1)
 
-        var = self.posterior_variance[t].to(device)
+        var = self.posterior_variance[t_cpu].to(device)
         while var.dim() < x_t.dim():
             var = var.unsqueeze(-1)
 

@@ -326,14 +326,11 @@ class TestRFDiffusionModel:
                                  batch_size=4,
                                  learning_rate=1e-3)
 
-        losses = []
-        loss = model.fit(dataset, nb_epoch=1)
-        losses.append(loss)
-        loss = model.fit(dataset, nb_epoch=5)
-        losses.append(loss)
+        loss_early = model.fit(dataset, nb_epoch=2)
+        loss_late = model.fit(dataset, nb_epoch=20)
 
         # Loss should decrease after more training
-        assert losses[-1] < losses[0]
+        assert loss_late < loss_early
 
     def test_generate_shape(self):
         """Test that generate produces correct output shape."""
