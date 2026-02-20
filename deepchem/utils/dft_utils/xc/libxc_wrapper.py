@@ -151,7 +151,6 @@ class CalcLDALibXCPol(torch.autograd.Function):
             spin-down and some of its combination.
 
         """
-
         inp = {
             "rho": _pack_input(rho_u, rho_d),
         }
@@ -864,7 +863,7 @@ def _pack_input(*vals: torch.Tensor) -> np.ndarray:
         Input values in a numpy array with fortran memory order
 
     """
-    vals_np = np.asarray([val.detach().numpy() for val in vals])
+    vals_np = np.asarray([val.detach().cpu().numpy() for val in vals])
     return np.ascontiguousarray(vals_np.T)
 
 
