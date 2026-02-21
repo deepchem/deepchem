@@ -114,6 +114,54 @@ MXMNetFeaturizer
   :members:
   :inherited-members:
 
+Featurization Data Types
+************************
+
+The featurizers above produce various data structures to hold molecular graph
+information. These data types store atom features, bond connectivity, and other
+molecular properties in formats suitable for graph neural networks.
+
+GraphData
+"""""""""
+
+:code:`GraphData` is the primary data structure used by PyTorch-based graph
+convolution models. It stores node features, edge connectivity (in COO format),
+and optional edge features. This class is similar to PyTorch Geometric's Data class
+and can be converted to both PyTorch Geometric and DGL graph formats.
+
+.. autoclass:: deepchem.feat.GraphData
+  :members:
+  :inherited-members:
+
+ConvMol
+"""""""
+
+:code:`ConvMol` is used by Keras-based graph convolution models (except WeaveModel).
+It holds molecular information with atoms sorted by degree for efficient batch processing.
+Produced by :code:`ConvMolFeaturizer`.
+
+.. autoclass:: deepchem.feat.mol_graphs.ConvMol
+  :members:
+
+MultiConvMol
+""""""""""""
+
+:code:`MultiConvMol` holds information about multiple molecules combined together,
+used for feeding batches of molecules into TensorFlow/Keras models. Generated using
+the :code:`ConvMol.agglomerate_mols()` function.
+
+.. autoclass:: deepchem.feat.mol_graphs.MultiConvMol
+  :members:
+
+WeaveMol
+""""""""
+
+:code:`WeaveMol` is the molecular featurization object specifically for Weave
+convolutions, produced by :code:`WeaveFeaturizer` and used with :code:`WeaveModel`.
+
+.. autoclass:: deepchem.feat.mol_graphs.WeaveMol
+  :members:
+
 Utilities
 *********
 
