@@ -1859,3 +1859,101 @@ def test_preprocess_efield():
     assert torch.allclose(
         _preprocess_efield((torch.tensor([1, 2, 3]),))[0],
         torch.tensor([1, 2, 3]))
+
+
+@pytest.mark.torch
+def test_evl_ft():
+    """Tests evl_ft function."""
+    from deepchem.utils.dft_utils import AtomCGTOBasis, LibcintWrapper, CGTOBasis
+    from deepchem.utils.dft_utils.hamilton.intor.gtoft import evl_ft
+
+    dtype = torch.float64
+    # Create a simple hydrogen atom with s-type basis
+    basis = CGTOBasis(angmom=0,
+                      alphas=torch.tensor([1.0], dtype=dtype),
+                      coeffs=torch.tensor([1.0], dtype=dtype),
+                      normalized=True)
+    atom = AtomCGTOBasis(atomz=1,
+                         bases=[basis],
+                         pos=torch.tensor([0.0, 0.0, 0.0], dtype=dtype))
+    wrapper = LibcintWrapper([atom], spherical=True, lattice=None)
+
+    # Create sample reciprocal space grid points
+    gvgrid = torch.tensor([[0.0, 0.0, 0.0], [1.0, 0.0, 0.0]], dtype=dtype)
+
+    result = evl_ft("", wrapper, gvgrid)
+    assert result.shape == (wrapper.nao(), gvgrid.shape[0])
+    assert result.dtype in [torch.complex64, torch.complex128]
+
+
+@pytest.mark.torch
+def test_eval_gto_ft():
+    """Tests eval_gto_ft shortcut function."""
+    from deepchem.utils.dft_utils import AtomCGTOBasis, LibcintWrapper, CGTOBasis
+    from deepchem.utils.dft_utils.hamilton.intor.gtoft import eval_gto_ft, evl_ft
+
+    dtype = torch.float64
+    # Create a simple hydrogen atom with s-type basis
+    basis = CGTOBasis(angmom=0,
+                      alphas=torch.tensor([1.0], dtype=dtype),
+                      coeffs=torch.tensor([1.0], dtype=dtype),
+                      normalized=True)
+    atom = AtomCGTOBasis(atomz=1,
+                         bases=[basis],
+                         pos=torch.tensor([0.0, 0.0, 0.0], dtype=dtype))
+    wrapper = LibcintWrapper([atom], spherical=True, lattice=None)
+
+    # Create sample reciprocal space grid points
+    gvgrid = torch.tensor([[0.0, 0.0, 0.0], [1.0, 0.0, 0.0]], dtype=dtype)
+
+    result1 = eval_gto_ft(wrapper, gvgrid)
+    result2 = evl_ft("", wrapper, gvgrid)
+    assert torch.allclose(result1, result2)
+
+
+@pytest.mark.torch
+def test_gto_ft_evaluator():
+    """Tests gto_ft_evaluator function."""
+    from deepchem.utils.dft_utils import AtomCGTOBasis, LibcintWrapper, CGTOBasis
+    from deepchem.utils.dft_utils.hamilton.intor.gtoft import gto_ft_evaluator
+
+    dtype = torch.float64
+    # Create a simple hydrogen atom with s-type basis
+    basis = CGTOBasis(angmom=0,
+                      alphas=torch.tensor([1.0], dtype=dtype),
+                      coeffs=torch.tensor([1.0], dtype=dtype),
+                      normalized=True)
+    atom = AtomCGTOBasis(atomz=1,
+                         bases=[basis],
+                         pos=torch.tensor([0.0, 0.0, 0.0], dtype=dtype))
+    wrapper = LibcintWrapper([atom], spherical=True, lattice=None)
+
+    # Create sample reciprocal space grid points
+    gvgrid = torch.tensor([[0.0, 0.0, 0.0], [1.0, 0.0, 0.0]], dtype=dtype)
+
+    result = gto_ft_evaluator(wrapper, gvgrid)
+    assert result.shape == (wrapper.nao(), gvgrid.shape[0])
+    assert result.dtype in [torch.complex64, torch.complex128]
+
+
+@pytest.mark.torch
+def test_evl_ft_error():
+    """Tests evl_ft error handling."""
+    from deepchem.utils.dft_utils import AtomCGTOBasis, LibcintWrapper, CGTOBasis
+    from deepchem.utils.dft_utils.hamilton.intor.gtoft import evl_ft
+
+    dtype = torch.float64
+    basis = CGTOBasis(angmom=0,
+                      alphas=torch.tensor([1.0], dtype=dtype),
+                      coeffs=torch.tensor([1.0], dtype=dtype),
+                      normalized=True)
+    atom = AtomCGTOBasis(atomz=1,
+                         bases=[basis],
+                         pos=torch.tensor([0.0, 0.0, 0.0], dtype=dtype))
+    wrapper = LibcintWrapper([atom], spherical=True, lattice=None)
+    gvgrid = torch.tensor([[0.0, 0.0, 0.0]], dtype=dtype)
+
+    # Test unsupported shortname
+    with pytest.raises(NotImplementedError,
+                       match="FT evaluation for 'ip' is not implemented"):
+        evl_ft("ip", wrapper, gvgrid)

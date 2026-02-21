@@ -19,7 +19,7 @@ try:
     from deepchem.models.robust_multitask import RobustMultitaskClassifier
     from deepchem.models.robust_multitask import RobustMultitaskRegressor
     from deepchem.models.progressive_multitask import ProgressiveMultitaskRegressor, ProgressiveMultitaskClassifier
-    from deepchem.models.graph_models import WeaveModel, DTNNModel, DAGModel, GraphConvModel, MPNNModel
+    from deepchem.models.graph_models import DAGModel, MPNNModel, GraphConvModel
     from deepchem.models.scscore import ScScoreModel
 
     from deepchem.models.seqtoseq import SeqToSeq
@@ -49,6 +49,7 @@ try:
     from deepchem.models.torch_models import CNN
     from deepchem.models.torch_models import ScaledDotProductAttention, SelfAttention
     from deepchem.models.torch_models import GroverReadout
+    from deepchem.models.torch_models import WeaveModel, DTNNModel
 except ModuleNotFoundError as e:
     logger.warning(
         f'Skipped loading some PyTorch models, missing a dependency. {e}')
