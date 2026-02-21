@@ -503,6 +503,15 @@ The utilites here are used to create an object that contains information about a
 .. autoclass:: deepchem.utils.dft_utils.qccalc.ks.KSEngine
   :members:
 
+.. autofunction:: deepchem.utils.dft_utils.hamilton.intor.gtoft.evl_ft
+
+.. autofunction:: deepchem.utils.dft_utils.hamilton.intor.gtoft.eval_gto_ft
+
+.. autoclass:: deepchem.utils.dft_utils.hamilton.intor.gtoft._EvalGTO_FT
+  :members:
+
+.. autofunction:: deepchem.utils.dft_utils.hamilton.intor.gtoft.gto_ft_evaluator
+
 .. autoclass:: deepchem.utils.differentiation_utils.editable_module.EditableModule
   :members:
 
@@ -782,6 +791,10 @@ Pytorch Utilities
 .. autofunction:: deepchem.utils.pytorch_utils.get_np_dtype
 
 .. autofunction:: deepchem.utils.pytorch_utils.unsorted_segment_max
+
+.. autofunction:: deepchem.utils.pytorch_utils.unweighted_coul_ft
+
+.. autofunction:: deepchem.utils.pytorch_utils.get_complex_dtype
 
 Batch Utilities
 ---------------
