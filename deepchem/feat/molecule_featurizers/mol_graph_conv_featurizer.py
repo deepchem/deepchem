@@ -197,7 +197,7 @@ class MolGraphConvFeaturizer(MolecularFeaturizer):
         if self.use_partial_charge:
             try:
                 datapoint.GetAtomWithIdx(0).GetProp('_GasteigerCharge')
-            except:
+            except Exception:
                 # If partial charges were not computed
                 try:
                     from rdkit.Chem import AllChem
