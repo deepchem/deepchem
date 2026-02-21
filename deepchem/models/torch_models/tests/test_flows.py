@@ -14,7 +14,7 @@ try:
     from deepchem.models.torch_models.layers import RealNVPLayer
     from deepchem.models.torch_models.flows import Affine, MaskedAffineFlow, ActNorm, ClampExp, ConstScaleLayer, MLPFlow, NormalizingFlowModel, NormalizingFlow
     has_torch = True
-except:
+except Exception:
     has_torch = False
 
 

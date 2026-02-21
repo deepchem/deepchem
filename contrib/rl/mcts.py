@@ -7,7 +7,7 @@ import numpy as np
 import tensorflow as tf
 try:
   from collections.abc import Sequence as SequenceCollection
-except:
+except Exception:
   from collections import Sequence as SequenceCollection
 import copy
 import time

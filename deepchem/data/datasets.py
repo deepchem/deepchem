@@ -525,7 +525,7 @@ class Dataset(object):
         """
         try:
             import tensorflow as tf
-        except:
+        except Exception:
             raise ImportError(
                 "This method requires TensorFlow to be installed.")
 
@@ -998,7 +998,7 @@ class NumpyDataset(Dataset):
         """
         try:
             from deepchem.data.pytorch_datasets import _TorchNumpyDataset
-        except:
+        except Exception:
             raise ImportError("This method requires PyTorch to be installed.")
 
         pytorch_ds = _TorchNumpyDataset(numpy_dataset=self,
@@ -1922,7 +1922,7 @@ class DiskDataset(Dataset):
         """
         try:
             from deepchem.data.pytorch_datasets import _TorchDiskDataset
-        except:
+        except Exception:
             raise ImportError("This method requires PyTorch to be installed.")
 
         pytorch_ds = _TorchDiskDataset(disk_dataset=self,
@@ -2257,7 +2257,20 @@ class DiskDataset(Dataset):
         # cache to make room for this one, because we'll probably want that other
         # shard again before the next time we want this one.  So just cache as many
         # as we can and then stop.
-
+        arrays = [X, ids]
+        if y is not None:
+            arrays.append(y)
+        if w is not None:
+            arrays.append(w)
+        for arr in arrays:
+            if isinstance(arr, np.ndarray) and arr.dtype == object:
+                import warnings
+                warnings.warn(
+                    "Object dtype detected in DiskDataset shard. "
+                    "Memory size cannot be estimated accurately. "
+                    "Skipping caching for this shard."
+                )
+                return (X, y, w, ids)
         shard = _Shard(X, y, w, ids)
         shard_size = X.nbytes + ids.nbytes
         if y is not None:
@@ -3011,7 +3024,7 @@ class ImageDataset(Dataset):
         """
         try:
             from deepchem.data.pytorch_datasets import _TorchImageDataset
-        except:
+        except Exception:
             raise ValueError("This method requires PyTorch to be installed.")
 
         pytorch_ds = _TorchImageDataset(image_dataset=self,
