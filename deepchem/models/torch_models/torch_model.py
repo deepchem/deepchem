@@ -1165,8 +1165,7 @@ class TorchModel(Model):
         except ImportError:
             raise ImportError(
                 "The `torchinfo` library is required to use the `summary()` method. "
-                "Please install it using: pip install torchinfo"
-            )
+                "Please install it using: pip install torchinfo")
 
         # We pass self.model to torchinfo.summary
         return torchinfo.summary(self.model, **kwargs)
