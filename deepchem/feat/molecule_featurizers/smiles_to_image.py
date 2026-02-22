@@ -141,7 +141,7 @@ class SmilesToImage(MolecularFeaturizer):
             atom_props = np.array([[
                 atom.GetAtomicNum(),
                 atom.GetProp("_GasteigerCharge"),
-                atom.GetExplicitValence(),
+                atom.GetValence(Chem.ValenceType.EXPLICIT),
                 atom.GetHybridization().real,
             ] for atom in cmol.GetAtoms()])
 
