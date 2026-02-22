@@ -16,6 +16,7 @@ class FNOBlock(nn.Module):
     It leverages the Fourier transform to perform convolution in the frequency
     domain, which allows it to capture global, long-range dependencies in the
     input data efficiently. The operation consists of three steps:
+
     1. Transform the input to the frequency domain using the Fast Fourier Transform (FFT).
     2. Apply a linear transformation to a truncated set of lower-frequency modes.
     3. Transform the result back to the spatial domain using the Inverse FFT.
@@ -33,8 +34,8 @@ class FNOBlock(nn.Module):
     The forward pass computes:
     FNO_block(x) = ReLU(SpectralConv(x) + Conv(x))
 
-    Example
-    -------------
+    Examples
+    --------
     >>> import torch
     >>> from deepchem.models.torch_models.fno import FNOBlock
     >>> block = FNOBlock(width=128, modes=8, dims=2)
@@ -103,8 +104,8 @@ class FNO(nn.Module):
     ----------
     This technique was introduced in Li, Zongyi, et al. "Fourier neural operator for parametric partial differential equations." arXiv preprint arXiv:2010.08895 (2020).
 
-    Example
-    -------------
+    Examples
+    --------
     >>> import torch
     >>> from deepchem.models.torch_models.fno import FNO
     >>> model = FNO(in_channels=1, out_channels=1, modes=8, width=32, dims=2)
@@ -262,8 +263,8 @@ class FNOModel(TorchModel):
     ----------
     This technique was introduced in Li, Zongyi, et al. "Fourier neural operator for parametric partial differential equations." arXiv preprint arXiv:2010.08895 (2020).
 
-    Example
-    -------------
+    Examples
+    --------
     >>> import torch
     >>> import deepchem as dc
     >>> from deepchem.models.torch_models.fno import FNOModel
@@ -285,6 +286,7 @@ class FNOModel(TorchModel):
                  loss: nn.Module = nn.MSELoss(),
                  **kwargs) -> None:
         """Initialize the FNO model.
+
         Parameters
         ----------
         in_channels: int
@@ -302,7 +304,7 @@ class FNOModel(TorchModel):
             Number of FNO blocks to stack. More blocks can learn more complex mappings
         positional_encoding: bool, default False
             When enabled, uses meshgrids as positional encodings
-        loss: Union[Loss, LossFn], default nn.MSELoss()
+        loss: nn.Module, default nn.MSELoss()
             Loss function to use for training
         **kwargs: dict
             Additional arguments passed to TorchModel constructor
