@@ -128,3 +128,24 @@ def test_select_to_numpy():
     np.testing.assert_array_equal(y[indices], y_sel)
     np.testing.assert_array_equal(w[indices], w_sel)
     np.testing.assert_array_equal(ids[indices], ids_sel)
+
+
+def test_select_empty_y_w():
+    """Test that dataset select handles empty y and w appropriately."""
+    num_datapoints = 10
+    num_features = 10
+    X = np.random.rand(num_datapoints, num_features)
+    y = np.zeros(0)
+    w = np.zeros(0)
+    ids = np.array(["id"] * num_datapoints)
+    dataset = dc.data.DiskDataset.from_numpy(X, y, w, ids)
+
+    indices = [0, 4, 5, 8]
+    select_dataset = dataset.select(indices)
+    assert isinstance(select_dataset, dc.data.DiskDataset)
+    X_sel, y_sel, w_sel, ids_sel = (select_dataset.X, select_dataset.y,
+                                    select_dataset.w, select_dataset.ids)
+    np.testing.assert_array_equal(X[indices], X_sel)
+    np.testing.assert_array_equal(y, y_sel)
+    np.testing.assert_array_equal(w, w_sel)
+    np.testing.assert_array_equal(ids[indices], ids_sel)
