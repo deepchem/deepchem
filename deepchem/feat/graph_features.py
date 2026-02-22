@@ -198,7 +198,7 @@ def get_feature_list(atom):
     features = 6 * [0]
     features[0] = safe_index(possible_atom_list, atom.GetSymbol())
     features[1] = safe_index(possible_numH_list, atom.GetTotalNumHs())
-    features[2] = safe_index(possible_valence_list, atom.GetImplicitValence())
+    features[2] = safe_index(possible_valence_list, atom.GetValence(Chem.ValenceType.IMPLICIT))
     features[3] = safe_index(possible_formal_charge_list,
                              atom.GetFormalCharge())
     features[4] = safe_index(possible_number_radical_e_list,
@@ -312,7 +312,7 @@ def atom_features(atom,
     >>> type(features)
     <class 'numpy.ndarray'>
     >>> features.shape
-    (75,)
+    (81,)
 
     """
     if bool_id_feat:
@@ -368,8 +368,9 @@ def atom_features(atom,
             'Unknown'
           ]) + one_of_k_encoding(atom.GetDegree(),
                                  [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]) + \
-                  one_of_k_encoding_unk(atom.GetImplicitValence(), [0, 1, 2, 3, 4, 5, 6]) + \
-                  [atom.GetFormalCharge(), atom.GetNumRadicalElectrons()] + \
+                  one_of_k_encoding_unk(atom.GetValence(Chem.ValenceType.IMPLICIT), [0, 1, 2, 3, 4, 5, 6]) + \
+                  one_of_k_encoding_unk(atom.GetFormalCharge(), [-3, -2, -1, 0, 1, 2, 3]) + \
+                  [atom.GetNumRadicalElectrons()] + \
                   one_of_k_encoding_unk(atom.GetHybridization(), [
                     Chem.rdchem.HybridizationType.SP, Chem.rdchem.HybridizationType.SP2,
                     Chem.rdchem.HybridizationType.SP3, Chem.rdchem.HybridizationType.
@@ -914,7 +915,7 @@ class ConvMolFeaturizer(MolecularFeaturizer):
             return [ConvMol(n, a) for n, a in per_atom(nodes, canon_adj_list)]
 
     def feature_length(self):
-        return 75 + len(self.atom_properties)
+        return 81 + len(self.atom_properties)
 
     def __hash__(self):
         atom_properties = tuple(self.atom_properties)
