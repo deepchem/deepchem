@@ -456,7 +456,7 @@ class SeqToSeqModel(TorchModel):
                 result.append(self._beam_search(probs[i], beam_width))
         return result
 
-    def predict_embedding(self, sequences: List[str]):  # type: ignore[override]
+    def predict_embeddings(self, sequences: List[str]):  # type: ignore[override]
         """Given a set of input sequences, compute the embedding vectors.
 
         Parameters
@@ -478,7 +478,7 @@ class SeqToSeqModel(TorchModel):
                 result.append(probs[i])
         return result
 
-    def predict_from_embedding(self,
+    def predict_from_embeddings(self,
                                embeddings: List[np.ndarray],
                                beam_width=5):
         """Given a set of embedding vectors, predict the output sequences.
