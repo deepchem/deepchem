@@ -671,6 +671,16 @@ LNNModel
 .. autoclass:: deepchem.models.torch_models.LNNModel
   :members:
 
+DeepONet
+----------------
+.. autoclass:: deepchem.models.torch_models.DeepONet
+  :members:
+
+DeepONetModel
+----------------
+.. autoclass:: deepchem.models.torch_models.DeepONetModel
+  :members:
+
 SE3TransformerModel
 --------------------
 .. autoclass:: deepchem.models.torch_models.SE3TransformerModel
