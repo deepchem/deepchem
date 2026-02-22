@@ -456,7 +456,7 @@ class SeqToSeqModel(TorchModel):
                 result.append(self._beam_search(probs[i], beam_width))
         return result
 
-    def predict_embedding(self, sequences: List[str]):  # type: ignore[override]
+    def predict_embeddings(self, sequences: List[str]):  # type: ignore[override]
         """Given a set of input sequences, compute the embedding vectors.
 
         Parameters
