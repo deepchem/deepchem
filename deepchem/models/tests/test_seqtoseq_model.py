@@ -90,9 +90,9 @@ class TestSeqToSeq(unittest.TestCase):
         tests = [seq for seq, target in generate_sequences(sequence_length, 50)]
         pred1 = model.predict_from_sequences(tests, beam_width=1)
         pred4 = model.predict_from_sequences(tests, beam_width=4)
-        embeddings = model.predict_embedding(tests)
-        pred1e = model.predict_from_embedding(embeddings, beam_width=1)
-        pred4e = model.predict_from_embedding(embeddings, beam_width=4)
+        embeddings = model.predict_embeddings(tests)
+        pred1e = model.predict_from_embeddings(embeddings, beam_width=1)
+        pred4e = model.predict_from_embeddings(embeddings, beam_width=4)
         count1 = 0
         count4 = 0
         for i in range(len(tests)):
@@ -124,8 +124,8 @@ class TestSeqToSeq(unittest.TestCase):
         count_special = 0
         for sequence, target in generate_sequences(sequence_length, 100):
             pred1 = model.predict_from_sequences([sequence], beam_width=5)
-            embedding = model.predict_embedding([sequence])
-            pred2 = model.predict_from_embedding(embedding, beam_width=5)
+            embedding = model.predict_embeddings([sequence])
+            pred2 = model.predict_from_embeddings(embedding, beam_width=5)
             if ''.join(pred1[0]) == sequence:
                 count_normal += 1
             if ''.join(pred2[0]) == sequence:
