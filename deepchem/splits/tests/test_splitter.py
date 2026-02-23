@@ -101,6 +101,25 @@ class TestSplitter(unittest.TestCase):
                 else:
                     assert class_ind[s] == split_idx
 
+    def test_random_group_k_fold_split(self):
+        """Test RandomGroupSplitter k_fold_split method (Issue #3253)."""
+        dataset = dc.data.NumpyDataset(np.arange(12))
+        groups = [0, 0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3]
+        folds = dc.splits.RandomGroupSplitter(groups).k_fold_split(dataset,
+                                                                   3,
+                                                                   seed=42)
+        assert len(folds) == 3
+        all_cv_ids = []
+        for train, cv in folds:
+            assert set(train.ids).isdisjoint(set(cv.ids))
+            assert len(set(train.ids) | set(cv.ids)) == 12
+            for idx in cv.ids:
+                assert all(j in set(cv.ids)
+                           for j, g in enumerate(groups)
+                           if g == groups[idx])
+            all_cv_ids.extend(cv.ids)
+        assert sorted(all_cv_ids) == list(range(12))
+
     def test_singletask_random_split(self):
         """
         Test singletask RandomSplitter class.
