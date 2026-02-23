@@ -8,6 +8,7 @@ NDIM = 3
 
 CINT = dqclibs.CINT
 CGTO = dqclibs.CGTO
+_ = CGTO()  # Force load libcgto.so before libpbc.so to resolve symbols
 CPBC = dqclibs.CPBC
 # CVHF = dqclibs.CVHF
 CSYMM = dqclibs.CSYMM
