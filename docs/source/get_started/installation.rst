@@ -270,6 +270,29 @@ but if you want to install all the soft-dependencies at once, then take a look a
 `deepchem/requirements <https://github.com/deepchem/deepchem/tree/master/requirements>`_
 
 
+Troubleshooting
+---------------
+
+**MKL 2025.0.0 Compatibility Issue with PyTorch**
+
+When using Conda to install PyTorch, the dependency resolver may select
+``mkl=2025.0.0`` (which satisfies PyTorch's loose ``mkl >=2018`` constraint).
+MKL 2025.0.0 introduces ABI changes that are incompatible with PyTorch 2.5.x
+binaries, causing the following error when importing DeepChem:
+
+.. code-block:: text
+
+    ImportError: .../libtorch_cpu.so: undefined symbol: iJIT_NotifyEvent
+
+To resolve this, pin MKL to a compatible version before installing DeepChem:
+
+.. code-block:: bash
+
+    conda install "mkl<2025" packaging -y
+
+For more details, see `GitHub Issue #4698 <https://github.com/deepchem/deepchem/issues/4698>`_.
+
+
 .. _`DeepChem Tutorials`: https://github.com/deepchem/deepchem/tree/master/examples/tutorials
 .. _`forum post`: https://forum.deepchem.io/t/getting-deepchem-running-in-colab/81/7
 .. _`DockerHub`: https://hub.docker.com/repository/docker/deepchemio/deepchem
