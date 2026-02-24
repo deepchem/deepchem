@@ -325,4 +325,4 @@ To add a new layer:
 1. Locate the implementation under ``deepchem/models``.
 2. Add a section following the existing structure.
 3. Keep descriptions concise.
-4. Provide a minimal working example.
+4. Provide a minimal working example. 
