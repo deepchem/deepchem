@@ -1793,7 +1793,12 @@ class DiskDataset(Dataset):
                         else:
                             return elem[i]
 
-                    yield map(sanitize, [X_shard, y_shard, w_shard, ids_shard])
+                   yield (
+                       sanitize(X_shard),
+                       sanitize(y_shard),
+                       sanitize(w_shard),
+                       sanitize(ids_shard),
+                     )
 
         return iterate(self)
 
