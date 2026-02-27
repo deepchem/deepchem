@@ -2,7 +2,6 @@ channels:
   - pytorch
 dependencies:
   - pytorch==2.2.1
-  - pylibxc
   - pip:
     - -f https://data.pyg.org/whl/torch-2.2.1+cpu.html
     - dgl
@@ -11,6 +10,7 @@ dependencies:
     - pydantic
     - torch-cluster
     - git+https://github.com/diffqc/dqclibs.git
+    - git+https://gitlab.com/libxc/libxc.git@85e0c4c8027d2f81f2915e63f37c7bc8526783dc
     - basis-set-exchange
     - pyscf
     - h5py
