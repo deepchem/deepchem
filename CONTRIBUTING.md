@@ -63,8 +63,7 @@ or GPU before installing DeepChem and install the required framework first. If
 you target GPUs, confirm your CUDA version is compatible with the framework
 release.
 
-- **CPU (default).** Install the CPU-only builds for the framework you plan to
-  use so DeepChem picks up the supported backend. For example:
+- **CPU (default).** Install the CPU-only builds. For example:
 
   ```bash
   pip install --upgrade pip
@@ -197,7 +196,7 @@ Included in the responsibilities of the TSC are:
 * Making decisions regarding dependencies of DeepChem, including what those
 dependencies are and how they are bundled with source code and releases
 * Creating new repositories and projects under the deepchem GitHub organization as required
-* Setting overall technical direction for the DeepChem project, including 
+* Setting overall technical direction for the DeepChem project, including
 high-level goals and low-level specifics regarding features and functionality
 * Setting and maintaining appropriate standards for community discourse via the various
 mediums under TSC control (gitter, facebook, blog)
