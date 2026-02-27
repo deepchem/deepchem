@@ -78,6 +78,11 @@ BBBP stands for Blood-Brain-Barrier Penetration
 
 .. autofunction:: deepchem.molnet.load_bbbp
 
+CATH Datasets
+-------------
+
+.. autofunction:: deepchem.molnet.load_cath
+
 Cell Counting Datasets
 ----------------------
 
