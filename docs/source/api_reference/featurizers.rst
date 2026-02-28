@@ -567,6 +567,13 @@ BindingPocketFeaturizer
   :members:
   :inherited-members:
 
+ProteinBackboneFeaturizer
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. autoclass:: deepchem.feat.ProteinBackboneFeaturizer
+  :members:
+  :inherited-members:
+
 UserDefinedFeaturizer
 ^^^^^^^^^^^^^^^^^^^^^
 
