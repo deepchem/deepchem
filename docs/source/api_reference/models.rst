@@ -680,7 +680,17 @@ TFNModel
 --------------------
 .. autoclass:: deepchem.models.torch_models.TFNModel
   :members:
-  
+
+BackboneDiffusion
+--------------------
+.. autoclass:: deepchem.models.torch_models.rfdiffusion.BackboneDiffusion
+  :members:
+
+CosineSchedule
+--------------------
+.. autoclass:: deepchem.models.torch_models.rfdiffusion.CosineSchedule
+  :members:
+
 PyTorch Lightning Models
 ========================
 
