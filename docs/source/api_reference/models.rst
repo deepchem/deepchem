@@ -691,6 +691,11 @@ CosineSchedule
 .. autoclass:: deepchem.models.torch_models.rfdiffusion.CosineSchedule
   :members:
 
+RFDiffusionModel
+--------------------
+.. autoclass:: deepchem.models.torch_models.rfdiffusion.RFDiffusionModel
+  :members:
+
 ChemCeptionLayer
 ----------------
 .. autoclass:: deepchem.models.torch_models.ChemCeptionLayer
