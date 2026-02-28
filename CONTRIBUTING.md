@@ -185,4 +185,5 @@ if suitable, will accept you as a probationary member of the TSC. Your
 application will be posted publicly to the DeepChem blog if accepted. Membership
 on the committee will be confirmed after 6 months if you’ve successfully
 implemented some of your proposed projects and demonstrated your ability
-to meet the necessary time commitment..:
+to meet the necessary time commitment: 
+exited to be part of this organization has a gsoc contributer
