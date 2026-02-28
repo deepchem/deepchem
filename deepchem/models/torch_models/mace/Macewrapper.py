@@ -10,8 +10,8 @@ from deepchem.models.optimizers import Adam as DeepChemAdam
 import logging
 
 logger = logging.getLogger(__name__)
-from MaceNNmodel import MACEClean
-from Maceloss import MACELoss
+from .MaceNNmodel import MACEClean
+from .Maceloss import MACELoss
 
 
 class MACEWrapper(nn.Module):
@@ -375,4 +375,3 @@ class SimpleMACEModel(TorchModel):
         return batch
 
 
-print(" SimpleMACEModel ")

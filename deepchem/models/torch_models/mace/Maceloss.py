@@ -52,4 +52,3 @@ class MACELoss(Loss):
         return torch.nn.MSELoss()
 
 
-print(" MACELoss defined!")

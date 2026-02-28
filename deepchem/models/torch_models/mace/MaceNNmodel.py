@@ -29,8 +29,8 @@ from tqdm import tqdm
 from scipy.spatial.transform import Rotation
 import matplotlib.pyplot as plt
 
-from MaceInteraction import EquivariantMACEInteractionClean
-from RadialBasis import RadialBasis
+from .MaceInteraction import EquivariantMACEInteractionClean
+from .RadialBasis import RadialBasis
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -93,4 +93,4 @@ class MACEClean(nn.Module):
 
         return energy, v
 
-print(" Clean MACE model ready")
+

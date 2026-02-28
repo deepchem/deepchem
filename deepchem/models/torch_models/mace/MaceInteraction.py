@@ -99,4 +99,4 @@ class EquivariantMACEInteractionClean(MessagePassing):
 
         return s_out, v_out
 
-print("EquivariantMACEInteractionClean defined")
+

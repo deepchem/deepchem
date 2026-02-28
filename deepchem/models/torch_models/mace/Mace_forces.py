@@ -109,5 +109,3 @@ def combined_loss_with_force_labels(energy_pred, energy_target, forces_pred, for
     total_loss = energy_weight * energy_loss + force_weight * force_loss
     return total_loss, energy_loss, force_loss
 
-print(" MACEWithForcesFixed ready")
-print(" Loss function ready")
