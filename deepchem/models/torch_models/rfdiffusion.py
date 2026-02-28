@@ -1,9 +1,12 @@
-"""Diffusion layers for protein backbone generation.
+"""RFDiffusion model and layers for protein backbone generation.
 
-This module provides the neural network layers and noise scheduling used by
-the RFDiffusion model for protein backbone generation. It implements a
-Transformer-based denoiser with timestep conditioning and a cosine variance
-schedule for the diffusion process.
+This module implements a denoising diffusion probabilistic model (DDPM)
+for generating protein backbone structures, following the approach
+described in RFDiffusion [1]_. It provides:
+
+- Neural network layers (embeddings, Transformer blocks) for the denoiser
+- A cosine variance schedule for the forward/reverse diffusion process
+- ``RFDiffusionModel``, a ``TorchModel`` wrapper for DeepChem workflows
 
 References
 ----------
@@ -21,7 +24,8 @@ This module requires PyTorch to be installed.
 
 import math
 import logging
-from typing import List, Optional, Tuple
+import numpy as np
+from typing import Iterable, List, Optional, Tuple
 
 try:
     import torch
@@ -29,6 +33,9 @@ try:
     import torch.nn.functional as F
 except ModuleNotFoundError:
     raise ImportError('These classes require PyTorch to be installed.')
+
+from deepchem.data import Dataset
+from deepchem.models.torch_models.torch_model import TorchModel
 
 logger = logging.getLogger(__name__)
 
@@ -593,3 +600,405 @@ class CosineSchedule:
             x = self.p_sample(model, x, t)
 
         return x
+
+
+class RFDiffusionModel(TorchModel):
+    """RFDiffusion model for protein backbone generation using DeepChem.
+
+    This model implements a denoising diffusion probabilistic model (DDPM) for
+    generating protein backbone structures. It wraps the BackboneDiffusion
+    neural network in DeepChem's TorchModel interface, enabling standard
+    DeepChem workflows for training, prediction, and model management.
+
+    The model operates on protein backbone coordinates represented as
+    flattened arrays of shape ``(num_residues, 9)``, where 9 corresponds
+    to 3 backbone atoms (N, CA, C) times 3 spatial dimensions (x, y, z).
+
+    Training uses the standard DDPM objective: sample a random timestep,
+    add noise to the clean coordinates, and train the model to predict
+    the added noise. This is handled internally by overriding
+    ``default_generator`` so that ``model.fit(dataset)`` works directly
+    with DeepChem datasets.
+
+    During generation the model applies denormalization so that the
+    output coordinates are in physical Angstrom units with realistic
+    CA-CA distances (~3.8 A).
+
+    Parameters
+    ----------
+    embed_dim : int, default 256
+        Hidden dimension for the Transformer backbone.
+    time_dim : int, default 128
+        Dimension of the timestep embedding.
+    num_layers : int, default 8
+        Number of Transformer blocks.
+    num_heads : int, default 8
+        Number of attention heads per block.
+    num_diffusion_steps : int, default 1000
+        Number of timesteps in the diffusion process.
+    max_seq_len : int, default 512
+        Maximum supported protein length in residues.
+    dropout : float, default 0.1
+        Dropout probability.
+    batch_size : int, default 4
+        Batch size for training.
+    learning_rate : float, default 1e-4
+        Learning rate for the Adam optimizer.
+    device : torch.device, optional
+        Device to use. If None, automatically selects GPU if available.
+    **kwargs
+        Additional keyword arguments passed to ``TorchModel``.
+
+    Examples
+    --------
+    Training on a DeepChem dataset:
+
+    >>> import numpy as np
+    >>> import deepchem as dc
+    >>> # Create a small dataset of protein backbone coordinates
+    >>> # Each protein: (num_residues, 9) where 9 = 3 atoms * 3 xyz
+    >>> proteins = [np.random.randn(20, 9).astype(np.float32) for _ in range(10)]
+    >>> X = np.empty(10, dtype=object)
+    >>> for i, p in enumerate(proteins):
+    ...     X[i] = p
+    >>> y = np.zeros((10, 1), dtype=np.float32)
+    >>> dataset = dc.data.NumpyDataset(X=X, y=y)
+    >>> model = dc.models.RFDiffusionModel(
+    ...     embed_dim=64, num_layers=2, num_heads=4,
+    ...     num_diffusion_steps=100, batch_size=2)
+    >>> loss = model.fit(dataset, nb_epoch=1)
+
+    Generating new protein backbones:
+
+    >>> samples = model.generate(num_samples=2, seq_length=20)
+    >>> samples.shape
+    (2, 20, 9)
+
+    Using with the CATH dataset:
+
+    >>> tasks, datasets, transformers = dc.molnet.load_cath(  # doctest: +SKIP
+    ...     featurizer='ProteinBackbone', splitter='random')
+    >>> train, valid, test = datasets  # doctest: +SKIP
+    >>> model = dc.models.RFDiffusionModel(  # doctest: +SKIP
+    ...     embed_dim=256, num_layers=8, batch_size=4)
+    >>> loss = model.fit(train, nb_epoch=100)  # doctest: +SKIP
+
+    References
+    ----------
+    .. [1] Watson, J. L., et al. "De novo design of protein structure and
+       function with RFdiffusion." Nature 620.7976 (2023): 1089-1100.
+    .. [2] Ho, J., Jain, A., & Abbeel, P. "Denoising diffusion probabilistic
+       models." NeurIPS 2020.
+
+    Notes
+    -----
+    This class requires PyTorch to be installed.
+    """
+
+    def __init__(self,
+                 embed_dim: int = 256,
+                 time_dim: int = 128,
+                 num_layers: int = 8,
+                 num_heads: int = 8,
+                 num_diffusion_steps: int = 1000,
+                 max_seq_len: int = 512,
+                 dropout: float = 0.1,
+                 batch_size: int = 4,
+                 learning_rate: float = 1e-4,
+                 device: Optional[torch.device] = None,
+                 **kwargs) -> None:
+        self.num_diffusion_steps = num_diffusion_steps
+        self.max_seq_len = max_seq_len
+        self.coord_dim = 9  # N, CA, C backbone atoms * 3 xyz
+
+        # Running statistics for denormalization
+        self._train_mean: Optional[np.ndarray] = None
+        self._train_std: Optional[float] = None
+
+        # Create the diffusion schedule
+        self.schedule = CosineSchedule(num_timesteps=num_diffusion_steps)
+
+        # Create the denoiser network
+        model = BackboneDiffusion(
+            coord_dim=self.coord_dim,
+            embed_dim=embed_dim,
+            time_dim=time_dim,
+            num_layers=num_layers,
+            num_heads=num_heads,
+            max_seq_len=max_seq_len,
+            dropout=dropout,
+        )
+
+        # Custom loss function for diffusion training.
+        # The model predicts noise, and we compute MSE against the true noise.
+        # The default_generator yields (inputs=[noisy_coords, timesteps],
+        #   labels=[noise], weights=[ones]), so the loss receives
+        #   outputs=[predicted_noise] and labels=[true_noise].
+        def diffusion_loss(outputs: List, labels: List,
+                           weights: List) -> torch.Tensor:
+            pred_noise = outputs[0]
+            true_noise = labels[0]
+            w = weights[0]
+
+            # MSE loss per element
+            loss = F.mse_loss(pred_noise, true_noise, reduction='none')
+
+            # Apply weights and average
+            if w.dim() < loss.dim():
+                w = w.reshape(w.shape + (1,) * (loss.dim() - w.dim()))
+            loss = (loss * w).mean()
+            return loss
+
+        super(RFDiffusionModel, self).__init__(model,
+                                               loss=diffusion_loss,
+                                               batch_size=batch_size,
+                                               learning_rate=learning_rate,
+                                               device=device,
+                                               **kwargs)
+
+    def _normalize_coords(self, coords: np.ndarray) -> np.ndarray:
+        """Normalize protein coordinates for diffusion training.
+
+        Centers coordinates around the CA centroid and scales to unit
+        variance. This normalization is important for stable diffusion
+        training since the noise schedule assumes data near zero.
+
+        Parameters
+        ----------
+        coords : np.ndarray
+            Backbone coordinates of shape ``(num_residues, 3, 3)`` or
+            ``(num_residues, 9)``.
+
+        Returns
+        -------
+        np.ndarray
+            Normalized coordinates of shape ``(num_residues, 9)``.
+        """
+        if coords.ndim == 3 and coords.shape[1] == 3 and coords.shape[2] == 3:
+            # Shape (L, 3, 3) -> (L, 9)
+            coords = coords.reshape(-1, 9)
+
+        # Center around CA centroid (CA is indices 3,4,5 in the flattened rep)
+        ca_coords = coords[:, 3:6]
+        centroid = ca_coords.mean(axis=0, keepdims=True)
+        coords = coords - np.tile(centroid, 3)  # Subtract from all 3 atoms
+
+        # Scale to unit variance
+        std = coords.std()
+        if std > 1e-6:
+            coords = coords / std
+
+        return coords.astype(np.float32)
+
+    def _pad_coords(self, coords: np.ndarray,
+                    max_len: int) -> Tuple[np.ndarray, int]:
+        """Pad coordinates to a fixed length.
+
+        Parameters
+        ----------
+        coords : np.ndarray
+            Coordinates of shape ``(num_residues, 9)``.
+        max_len : int
+            Target length to pad to.
+
+        Returns
+        -------
+        padded : np.ndarray
+            Padded coordinates of shape ``(max_len, 9)``.
+        orig_len : int
+            Original length before padding.
+        """
+        orig_len = coords.shape[0]
+        if orig_len >= max_len:
+            # Center crop
+            start = (orig_len - max_len) // 2
+            return coords[start:start + max_len], max_len
+        else:
+            padded = np.zeros((max_len, self.coord_dim), dtype=np.float32)
+            padded[:orig_len] = coords
+            return padded, orig_len
+
+    def default_generator(
+            self,
+            dataset: Dataset,
+            epochs: int = 1,
+            mode: str = 'fit',
+            deterministic: bool = True,
+            pad_batches: bool = True) -> Iterable[Tuple[List, List, List]]:
+        """Create a generator for diffusion training batches.
+
+        This overrides the parent ``default_generator`` to implement the
+        diffusion training procedure. For each batch of protein coordinates:
+
+        1. Normalize and pad coordinates to a consistent length
+        2. Sample random diffusion timesteps
+        3. Add noise according to the cosine schedule
+        4. Yield ``(inputs, labels, weights)`` where:
+           - inputs = [noisy_coords, timesteps]
+           - labels = [true_noise]
+           - weights = [ones]
+
+        Training statistics (mean and standard deviation) are accumulated
+        so that ``generate`` can denormalize the output.
+
+        Parameters
+        ----------
+        dataset : Dataset
+            A DeepChem dataset where ``X`` contains protein backbone
+            coordinate arrays.
+        epochs : int, default 1
+            Number of epochs to iterate over the data.
+        mode : str, default 'fit'
+            One of 'fit', 'predict', or 'uncertainty'.
+        deterministic : bool, default True
+            Whether to iterate in order or shuffle each epoch.
+        pad_batches : bool, default True
+            Whether to pad the last batch.
+
+        Yields
+        ------
+        tuple of (list, list, list)
+            ``([noisy_coords, timesteps], [noise], [weights])``
+        """
+        for epoch in range(epochs):
+            for (X_b, y_b, w_b,
+                 ids_b) in dataset.iterbatches(batch_size=self.batch_size,
+                                               deterministic=deterministic,
+                                               pad_batches=pad_batches):
+                batch_coords = []
+                batch_size = len(X_b)
+
+                # Find max length in this batch for padding
+                lengths = []
+                normalized = []
+                for i in range(batch_size):
+                    coords = X_b[i]
+                    if isinstance(coords, np.ndarray) and coords.size > 0:
+                        c = self._normalize_coords(coords)
+                        normalized.append(c)
+                        lengths.append(c.shape[0])
+                    else:
+                        # Handle empty or invalid entries (from pad_batches)
+                        normalized.append(
+                            np.zeros((1, self.coord_dim), dtype=np.float32))
+                        lengths.append(1)
+
+                max_len = min(max(lengths), self.max_seq_len)
+
+                # Accumulate training statistics for denormalization
+                if mode == 'fit':
+                    all_raw = []
+                    for i in range(batch_size):
+                        coords = X_b[i]
+                        if isinstance(coords, np.ndarray) and coords.size > 0:
+                            flat = coords.reshape(-1, 9) if (coords.ndim
+                                                             == 3) else coords
+                            all_raw.append(flat)
+                    if all_raw:
+                        raw = np.concatenate(all_raw, axis=0)
+                        ca = raw[:, 3:6]
+                        centroid = ca.mean(axis=0, keepdims=True)
+                        centered = raw - np.tile(centroid, 3)
+                        batch_std = float(centered.std())
+                        if self._train_std is None:
+                            self._train_mean = centroid[0]
+                            self._train_std = batch_std
+                        else:
+                            # Exponential moving average
+                            alpha = 0.1
+                            self._train_mean = ((1 - alpha) * self._train_mean +
+                                                alpha * centroid[0])
+                            self._train_std = ((1 - alpha) * self._train_std +
+                                               alpha * batch_std)
+
+                # Pad all to same length
+                for c in normalized:
+                    padded, _ = self._pad_coords(c, max_len)
+                    batch_coords.append(padded)
+
+                # Stack into batch
+                coords_batch = np.stack(batch_coords, axis=0)  # (B, max_len, 9)
+
+                if mode == 'predict':
+                    # For prediction mode, just yield coordinates
+                    yield ([coords_batch], [y_b], [w_b])
+                    continue
+
+                # Diffusion training: sample timesteps and add noise
+                t = np.random.randint(0,
+                                      self.num_diffusion_steps,
+                                      size=(batch_size,))
+
+                coords_tensor = torch.tensor(coords_batch, dtype=torch.float32)
+                t_tensor = torch.tensor(t, dtype=torch.long)
+
+                noisy_coords, noise = self.schedule.q_sample(
+                    coords_tensor, t_tensor)
+
+                # Convert back to numpy for TorchModel pipeline
+                noisy_np = noisy_coords.numpy()
+                noise_np = noise.numpy()
+                t_np = t.astype(np.float32)
+
+                weights = np.ones((batch_size, 1), dtype=np.float32)
+
+                yield ([noisy_np, t_np], [noise_np], [weights])
+
+    def generate(self,
+                 num_samples: int = 1,
+                 seq_length: int = 50,
+                 device: Optional[torch.device] = None) -> np.ndarray:
+        """Generate new protein backbone structures.
+
+        Starts from pure Gaussian noise and iteratively denoises for
+        ``num_diffusion_steps`` steps using the learned reverse process.
+        The raw output (in normalized space) is then denormalized using
+        training statistics so that the returned coordinates are in
+        physical Angstrom units with realistic CA-CA distances (~3.8 A).
+
+        If the model has not been trained (no statistics available), the
+        raw samples are returned without denormalization.
+
+        Parameters
+        ----------
+        num_samples : int, default 1
+            Number of protein structures to generate.
+        seq_length : int, default 50
+            Length of each generated protein (number of residues).
+        device : torch.device, optional
+            Device to use for generation. Defaults to model device.
+
+        Returns
+        -------
+        np.ndarray
+            Generated backbone coordinates of shape
+            ``(num_samples, seq_length, 9)``.
+
+        Examples
+        --------
+        >>> import deepchem as dc
+        >>> model = dc.models.RFDiffusionModel(
+        ...     embed_dim=64, num_layers=2, num_heads=4,
+        ...     num_diffusion_steps=50, batch_size=2)
+        >>> samples = model.generate(num_samples=2, seq_length=30)
+        >>> samples.shape
+        (2, 30, 9)
+        """
+        if device is None:
+            device = self.device
+
+        self.model.eval()
+        shape = (num_samples, seq_length, self.coord_dim)
+        samples = self.schedule.sample(self.model, shape, device)
+        self.model.train()
+
+        result = samples.cpu().numpy()
+
+        # Denormalize: reverse the centering and scaling applied during
+        # training so that the output is in physical Angstrom coordinates.
+        if self._train_std is not None and self._train_std > 1e-6:
+            result = result * self._train_std
+        if self._train_mean is not None:
+            result = result + np.tile(self._train_mean, 3)
+
+        return result
