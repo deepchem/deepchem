@@ -29,24 +29,22 @@ from tqdm import tqdm
 from scipy.spatial.transform import Rotation
 import matplotlib.pyplot as plt
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
-print(" All imports successful!")
-print(f" PyTorch version: {torch.__version__}")
-print(f" DeepChem version: {dc.__version__}")
-print(f" Device: {'CUDA' if torch.cuda.is_available() else 'CPU'}")
-print("FORCE WRAPPER FOR CLEAN MACE")
-
 class MACEWithForcesClean(nn.Module):
     """Force prediction wrapper for clean MACE."""
 
-    def __init__(self, mace_model):
+    def __init__(self, mace_model: nn.Module) -> None:
         super().__init__()
         self.mace = mace_model
 
-    def forward(self, z, pos, edge_index, batch, compute_forces=True):
+    def forward(
+        self,
+        z: torch.Tensor,
+        pos: torch.Tensor,
+        edge_index: torch.Tensor,
+        batch: torch.Tensor,
+        compute_forces: bool = True
+    ) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
+
         if compute_forces:
             pos.requires_grad_(True)
 
@@ -63,5 +61,3 @@ class MACEWithForcesClean(nn.Module):
         )[0]
 
         return energy, forces
-
-

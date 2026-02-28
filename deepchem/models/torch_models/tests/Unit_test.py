@@ -17,6 +17,14 @@ from deepchem.models import TorchModel
 from deepchem.models.losses import Loss
 from deepchem.data import Dataset, NumpyDataset
 
+# Import MACE components (adjust the import path based on where these classes are defined)
+from deepchem.models.torch_models.mace import (
+    RadialBasis,
+    EquivariantMACEInteractionClean,
+    MACEClean,
+    MACEWithForcesClean
+)
+
 # Typing
 from typing import Tuple, Optional, List, Dict, Any, Sequence, Iterator
 
@@ -28,21 +36,6 @@ import math
 from tqdm import tqdm
 from scipy.spatial.transform import Rotation
 import matplotlib.pyplot as plt
-
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
-print(" All imports successful!")
-print(f" PyTorch version: {torch.__version__}")
-print(f" DeepChem version: {dc.__version__}")
-print(f" Device: {'CUDA' if torch.cuda.is_available() else 'CPU'}")
-
-
-print("="*70)
-print("UNIT TESTS FOR MACE MODEL")
-print("="*70)
-
 import unittest
 import torch
 from torch_geometric.data import Data, Batch
@@ -82,14 +75,16 @@ class TestMACEComponents(unittest.TestCase):
     def test_equivariant_interaction_shape(self):
         """Test EquivariantMACEInteraction preserves shapes"""
         print("\n Testing Interaction layer...")
-        interaction = EquivariantMACEInteractionClean(self.hidden_dim, self.num_basis).to(self.device)
+        interaction = EquivariantMACEInteractionClean(
+            self.hidden_dim, self.num_basis).to(self.device)
 
         num_atoms = 10
         num_edges = 30
 
         s = torch.randn(num_atoms, self.hidden_dim).to(self.device)
         v = torch.randn(num_atoms, self.hidden_dim, 3).to(self.device)
-        edge_index = torch.randint(0, num_atoms, (2, num_edges)).to(self.device)
+        edge_index = torch.randint(0, num_atoms, (2, num_edges))
+        edge_index = edge_index.to(self.device)
         edge_attr = torch.randn(num_edges, self.num_basis).to(self.device)
         edge_vec = torch.randn(num_edges, 3).to(self.device)
 
@@ -104,7 +99,12 @@ class TestMACEComponents(unittest.TestCase):
     def test_e3_equivariance_rotation(self):
         """Test E(3) equivariance under rotation"""
         print("\n Testing E(3) equivariance (rotation)...")
-        model = MACEClean(hidden_dim=64, num_interactions=2, num_basis=8, cutoff=5.0).to(self.device)
+        model = MACEClean(
+            hidden_dim=64,
+            num_interactions=2,
+            num_basis=8,
+            cutoff=5.0
+        ).to(self.device)
 
         # Create test molecule
         torch.manual_seed(42)
@@ -151,7 +151,12 @@ class TestMACEComponents(unittest.TestCase):
     def test_e3_equivariance_translation(self):
         """Test E(3) equivariance under translation"""
         print("\n Testing E(3) equivariance (translation)...")
-        model = MACEClean(hidden_dim=64, num_interactions=2, num_basis=8, cutoff=5.0).to(self.device)
+        model = MACEClean(
+            hidden_dim=64,
+            num_interactions=2,
+            num_basis=8,
+            cutoff=5.0
+        ).to(self.device)
 
         torch.manual_seed(42)
         z = torch.randint(1, 10, (8,)).to(self.device)
@@ -184,7 +189,12 @@ class TestMACEComponents(unittest.TestCase):
     def test_force_computation(self):
         """Test force prediction works correctly"""
         print("\n Testing force computation...")
-        base_mace = MACEClean(hidden_dim=64, num_interactions=2, num_basis=8, cutoff=5.0).to(self.device)
+        base_mace = MACEClean(
+            hidden_dim=64,
+            num_interactions=2,
+            num_basis=8,
+            cutoff=5.0
+        ).to(self.device)
         model = MACEWithForcesClean(base_mace).to(self.device)
 
         torch.manual_seed(42)
@@ -211,7 +221,12 @@ class TestMACEComponents(unittest.TestCase):
     def test_force_energy_consistency(self):
         """Test forces are negative gradients of energy"""
         print("\n Testing force-energy consistency...")
-        base_mace = MACEClean(hidden_dim=64, num_interactions=2, num_basis=8, cutoff=5.0).to(self.device)
+        base_mace = MACEClean(
+            hidden_dim=64,
+            num_interactions=2,
+            num_basis=8,
+            cutoff=5.0
+        ).to(self.device)
         model = MACEWithForcesClean(base_mace).to(self.device)
 
         torch.manual_seed(42)
@@ -240,7 +255,12 @@ class TestMACEComponents(unittest.TestCase):
     def test_batch_processing(self):
         """Test model handles batched molecules of different sizes"""
         print("\n Testing batch processing...")
-        model = MACEClean(hidden_dim=64, num_interactions=2, num_basis=8, cutoff=5.0).to(self.device)
+        model = MACEClean(
+            hidden_dim=64,
+            num_interactions=2,
+            num_basis=8,
+            cutoff=5.0
+        ).to(self.device)
 
         # Create 3 molecules with different sizes
         data_list = []
@@ -270,10 +290,20 @@ class TestMACEComponents(unittest.TestCase):
         print("\n Testing reproducibility...")
 
         torch.manual_seed(42)
-        model1 = MACEClean(hidden_dim=64, num_interactions=2, num_basis=8, cutoff=5.0).to(self.device)
+        model1 = MACEClean(
+            hidden_dim=64,
+            num_interactions=2,
+            num_basis=8,
+            cutoff=5.0
+        ).to(self.device)
 
         torch.manual_seed(42)
-        model2 = MACEClean(hidden_dim=64, num_interactions=2, num_basis=8, cutoff=5.0).to(self.device)
+        model2 = MACEClean(
+            hidden_dim=64,
+            num_interactions=2,
+            num_basis=8,
+            cutoff=5.0
+        ).to(self.device)
 
         torch.manual_seed(123)
         z = torch.randint(1, 10, (8,)).to(self.device)
@@ -294,11 +324,6 @@ class TestMACEComponents(unittest.TestCase):
         self.assertTrue(diff < 1e-6, f"Reproducibility error: {diff:.6e}")
         print(f" PASS: Reproducible (diff: {diff:.2e})")
 
-
-# Run tests
-print("\n")
-print("RUNNING TESTS")
-print("="*70)
 
 suite = unittest.TestLoader().loadTestsFromTestCase(TestMACEComponents)
 runner = unittest.TextTestRunner(verbosity=0)

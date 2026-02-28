@@ -24,6 +24,9 @@ import deepchem as dc
 from deepchem.models import TorchModel
 from deepchem.models.losses import Loss
 from deepchem.data import Dataset, NumpyDataset
+from torch_geometric.nn import global_add_pool
+from typing import Tuple, Optional
+
 
 # Typing
 from typing import Tuple, Optional, List, Dict, Any, Sequence, Iterator
@@ -37,34 +40,44 @@ from tqdm import tqdm
 from scipy.spatial.transform import Rotation
 import matplotlib.pyplot as plt
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
-print(" All imports successful!")
-print(f" PyTorch version: {torch.__version__}")
-print(f" DeepChem version: {dc.__version__}")
-print(f" Device: {'CUDA' if torch.cuda.is_available() else 'CPU'}")
-
-
-
-print(" MACE MODEL WITH FORCE COMPUTATION")
-
 
 class MACEWithForcesFixed(nn.Module):
-    """MACE model that properly handles gradients for forces."""
+    """
+Examples
+--------
+>>> import torch
+>>> from deepchem.models.torch_models.mace import MACEWithForcesFixed
+>>> 
+>>> base_model = MACEClean(hidden_dim=64, num_interactions=3)
+>>> model = MACEWithForcesFixed(base_model)
+>>> 
+>>> z = torch.tensor([6, 1, 1, 1, 1])
+>>> pos = torch.randn(5, 3, requires_grad=True)
+>>> edge_index = torch.tensor([[0, 0, 0, 0],
+...                            [1, 2, 3, 4]])
+>>> batch = torch.zeros(5, dtype=torch.long)
+>>> 
+>>> energy, forces = model(z, pos, edge_index, batch, compute_forces=True)
+"""
 
-    def __init__(self, mace_model):
+    def __init__(self, mace_model: nn.Module) -> None:
         super().__init__()
         self.mace = mace_model
 
-    def forward(self, z, pos, edge_index, batch, compute_forces=True):
+    def forward(
+        self,
+        z: torch.Tensor,
+        pos: torch.Tensor,
+        edge_index: torch.Tensor,
+        batch: torch.Tensor,
+        compute_forces: bool = True
+    ) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
         """Forward pass maintaining gradients."""
 
         if compute_forces and not pos.requires_grad:
             pos = pos.requires_grad_(True)
 
-        # Recompute edges WITH gradients
+        # Recompute edges with gradients
         row, col = edge_index
         edge_vec = pos[row] - pos[col]
         edge_dist = torch.norm(edge_vec, dim=-1, keepdim=True)
@@ -101,11 +114,21 @@ class MACEWithForcesFixed(nn.Module):
 
         return energy, forces
 
+
 # Loss function
-def combined_loss_with_force_labels(energy_pred, energy_target, forces_pred, forces_target,
-                                     energy_weight=1.0, force_weight=100.0):
+def combined_loss_with_force_labels(
+    energy_pred: torch.Tensor,
+    energy_target: torch.Tensor,
+    forces_pred: torch.Tensor,
+    forces_target: torch.Tensor,
+    energy_weight: float = 1.0,
+    force_weight: float = 100.0
+) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+
     energy_loss = nn.MSELoss()(energy_pred.squeeze(), energy_target.squeeze())
     force_loss = nn.MSELoss()(forces_pred, forces_target)
     total_loss = energy_weight * energy_loss + force_weight * force_loss
+
     return total_loss, energy_loss, force_loss
+
 

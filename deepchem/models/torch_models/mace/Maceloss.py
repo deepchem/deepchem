@@ -29,26 +29,19 @@ from tqdm import tqdm
 from scipy.spatial.transform import Rotation
 import matplotlib.pyplot as plt
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
-print(" All imports successful!")
-print(f"   PyTorch version: {torch.__version__}")
-print(f"   DeepChem version: {dc.__version__}")
-print(f"   Device: {'CUDA' if torch.cuda.is_available() else 'CPU'}")
 class MACELoss(Loss):
-    """MSE Loss for MACE model.
+    """MSE loss for MACE model.
 
-    This loss function computes mean squared error between
-    predicted and true molecular energies.
+    Computes mean squared error between predicted
+    and true molecular energies.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
-    def _create_pytorch_loss(self):
-        """Return PyTorch MSE loss."""
+    def _create_pytorch_loss(self) -> torch.nn.Module:
+        """Create and return PyTorch  MSE loss module."""
         return torch.nn.MSELoss()
+
 
 

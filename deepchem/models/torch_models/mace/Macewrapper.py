@@ -8,6 +8,8 @@ from deepchem.models import TorchModel
 from deepchem.data import Dataset
 from deepchem.models.optimizers import Adam as DeepChemAdam
 import logging
+from typing import Union
+
 
 logger = logging.getLogger(__name__)
 from .MaceNNmodel import MACEClean
@@ -35,7 +37,7 @@ class MACEWrapper(nn.Module):
         super().__init__()
         self.mace = mace_net
 
-    def forward(self, inputs: Any) -> torch.Tensor:
+    def forward(self, inputs: Union[List[Batch], Batch]) -> torch.Tensor:
         """Forward pass through MACE network.
 
         Parameters
@@ -280,7 +282,7 @@ class SimpleMACEModel(TorchModel):
         mode: str = 'fit',
         deterministic: bool = True,
         pad_batches: bool = True
-    ) -> Iterator[Tuple[List, List, List]]:
+    ) -> Iterator[Tuple[List[Batch], List[torch.Tensor], List[torch.Tensor]]]:
         """Generate PyG batches for DeepChem training/prediction.
 
         This method converts DeepChem's data format to PyTorch Geometric
@@ -352,7 +354,10 @@ class SimpleMACEModel(TorchModel):
 
                 yield ([pyg_batch], [labels], [weights])
 
-    def _prepare_batch(self, batch: Tuple) -> Tuple:
+    def _prepare_batch(
+    self,
+    batch: Tuple[List[Batch], List[torch.Tensor], List[torch.Tensor]]
+    ) -> Tuple[List[Batch], List[torch.Tensor], List[torch.Tensor]]:
         """Override to pass through PyG batches without modification.
 
         Since default_generator() already creates properly formatted PyG batches,

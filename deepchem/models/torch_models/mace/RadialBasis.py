@@ -33,10 +33,7 @@ import matplotlib.pyplot as plt
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-print(" All imports successful!")
-print(f"   PyTorch version: {torch.__version__}")
-print(f"   DeepChem version: {dc.__version__}")
-print(f"   Device: {'CUDA' if torch.cuda.is_available() else 'CPU'}")
+
 
 
 class RadialBasis(nn.Module):
@@ -51,7 +48,8 @@ class RadialBasis(nn.Module):
         frequencies = torch.pi * torch.arange(1, num_basis + 1)
         self.register_buffer('frequencies', frequencies)
 
-    def forward(self, distances):
+    def forward(self, distances: torch.Tensor) -> torch.Tensor:
+
         """
         Args:
             distances: (E, 1) edge distances
