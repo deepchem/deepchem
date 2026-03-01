@@ -50,7 +50,7 @@ try:
     from deepchem.models.torch_models import ScaledDotProductAttention, SelfAttention
     from deepchem.models.torch_models import GroverReadout
     from deepchem.models.torch_models import WeaveModel, DTNNModel
-except ModuleNotFoundError as e:
+except (ModuleNotFoundError, ImportError) as e:
     logger.warning(
         f'Skipped loading some PyTorch models, missing a dependency. {e}')
 
