@@ -13,7 +13,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        python-version: ['3.8', '3.10', '3.11']
+        python-version: ['3.8', '3.10', '3.11', '3.12']
         include:
           - os: windows-latest
             python-version: '3.9'
@@ -28,6 +28,10 @@ jobs:
         sudo docker image prune --all --force
         sudo rm -rf /opt/hostedtoolcache/CodeQL
     - uses: actions/checkout@v4
+    - name: Install uv
+      uses: astral-sh/setup-uv@v4
+      with:
+        enable-cache: true
     - name: Cache pip modules for Linux
       uses: actions/cache@v4
       with:
@@ -41,8 +45,7 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Build DeepChem
       run: |
-        python -m pip install --upgrade pip
-        pip install -e .
+        uv pip install --system -e .
     - name: Import checking
       run: python -c "import deepchem"
 
@@ -52,7 +55,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        python-version: ['3.8', '3.10', '3.11']
+        python-version: ['3.8', '3.10', '3.11', '3.12']
         include:
           - os: windows-latest
             python-version: '3.9'
@@ -178,10 +181,14 @@ jobs:
         channels: conda-forge,defaults
         python-version: ${{ matrix.python-version }}
         environment-file: env.yml
+        use-mamba: true
+    - name: Install uv for faster pip operations
+      shell: bash -l {0}
+      run: pip install uv pytest-xdist
     - name: Install DeepChem
       id: install
       shell: bash -l {0}
-      run: pip install -e .
+      run: uv pip install --system -e .
     - name: Doctest Linux
       if: ${{ (runner.os == 'Linux') && always() }}
       shell: bash -l {0}
@@ -194,8 +201,8 @@ jobs:
     - name: PyTest
       if: ${{ (success() || failure()) && (steps.install.outcome == 'failure' || steps.install.outcome == 'success') && matrix.python-version == '3.11'}}
       shell: bash -l {0}
-      run: pytest -v -m "not jax and not torch and not tensorflow and not dqc and not hf" --ignore='deepchem/utils/test/test_sequence_utils.py' deepchem
+      run: pytest -v -n auto -m "not jax and not torch and not tensorflow and not dqc and not hf" --ignore='deepchem/utils/test/test_sequence_utils.py' deepchem
     - name: PyTest
       if: ${{ (success() || failure()) && (steps.install.outcome == 'failure' || steps.install.outcome == 'success') && matrix.python-version != '3.11'}}
       shell: bash -l {0}
-      run: pytest -v -m "not jax and not torch and not tensorflow and not dqc and not hf" deepchem
+      run: pytest -v -n auto -m "not jax and not torch and not tensorflow and not dqc and not hf" deepchem
