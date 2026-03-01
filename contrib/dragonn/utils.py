@@ -4,6 +4,7 @@ import sys
 from sklearn.preprocessing import LabelEncoder, OneHotEncoder
 from scipy.signal import correlate2d
 from simdna.simulations import loaded_motifs
+from numpy.char import chararray
 
 
 def get_motif_scores(encoded_sequences,
@@ -118,7 +119,7 @@ def get_sequence_strings(encoded_sequences):
     Converts encoded sequences into an array with sequence strings
     """
   num_samples, _, _, seq_length = np.shape(encoded_sequences)
-  sequence_characters = np.chararray((num_samples, seq_length))
+  sequence_characters = chararray((num_samples, seq_length))
   sequence_characters[:] = 'N'
   for i, letter in enumerate(['A', 'C', 'G', 'T']):
     letter_indxs = (encoded_sequences[:, :, i, :] == 1).squeeze()
