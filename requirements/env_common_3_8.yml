@@ -19,7 +19,6 @@ dependencies:
     - networkx
     - pillow
     - pubchempy
-    - pyGPGO
     - pymatgen
     - simdna
     - transformers==4.46.3
