@@ -29,7 +29,7 @@ try:
     from deepchem.models.chemnet_models import Smiles2Vec, ChemCeption
 except ModuleNotFoundError as e:
     logger.warning(
-        f'Skipped loading some Tensorflow models, missing a dependency. {e}')
+        f'Skipped loading some Tensorflow models due to missing optional dependency: {e}')
 
 # scikit-learn model
 from deepchem.models.sklearn_models import SklearnModel
@@ -52,7 +52,7 @@ try:
     from deepchem.models.torch_models import WeaveModel, DTNNModel
 except ModuleNotFoundError as e:
     logger.warning(
-        f'Skipped loading some PyTorch models, missing a dependency. {e}')
+        f'Skipped loading some PyTorch models due to missing optional dependency: {e}')
 
 try:
     from deepchem.models.torch_models import HuggingFaceModel
@@ -60,7 +60,9 @@ try:
     from deepchem.models.torch_models import MoLFormer
     from deepchem.models.torch_models import OneFormer
 except ImportError as e:
-    logger.warning(e)
+    logger.warning(
+        f"Skipped loading some PyTorch models due to missing optional dependency: {e}"
+    )
 
 # Pytorch models with torch-geometric dependency
 try:
@@ -69,7 +71,7 @@ try:
     from deepchem.models.torch_models import DMPNN, DMPNNModel, GNNModular, MXMNet
 except ImportError as e:
     logger.warning(
-        f'Skipped loading modules with pytorch-geometric dependency, missing a dependency. {e}'
+        f'Skipped loading modules with pytorch-geometric dependency due to missing optional dependency: {e}'
     )
 
 # Pytorch-lightning modules import
@@ -78,7 +80,7 @@ try:
     from deepchem.models.trainer import DistributedTrainer
 except ModuleNotFoundError as e:
     logger.warning(
-        f'Skipped loading modules with pytorch-lightning dependency, missing a dependency. {e}'
+        f'Skipped loading modules with pytorch-lightning dependency due to missing optional dependency: {e}'
     )
 
 # Jax models
@@ -87,7 +89,7 @@ try:
     from deepchem.models.jax_models import PINNModel
 except ModuleNotFoundError as e:
     logger.warning(
-        f'Skipped loading some Jax models, missing a dependency. {e}')
+        f'Skipped loading some Jax models due to missing optional dependency: {e}')
 
 #####################################################################################
 # Compatibility imports for renamed XGBoost models. Remove below with DeepChem 3.0.
