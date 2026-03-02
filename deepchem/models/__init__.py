@@ -29,7 +29,7 @@ try:
     from deepchem.models.chemnet_models import Smiles2Vec, ChemCeption
 except ModuleNotFoundError as e:
     logger.warning(
-        f'Skipped loading some Tensorflow models due to missing optional dependency: {e}')
+        f'Skipped loading some TensorFlow models due to missing optional dependency: {e}')
 
 # scikit-learn model
 from deepchem.models.sklearn_models import SklearnModel
