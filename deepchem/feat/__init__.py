@@ -106,3 +106,5 @@ from deepchem.feat.vocabulary_builders import HuggingFaceVocabularyBuilder
 
 # support classes
 from deepchem.feat.molecule_featurizers import GraphMatrix
+# CORRECT - import directly from the module file
+from deepchem.feat.smiles_tokenizer_v2 import SmilesTokenizerV2
