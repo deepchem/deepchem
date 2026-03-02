@@ -6,35 +6,35 @@ from deepchem.models.tensorgraph.layers import Feature, Weights, Label, Layer
 import numpy as np
 import tensorflow as tf
 try:
-  from collections.abc import Sequence as SequenceCollection
+    from collections.abc import Sequence as SequenceCollection
 except:
-  from collections import Sequence as SequenceCollection
+    from collections import Sequence as SequenceCollection
 import copy
 import time
 
 
 class MCTSLoss(Layer):
-  """This layer computes the loss function for MCTS."""
+    """This layer computes the loss function for MCTS."""
 
-  def __init__(self, value_weight, **kwargs):
-    super(MCTSLoss, self).__init__(**kwargs)
-    self.value_weight = value_weight
+    def __init__(self, value_weight, **kwargs):
+        super(MCTSLoss, self).__init__(**kwargs)
+        self.value_weight = value_weight
 
-  def create_tensor(self, **kwargs):
-    pred_prob, pred_value, search_prob, search_value = [
-        layer.out_tensor for layer in self.in_layers
-    ]
-    log_prob = tf.log(pred_prob + np.finfo(np.float32).eps)
-    probability_loss = -tf.reduce_mean(search_prob * log_prob)
-    value_loss = tf.reduce_mean(tf.square(pred_value - search_value))
-    self.out_tensor = probability_loss + self.value_weight * value_loss
-    self.probability_loss = probability_loss
-    self.value_loss = value_loss
-    return self.out_tensor
+    def create_tensor(self, **kwargs):
+        pred_prob, pred_value, search_prob, search_value = [
+            layer.out_tensor for layer in self.in_layers
+        ]
+        log_prob = tf.log(pred_prob + np.finfo(np.float32).eps)
+        probability_loss = -tf.reduce_mean(search_prob * log_prob)
+        value_loss = tf.reduce_mean(tf.square(pred_value - search_value))
+        self.out_tensor = probability_loss + self.value_weight * value_loss
+        self.probability_loss = probability_loss
+        self.value_loss = value_loss
+        return self.out_tensor
 
 
 class MCTS(object):
-  """
+    """
   Implements a Monte Carlo tree search algorithm for reinforcement learning.
 
   This is adapted from Silver et al, "Mastering the game of Go without human
@@ -74,16 +74,16 @@ class MCTS(object):
   This class does not support policies that include recurrent layers.
   """
 
-  def __init__(self,
-               env,
-               policy,
-               max_search_depth=100,
-               n_search_episodes=1000,
-               discount_factor=0.99,
-               value_weight=1.0,
-               optimizer=Adam(),
-               model_dir=None):
-    """Create an object for optimizing a policy.
+    def __init__(self,
+                 env,
+                 policy,
+                 max_search_depth=100,
+                 n_search_episodes=1000,
+                 discount_factor=0.99,
+                 value_weight=1.0,
+                 optimizer=Adam(),
+                 model_dir=None):
+        """Create an object for optimizing a policy.
 
     Parameters
     ----------
@@ -106,74 +106,75 @@ class MCTS(object):
     model_dir: str
       the directory in which the model will be saved.  If None, a temporary directory will be created.
     """
-    self._env = copy.deepcopy(env)
-    self._policy = policy
-    self.max_search_depth = max_search_depth
-    self.n_search_episodes = n_search_episodes
-    self.discount_factor = discount_factor
-    self.value_weight = value_weight
-    self._state_is_list = isinstance(env.state_shape[0], SequenceCollection)
-    if optimizer is None:
-      self._optimizer = Adam(learning_rate=0.001, beta1=0.9, beta2=0.999)
-    else:
-      self._optimizer = optimizer
-    (self._graph, self._features, self._pred_prob, self._pred_value,
-     self._search_prob, self._search_value) = self._build_graph(
-         None, 'global', model_dir)
-    with self._graph._get_tf("Graph").as_default():
-      with tf.variable_scope('global'):
-        self._checkpoint = tf.train.Checkpoint()
-        self._checkpoint.save_counter  # Ensure the variable has been created
-      self._checkpoint.listed = tf.get_collection(
-          tf.GraphKeys.GLOBAL_VARIABLES, scope='global')
-      self._graph.session.run(self._checkpoint.save_counter.initializer)
+        self._env = copy.deepcopy(env)
+        self._policy = policy
+        self.max_search_depth = max_search_depth
+        self.n_search_episodes = n_search_episodes
+        self.discount_factor = discount_factor
+        self.value_weight = value_weight
+        self._state_is_list = isinstance(env.state_shape[0], SequenceCollection)
+        if optimizer is None:
+            self._optimizer = Adam(learning_rate=0.001, beta1=0.9, beta2=0.999)
+        else:
+            self._optimizer = optimizer
+        (self._graph, self._features, self._pred_prob, self._pred_value,
+         self._search_prob,
+         self._search_value) = self._build_graph(None, 'global', model_dir)
+        with self._graph._get_tf("Graph").as_default():
+            with tf.variable_scope('global'):
+                self._checkpoint = tf.train.Checkpoint()
+                self._checkpoint.save_counter  # Ensure the variable has been created
+            self._checkpoint.listed = tf.get_collection(
+                tf.GraphKeys.GLOBAL_VARIABLES, scope='global')
+            self._graph.session.run(self._checkpoint.save_counter.initializer)
 
-  def _build_graph(self, tf_graph, scope, model_dir):
-    """Construct a TensorGraph containing the policy and loss calculations."""
-    state_shape = self._env.state_shape
-    state_dtype = self._env.state_dtype
-    if not self._state_is_list:
-      state_shape = [state_shape]
-      state_dtype = [state_dtype]
-    features = []
-    for s, d in zip(state_shape, state_dtype):
-      features.append(Feature(shape=[None] + list(s), dtype=tf.as_dtype(d)))
-    policy_layers = self._policy.create_layers(features)
-    action_prob = policy_layers['action_prob']
-    value = policy_layers['value']
-    search_prob = Label(shape=(None, self._env.n_actions))
-    search_value = Label(shape=(None,))
-    loss = MCTSLoss(
-        self.value_weight,
-        in_layers=[action_prob, value, search_prob, search_value])
-    graph = TensorGraph(
-        batch_size=self.max_search_depth,
-        use_queue=False,
-        graph=tf_graph,
-        model_dir=model_dir)
-    for f in features:
-      graph._add_layer(f)
-    graph.add_output(action_prob)
-    graph.add_output(value)
-    graph.set_loss(loss)
-    graph.set_optimizer(self._optimizer)
-    with graph._get_tf("Graph").as_default():
-      with tf.variable_scope(scope):
-        graph.build()
-    if len(graph.rnn_initial_states) > 0:
-      raise ValueError('MCTS does not support policies with recurrent layers')
-    return graph, features, action_prob, value, search_prob, search_value
+    def _build_graph(self, tf_graph, scope, model_dir):
+        """Construct a TensorGraph containing the policy and loss calculations."""
+        state_shape = self._env.state_shape
+        state_dtype = self._env.state_dtype
+        if not self._state_is_list:
+            state_shape = [state_shape]
+            state_dtype = [state_dtype]
+        features = []
+        for s, d in zip(state_shape, state_dtype):
+            features.append(
+                Feature(shape=[None] + list(s), dtype=tf.as_dtype(d)))
+        policy_layers = self._policy.create_layers(features)
+        action_prob = policy_layers['action_prob']
+        value = policy_layers['value']
+        search_prob = Label(shape=(None, self._env.n_actions))
+        search_value = Label(shape=(None,))
+        loss = MCTSLoss(
+            self.value_weight,
+            in_layers=[action_prob, value, search_prob, search_value])
+        graph = TensorGraph(batch_size=self.max_search_depth,
+                            use_queue=False,
+                            graph=tf_graph,
+                            model_dir=model_dir)
+        for f in features:
+            graph._add_layer(f)
+        graph.add_output(action_prob)
+        graph.add_output(value)
+        graph.set_loss(loss)
+        graph.set_optimizer(self._optimizer)
+        with graph._get_tf("Graph").as_default():
+            with tf.variable_scope(scope):
+                graph.build()
+        if len(graph.rnn_initial_states) > 0:
+            raise ValueError(
+                'MCTS does not support policies with recurrent layers')
+        return graph, features, action_prob, value, search_prob, search_value
 
-  def fit(self,
-          iterations,
-          steps_per_iteration=10000,
-          epochs_per_iteration=10,
-          temperature=0.5,
-          puct_scale=None,
-          max_checkpoints_to_keep=5,
-          checkpoint_interval=600,
-          restore=False):
-    """Train the policy.
+    def fit(self,
+            iterations,
+            steps_per_iteration=10000,
+            epochs_per_iteration=10,
+            temperature=0.5,
+            puct_scale=None,
+            max_checkpoints_to_keep=5,
+            checkpoint_interval=600,
+            restore=False):
+        """Train the policy.
 
     Parameters
     ----------
@@ -206,39 +207,42 @@ class MCTS(object):
     checkpoint_interval: float
       the time interval at which to save checkpoints, measured in seconds
     restore: bool
-      if True, restore the model from the most recent checkpoint and continue training
-      from there.  If False, retrain the model from scratch.
+        if True, restore the model from the most recent checkpoint and continue training
+        from there. If False, do not load a checkpoint from disk. Note that if the model
+        has already been trained, setting restore=False will continue training from the
+        current weights in memory;it does not reset the model weights to random initialization.
     """
-    if puct_scale is None:
-      self._puct_scale = 1.0
-      adapt_puct = True
-    else:
-      self._puct_scale = puct_scale
-      adapt_puct = False
-    with self._graph._get_tf("Graph").as_default():
-      self._graph.session.run(tf.global_variables_initializer())
-      if restore:
-        self.restore()
-      variables = tf.get_collection(
-          tf.GraphKeys.GLOBAL_VARIABLES, scope='global')
-      manager = tf.train.CheckpointManager(
-          self._checkpoint, self._graph.model_dir, max_checkpoints_to_keep)
-      self._checkpoint_time = time.time() + checkpoint_interval
+        if puct_scale is None:
+            self._puct_scale = 1.0
+            adapt_puct = True
+        else:
+            self._puct_scale = puct_scale
+            adapt_puct = False
+        with self._graph._get_tf("Graph").as_default():
+            self._graph.session.run(tf.global_variables_initializer())
+            if restore:
+                self.restore()
+            variables = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES,
+                                          scope='global')
+            manager = tf.train.CheckpointManager(self._checkpoint,
+                                                 self._graph.model_dir,
+                                                 max_checkpoints_to_keep)
+            self._checkpoint_time = time.time() + checkpoint_interval
 
-      # Run the algorithm.
+            # Run the algorithm.
 
-      for iteration in range(iterations):
-        buffer = self._run_episodes(steps_per_iteration, temperature, manager,
-                                    adapt_puct)
-        self._optimize_policy(buffer, epochs_per_iteration)
+            for iteration in range(iterations):
+                buffer = self._run_episodes(steps_per_iteration, temperature,
+                                            manager, adapt_puct)
+                self._optimize_policy(buffer, epochs_per_iteration)
 
-      # Save a file checkpoint.
+            # Save a file checkpoint.
 
-      with self._graph.session.as_default():
-        manager.save()
+            with self._graph.session.as_default():
+                manager.save()
 
-  def predict(self, state):
-    """Compute the policy's output predictions for a state.
+    def predict(self, state):
+        """Compute the policy's output predictions for a state.
 
     Parameters
     ----------
@@ -249,16 +253,16 @@ class MCTS(object):
     -------
     the array of action probabilities, and the estimated value function
     """
-    if not self._state_is_list:
-      state = [state]
-    with self._graph._get_tf("Graph").as_default():
-      feed_dict = self._create_feed_dict(state)
-      tensors = [self._pred_prob, self._pred_value]
-      results = self._graph.session.run(tensors, feed_dict=feed_dict)
-      return results[:2]
+        if not self._state_is_list:
+            state = [state]
+        with self._graph._get_tf("Graph").as_default():
+            feed_dict = self._create_feed_dict(state)
+            tensors = [self._pred_prob, self._pred_value]
+            results = self._graph.session.run(tensors, feed_dict=feed_dict)
+            return results[:2]
 
-  def select_action(self, state, deterministic=False):
-    """Select an action to perform based on the environment's state.
+    def select_action(self, state, deterministic=False):
+        """Select an action to perform based on the environment's state.
 
     Parameters
     ----------
@@ -272,148 +276,152 @@ class MCTS(object):
     -------
     the index of the selected action
     """
-    if not self._state_is_list:
-      state = [state]
-    with self._graph._get_tf("Graph").as_default():
-      feed_dict = self._create_feed_dict(state)
-      probabilities = self._graph.session.run(
-          self._pred_prob, feed_dict=feed_dict)
-      if deterministic:
-        return probabilities.argmax()
-      else:
-        return np.random.choice(
-            np.arange(self._env.n_actions), p=probabilities[0])
+        if not self._state_is_list:
+            state = [state]
+        with self._graph._get_tf("Graph").as_default():
+            feed_dict = self._create_feed_dict(state)
+            probabilities = self._graph.session.run(self._pred_prob,
+                                                    feed_dict=feed_dict)
+            if deterministic:
+                return probabilities.argmax()
+            else:
+                return np.random.choice(np.arange(self._env.n_actions),
+                                        p=probabilities[0])
 
-  def restore(self):
-    """Reload the model parameters from the most recent checkpoint file."""
-    last_checkpoint = tf.train.latest_checkpoint(self._graph.model_dir)
-    if last_checkpoint is None:
-      raise ValueError('No checkpoint found')
-    with self._graph._get_tf("Graph").as_default():
-      self._checkpoint.restore(last_checkpoint).run_restore_ops(
-          self._graph.session)
+    def restore(self):
+        """Reload the model parameters from the most recent checkpoint file."""
+        last_checkpoint = tf.train.latest_checkpoint(self._graph.model_dir)
+        if last_checkpoint is None:
+            raise ValueError('No checkpoint found')
+        with self._graph._get_tf("Graph").as_default():
+            self._checkpoint.restore(last_checkpoint).run_restore_ops(
+                self._graph.session)
 
-  def _create_feed_dict(self, state):
-    """Create a feed dict for use by predict() or select_action()."""
-    feed_dict = dict((f.out_tensor, np.expand_dims(s, axis=0))
-                     for f, s in zip(self._features, state))
-    return feed_dict
+    def _create_feed_dict(self, state):
+        """Create a feed dict for use by predict() or select_action()."""
+        feed_dict = dict((f.out_tensor, np.expand_dims(s, axis=0))
+                         for f, s in zip(self._features, state))
+        return feed_dict
 
-  def _run_episodes(self, steps, temperature, manager, adapt_puct):
-    """Simulate the episodes for one iteration."""
-    buffer = []
-    self._env.reset()
-    root = TreeSearchNode(0.0)
-    for step in range(steps):
-      prob, reward = self._do_tree_search(root, temperature, adapt_puct)
-      state = self._env.state
-      if not self._state_is_list:
-        state = [state]
-      buffer.append((state, prob, reward))
-      action = np.random.choice(np.arange(self._env.n_actions), p=prob)
-      self._env.step(action)
-      if self._env.terminated:
+    def _run_episodes(self, steps, temperature, manager, adapt_puct):
+        """Simulate the episodes for one iteration."""
+        buffer = []
         self._env.reset()
         root = TreeSearchNode(0.0)
-      else:
-        root = root.children[action]
-      if time.time() > self._checkpoint_time:
-        with self._graph.session.as_default():
-          manager.save()
-        self._checkpoint_time = time.time()
-    return buffer
+        for step in range(steps):
+            prob, reward = self._do_tree_search(root, temperature, adapt_puct)
+            state = self._env.state
+            if not self._state_is_list:
+                state = [state]
+            buffer.append((state, prob, reward))
+            action = np.random.choice(np.arange(self._env.n_actions), p=prob)
+            self._env.step(action)
+            if self._env.terminated:
+                self._env.reset()
+                root = TreeSearchNode(0.0)
+            else:
+                root = root.children[action]
+            if time.time() > self._checkpoint_time:
+                with self._graph.session.as_default():
+                    manager.save()
+                self._checkpoint_time = time.time()
+        return buffer
 
-  def _optimize_policy(self, buffer, epochs):
-    """Optimize the policy based on the replay buffer from the current iteration."""
-    batch_size = self._graph.batch_size
-    n_batches = len(buffer) // batch_size
-    for epoch in range(epochs):
-      np.random.shuffle(buffer)
+    def _optimize_policy(self, buffer, epochs):
+        """Optimize the policy based on the replay buffer from the current iteration."""
+        batch_size = self._graph.batch_size
+        n_batches = len(buffer) // batch_size
+        for epoch in range(epochs):
+            np.random.shuffle(buffer)
 
-      def generate_batches():
-        for batch in range(n_batches):
-          indices = list(range(batch * batch_size, (batch + 1) * batch_size))
-          feed_dict = {}
-          for i, f in enumerate(self._features):
-            feed_dict[f] = np.stack(buffer[j][0][i] for j in indices)
-          feed_dict[self._search_prob] = np.stack(buffer[j][1] for j in indices)
-          feed_dict[self._search_value] = np.array(
-              [buffer[j][2] for j in indices])
-          yield feed_dict
+            def generate_batches():
+                for batch in range(n_batches):
+                    indices = list(
+                        range(batch * batch_size, (batch + 1) * batch_size))
+                    feed_dict = {}
+                    for i, f in enumerate(self._features):
+                        feed_dict[f] = np.stack(
+                            buffer[j][0][i] for j in indices)
+                    feed_dict[self._search_prob] = np.stack(
+                        buffer[j][1] for j in indices)
+                    feed_dict[self._search_value] = np.array(
+                        [buffer[j][2] for j in indices])
+                    yield feed_dict
 
-      loss = self._graph.fit_generator(
-          generate_batches(), checkpoint_interval=0)
+            loss = self._graph.fit_generator(generate_batches(),
+                                             checkpoint_interval=0)
 
-  def _do_tree_search(self, root, temperature, adapt_puct):
-    """Perform the tree search for a state."""
-    # Build the tree.
+    def _do_tree_search(self, root, temperature, adapt_puct):
+        """Perform the tree search for a state."""
+        # Build the tree.
 
-    for i in range(self.n_search_episodes):
-      env = copy.deepcopy(self._env)
-      self._create_trace(env, root, 1)
+        for i in range(self.n_search_episodes):
+            env = copy.deepcopy(self._env)
+            self._create_trace(env, root, 1)
 
-    # Compute the final probabilities and expected reward.
+        # Compute the final probabilities and expected reward.
 
-    prob = np.array([c.count**(1.0 / temperature) for c in root.children])
-    prob /= np.sum(prob)
-    reward = np.sum(p * c.mean_reward for p, c in zip(prob, root.children))
-    if adapt_puct:
-      scale = np.sum(
-          [p * np.abs(c.mean_reward) for p, c in zip(prob, root.children)])
-      self._puct_scale = 0.99 * self._puct_scale + 0.01 * scale
-    return prob, reward
+        prob = np.array([c.count**(1.0 / temperature) for c in root.children])
+        prob /= np.sum(prob)
+        reward = np.sum(p * c.mean_reward for p, c in zip(prob, root.children))
+        if adapt_puct:
+            scale = np.sum([
+                p * np.abs(c.mean_reward) for p, c in zip(prob, root.children)
+            ])
+            self._puct_scale = 0.99 * self._puct_scale + 0.01 * scale
+        return prob, reward
 
-  def _create_trace(self, env, node, depth):
-    """Create one trace as part of the tree search."""
-    node.count += 1
-    if env.terminated:
-      # Mark this node as terminal
-      node.children = None
-      node.value = 0.0
-      return 0.0
-    if node.children is not None and len(node.children) == 0:
-      # Expand this node.
-      prob_pred, value = self.predict(env.state)
-      node.value = float(value)
-      node.children = [TreeSearchNode(p) for p in prob_pred[0]]
-    if depth == self.max_search_depth:
-      reward = 0.0
-      future_rewards = node.value
-    else:
-      # Select the next action to perform.
+    def _create_trace(self, env, node, depth):
+        """Create one trace as part of the tree search."""
+        node.count += 1
+        if env.terminated:
+            # Mark this node as terminal
+            node.children = None
+            node.value = 0.0
+            return 0.0
+        if node.children is not None and len(node.children) == 0:
+            # Expand this node.
+            prob_pred, value = self.predict(env.state)
+            node.value = float(value)
+            node.children = [TreeSearchNode(p) for p in prob_pred[0]]
+        if depth == self.max_search_depth:
+            reward = 0.0
+            future_rewards = node.value
+        else:
+            # Select the next action to perform.
 
-      total_counts = sum(c.count for c in node.children)
-      if total_counts == 0:
-        score = [c.prior_prob for c in node.children]
-      else:
-        scale = self._puct_scale * np.sqrt(total_counts)
-        score = [
-            c.mean_reward + scale * c.prior_prob / (1 + c.count)
-            for c in node.children
-        ]
-      action = np.argmax(score)
-      next_node = node.children[action]
-      reward = env.step(action)
+            total_counts = sum(c.count for c in node.children)
+            if total_counts == 0:
+                score = [c.prior_prob for c in node.children]
+            else:
+                scale = self._puct_scale * np.sqrt(total_counts)
+                score = [
+                    c.mean_reward + scale * c.prior_prob / (1 + c.count)
+                    for c in node.children
+                ]
+            action = np.argmax(score)
+            next_node = node.children[action]
+            reward = env.step(action)
 
-      # Recursively build the tree.
+            # Recursively build the tree.
 
-      future_rewards = self._create_trace(env, next_node, depth + 1)
+            future_rewards = self._create_trace(env, next_node, depth + 1)
 
-    # Update statistics for this node.
+        # Update statistics for this node.
 
-    future_rewards = reward + self.discount_factor * future_rewards
-    node.total_reward += future_rewards
-    node.mean_reward = node.total_reward / node.count
-    return future_rewards
+        future_rewards = reward + self.discount_factor * future_rewards
+        node.total_reward += future_rewards
+        node.mean_reward = node.total_reward / node.count
+        return future_rewards
 
 
 class TreeSearchNode(object):
-  """Represents a node in the Monte Carlo tree search."""
+    """Represents a node in the Monte Carlo tree search."""
 
-  def __init__(self, prior_prob):
-    self.count = 0
-    self.reward = 0.0
-    self.total_reward = 0.0
-    self.mean_reward = 0.0
-    self.prior_prob = prior_prob
-    self.children = []
+    def __init__(self, prior_prob):
+        self.count = 0
+        self.reward = 0.0
+        self.total_reward = 0.0
+        self.mean_reward = 0.0
+        self.prior_prob = prior_prob
+        self.children = []

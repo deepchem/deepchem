@@ -240,7 +240,9 @@ class SeqToSeq(KerasModel):
             the frequency at which to write checkpoints, measured in training steps.
         restore: bool
             if True, restore the model from the most recent checkpoint and continue training
-            from there.  If False, retrain the model from scratch.
+            from there. If False, do not load a checkpoint from disk. Note that if the model
+            has already been trained, setting restore=False will continue training from the
+            current weights in memory;it does not reset the model weights to random initialization.
         """
         self.fit_generator(self._generate_batches(sequences),
                            max_checkpoints_to_keep=max_checkpoints_to_keep,
