@@ -4,7 +4,7 @@ dependencies:
     # - -f https://data.dgl.ai/wheels/repo.html
     - torchdata
     # - dgl has to be built from source on windows
-    - torch==2.4.0+cpu
+    - torch==2.4.0
     - torch-geometric
     - lightning
     - pydantic

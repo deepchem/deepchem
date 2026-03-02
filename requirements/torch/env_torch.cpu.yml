@@ -4,7 +4,7 @@ dependencies:
     - -f https://data.dgl.ai/wheels/torch-2.4/repo.html
     - torchdata
     - dgl
-    - torch==2.4.0+cpu
+    - torch==2.4.0
     - torch-geometric
     - lightning
     - pydantic

@@ -4,7 +4,7 @@ dependencies:
   - pylibxc
   - pip:
     - -f https://data.pyg.org/whl/torch-2.4.0+cpu.html
-    - torch==2.4.0+cpu
+    - torch==2.4.0
     # - dgl has to be built from source on macos
     - torch-geometric
     - lightning
