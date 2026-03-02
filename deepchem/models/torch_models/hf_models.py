@@ -636,3 +636,41 @@ class HuggingFaceModel(TorchModel):
             results.append(text_results)
 
         return results[0] if len(results) == 1 else results
+
+    def generate(self, input_ids: torch.Tensor,
+                 **kwargs) -> Union[List[str], torch.Tensor]:
+        """
+            Generate sequences using the wrapped Hugging Face model.
+
+            This method provides a DeepChem-compatible interface for generative tasks.
+            It handles device placement for inputs and, if a tokenizer is available,
+            decodes the output tokens into strings.
+
+            Parameters
+            ----------
+            input_ids: torch.Tensor
+                A batch of input IDs to use as the generation seed/prompt.
+            **kwargs:
+                Additional keyword arguments passed to the underlying model's
+                `generate` method (e.g., max_new_tokens, temperature, top_k).
+
+            Returns
+            -------
+            Union[List[str], torch.Tensor]
+                A list of decoded strings if a tokenizer is present;
+                otherwise, the raw output tensor.
+            """
+        self._ensure_built()
+        self.model.eval()
+
+        # Respect the internal device state established in TorchModel
+        input_ids = input_ids.to(self.device)
+
+        with torch.no_grad():
+            outputs = self.model.generate(input_ids=input_ids, **kwargs)
+
+        if self.tokenizer is not None:
+            return self.tokenizer.batch_decode(outputs,
+                                               skip_special_tokens=True)
+
+        return outputs
