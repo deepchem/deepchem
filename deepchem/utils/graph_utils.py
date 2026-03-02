@@ -1,3 +1,4 @@
+from typing import Optional, Dict, Any
 import numpy as np
 
 try:
@@ -6,7 +7,9 @@ except ImportError:
     print("This module requires PyTorch to be installed.")
 
 
-def fourier_encode_dist(x, num_encodings=4, include_self=True):
+def fourier_encode_dist(x: 'torch.Tensor',
+                        num_encodings: int = 4,
+                        include_self: bool = True) -> 'torch.Tensor':
     """
     Fourier encode the input tensor `x` based on the specified number of encodings.
 
@@ -47,7 +50,7 @@ def fourier_encode_dist(x, num_encodings=4, include_self=True):
 EPS = 1e-5
 
 
-def aggregate_mean(h, **kwargs):
+def aggregate_mean(h: 'torch.Tensor', **kwargs: Any) -> 'torch.Tensor':
     """
     Compute the mean of the input tensor along the second to last dimension.
 
@@ -55,6 +58,8 @@ def aggregate_mean(h, **kwargs):
     ----------
     h : torch.Tensor
         Input tensor.
+    **kwargs : Any
+        Additional keyword arguments (unused).
 
     Returns
     -------
@@ -64,7 +69,7 @@ def aggregate_mean(h, **kwargs):
     return torch.mean(h, dim=-2)
 
 
-def aggregate_max(h, **kwargs):
+def aggregate_max(h: 'torch.Tensor', **kwargs: Any) -> 'torch.Tensor':
     """
     Compute the max of the input tensor along the second to last dimension.
 
@@ -72,6 +77,8 @@ def aggregate_max(h, **kwargs):
     ----------
     h : torch.Tensor
         Input tensor.
+    **kwargs : Any
+        Additional keyword arguments (unused).
 
     Returns
     -------
@@ -81,7 +88,7 @@ def aggregate_max(h, **kwargs):
     return torch.max(h, dim=-2)[0]
 
 
-def aggregate_min(h, **kwargs):
+def aggregate_min(h: 'torch.Tensor', **kwargs: Any) -> 'torch.Tensor':
     """
     Compute the min of the input tensor along the second to last dimension.
 
@@ -89,8 +96,8 @@ def aggregate_min(h, **kwargs):
     ----------
     h : torch.Tensor
         Input tensor.
-    **kwargs
-        Additional keyword arguments.
+    **kwargs : Any
+        Additional keyword arguments (unused).
 
     Returns
     -------
@@ -100,7 +107,7 @@ def aggregate_min(h, **kwargs):
     return torch.min(h, dim=-2)[0]
 
 
-def aggregate_std(h, **kwargs):
+def aggregate_std(h: 'torch.Tensor', **kwargs: Any) -> 'torch.Tensor':
     """
     Compute the standard deviation of the input tensor along the second to last dimension.
 
@@ -108,6 +115,8 @@ def aggregate_std(h, **kwargs):
     ----------
     h : torch.Tensor
         Input tensor.
+    **kwargs : Any
+        Additional keyword arguments (unused).
 
     Returns
     -------
@@ -117,7 +126,7 @@ def aggregate_std(h, **kwargs):
     return torch.sqrt(aggregate_var(h) + EPS)
 
 
-def aggregate_var(h, **kwargs):
+def aggregate_var(h: 'torch.Tensor', **kwargs: Any) -> 'torch.Tensor':
     """
     Compute the variance of the input tensor along the second to last dimension.
 
@@ -125,6 +134,8 @@ def aggregate_var(h, **kwargs):
     ----------
     h : torch.Tensor
         Input tensor.
+    **kwargs : Any
+        Additional keyword arguments (unused).
 
     Returns
     -------
@@ -137,7 +148,9 @@ def aggregate_var(h, **kwargs):
     return var
 
 
-def aggregate_moment(h, n=3, **kwargs):
+def aggregate_moment(h: 'torch.Tensor',
+                     n: int = 3,
+                     **kwargs: Any) -> 'torch.Tensor':
     """
     Compute the nth moment of the input tensor along the second to last dimension.
 
@@ -147,6 +160,8 @@ def aggregate_moment(h, n=3, **kwargs):
         Input tensor.
     n : int, optional, default=3
         The order of the moment to compute.
+    **kwargs : Any
+        Additional keyword arguments (unused).
 
     Returns
     -------
@@ -161,7 +176,7 @@ def aggregate_moment(h, n=3, **kwargs):
     return rooted_h_n
 
 
-def aggregate_sum(h, **kwargs):
+def aggregate_sum(h: 'torch.Tensor', **kwargs: Any) -> 'torch.Tensor':
     """
     Compute the sum of the input tensor along the second to last dimension.
 
@@ -169,6 +184,8 @@ def aggregate_sum(h, **kwargs):
     ----------
     h : torch.Tensor
         Input tensor.
+    **kwargs : Any
+        Additional keyword arguments (unused).
 
     Returns
     -------
@@ -180,7 +197,9 @@ def aggregate_sum(h, **kwargs):
 
 # each scaler is a function that takes as input X (B x N x Din), adj (B x N x N) and
 # avg_d (dictionary containing averages over training set) and returns X_scaled (B x N x Din) as output
-def scale_identity(h, D=None, avg_d=None):
+def scale_identity(h: 'torch.Tensor',
+                   D: Optional['torch.Tensor'] = None,
+                   avg_d: Optional[Dict[str, Any]] = None) -> 'torch.Tensor':
     """
     Identity scaling function.
 
@@ -189,19 +208,20 @@ def scale_identity(h, D=None, avg_d=None):
     h : torch.Tensor
         Input tensor.
     D : torch.Tensor, optional
-        Degree tensor.
+        Degree tensor (unused).
     avg_d : dict, optional
-        Dictionary containing averages over the training set.
+        Dictionary containing averages over the training set (unused).
 
     Returns
     -------
     torch.Tensor
-        Scaled input tensor.
+        Scaled input tensor (unchanged).
     """
     return h
 
 
-def scale_amplification(h, D, avg_d):
+def scale_amplification(h: 'torch.Tensor', D: 'torch.Tensor',
+                        avg_d: Dict[str, Any]) -> 'torch.Tensor':
     """
     Amplification scaling function. log(D + 1) / d * h where d is the average of the ``log(D + 1)`` in the training set
 
@@ -222,7 +242,8 @@ def scale_amplification(h, D, avg_d):
     return h * (np.log(D + 1) / avg_d["log"])
 
 
-def scale_attenuation(h, D, avg_d):
+def scale_attenuation(h: 'torch.Tensor', D: 'torch.Tensor',
+                      avg_d: Dict[str, Any]) -> 'torch.Tensor':
     """
     Attenuation scaling function. (log(D + 1))^-1 / d * X where d is the average of the ``log(D + 1))^-1`` in the training set
 
