@@ -1,11 +1,11 @@
 channels:
   - pytorch
 dependencies:
-  - pytorch==2.2.1
   - pylibxc
   - pip:
-    - -f https://data.pyg.org/whl/torch-2.2.1+cpu.html
-    - dgl
+    - -f https://data.pyg.org/whl/torch-2.4.0+cpu.html
+    - torch==2.4.0+cpu
+    # - dgl has to be built from source on macos
     - torch-geometric
     - lightning
     - pydantic
