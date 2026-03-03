@@ -75,3 +75,4 @@ try:
 
 except ModuleNotFoundError as e:
     logger.warning(f'Skipped loading modules with transformers dependency. {e}')
+from .dc_torch_symbolic_model import DCTorchSymbolicModel
