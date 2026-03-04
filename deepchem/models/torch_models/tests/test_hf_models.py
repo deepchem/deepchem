@@ -3,7 +3,8 @@ import os
 import deepchem as dc
 import numpy as np
 import pytest
-
+from deepchem.models.losses import L2Loss
+from deepchem.models.torch_models.torch_model import _StandardLoss
 try:
     import torch
     from deepchem.models.torch_models.hf_models import HuggingFaceModel
@@ -364,3 +365,38 @@ def test_load_molformer_model_from_hf_checkpoint(tmpdir):
                                         from_hf_checkpoint=True)
     assert finetune_model.model.config.problem_type == 'regression'
     assert finetune_model.model.config.num_labels == 1
+
+
+@pytest.mark.hf
+def test_hf_model_regression_with_init_loss(hf_tokenizer,
+                                            smiles_regression_dataset):
+    """ Test the hugging face model regression task with loss function defined in init.
+    """
+    from transformers.models.roberta import (RobertaConfig,
+                                             RobertaForSequenceClassification)
+
+    config = RobertaConfig(vocab_size=hf_tokenizer.vocab_size,
+                           problem_type='regression',
+                           num_labels=1)
+    model = RobertaForSequenceClassification(config)
+    hf_model = HuggingFaceModel(model=model,
+                                tokenizer=hf_tokenizer,
+                                task='regression',
+                                device=torch.device('cpu'))
+    assert hf_model.loss is None
+    loss = L2Loss()
+    hf_model = HuggingFaceModel(model=model,
+                                tokenizer=hf_tokenizer,
+                                task='regression',
+                                loss=loss,
+                                device=torch.device('cpu'))
+    assert isinstance(hf_model.loss, L2Loss)
+    assert isinstance(hf_model._loss_fn, _StandardLoss)
+
+    hf_model.fit(smiles_regression_dataset, nb_epoch=1)
+    result = hf_model.predict(smiles_regression_dataset)
+
+    assert result.all()
+    score = hf_model.evaluate(smiles_regression_dataset,
+                              metrics=dc.metrics.Metric(dc.metrics.mae_score))
+    assert score

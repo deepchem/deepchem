@@ -10,6 +10,7 @@ from deepchem.models.optimizers import LearningRateSchedule
 from deepchem.models.torch_models import TorchModel
 from deepchem.trans import Transformer, undo_transforms
 from deepchem.utils.typing import LossFn, OneOrMany
+from deepchem.models.losses import Loss
 from transformers.data.data_collator import DataCollatorForLanguageModeling
 from transformers.models.auto import AutoModel, AutoModelForSequenceClassification, AutoModelForMaskedLM, AutoModelForUniversalSegmentation
 
@@ -147,6 +148,7 @@ class HuggingFaceModel(TorchModel):
             tokenizer: 'transformers.tokenization_utils.PreTrainedTokenizer',
             task: Optional[str] = None,
             config: Optional[Dict] = None,
+            loss: Optional[Union[Loss, LossFn]] = None,
             **kwargs):
         self.task = task
         self.tokenizer = tokenizer
@@ -161,9 +163,13 @@ class HuggingFaceModel(TorchModel):
             self.config = config
         else:
             self.config = {}
+
+        if loss is not None:
+            logger.info("Using custom loss function.")
+
         super(HuggingFaceModel, self).__init__(
             model=model,
-            loss=None,  # type: ignore
+            loss=loss,
             **kwargs)
 
     def load_from_pretrained(  # type: ignore
@@ -277,6 +283,7 @@ class HuggingFaceModel(TorchModel):
 
     def _prepare_batch(self, batch: Tuple[Any, Any, Any]):
         smiles_batch, y, w = batch
+        _, _, w = super(HuggingFaceModel, self)._prepare_batch(([], [], w))
         tokens = self.tokenizer(smiles_batch[0].tolist(),
                                 padding=True,
                                 return_tensors="pt")
@@ -361,6 +368,8 @@ class HuggingFaceModel(TorchModel):
         avg_loss = 0.0
         last_avg_loss = 0.0
         averaged_batches = 0
+        if loss is None:
+            loss = self._loss_fn
         if variables is None:
             optimizer = self._pytorch_optimizer
             lr_schedule = self._lr_schedule
@@ -391,7 +400,16 @@ class HuggingFaceModel(TorchModel):
             optimizer.zero_grad()
             outputs = self.model(**inputs)
 
-            batch_loss = outputs.get("loss")
+            if loss is None:
+                logger.warning("Weights for datapoints from the _prepare_batch were not used in loss.")
+                batch_loss = outputs.get("loss")
+            else:
+                output_values = outputs.get("logits")
+                if isinstance(output_values, torch.Tensor):
+                    output_values = [output_values]
+                if isinstance(labels, torch.Tensor):
+                    labels = [labels]
+                batch_loss = loss(output_values, labels, weights)               
             batch_loss.backward()
             optimizer.step()
             if lr_schedule is not None:
