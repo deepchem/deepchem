@@ -432,6 +432,107 @@ class ScaleNorm(nn.Module):
         return x * norm
 
 
+class ActNorm(nn.Module):
+    """
+    PINO Activation normalization layer that applies learnable scaling and bias.
+
+    This layer is a per-channel affine normalization used by the
+    Physics-Informed Neural Operator (PINO) to stabilize spectral
+    block outputs. It applies the learnable transformation:
+
+        y = scale * x + bias
+
+    Parameters
+    ----------
+    num_features : int
+        Number of features/channels in the input.
+
+    Examples
+    --------
+    >>> norm = ActNorm(dim=64)
+    >>> x = torch.randn(10, 1, 64)
+    >>> y = norm(x)
+    >>> print(y.shape)
+    torch.Size([10, 1, 64])
+    """
+
+    def __init__(self, dim: int):
+        super().__init__()
+        self.scale = nn.Parameter(torch.ones(1, 1, dim))
+        self.bias = nn.Parameter(torch.zeros(1, 1, dim))
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        out = x * self.scale + self.bias
+        return out
+
+
+class FourierBlock1D(nn.Module):
+    """
+    PINO 1D Fourier Spectral Convolution Block
+
+    This block is a core component of the Physics-Informed Neural Operator (PINO).
+    It performs a spectral convolution by:
+      1) transforming the input to the frequency domain using FFT,
+      2) applying learnable complex weights to the lowest-frequency modes,
+      3) transforming back to the spatial domain via inverse FFT,
+      4) and finally normalizing with an ActNorm layer.
+
+    Parameters
+    ----------
+    in_channels : int
+        Number of input channels.
+    out_channels : int
+        Number of output channels.
+    modes : int
+        Number of Fourier modes to retain in the frequency domain.
+
+    Examples
+    --------
+    >>> block = FourierBlock1D(in_channels=64, out_channels=64, modes=16)
+    >>> x = torch.randn(10, 64, 128)
+    >>> y = block(x)
+    >>> print(y.shape)
+    torch.Size([10, 128, 64])
+    """
+
+    def __init__(self, in_channels: int, out_channels: int, modes: int):
+        super().__init__()
+        self.in_channels = in_channels
+        self.out_channels = out_channels
+        self.modes = modes
+        self.scale = 1 / (in_channels * out_channels)**0.5
+        self.weights = nn.Parameter(
+            self.scale * torch.rand(in_channels, out_channels, modes, 2))
+        self.norm = ActNorm(out_channels)
+
+    def compl_mul1d(self, a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
+        real = torch.einsum("bci,oci->boi",
+                            a[..., 0], b[..., 0]) - torch.einsum(
+                                "bci,oci->boi", a[..., 1], b[..., 1])
+        imag = torch.einsum("bci,oci->boi",
+                            a[..., 0], b[..., 1]) + torch.einsum(
+                                "bci,oci->boi", a[..., 1], b[..., 0])
+        result = torch.stack([real, imag], dim=-1)
+        return result
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        B, C, L = x.shape
+        x_ft = torch.fft.rfft(x, dim=-1)
+        x_ft = torch.view_as_real(x_ft)
+        out_ft = torch.zeros(B,
+                             self.out_channels,
+                             x_ft.shape[-2],
+                             2,
+                             device=x.device)
+        limit = min(self.modes, x_ft.shape[-2])
+        out_ft[:, :, :limit] = self.compl_mul1d(x_ft[:, :, :limit],
+                                                self.weights[:, :, :limit])
+        x_rec = torch.fft.irfft(torch.view_as_complex(out_ft), n=L, dim=-1)
+        x_rec = x_rec.permute(0, 2, 1)
+        x_rec = self.norm(x_rec)
+        return x_rec
+
+
 class MultiHeadedMATAttention(nn.Module):
     """First constructs an attention layer tailored to the Molecular Attention Transformer [1]_ and then converts it into Multi-Headed Attention.
 
