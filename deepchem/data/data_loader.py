@@ -56,6 +56,10 @@ def _convert_df_to_numpy(df: pd.DataFrame,
     """
     n_samples = df.shape[0]
     n_tasks = len(tasks)
+    # Ensure all task columns exist in dataframe
+   for task in tasks:
+     if task not in df.columns:
+        raise ValueError(f"Task column '{task}' not found in the dataframe.")
 
     y = np.hstack([
         np.reshape(np.array(df[task].values), (n_samples, 1)) for task in tasks
