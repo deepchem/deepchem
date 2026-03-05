@@ -6,12 +6,16 @@ from typing import (TYPE_CHECKING, Any, Callable, Iterable, List, Optional,
 
 import numpy as np
 import torch
+
 from deepchem.models.optimizers import LearningRateSchedule
 from deepchem.models.torch_models import TorchModel
 from deepchem.trans import Transformer, undo_transforms
 from deepchem.utils.typing import LossFn, OneOrMany
 from transformers.data.data_collator import DataCollatorForLanguageModeling
-from transformers.models.auto import AutoModel, AutoModelForSequenceClassification, AutoModelForMaskedLM, AutoModelForUniversalSegmentation
+from transformers.models.auto import (AutoModel,
+                                      AutoModelForSequenceClassification,
+                                      AutoModelForMaskedLM,
+                                      AutoModelForUniversalSegmentation)
 
 logger = logging.getLogger(__name__)
 
@@ -27,63 +31,55 @@ class HuggingFaceModel(TorchModel):
     ecosystem in DeepChem and training it via DeepChem's api. The reason
     for this might be that you might want to do an apples-to-apples comparison
     between HuggingFace from the transformers library and DeepChem library.
-
     The `HuggingFaceModel` has a Has-A relationship by wrapping models from
     `transformers` library. Once a model is wrapped, DeepChem's API are used
     for training, prediction, evaluation and other downstream tasks.
 
     A `HuggingFaceModel` wrapper also has a `tokenizer` which tokenizes raw
-    SMILES strings into tokens to be used by downstream models.  The SMILES
+    SMILES strings into tokens to be used by downstream models. The SMILES
     strings are generally stored in the `X` attribute of deepchem.data.Dataset object'.
     This differs from the DeepChem standard workflow as tokenization is done
     on the fly here. The approach allows us to leverage `transformers` library's fast
     tokenization algorithms and other utilities like data collation, random masking of tokens
     for masked language model training etc.
 
-
     Parameters
     ----------
     model: transformers.modeling_utils.PreTrainedModel
         The HuggingFace model to wrap.
-    task: str, (optional, default None)
+    task: str, optional (default None)
         The task defines the type of learning task in the model. The supported tasks are
-         - `mlm` - masked language modeling commonly used in pretraining
-         - `mtr` - multitask regression - a task used for both pretraining base models and finetuning
-         - `regression` - use it for regression tasks, like property prediction
-         - `classification` - use it for classification tasks
 
-        When the task is not specified or None, the wrapper returns raw output of the HuggingFaceModel.
-        In cases where the HuggingFaceModel is a model without a task specific head, this output will be
-        the last hidden states.
+        - `mlm` - masked language modeling commonly used in pretraining
+        - `mtr` - multitask regression
+        - `regression` - property prediction
+        - `classification` - classification tasks
+
+        When None, the wrapper returns raw output of the HuggingFaceModel.
     tokenizer: transformers.tokenization_utils.PreTrainedTokenizer
         Tokenizer
-    config: dict, (optional, default None)
-        A dictionary of model configuration parameters that will be passed to the Hugging Face
-        `AutoModel` classes via `**kwargs` when loading from the hf_checkpoint. These parameters
-        are typically used to customize the behavior and architecture of the underlying transformer
-        model (e.g., number of layers, hidden size, dropout rates, etc.). When loading from pretrained
-        from hf_checkpoint, If any keys in `config` match configuration attributes supported by
-        the specific Hugging Face `AutoModel` being used, they will override the default settings
-        for that model.
+    config: dict, optional (default None)
+        A dictionary of model configuration parameters passed to HuggingFace
+        AutoModel classes via **kwargs when loading from hf_checkpoint.
+    enable_gradient_checkpointing: bool, optional (default False)
+        When True, calls model.gradient_checkpointing_enable() on the underlying
+        model if the method exists. Models that don't support it are unaffected.
+        Useful for reducing GPU memory usage when fine-tuning large models.
 
-    Example
-    -------
+    Examples
+    --------
     >>> import os
     >>> import tempfile
     >>> import shutil
     >>> tempdir = tempfile.mkdtemp()
-
-    >>> # preparing dataset
     >>> smiles = ['CN(c1ccccc1)c1ccccc1C(=O)NCC1(O)CCOCC1', 'CC[NH+](CC)C1CCC([NH2+]C2CC2)(C(=O)[O-])C1', \
-    ...     'COCC(CNC(=O)c1ccc2c(c1)NC(=O)C2)OC', 'OCCn1cc(CNc2cccc3c2CCCC3)nn1', \
-    ...     'CCCCCCc1ccc(C#Cc2ccc(C#CC3=CC=C(CCC)CC3)c(C3CCCCC3)c2)c(F)c1', 'nO=C(NCc1ccc(F)cc1)N1CC=C(c2c[nH]c3ccccc23)CC1']
+    ... 'COCC(CNC(=O)c1ccc2c(c1)NC(=O)C2)OC', 'OCCn1cc(CNc2cccc3c2CCCC3)nn1', \
+    ... 'CCCCCCc1ccc(C#Cc2ccc(C#CC3=CC=C(CCC)CC3)c(C3CCCCC3)c2)c(F)c1', 'nO=C(NCc1ccc(F)cc1)N1CC=C(c2c[nH]c3ccccc23)CC1']
     >>> filepath = os.path.join(tempdir, 'smiles.txt')
     >>> f = open(filepath, 'w')
     >>> f.write('\n'.join(smiles))
     253
     >>> f.close()
-
-    >>> # preparing tokenizer
     >>> from tokenizers import ByteLevelBPETokenizer
     >>> from transformers.models.roberta import RobertaTokenizerFast
     >>> tokenizer = ByteLevelBPETokenizer()
@@ -92,8 +88,6 @@ class HuggingFaceModel(TorchModel):
     >>> os.makedirs(tokenizer_path)
     >>> result = tokenizer.save_model(tokenizer_path)
     >>> tokenizer = RobertaTokenizerFast.from_pretrained(tokenizer_path)
-
-    >>> # preparing dataset
     >>> import pandas as pd
     >>> import deepchem as dc
     >>> smiles = ["CCN(CCSC)C(=O)N[C@@](C)(CC)C(F)(F)F","CC1(C)CN(C(=O)Nc2cc3ccccc3nn2)C[C@@]2(CCOC2)O1"]
@@ -103,31 +97,23 @@ class HuggingFaceModel(TorchModel):
     ...     df.to_csv(tmpfile.name)
     ...     loader = dc.data.CSVLoader(["task1"], feature_field="smiles", featurizer=dc.feat.DummyFeaturizer())
     ...     dataset = loader.create_dataset(tmpfile.name)
-
-    >>> # pretraining
     >>> from deepchem.models.torch_models.hf_models import HuggingFaceModel
     >>> from transformers.models.roberta import RobertaForMaskedLM, RobertaModel, RobertaConfig
     >>> config = RobertaConfig(vocab_size=tokenizer.vocab_size)
     >>> model = RobertaForMaskedLM(config)
     >>> hf_model = HuggingFaceModel(model=model, tokenizer=tokenizer, task='mlm', model_dir='model-dir')
     >>> training_loss = hf_model.fit(dataset, nb_epoch=1)
-
-    >>> # finetuning a regression model
     >>> from transformers.models.roberta import RobertaForSequenceClassification
     >>> config = RobertaConfig(vocab_size=tokenizer.vocab_size, problem_type='regression', num_labels=1)
     >>> model = RobertaForSequenceClassification(config)
     >>> hf_model = HuggingFaceModel(model=model, tokenizer=tokenizer, task='regression', model_dir='model-dir')
     >>> hf_model.load_from_pretrained()
     >>> training_loss = hf_model.fit(dataset, nb_epoch=1)
-    >>> prediction = hf_model.predict(dataset)  # prediction
+    >>> prediction = hf_model.predict(dataset)
     >>> eval_results = hf_model.evaluate(dataset, metrics=dc.metrics.Metric(dc.metrics.mae_score))
-
-    >>> # finetune a classification model
-    >>> # making dataset suitable for classification
     >>> import numpy as np
     >>> y = np.random.choice([0, 1], size=dataset.y.shape)
     >>> dataset = dc.data.NumpyDataset(X=dataset.X, y=y, w=dataset.w, ids=dataset.ids)
-
     >>> from transformers import RobertaForSequenceClassification
     >>> config = RobertaConfig(vocab_size=tokenizer.vocab_size)
     >>> model = RobertaForSequenceClassification(config)
@@ -135,8 +121,6 @@ class HuggingFaceModel(TorchModel):
     >>> training_loss = hf_model.fit(dataset, nb_epoch=1)
     >>> predictions = hf_model.predict(dataset)
     >>> eval_result = hf_model.evaluate(dataset, metrics=dc.metrics.Metric(dc.metrics.f1_score))
-
-    >>> # removing temporary directory
     >>> if os.path.exists(tempdir):
     ...     shutil.rmtree(tempdir)
     """
@@ -147,20 +131,38 @@ class HuggingFaceModel(TorchModel):
             tokenizer: 'transformers.tokenization_utils.PreTrainedTokenizer',
             task: Optional[str] = None,
             config: Optional[Dict] = None,
+            enable_gradient_checkpointing: bool = False,
             **kwargs):
         self.task = task
         self.tokenizer = tokenizer
+
         if self.task == 'mlm':
             self.data_collator = DataCollatorForLanguageModeling(
                 tokenizer=tokenizer)
         else:
             self.data_collator = None  # type: ignore
-        # Ignoring type. For TorchModel, loss is a required argument but HuggingFace computes
-        # loss during the forward iteration, removing the need for a loss function.
+
         if config:
             self.config = config
         else:
             self.config = {}
+
+        # HuggingFace PreTrainedModels support gradient checkpointing to trade
+        # compute for memory during backprop. Not all model architectures support
+        # it, so we check with hasattr before calling.
+        if enable_gradient_checkpointing:
+            if hasattr(model, 'gradient_checkpointing_enable'):
+                model.gradient_checkpointing_enable()
+                logger.info("Gradient checkpointing enabled for %s.",
+                            type(model).__name__)
+            else:
+                logger.warning(
+                    "%s does not support gradient_checkpointing_enable(), "
+                    "enable_gradient_checkpointing will be ignored.",
+                    type(model).__name__)
+
+        # TorchModel requires a loss argument, but HuggingFace models compute
+        # loss internally during the forward pass, so we pass None here.
         super(HuggingFaceModel, self).__init__(
             model=model,
             loss=None,  # type: ignore
@@ -172,108 +174,70 @@ class HuggingFaceModel(TorchModel):
             from_hf_checkpoint: bool = False):
         """Load HuggingFace model from a pretrained checkpoint.
 
-        The utility can be used for loading a model from a checkpoint.
-        Given `model_dir`, it checks for existing checkpoint in the directory.
-        If a checkpoint exists, the models state is loaded from the checkpoint.
+        Given `model_dir`, checks for an existing DeepChem checkpoint and loads
+        from it. If `from_hf_checkpoint` is True, uses HuggingFace's
+        `from_pretrained` instead, treating `model_dir` as a model repo ID or
+        local directory saved with `save_pretrained`.
 
-        If the option `from_hf_checkpoint` is set as True, then it loads a pretrained
-        model using HuggingFace models `from_pretrained` method. This option
-        interprets model_dir as a model id of a pretrained model hosted inside a model repo
-        on huggingface.co or path to directory containing model weights saved using `save_pretrained`
-        method of a HuggingFace model.
-
-        Parameter
+        Parameters
         ----------
         model_dir: str
-            Directory containing model checkpoint
+            Directory containing model checkpoint.
         from_hf_checkpoint: bool, default False
-            Loads a pretrained model from HuggingFace checkpoint.
-
-        Example
-        -------
-        >>> from transformers import RobertaTokenizerFast
-        >>> tokenizer = RobertaTokenizerFast.from_pretrained("seyonec/PubChem10M_SMILES_BPE_60k")
-
-        >>> from deepchem.models.torch_models.hf_models import HuggingFaceModel
-        >>> from transformers.models.roberta import RobertaForMaskedLM, RobertaModel, RobertaConfig
-        >>> config = RobertaConfig(vocab_size=tokenizer.vocab_size)
-        >>> model = RobertaForMaskedLM(config)
-        >>> pretrain_model = HuggingFaceModel(model=model, tokenizer=tokenizer, task='mlm', model_dir='model-dir')
-        >>> pretrain_model.save_checkpoint()
-
-        >>> from transformers import RobertaForSequenceClassification
-        >>> config = RobertaConfig(vocab_size=tokenizer.vocab_size)
-        >>> model = RobertaForSequenceClassification(config)
-        >>> finetune_model = HuggingFaceModel(model=model, task='classification', tokenizer=tokenizer, model_dir='model-dir')
-
-        >>> finetune_model.load_from_pretrained()
+            Load from a HuggingFace checkpoint instead of a DeepChem checkpoint.
 
         Note
         ----
-        1. Use `load_from_pretrained` method only to load a pretrained model - a
-            model trained on a different task like Masked Language Modeling or
-            Multitask Regression. To `restore` a model, use the `restore` method.
-
-        2. A pretrain model has different number of target tasks for pretraining and a finetune
-            model has different number of target tasks for finetuning. Thus, they both have different
-            number of projection outputs in the last layer. To avoid a mismatch
-            in the weights of the output projection layer (last layer) between
-            the pretrain model and current model, we delete the projection
-            layers weights.
+        Use this method only to load a pretrained model (e.g. from MLM pretraining).
+        To resume a training run, use `restore` instead. Since pretrain and finetune
+        models typically have different output projection sizes, those layer weights
+        are dropped when loading.
         """
         if model_dir is None:
             model_dir = self.model_dir
 
         if from_hf_checkpoint:
-            # FIXME Transformers library has an api like AutoModel.from_pretrained. It allows to
-            # initialise and create a model instance directly without requiring a class instance initialisation step.
-            # To use `load_from_pretrained` in DeepChem, we need to follow a two step process
-            # of initialising class instance and then loading weights via `load_from_pretrained`.
             if self.task == 'mlm':
                 self.model = AutoModelForMaskedLM.from_pretrained(
                     model_dir, trust_remote_code=True, **self.config)
             elif self.task in ['mtr', 'regression', 'classification']:
                 self.model = AutoModelForSequenceClassification.from_pretrained(
                     model_dir, trust_remote_code=True, **self.config)
-            elif self.task == "universal_segmentation":
+            elif self.task == 'universal_segmentation':
                 self.model = AutoModelForUniversalSegmentation.from_pretrained(
                     model_dir, trust_remote_code=True, **self.config)
             else:
-                self.model = AutoModel.from_pretrained(model_dir,
-                                                       trust_remote_code=True,
-                                                       **self.config)
+                self.model = AutoModel.from_pretrained(
+                    model_dir, trust_remote_code=True, **self.config)
+
         elif not from_hf_checkpoint:
             checkpoints = sorted(self.get_checkpoints(model_dir))
             if len(checkpoints) == 0:
                 raise ValueError('No checkpoint found')
-            else:
-                checkpoint = checkpoints[0]
-                data = torch.load(checkpoint, map_location=self.device)
-                # Delete keys of output projection layer (last layer) as the number of
-                # tasks (projections) in pretrain model and the current model
-                # might vary.
 
-                # When using Distributed Data Parallel (DDP) for training models, PyTorch automatically
-                # wraps model parameters in a module. prefix. This can cause issues when loading or
-                # saving model states because the key names in state_dict differ from their original
-                # single-GPU counterparts. To address this, model_state_dict is updated by removing
-                # the "module." prefix when saving or loading models.
+            checkpoint = checkpoints[0]
+            data = torch.load(checkpoint, map_location=self.device)
 
-                data['model_state_dict'] = {
-                    key.replace("module.", ""): value
-                    for key, value in data['model_state_dict'].items()
-                }
-                keys = data['model_state_dict'].keys()
-                if 'classifier.out_proj.weight' in keys:
-                    del data['model_state_dict']['classifier.out_proj.weight']
-                if 'classifier.out_proj.bias' in keys:
-                    del data['model_state_dict']['classifier.out_proj.bias']
-                if 'classifier.dense.bias' in keys:
-                    del data['model_state_dict']['classifier.dense.bias']
-                if 'classifier.dense.weight' in keys:
-                    del data['model_state_dict']['classifier.dense.weight']
-                self.model.load_state_dict(data['model_state_dict'],
-                                           strict=False)
+            # Models trained with DistributedDataParallel have a "module."
+            # prefix in their state dict keys — strip it for single-GPU loading.
+            data['model_state_dict'] = {
+                key.replace("module.", ""): value
+                for key, value in data['model_state_dict'].items()
+            }
+
+            # Drop the final projection layer weights since the number of output
+            # labels may differ between the pretrained and current model.
+            keys = data['model_state_dict'].keys()
+            if 'classifier.out_proj.weight' in keys:
+                del data['model_state_dict']['classifier.out_proj.weight']
+            if 'classifier.out_proj.bias' in keys:
+                del data['model_state_dict']['classifier.out_proj.bias']
+            if 'classifier.dense.bias' in keys:
+                del data['model_state_dict']['classifier.dense.bias']
+            if 'classifier.dense.weight' in keys:
+                del data['model_state_dict']['classifier.dense.weight']
+
+            self.model.load_state_dict(data['model_state_dict'], strict=False)
 
     def _prepare_batch(self, batch: Tuple[Any, Any, Any]):
         smiles_batch, y, w = batch
@@ -290,17 +254,17 @@ class HuggingFaceModel(TorchModel):
                 'attention_mask': tokens['attention_mask'].to(self.device),
             }
             return inputs, None, w
+
         elif self.task in ['regression', 'classification', 'mtr']:
             if y is not None:
-                # y is None during predict
                 y = torch.from_numpy(y[0])
                 if self.task == 'regression' or self.task == 'mtr':
                     y = y.float().to(self.device)
                 elif self.task == 'classification':
                     y = y.long().to(self.device)
+
             for key, value in tokens.items():
                 tokens[key] = value.to(self.device)
-
             inputs = {**tokens, 'labels': y}
             return inputs, y, w
 
@@ -319,48 +283,37 @@ class HuggingFaceModel(TorchModel):
         Parameters
         ----------
         generator: generator
-            this should generate batches, each represented as a tuple of the form
-            (inputs, labels, weights).
+            Batches as (inputs, labels, weights) tuples.
         max_checkpoints_to_keep: int
-            the maximum number of checkpoints to keep.  Older checkpoints are discarded.
+            Maximum number of checkpoints to keep. Older ones are discarded.
         checkpoint_interval: int
-            the frequency at which to write checkpoints, measured in training steps.
-            Set this to 0 to disable automatic checkpointing.
+            How often to write checkpoints, in training steps. 0 disables.
         restore: bool
-            if True, restore the model from the most recent checkpoint and continue training
-            from there.  If False, retrain the model from scratch.
-        variables: list of torch.nn.Parameter
-            the variables to train.  If None (the default), all trainable variables in
-            the model are used.
-        loss: function
-            a function of the form f(outputs, labels, weights) that computes the loss
-            for each batch.  If None (the default), the model's standard loss function
-            is used.
+            If True, resume from the most recent checkpoint.
+        variables: list of torch.nn.Parameter, optional
+            Variables to train. Defaults to all trainable parameters.
+        loss: function, optional
+            Unused; HuggingFace models compute loss internally.
         callbacks: function or list of functions
-            one or more functions of the form f(model, step, **kwargs) that will be invoked
-            after every step.  This can be used to perform validation, logging, etc.
-        all_losses: Optional[List[float]], optional (default None)
-            If specified, all logged losses are appended into this list. Note that
-            you can call `fit()` repeatedly with the same list and losses will
-            continue to be appended.
+            Called after every step as f(model, step, **kwargs).
+        all_losses: list of float, optional
+            If provided, all logged losses are appended here.
 
         Returns
         -------
-        The average loss over the most recent checkpoint interval
-
-        Note
-        ----
-        A HuggingFace model can return embeddings (last hidden state), attentions.
-        Support must be added to return the embeddings to the user, so that it can
-        be used for other downstream applications.
+        float
+            Average loss over the most recent checkpoint interval.
         """
         if not isinstance(callbacks, SequenceCollection):
             callbacks = [callbacks]
+
         self._ensure_built()
         self.model.train()
+
         avg_loss = 0.0
         last_avg_loss = 0.0
         averaged_batches = 0
+
         if variables is None:
             optimizer = self._pytorch_optimizer
             lr_schedule = self._lr_schedule
@@ -377,32 +330,31 @@ class HuggingFaceModel(TorchModel):
                 else:
                     lr_schedule = None
                 self._optimizer_for_vars[var_key] = (optimizer, lr_schedule)
-        time1 = time.time()
 
-        # Main training loop.
+        time1 = time.time()
 
         for batch in generator:
             if restore:
                 self.restore()
                 restore = False
+
             inputs: OneOrMany[torch.Tensor]
             inputs, labels, weights = self._prepare_batch(batch)
 
             optimizer.zero_grad()
             outputs = self.model(**inputs)
-
             batch_loss = outputs.get("loss")
             batch_loss.backward()
             optimizer.step()
+
             if lr_schedule is not None:
                 lr_schedule.step()
+
             self._global_step += 1
             current_step = self._global_step
-
             avg_loss += batch_loss
-
-            # Report progress and write checkpoints.
             averaged_batches += 1
+
             should_log = (current_step % self.log_frequency == 0)
             if should_log:
                 avg_loss = float(avg_loss) / averaged_batches
@@ -410,21 +362,19 @@ class HuggingFaceModel(TorchModel):
                             (current_step, avg_loss))
                 if all_losses is not None:
                     all_losses.append(avg_loss)
-                # Capture the last avg_loss in case of return since we're resetting to 0 now
                 last_avg_loss = avg_loss
                 avg_loss = 0.0
                 averaged_batches = 0
 
             if checkpoint_interval > 0 and current_step % checkpoint_interval == checkpoint_interval - 1:
                 self.save_checkpoint(max_checkpoints_to_keep)
+
             for c in callbacks:
                 try:
-                    # NOTE In DeepChem > 2.8.0, callback signature is updated to allow
-                    # variable arguments.
                     c(self, current_step, iteration_loss=batch_loss)
                 except TypeError:
-                    # DeepChem <= 2.8.0, the callback should have this signature.
                     c(self, current_step)
+
             if self.tensorboard and should_log:
                 self._log_scalar_to_tensorboard('loss', batch_loss,
                                                 current_step)
@@ -432,7 +382,6 @@ class HuggingFaceModel(TorchModel):
                 all_data = dict({'train/loss': batch_loss})
                 self.wandb_logger.log_data(all_data, step=current_step)
 
-        # Report final results.
         if averaged_batches > 0:
             avg_loss = float(avg_loss) / averaged_batches
             logger.info('Ending global_step %d: Average loss %g' %
@@ -451,44 +400,22 @@ class HuggingFaceModel(TorchModel):
     def _predict(self, generator: Iterable[Tuple[Any, Any, Any]],
                  transformers: List[Transformer], uncertainty: bool,
                  other_output_types: Optional[OneOrMany[str]]):
-        """Predicts output for data provided by generator.
-
-        This is the private implementation of prediction. Do not
-        call it directly. Instead call one of the public prediction methods.
-
-        Parameters
-        ----------
-        generator: generator
-            this should generate batches, each represented as a tuple of the form
-            (inputs, labels, weights).
-        transformers: list of dc.trans.Transformers
-            Transformers that the input data has been transformed by.  The output
-            is passed through these transformers to undo the transformations.
-        uncertainty: bool
-            specifies whether this is being called as part of estimating uncertainty.
-            If True, it sets the training flag so that dropout will be enabled, and
-            returns the values of the uncertainty outputs.
-        other_output_types: list, optional
-            Provides a list of other output_types (strings) to predict from model.
-
-        Returns
-        -------
-            a NumPy array of the model produces a single output, or a list of arrays
-            if it produces multiple outputs
+        """Private implementation of prediction. Call predict() instead.
 
         Note
         ----
-        A HuggingFace model does not output uncertainity. The argument is here
-        since it is also present in TorchModel. Similarly, other variables like
-        other_output_types are also not used. Instead, a HuggingFace model outputs
-        loss, logits, hidden state and attentions.
+        HuggingFace models do not support uncertainty estimation. The
+        `uncertainty` and `other_output_types` arguments exist for API
+        compatibility with TorchModel.
         """
         results: Optional[List[List[np.ndarray]]] = None
         variances: Optional[List[List[np.ndarray]]] = None
+
         if uncertainty and (other_output_types is not None):
             raise ValueError(
-                'This model cannot compute uncertainties and other output types simultaneously. Please invoke one at a time.'
-            )
+                'This model cannot compute uncertainties and other output types simultaneously. '
+                'Please invoke one at a time.')
+
         if uncertainty:
             if self._variance_outputs is None or len(
                     self._variance_outputs) == 0:
@@ -497,25 +424,27 @@ class HuggingFaceModel(TorchModel):
                 raise ValueError(
                     'The number of variances must exactly match the number of outputs'
                 )
+
         if other_output_types:
             if self._other_outputs is None or len(self._other_outputs) == 0:
                 raise ValueError(
                     'This model cannot compute other outputs since no other output_types were specified.'
                 )
+
         self._ensure_built()
         self.model.eval()
+
         for batch in generator:
             inputs, labels, weights = batch
             inputs, _, _ = self._prepare_batch((inputs, None, None))
 
-            # Invoke the model.
             output_values = self.model(**inputs)
             output_values = output_values.get('logits')
 
             if isinstance(output_values, torch.Tensor):
                 output_values = [output_values]
             output_values = [t.detach().cpu().numpy() for t in output_values]
-            # Apply tranformers and record results.
+
             if uncertainty:
                 var = [output_values[i] for i in self._variance_outputs]
                 if variances is None:
@@ -523,6 +452,7 @@ class HuggingFaceModel(TorchModel):
                 else:
                     for i, t in enumerate(var):
                         variances[i].append(t)
+
             access_values = []
             if other_output_types:
                 access_values += self._other_outputs
@@ -541,12 +471,12 @@ class HuggingFaceModel(TorchModel):
                     output_values = [
                         undo_transforms(output_values[0], transformers)
                     ]
+
             if results is None:
                 results = [[] for i in range(len(output_values))]
             for i, t in enumerate(output_values):
                 results[i].append(t)
 
-        # Concatenate arrays to create the final results.
         final_results = []
         final_variances = []
         if results is not None:
@@ -566,67 +496,56 @@ class HuggingFaceModel(TorchModel):
     def fill_mask(self,
                   inputs: Union[str, List[str]],
                   top_k: int = 5) -> Union[List[Dict], List[List[Dict]]]:
-        """Implements the HuggingFace 'fill_mask' pipeline from HuggingFace.
-        https://huggingface.co/docs/transformers/main_classes/pipelines
+        """Implements the HuggingFace fill-mask pipeline.
 
-        Takes as input a sequence or list of sequences where each sequence
-        containts a single masked position and returns a list of dictionaries per sequence
-        containing the filled sequence, the token, and the score for that token.
+        Takes one or more SMILES strings each containing a single masked position
+        and returns the top-k predicted tokens for that position.
 
         Parameters
         ----------
-        inputs : Union[str, List[str]]
-            One or several texts (or one list of texts) with masked tokens.
-        top_k : int, optional
-            The number of predictions to return for each mask. Default is 5.
+        inputs: str or list of str
+            Sequence(s) containing exactly one mask token each.
+        top_k: int, optional
+            Number of predictions to return per mask. Default is 5.
 
         Returns
         -------
-        Union[List[Dict], List[List[Dict]]]
-            A list or a list of list of dictionaries with the following keys:
-            - sequence (str): The corresponding input with the mask token prediction.
-            - score (float): The corresponding probability.
-            - token (int): The predicted token id (to replace the masked one).
-            - token_str (str): The predicted token (to replace the masked one)
+        list of dict or list of list of dict
+            Each dict has keys: sequence, score, token, token_str.
         """
-
-        # First make sure tha the model is successfully loaded, then set to eval mode.
         self._ensure_built()
         self.model.eval()
 
-        # Ensure that the inputs are made into a list of len() >= 1.
         if isinstance(inputs, str):
             inputs = [inputs]
 
         results = []
-        # Iterate over the input sequences (NOTE: DO NOT Parallelize)
         for text in inputs:
             encoded_input = self.tokenizer(text,
                                            return_tensors='pt').to(self.device)
-            # Find all the occurrences where the mask token idx is used
             mask_token_index = torch.where(
-                encoded_input["input_ids"] == self.tokenizer.mask_token_id)[1]
-            # Ensure that the masked token index appears EXACTLY once.
-            assert mask_token_index.numel(
-            ) == 1, f"Sequence has masked indices at: {list(mask_token_index)}. Please ensure that only one position is masked in the sequence."
+                encoded_input["input_ids"] ==
+                self.tokenizer.mask_token_id)[1]
+
+            assert mask_token_index.numel() == 1, (
+                f"Sequence has masked indices at: {list(mask_token_index)}. "
+                "Please ensure that only one position is masked in the sequence."
+            )
 
             with torch.no_grad():
                 output = self.model(**encoded_input)
 
-            # Grab the logits and take distribution at the masked token idx
-            # Then take the top_k indices (which correspond to the token)
             logits = output.logits
             mask_token_logits = logits[0, mask_token_index, :]
             top_k_tokens = torch.topk(mask_token_logits, top_k,
                                       dim=1).indices[0].tolist()
 
-            # Decode the sequence with each of the top_k tokens inserted
-            # Calculate the score as the probability of that token in the sequence.
             text_results = []
             for token in top_k_tokens:
                 token_str = self.tokenizer.decode([token])
                 filled_text = text.replace(self.tokenizer.mask_token, token_str)
-                score = torch.softmax(mask_token_logits, dim=1)[0, token].item()
+                score = torch.softmax(mask_token_logits, dim=1)[0,
+                                                                 token].item()
                 text_results.append({
                     'sequence': filled_text,
                     'score': score,
