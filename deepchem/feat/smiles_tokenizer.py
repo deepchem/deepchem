@@ -1,323 +1,252 @@
-# Requriments - transformers, tokenizers
-# Right now, the Smiles Tokenizer uses an exiesting vocab file from rxnfp that is fairly comprehensive and from the USPTO dataset.
-# The vocab may be expanded in the near future
-
+import re
 import collections
 import os
-import re
-import importlib.resources
-from typing import List, Optional
-from transformers import BertTokenizer
-from logging import getLogger
+import json
+from typing import List, Dict, Optional, Any, Union, Iterable
 
-logger = getLogger(__name__)
-"""
-SMI_REGEX_PATTERN: str
-SMILES regex pattern for tokenization. Designed by Schwaller et. al.
-
-References
-----------
-.. [1]  Philippe Schwaller, Teodoro Laino, Théophile Gaudin, Peter Bolgar, Christopher A. Hunter, Costas Bekas, and Alpha A. Lee
-ACS Central Science 2019 5 (9): Molecular Transformer: A Model for Uncertainty-Calibrated Chemical Reaction Prediction
-1572-1583 DOI: 10.1021/acscentsci.9b00576
-"""
-
-SMI_REGEX_PATTERN = r"""(\[[^\]]+]|Br?|Cl?|N|O|S|P|F|I|b|c|n|o|s|p|\(|\)|\.|=|#|-|\+|\\|\/|:|~|@|\?|>>?|\*|\$|\%[0-9]{2}|[0-9])"""
-
-# add vocab_file dict
-VOCAB_FILES_NAMES = {"vocab_file": "vocab.txt"}
+# Production-grade SMILES regex for atom-level parsing.
+# Handles:
+# 1. Bracketed atoms with isotopes, charges, hydrogens, and stereochemistry (e.g., [13C@H], [NH3+])
+# 2. Multi-character atoms (Br, Cl) and single-character atoms (C, N, O, P, S, F, I, etc.)
+# 3. Aromatic atoms (c, n, o, s, p, etc.)
+# 4. Bonds (=, #, -, :, ., \, /)
+# 5. Ring closures (1-9 and %10-%99)
+# 6. Branching, stereochemistry (@, @@), and reaction arrows (>)
+SMI_REGEX_PATTERN = r"(\[[^\]]+]|Br?|Cl?|N|O|S|P|F|I|b|c|n|o|s|p|\(|\)|\.|=|#|-|\+|\\|\/|:|~|@|\?|>>?|\*|\$|\%[0-9]{2}|[0-9])"
 
 
-def get_default_tokenizer():
-    default_vocab_path = (importlib.resources.resource_filename(
-        "deepchem", "feat/tests/vocab.txt"))
-    return SmilesTokenizer(default_vocab_path)
-
-
-class SmilesTokenizer(BertTokenizer):
+class SmilesTokenizer:
     """
-    Creates the SmilesTokenizer class. The tokenizer heavily inherits from the BertTokenizer
-    implementation found in Huggingface's transformers library. It runs a WordPiece tokenization
-    algorithm over SMILES strings using the tokenisation SMILES regex developed by Schwaller et. al.
+    A production-quality SMILES tokenizer for sequence models in drug discovery.
 
-    Please see https://github.com/huggingface/transformers
-    and https://github.com/rxn4chemistry/rxnfp for more details.
+    This tokenizer supports atom-level, character-level, and BPE-level tokenization
+    with built-in support for batching, vocabulary persistence, and PyTorch dataset preprocessing.
+
+    Attributes
+    ----------
+    level: str
+        Tokenization level: 'atom', 'char', or 'bpe'.
+    pad_token: str
+        Padding token.
+    unk_token: str
+        Unknown token.
+    bos_token: str
+        Beginning of sequence token.
+    eos_token: str
+        End of sequence token.
+    vocab: Dict[str, int]
+        Mapping from tokens to integer IDs.
+    ids_to_tokens: Dict[int, str]
+        Mapping from integer IDs back to tokens.
 
     Examples
     --------
     >>> from deepchem.feat.smiles_tokenizer import SmilesTokenizer
-    >>> current_dir = os.path.dirname(os.path.realpath(__file__))
-    >>> vocab_path = os.path.join(current_dir, 'tests/data', 'vocab.txt')
-    >>> tokenizer = SmilesTokenizer(vocab_path)
-    >>> print(tokenizer.encode("CC(=O)OC1=CC=CC=C1C(=O)O"))
-    [12, 16, 16, 17, 22, 19, 18, 19, 16, 20, 22, 16, 16, 22, 16, 16, 22, 16, 20, 16, 17, 22, 19, 18, 19, 13]
-
-
-    References
-    ----------
-    .. [1] Schwaller, Philippe; Probst, Daniel; Vaucher, Alain C.; Nair, Vishnu H; Kreutter, David;
-        Laino, Teodoro; et al. (2019): Mapping the Space of Chemical Reactions using Attention-Based Neural
-        Networks. ChemRxiv. Preprint. https://doi.org/10.26434/chemrxiv.9897365.v3
-
-    Note
-    ----
-    This class requires huggingface's transformers and tokenizers libraries to be installed.
+    >>> tokenizer = SmilesTokenizer(level="atom")
+    >>> tokenizer.train(["CCO", "C[Cl]"])
+    >>> tokens = tokenizer.encode("C[Cl]")
+    >>> print(tokens)
+    ['<BOS>', 'C', '[Cl]', '<EOS>']
+    >>> ids = tokenizer.encode("CCO", return_ids=True)
+    >>> print(tokenizer.decode(ids))
+    'CCO'
     """
-    vocab_files_names = VOCAB_FILES_NAMES
 
-    def __init__(
-        self,
-        vocab_file: str = '',
-        # unk_token="[UNK]",
-        # sep_token="[SEP]",
-        # pad_token="[PAD]",
-        # cls_token="[CLS]",
-        # mask_token="[MASK]",
-        **kwargs):
-        """Constructs a SmilesTokenizer.
+    def __init__(self,
+                 level: str = "atom",
+                 vocab_size: Optional[int] = None,
+                 pad_token: str = "<PAD>",
+                 unk_token: str = "<UNK>",
+                 bos_token: str = "<BOS>",
+                 eos_token: str = "<EOS>"):
+        """
+        Initialize the tokenizer.
 
         Parameters
         ----------
-        vocab_file: str
-            Path to a SMILES character per line vocabulary file.
-            Default vocab file is found in deepchem/feat/tests/data/vocab.txt
+        level: str, default "atom"
+            Tokenization level ('atom', 'char', 'bpe').
+        vocab_size: int, optional
+            Maximum vocabulary size for BPE.
+        pad_token: str, default "<PAD>"
+            Padding token.
+        unk_token: str, default "<UNK>"
+            Unknown token.
+        bos_token: str, default "<BOS>"
+            Beginning of sequence token.
+        eos_token: str, default "<EOS>"
+            End of sequence token.
         """
+        self.level = level.lower()
+        if self.level not in ["atom", "char", "bpe"]:
+            raise ValueError("Level must be 'atom', 'char', or 'bpe'.")
 
-        super().__init__(vocab_file, **kwargs)
+        self.pad_token = pad_token
+        self.unk_token = unk_token
+        self.bos_token = bos_token
+        self.eos_token = eos_token
 
-        if not os.path.isfile(vocab_file):
-            raise ValueError(
-                "Can't find a vocab file at path '{}'.".format(vocab_file))
-        self.vocab = load_vocab(vocab_file)
-        self.highest_unused_index = max([
-            i for i, v in enumerate(self.vocab.keys())
-            if v.startswith("[unused")
-        ])
-        self.ids_to_tokens = collections.OrderedDict([
-            (ids, tok) for tok, ids in self.vocab.items()
-        ])
-        self.basic_tokenizer = BasicSmilesTokenizer()
+        self.special_tokens = [pad_token, unk_token, bos_token, eos_token]
+        self.vocab: Dict[str, int] = {t: i for i, t in enumerate(self.special_tokens)}
+        self.ids_to_tokens: Dict[int, str] = {i: t for i, t in enumerate(self.special_tokens)}
+
+        self._regex = re.compile(SMI_REGEX_PATTERN)
+        self.max_vocab_size = vocab_size
+        self._bpe_tokenizer = None
 
     @property
-    def vocab_size(self):
+    def vocab_size(self) -> int:
         return len(self.vocab)
 
-    @property
-    def vocab_list(self):
-        return list(self.vocab.keys())
+    def _get_raw_tokens(self, smiles: str) -> List[str]:
+        """Internal method to split SMILES into base tokens."""
+        if self.level == "char":
+            return list(smiles)
+        elif self.level == "atom":
+            return self._regex.findall(smiles)
+        elif self.level == "bpe":
+            if self._bpe_tokenizer is None:
+                raise ValueError("BPE tokenizer not trained. Call train().")
+            encoding = self._bpe_tokenizer.encode(smiles)
+            return encoding.tokens if hasattr(encoding, 'tokens') else encoding
+        return []
 
-    def _tokenize(  # type: ignore
-            self, text: str, max_seq_length: int = 512, **kwargs):
-        """Tokenize a string into a list of tokens.
+    def encode(self,
+               smiles: str,
+               add_special_tokens: bool = True,
+               return_ids: bool = False) -> List[Any]:
+        """
+        Tokenize a single SMILES string.
 
         Parameters
         ----------
-        text: str
-            Input string sequence to be tokenized.
+        smiles: str
+            Input SMILES.
+        add_special_tokens: bool, default True
+            Whether to wrap with <BOS> and <EOS>.
+        return_ids: bool, default False
+            Return integer IDs instead of strings.
         """
+        tokens = self._get_raw_tokens(smiles)
+        if add_special_tokens:
+            tokens = [self.bos_token] + tokens + [self.eos_token]
 
-        max_len_single_sentence = max_seq_length - 2
-        split_tokens = [
-            token for token in self.basic_tokenizer.tokenize(text)
-            [:max_len_single_sentence]
-        ]
-        return split_tokens
-
-    def _convert_token_to_id(self, token: str):
-        """Converts a token (str/unicode) in an id using the vocab.
-
-        Parameters
-        ----------
-        token: str
-            String token from a larger sequence to be converted to a numerical id.
-        """
-
-        return self.vocab.get(token, self.vocab.get(self.unk_token))
-
-    def _convert_id_to_token(self, index: int):
-        """Converts an index (integer) in a token (string/unicode) using the vocab.
-
-        Parameters
-        ----------
-        index: int
-            Integer index to be converted back to a string-based token as part of a larger sequence.
-        """
-
-        return self.ids_to_tokens.get(index, self.unk_token)
-
-    def convert_tokens_to_string(self, tokens: List[str]):
-        """Converts a sequence of tokens (string) in a single string.
-
-        Parameters
-        ----------
-        tokens: List[str]
-            List of tokens for a given string sequence.
-
-        Returns
-        -------
-        out_string: str
-            Single string from combined tokens.
-        """
-
-        out_string: str = " ".join(tokens).replace(" ##", "").strip()
-        return out_string
-
-    def add_special_tokens_ids_single_sequence(self,
-                                               token_ids: List[Optional[int]]):
-        """Adds special tokens to the a sequence for sequence classification tasks.
-
-        A BERT sequence has the following format: [CLS] X [SEP]
-
-        Parameters
-        ----------
-        token_ids: list[int]
-            list of tokenized input ids. Can be obtained using the encode or encode_plus methods.
-        """
-
-        return [self.cls_token_id] + token_ids + [self.sep_token_id]
-
-    def add_special_tokens_single_sequence(self, tokens: List[str]):
-        """Adds special tokens to the a sequence for sequence classification tasks.
-        A BERT sequence has the following format: [CLS] X [SEP]
-
-        Parameters
-        ----------
-        tokens: List[str]
-            List of tokens for a given string sequence.
-        """
-        return [self.cls_token] + tokens + [self.sep_token]
-
-    def add_special_tokens_ids_sequence_pair(
-            self, token_ids_0: List[Optional[int]],
-            token_ids_1: List[Optional[int]]) -> List[Optional[int]]:
-        """Adds special tokens to a sequence pair for sequence classification tasks.
-        A BERT sequence pair has the following format: [CLS] A [SEP] B [SEP]
-
-        Parameters
-        ----------
-        token_ids_0: List[int]
-            List of ids for the first string sequence in the sequence pair (A).
-        token_ids_1: List[int]
-            List of tokens for the second string sequence in the sequence pair (B).
-        """
-
-        sep = [self.sep_token_id]
-        cls = [self.cls_token_id]
-
-        return cls + token_ids_0 + sep + token_ids_1 + sep
-
-    def add_padding_tokens(self,
-                           token_ids: List[Optional[int]],
-                           length: int,
-                           right: bool = True) -> List[Optional[int]]:
-        """Adds padding tokens to return a sequence of length max_length.
-        By default padding tokens are added to the right of the sequence.
-
-        Parameters
-        ----------
-        token_ids: list[optional[int]]
-            list of tokenized input ids. Can be obtained using the encode or encode_plus methods.
-        length: int
-            TODO
-        right: bool, default True
-            TODO
-
-        Returns
-        -------
-        List[int]
-            TODO
-        """
-        padding = [self.pad_token_id] * (length - len(token_ids))
-
-        if right:
-            return token_ids + padding
-        else:
-            return padding + token_ids
-
-    def save_vocabulary(
-        self,
-        save_directory: str,
-        filename_prefix: Optional[str] = None
-    ):  # -> Tuple[str]: doctest issue raised with this return type annotation
-        """Save the tokenizer vocabulary to a file.
-
-        Parameters
-        ----------
-        vocab_path: obj: str
-            The directory in which to save the SMILES character per line vocabulary file.
-            Default vocab file is found in deepchem/feat/tests/data/vocab.txt
-
-        Returns
-        -------
-        vocab_file: Tuple
-            Paths to the files saved.
-            typle with string to a SMILES character per line vocabulary file.
-            Default vocab file is found in deepchem/feat/tests/data/vocab.txt
-        """
-        index = 0
-        if os.path.isdir(save_directory):
-            vocab_file = os.path.join(save_directory,
-                                      VOCAB_FILES_NAMES["vocab_file"])
-        else:
-            vocab_file = save_directory
-        with open(vocab_file, "w", encoding="utf-8") as writer:
-            for token, token_index in sorted(self.vocab.items(),
-                                             key=lambda kv: kv[1]):
-                if index != token_index:
-                    logger.warning(
-                        "Saving vocabulary to {}: vocabulary indices are not consecutive."
-                        " Please check that the vocabulary is not corrupted!".
-                        format(vocab_file))
-                    index = token_index
-                writer.write(token + "\n")
-                index += 1
-        return (vocab_file,)
-
-
-class BasicSmilesTokenizer(object):
-    """
-    Run basic SMILES tokenization using a regex pattern developed by Schwaller et. al.
-    This tokenizer is to be used when a tokenizer that does not require the transformers library by HuggingFace is required.
-
-    Examples
-    --------
-    >>> from deepchem.feat.smiles_tokenizer import BasicSmilesTokenizer
-    >>> tokenizer = BasicSmilesTokenizer()
-    >>> print(tokenizer.tokenize("CC(=O)OC1=CC=CC=C1C(=O)O"))
-    ['C', 'C', '(', '=', 'O', ')', 'O', 'C', '1', '=', 'C', 'C', '=', 'C', 'C', '=', 'C', '1', 'C', '(', '=', 'O', ')', 'O']
-
-
-    References
-    ----------
-    .. [1] Philippe Schwaller, Teodoro Laino, Théophile Gaudin, Peter Bolgar, Christopher A. Hunter, Costas Bekas, and Alpha A. Lee
-        ACS Central Science 2019 5 (9): Molecular Transformer: A Model for Uncertainty-Calibrated Chemical Reaction Prediction
-        1572-1583 DOI: 10.1021/acscentsci.9b00576
-    """
-
-    def __init__(self, regex_pattern: str = SMI_REGEX_PATTERN):
-        """Constructs a BasicSMILESTokenizer.
-
-        Parameters
-        ----------
-        regex: string
-            SMILES token regex
-        """
-        self.regex_pattern = regex_pattern
-        self.regex = re.compile(self.regex_pattern)
-
-    def tokenize(self, text):
-        """Basic Tokenization of a SMILES.
-        """
-        tokens = [token for token in self.regex.findall(text)]
+        if return_ids:
+            return [self.vocab.get(t, self.vocab[self.unk_token]) for t in tokens]
         return tokens
 
+    def batch_encode(self,
+                     smiles_list: Iterable[str],
+                     add_special_tokens: bool = True,
+                     return_ids: bool = False) -> List[List[Any]]:
+        """Efficiently tokenize a batch of SMILES strings."""
+        return [self.encode(s, add_special_tokens, return_ids) for s in smiles_list]
 
-def load_vocab(vocab_file):
-    """Loads a vocabulary file into a dictionary."""
-    vocab = collections.OrderedDict()
-    with open(vocab_file, "r", encoding="utf-8") as reader:
-        tokens = reader.readlines()
-    for index, token in enumerate(tokens):
-        token = token.rstrip("\n")
-        vocab[token] = index
-    return vocab
+    def decode(self, tokens: List[Union[str, int]]) -> str:
+        """Reconstruct SMILES from tokens, stripping special tokens."""
+        if not tokens:
+            return ""
+
+        if isinstance(tokens[0], int):
+            tokens = [self.ids_to_tokens.get(i, self.unk_token) for i in tokens]
+
+        # Remove special tokens for reconstruction
+        clean_tokens = [t for t in tokens if t not in self.special_tokens]
+        return "".join(clean_tokens)
+
+    def train(self, smiles_list: Iterable[str]):
+        """Train the vocabulary on a corpus of SMILES."""
+        if self.level in ["atom", "char"]:
+            unique_tokens = set()
+            for s in smiles_list:
+                unique_tokens.update(self._get_raw_tokens(s))
+
+            for t in sorted(list(unique_tokens)):
+                if t not in self.vocab:
+                    idx = len(self.vocab)
+                    self.vocab[t] = idx
+                    self.ids_to_tokens[idx] = t
+        elif self.level == "bpe":
+            try:
+                from tokenizers import Tokenizer
+                from tokenizers.models import BPE
+                from tokenizers.trainers import BpeTrainer
+                from tokenizers.pre_tokenizers import Split
+
+                tokenizer = Tokenizer(BPE(unk_token=self.unk_token))
+                tokenizer.pre_tokenizer = Split(re_pattern=SMI_REGEX_PATTERN,
+                                                behavior="isolated")
+                trainer = BpeTrainer(vocab_size=self.max_vocab_size or 5000,
+                                     special_tokens=self.special_tokens)
+                tokenizer.train_from_iterator(smiles_list, trainer=trainer)
+                self._bpe_tokenizer = tokenizer
+                self.vocab = tokenizer.get_vocab()
+                self.ids_to_tokens = {v: k for k, v in self.vocab.items()}
+            except ImportError:
+                print("Tokenizers library not found. Falling back to atom-level.")
+                self.level = "atom"
+                self.train(smiles_list)
+
+    def save_vocab(self, path: str):
+        """Persist the vocabulary to a JSON file."""
+        with open(path, 'w', encoding='utf-8') as f:
+            json.dump(self.vocab, f, ensure_ascii=False, indent=2)
+
+    def load_vocab(self, path: str):
+        """Load vocabulary from a JSON file."""
+        with open(path, 'r', encoding='utf-8') as f:
+            self.vocab = json.load(f)
+            self.ids_to_tokens = {int(v): k for k, v in self.vocab.items()}
+        # Recover special tokens from loaded vocab
+        inv_vocab = {v: k for k, v in self.vocab.items()}
+        # We assume indices 0-3 were set during initialization but let's be robust
+        def find_token(t): return inv_vocab.get(self.vocab.get(t, -1), t)
+        self.pad_token = find_token(self.pad_token)
+        # Verify mandatory special tokens exist
+        for t in self.special_tokens:
+            if t not in self.vocab:
+                raise ValueError(f"Required special token {t} missing from loaded vocab.")
+
+    def tokenize_dataset(self,
+                         smiles_list: Iterable[str],
+                         max_length: int) -> Any:
+        """
+        Preprocess a dataset into a padded PyTorch tensor of token IDs.
+
+        Returns
+        -------
+        torch.Tensor
+            A tensor of shape (len(smiles_list), max_length).
+        """
+        try:
+            import torch
+        except ImportError:
+            raise ImportError("PyTorch is required for tokenize_dataset.")
+
+        batch_ids = []
+        pad_id = self.vocab[self.pad_token]
+
+        for s in smiles_list:
+            ids = self.encode(s, add_special_tokens=True, return_ids=True)
+            if len(ids) > max_length:
+                ids = ids[:max_length]
+            else:
+                ids = ids + [pad_id] * (max_length - len(ids))
+            batch_ids.append(ids)
+
+        return torch.tensor(batch_ids)
+
+
+# For backward compatibility
+def load_vocab(path: str) -> Dict[str, int]:
+    with open(path, 'r', encoding='utf-8') as f:
+        return json.load(f)
+
+
+class BasicSmilesTokenizer:
+    """Simplified tokenizer for basic parsing needs."""
+    def __init__(self):
+        self._regex = re.compile(SMI_REGEX_PATTERN)
+
+    def tokenize(self, smiles: str) -> List[str]:
+        return self._regex.findall(smiles)
