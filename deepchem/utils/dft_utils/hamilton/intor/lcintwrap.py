@@ -600,22 +600,23 @@ class LibcintWrapper(object):
         """
         bas = self.atm_bas_env[1]
         if self.spherical:
-            ANG_OF = 1
-            NCTR_OF = 3
-            def cintcgto_spheric(bas_id, bas):
-                l = bas[bas_id][ANG_OF]
-                return (2 * l + 1) * bas[bas_id][NCTR_OF]
-            #op = CINT().CINTcgto_spheric
             return cintcgto_spheric(sh, bas)
         else:
-            ANG_OF = 1
-            NCTR_OF = 3
-            def cintcgto_cart(bas_id, bas):
-                l = bas[bas_id][ANG_OF]
-                return (l + 1) * (l + 2) // 2 * bas[bas_id][NCTR_OF]
-            #op = CINT().CINTcgto_cart
             return cintcgto_cart(sh, bas)
-        return op(int2ctypes(sh), np2ctypes(bas))
+
+
+ANG_OF = 1
+NCTR_OF = 3
+
+
+def cintcgto_spheric(bas_id, bas):
+    l = bas[bas_id][ANG_OF]
+    return (2 * l + 1) * bas[bas_id][NCTR_OF]
+
+
+def cintcgto_cart(bas_id, bas):
+    l = bas[bas_id][ANG_OF]
+    return (l + 1) * (l + 2) // 2 * bas[bas_id][NCTR_OF]
 
 
 class SubsetLibcintWrapper(LibcintWrapper):
