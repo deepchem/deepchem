@@ -610,8 +610,11 @@ class HuggingFaceModel(TorchModel):
             mask_token_index = torch.where(
                 encoded_input["input_ids"] == self.tokenizer.mask_token_id)[1]
             # Ensure that the masked token index appears EXACTLY once.
-            assert mask_token_index.numel(
-            ) == 1, f"Sequence has masked indices at: {list(mask_token_index)}. Please ensure that only one position is masked in the sequence."
+            if mask_token_index.numel() != 1:
+                raise ValueError(
+                    f"Sequence has masked indices at: {list(mask_token_index)}."
+                    "Please ensure that only one position is masked in the sequence."
+                )
 
             with torch.no_grad():
                 output = self.model(**encoded_input)
