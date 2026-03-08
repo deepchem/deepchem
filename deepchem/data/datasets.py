@@ -965,6 +965,23 @@ class NumpyDataset(Dataset):
         w = self.w[indices]
         ids = self.ids[indices]
         return NumpyDataset(X, y, w, ids)
+    def shuffle(self, seed: Optional[int] = None) -> None:
+        """Shuffle dataset samples while preserving alignment of X, y, w, and ids.
+
+    Parameters
+    ----------
+    seed: int, optional
+        Random seed for reproducibility.
+    """
+
+        if seed is not None:
+            np.random.seed(seed)
+        perm = np.random.permutation(len(self._X))
+        X = self._X[perm]
+        y = self._y[perm]
+        w = self._w[perm]
+        ids = self._ids[perm]
+        return NumpyDataset(X, y, w, ids)
 
     def make_pytorch_dataset(self,
                              epochs: int = 1,
