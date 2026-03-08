@@ -62,9 +62,9 @@ class TextCNN(nn.Module):
 
     References
     ----------
-    .. [1]  Guimaraes, Gabriel Lima, et al. "Objective-reinforced generative adversarial networks (ORGAN) for sequence generation models." arXiv preprint arXiv:1705.10843 (2017).
-    .. [2] Kim, Yoon. "Convolutional neural networks for sentence classification." arXiv preprint arXiv:1408.5882 (2014).
-    .. [3] Srivastava et al., "Training Very Deep Networks".https://arxiv.org/abs/1507.06228
+    .. [TextCNN_1]  Guimaraes, Gabriel Lima, et al. "Objective-reinforced generative adversarial networks (ORGAN) for sequence generation models." arXiv preprint arXiv:1705.10843 (2017).
+    .. [TextCNN_2] Kim, Yoon. "Convolutional neural networks for sentence classification." arXiv preprint arXiv:1408.5882 (2014).
+    .. [TextCNN_3] Srivastava et al., "Training Very Deep Networks".https://arxiv.org/abs/1507.06228
 
     Examples
     --------
@@ -206,9 +206,9 @@ class TextCNNModel(TorchModel):
 
    References
    ----------
-   .. [1]  Guimaraes, Gabriel Lima, et al. "Objective-reinforced generative adversarial networks (ORGAN) for sequence generation models." arXiv preprint arXiv:1705.10843 (2017).
-   .. [2] Kim, Yoon. "Convolutional neural networks for sentence classification." arXiv preprint arXiv:1408.5882 (2014).
-   .. [3] Srivastava et al., "Training Very Deep Networks".https://arxiv.org/abs/1507.06228
+   .. [TextCNNModel_1]  Guimaraes, Gabriel Lima, et al. "Objective-reinforced generative adversarial networks (ORGAN) for sequence generation models." arXiv preprint arXiv:1705.10843 (2017).
+   .. [TextCNNModel_2] Kim, Yoon. "Convolutional neural networks for sentence classification." arXiv preprint arXiv:1408.5882 (2014).
+   .. [TextCNNModel_3] Srivastava et al., "Training Very Deep Networks".https://arxiv.org/abs/1507.06228
 
 
    Examples

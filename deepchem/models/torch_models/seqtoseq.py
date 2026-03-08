@@ -66,7 +66,7 @@ class SeqToSeq(nn.Module):
     toward that, the constraint term can be gradually turned back on. The range
     of steps over which this happens is configurable.
 
-    In this class, we establish a sequential model for the Sequence to Sequence (SeqToSeq) [1]_.
+    In this class, we establish a sequential model for the Sequence to Sequence (SeqToSeq) [SeqToSeq_1]_.
 
     Examples
     --------
@@ -102,7 +102,7 @@ class SeqToSeq(nn.Module):
 
     References
     ----------
-    .. [1] Sutskever et al., "Sequence to Sequence Learning with Neural Networks"
+    .. [SeqToSeq_1] Sutskever et al., "Sequence to Sequence Learning with Neural Networks"
 
     """
 
@@ -247,7 +247,7 @@ class SeqToSeqModel(TorchModel):
     toward that, the constraint term can be gradually turned back on. The range
     of steps over which this happens is configurable.
 
-    In this class, we establish a sequential model for the Sequence to Sequence (DTNN) [1]_.
+    In this class, we establish a sequential model for the Sequence to Sequence (DTNN) [SeqToSeqModel_1]_.
 
     Examples
     --------
@@ -289,7 +289,7 @@ class SeqToSeqModel(TorchModel):
 
     References
     ----------
-    .. [1] Sutskever et al., "Sequence to Sequence Learning with Neural Networks"
+    .. [SeqToSeqModel_1] Sutskever et al., "Sequence to Sequence Learning with Neural Networks"
 
     """
 
