@@ -9,8 +9,8 @@ from deepchem.utils.data_utils import load_from_disk, save_to_disk
 
 
 class LNN(nn.Module):
-    """Model for learning lagrangian dynamics using Lagrangian Neural
-        Network.
+    """Model for learning lagrangian dynamics using Lagrangian Neural Network.
+
     Lagrangian Neural Networks (LNNs) are a class of physics-informed
     models that learn the underlying Lagrangian function of a dynamical
     system directly from data. Instead of predicting derivatives directly,
@@ -45,7 +45,7 @@ class LNN(nn.Module):
 
     References
     ----------
-    .. [1] Cranmer, M., Greydanus, S., Hoyer, S., Battaglia, P., Spergel, D., & Ho, S. (2020).
+    .. [LNN_1] Cranmer, M., Greydanus, S., Hoyer, S., Battaglia, P., Spergel, D., & Ho, S. (2020).
         "Lagrangian Neural Networks."
        International Conference on Learning Representations (ICLR).
        https://arxiv.org/abs/2003.04630
@@ -202,6 +202,7 @@ class LNNModel(TorchModel):
     for training and evaluation using conservative dynamics. The LNNModel computes
     the time evolution of a dynamical system by learning the euler-lagrangian and using
     its gradients to derive time derivatives of the phase space variables.
+
     Parameters
     ----------
     n_dof : int
@@ -213,6 +214,7 @@ class LNNModel(TorchModel):
     activation_fn : str, default 'softplus'
         Activation function to use in the hidden layers. Softplus is preferred
         for Lagrangian learning as it ensures smooth derivatives.
+
     Examples
     --------
     >>> import deepchem as dc
@@ -229,7 +231,7 @@ class LNNModel(TorchModel):
 
     References
     ----------
-    .. [1] Cranmer, M., Greydanus, S., Hoyer, S., Battaglia, P., Spergel, D., & Ho, S. (2020).
+    .. [LNNModel_1] Cranmer, M., Greydanus, S., Hoyer, S., Battaglia, P., Spergel, D., & Ho, S. (2020).
         "Lagrangian Neural Networks."
        International Conference on Learning Representations (ICLR).
        https://arxiv.org/abs/2003.04630
@@ -247,7 +249,8 @@ class LNNModel(TorchModel):
         super().__init__(model, loss=L2Loss(), **kwargs)
 
     def predict_lagrangian(self, z: torch.Tensor) -> torch.Tensor:
-        """Compute lagrangian forward pass with input z as (q, q_dot)
+        """Compute lagrangian forward pass with input z as (q, q_dot).
+
         Parameters
         ----------
         z : torch.Tensor
@@ -266,6 +269,7 @@ class LNNModel(TorchModel):
 
     def calculate_dynamics(self, z: torch.Tensor) -> torch.Tensor:
         """Compute accelerations using Euler-Lagrange equations from learned Lagrangian.
+
         Parameters
         ----------
         z : torch.Tensor

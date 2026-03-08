@@ -18,7 +18,7 @@ class AtomConvModel(TorchModel):
 
     References
     ----------
-    .. [1] Gomes, Joseph, et al. "Atomic convolutional networks for predicting protein-ligand binding affinity." arXiv preprint arXiv:1703.10603 (2017).
+    .. [AtomConvModel_1] Gomes, Joseph, et al. "Atomic convolutional networks for predicting protein-ligand binding affinity." arXiv preprint arXiv:1703.10603 (2017).
 
     Examples
     --------

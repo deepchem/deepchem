@@ -174,7 +174,7 @@ class SmilesTokenizer:
                 from tokenizers.pre_tokenizers import Split
 
                 tokenizer = Tokenizer(BPE(unk_token=self.unk_token))
-                tokenizer.pre_tokenizer = Split(re_pattern=SMI_REGEX_PATTERN,
+                tokenizer.pre_tokenizer = Split(SMI_REGEX_PATTERN,
                                                 behavior="isolated")
                 trainer = BpeTrainer(vocab_size=self.max_vocab_size or 5000,
                                      special_tokens=self.special_tokens)
