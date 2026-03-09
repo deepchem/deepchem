@@ -568,12 +568,17 @@ class HuggingFaceModel(TorchModel):
         score: float
         token: int
         token_str: str
-    def fill_mask(self, inputs: Union[str, List[str]], top_k: int = 5) -> Union[List[FillMaskOutput], List[List[FillMaskOutput]]]:
+
+    def fill_mask(
+        self,
+        inputs: Union[str, List[str]],
+        top_k: int = 5
+    ) -> Union[List[FillMaskOutput], List[List[FillMaskOutput]]]:
         """Implements the HuggingFace 'fill_mask' pipeline from HuggingFace.
         https://huggingface.co/docs/transformers/main_classes/pipelines
 
         Takes as input a sequence or list of sequences where each sequence
-        containts a single masked position and returns a list of dictionaries per sequence
+        contains a single masked position and returns a list of dictionaries per sequence
         containing the filled sequence, the token, and the score for that token.
 
         Parameters
@@ -585,7 +590,7 @@ class HuggingFaceModel(TorchModel):
 
         Returns
         -------
-        Union[List[Dict], List[List[Dict]]]
+        Union[List[FillMaskOutput], List[List[FillMaskOutput]]]
             A list or a list of list of dictionaries with the following keys:
             - sequence (str): The corresponding input with the mask token prediction.
             - score (float): The corresponding probability.
@@ -594,6 +599,8 @@ class HuggingFaceModel(TorchModel):
         """
 
         # First make sure tha the model is successfully loaded, then set to eval mode.
+        if top_k <= 0:
+            raise ValueError("top_k must be a positive integer.")
         self._ensure_built()
         self.model.eval()
 
@@ -629,10 +636,11 @@ class HuggingFaceModel(TorchModel):
             # Decode the sequence with each of the top_k tokens inserted
             # Calculate the score as the probability of that token in the sequence.
             text_results = []
+            probs = torch.softmax(mask_token_logits, dim=1)
             for token in top_k_tokens:
                 token_str = self.tokenizer.decode([token])
                 filled_text = text.replace(self.tokenizer.mask_token, token_str)
-                score = torch.softmax(mask_token_logits, dim=1)[0, token].item()
+                score = probs[0, token].item()
                 text_results.append({
                     'sequence': filled_text,
                     'score': score,
