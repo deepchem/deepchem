@@ -1,17 +1,27 @@
-"""
-CATH dataset loader.
+"""CATH protein structure dataset loader for MoleculeNet.
+
+This module provides a MoleculeNet-compatible loader for the CATH
+protein domain structure database. It downloads PDB files from RCSB
+and featurizes backbone coordinates for use with DeepChem models
+such as RFDiffusionModel.
+
+References
+----------
+.. [1] Sillitoe, I., et al. "CATH: expanded annotation and classification
+   of protein structure." Nucleic Acids Research 49.D1 (2021): D266-D273.
 """
 import os
+import logging
 import numpy as np
 from typing import List, Optional, Tuple, Union
 
 import deepchem as dc
-from deepchem.molnet.load_function.molnet_loader import (
-    TransformerGenerator, _MolnetLoader)
+from deepchem.molnet.load_function.molnet_loader import (TransformerGenerator,
+                                                         _MolnetLoader)
 from deepchem.data import Dataset
 
-DATASETS_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/"
-CATH_URL = DATASETS_URL + "cath/"
+logger = logging.getLogger(__name__)
+
 CATH_TASKS = ['fold_class']
 
 
@@ -58,8 +68,8 @@ class _CATHLoader(_MolnetLoader):
         # Filter out failed featurizations (empty arrays)
         # Features is a list of arrays with variable lengths
         valid_data = [
-            (f, labels[i], ids[i])
-            for i, f in enumerate(features) if f.size > 0]
+            (f, labels[i], ids[i]) for i, f in enumerate(features) if f.size > 0
+        ]
 
         if len(valid_data) == 0:
             raise ValueError("All featurizations failed")
@@ -119,6 +129,10 @@ class _CATHLoader(_MolnetLoader):
             pdb_ids: List[str]) -> Tuple[List[str], np.ndarray, List[str]]:
         """Download PDB files from RCSB.
 
+        Downloads each PDB file individually from the RCSB Protein Data
+        Bank. Files are cached locally so subsequent calls skip the
+        download step.
+
         Parameters
         ----------
         pdb_ids : List[str]
@@ -132,6 +146,7 @@ class _CATHLoader(_MolnetLoader):
             - labels: Dummy labels (all zeros for unsupervised tasks)
             - ids: List of PDB IDs for successfully downloaded files
         """
+        import time
         import requests
 
         data_folder = os.path.join(self.data_dir, self.name)
@@ -147,15 +162,27 @@ class _CATHLoader(_MolnetLoader):
             # Download if not cached
             if not os.path.exists(pdb_file):
                 url = f"https://files.rcsb.org/download/{pdb_code}.pdb"
-                try:
-                    response = requests.get(url, timeout=30)
-                    if response.status_code == 200:
-                        with open(pdb_file, 'wb') as f:
-                            f.write(response.content)
-                    else:
-                        continue  # Skip this PDB
-                except Exception:
-                    continue  # Skip on download failure
+                # Retry up to 3 times with exponential backoff
+                for attempt in range(3):
+                    try:
+                        response = requests.get(url, timeout=30)
+                        if response.status_code == 200:
+                            with open(pdb_file, 'wb') as f:
+                                f.write(response.content)
+                            break
+                        else:
+                            logger.warning("Failed to download %s (HTTP %d)",
+                                           pdb_id, response.status_code)
+                    except (requests.ConnectionError, requests.Timeout) as e:
+                        logger.warning(
+                            "Download attempt %d/%d for %s failed: %s",
+                            attempt + 1, 3, pdb_id, e)
+                        if attempt < 2:
+                            time.sleep(2**attempt)
+                    except Exception as e:
+                        logger.warning("Unexpected error downloading %s: %s",
+                                       pdb_id, e)
+                        break
 
             if os.path.exists(pdb_file):
                 pdb_files.append(pdb_file)
