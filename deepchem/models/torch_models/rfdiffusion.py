@@ -289,6 +289,7 @@ class BackboneDiffusion(nn.Module):
     - Positional encoding for sequence position
     - Transformer blocks with adaptive time conditioning
     - Zero-initialized output projection (standard for diffusion [1]_)
+    - Optional self-conditioning on previous denoised estimates [2]_
 
     Parameters
     ----------
@@ -307,11 +308,18 @@ class BackboneDiffusion(nn.Module):
         Maximum supported protein length (in residues).
     dropout : float, default 0.1
         Dropout probability.
+    self_conditioning : bool, default False
+        If True, the network accepts a third input — the model's
+        previous x0 prediction — and adds its embedding to the
+        coordinate representation.  This can improve sample quality
+        by letting the model refine its own estimates [2]_.
 
     References
     ----------
     .. [1] Ho, J., Jain, A., & Abbeel, P. "Denoising diffusion probabilistic
        models." NeurIPS 2020.
+    .. [2] Watson, J. L., et al. "De novo design of protein structure and
+       function with RFdiffusion." Nature 620.7976 (2023): 1089-1100.
 
     Examples
     --------
@@ -331,10 +339,12 @@ class BackboneDiffusion(nn.Module):
                  num_layers: int = 8,
                  num_heads: int = 8,
                  max_seq_len: int = 512,
-                 dropout: float = 0.1) -> None:
+                 dropout: float = 0.1,
+                 self_conditioning: bool = False) -> None:
         super().__init__()
         self.coord_dim = coord_dim
         self.embed_dim = embed_dim
+        self.self_conditioning = self_conditioning
 
         # Timestep embedding
         self.time_embedding = SinusoidalTimestepEmbedding(time_dim)
@@ -346,6 +356,11 @@ class BackboneDiffusion(nn.Module):
 
         # Coordinate embedding
         self.coord_embed = ResidueEmbedding(coord_dim, embed_dim)
+
+        # Self-conditioning projection: embed the model's previous x0
+        # prediction and add it to the coordinate embedding
+        if self_conditioning:
+            self.self_cond_proj = ResidueEmbedding(coord_dim, embed_dim)
 
         # Positional encoding
         self.pos_encoding = PositionalEncoding(embed_dim, max_seq_len)
@@ -374,10 +389,14 @@ class BackboneDiffusion(nn.Module):
         Parameters
         ----------
         inputs : list of torch.Tensor
-            A list of two tensors:
+            A list containing:
             - ``inputs[0]``: Noisy backbone coordinates of shape
               ``(batch, num_residues, coord_dim)``
             - ``inputs[1]``: Integer timesteps of shape ``(batch,)``
+            - ``inputs[2]`` (optional): Self-conditioning input of shape
+              ``(batch, num_residues, coord_dim)``, the model's
+              previous x0 prediction. Only used when
+              ``self_conditioning=True``.
 
         Returns
         -------
@@ -395,6 +414,11 @@ class BackboneDiffusion(nn.Module):
 
         # Embed noisy coordinates
         h = self.coord_embed(x_noisy)
+
+        # Add self-conditioning if provided
+        if self.self_conditioning and len(inputs) > 2:
+            x0_prev = inputs[2]
+            h = h + self.self_cond_proj(x0_prev)
 
         # Add positional encoding
         h = self.pos_encoding(h)
@@ -516,11 +540,18 @@ class CosineSchedule:
         return noisy_x, noise
 
     @torch.no_grad()
-    def p_sample(self, model: nn.Module, x_t: torch.Tensor,
-                 t: torch.Tensor) -> torch.Tensor:
+    def p_sample(
+        self,
+        model: nn.Module,
+        x_t: torch.Tensor,
+        t: torch.Tensor,
+        x0_prev: Optional[torch.Tensor] = None
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Reverse diffusion: denoise by one step.
 
         Samples from p(x_{t-1} | x_t) using the model's noise prediction.
+        When self-conditioning is used, ``x0_prev`` (the predicted clean
+        sample from the previous step) is passed as a third model input.
 
         Parameters
         ----------
@@ -530,14 +561,21 @@ class CosineSchedule:
             Current noisy data of shape ``(batch, num_residues, coord_dim)``.
         t : torch.Tensor
             Current timestep of shape ``(batch,)``.
+        x0_prev : torch.Tensor or None, optional
+            Previous x0 prediction for self-conditioning.
 
         Returns
         -------
-        torch.Tensor
+        x_prev : torch.Tensor
             Denoised data at timestep t-1, same shape as x_t.
+        x0_pred : torch.Tensor
+            Predicted clean sample (x0) at this step.
         """
         device = x_t.device
-        noise_pred = model([x_t, t])
+        if x0_prev is not None:
+            noise_pred = model([x_t, t, x0_prev])
+        else:
+            noise_pred = model([x_t, t])
 
         # Use CPU indices for schedule tensor indexing (buffers stay on CPU)
         t_cpu = t.cpu()
@@ -568,24 +606,33 @@ class CosineSchedule:
         while var.dim() < x_t.dim():
             var = var.unsqueeze(-1)
 
-        return posterior_mean + nonzero_mask * torch.sqrt(var) * noise
+        x_prev = posterior_mean + nonzero_mask * torch.sqrt(var) * noise
+        return x_prev, x0_pred
 
     @torch.no_grad()
-    def sample(self, model: nn.Module, shape: Tuple[int, ...],
-               device: torch.device) -> torch.Tensor:
+    def sample(self,
+               model: nn.Module,
+               shape: Tuple[int, ...],
+               device: torch.device,
+               self_conditioning: bool = False) -> torch.Tensor:
         """Generate samples via full reverse diffusion.
 
         Starts from Gaussian noise and iteratively denoises for
-        ``num_timesteps`` steps to produce clean samples.
+        ``num_timesteps`` steps to produce clean samples.  When
+        ``self_conditioning`` is True, the predicted x0 from each step
+        is fed back into the model as conditioning for the next step.
 
         Parameters
         ----------
         model : nn.Module
             The denoiser network.
         shape : tuple of int
-            Shape of the samples to generate ``(batch, num_residues, coord_dim)``.
+            Shape of the samples to generate
+            ``(batch, num_residues, coord_dim)``.
         device : torch.device
             Device to generate samples on.
+        self_conditioning : bool, default False
+            Whether to use self-conditioning during sampling.
 
         Returns
         -------
@@ -594,10 +641,12 @@ class CosineSchedule:
         """
         model.eval()
         x = torch.randn(shape, device=device)
+        x0_pred = None
 
         for t_val in reversed(range(self.num_timesteps)):
             t = torch.full((shape[0],), t_val, device=device, dtype=torch.long)
-            x = self.p_sample(model, x, t)
+            x0_cond = x0_pred if self_conditioning else None
+            x, x0_pred = self.p_sample(model, x, t, x0_prev=x0_cond)
 
         return x
 
@@ -640,6 +689,12 @@ class RFDiffusionModel(TorchModel):
         Maximum supported protein length in residues.
     dropout : float, default 0.1
         Dropout probability.
+    self_conditioning : bool, default False
+        If True, the model conditions on its own previous x0 prediction
+        during both training and sampling.  During training, 50%% of
+        the time the model first predicts x0 (with gradients detached)
+        and uses that as an additional input.  This technique is
+        described in the RFDiffusion paper [1]_.
     batch_size : int, default 4
         Batch size for training.
     learning_rate : float, default 1e-4
@@ -703,6 +758,7 @@ class RFDiffusionModel(TorchModel):
                  num_diffusion_steps: int = 1000,
                  max_seq_len: int = 512,
                  dropout: float = 0.1,
+                 self_conditioning: bool = False,
                  batch_size: int = 4,
                  learning_rate: float = 1e-4,
                  device: Optional[torch.device] = None,
@@ -710,6 +766,7 @@ class RFDiffusionModel(TorchModel):
         self.num_diffusion_steps = num_diffusion_steps
         self.max_seq_len = max_seq_len
         self.coord_dim = 9  # N, CA, C backbone atoms * 3 xyz
+        self._self_conditioning = self_conditioning
 
         # Running statistics for denormalization
         self._train_mean: Optional[np.ndarray] = None
@@ -727,6 +784,7 @@ class RFDiffusionModel(TorchModel):
             num_heads=num_heads,
             max_seq_len=max_seq_len,
             dropout=dropout,
+            self_conditioning=self_conditioning,
         )
 
         # Custom loss function for diffusion training.
@@ -942,7 +1000,29 @@ class RFDiffusionModel(TorchModel):
 
                 weights = np.ones((batch_size, 1), dtype=np.float32)
 
-                yield ([noisy_np, t_np], [noise_np], [weights])
+                # Self-conditioning: 50% of the time, compute x0 estimate
+                # from a first pass (detached) and pass it as extra input.
+                if self._self_conditioning and np.random.rand() > 0.5:
+                    with torch.no_grad():
+                        noise_est = self.model([
+                            noisy_coords.to(self.device),
+                            t_tensor.to(self.device)
+                        ])
+                        # Predict x0 from noisy coords and estimated noise
+                        sc = self.schedule
+                        t_cpu = t_tensor.cpu()
+                        sr = sc.sqrt_recip_alpha_cumprod[t_cpu]
+                        srm = sc.sqrt_recipm1_alpha_cumprod[t_cpu]
+                        while sr.dim() < noisy_coords.dim():
+                            sr = sr.unsqueeze(-1)
+                            srm = srm.unsqueeze(-1)
+                        x0_est = (
+                            sr.to(self.device) * noisy_coords.to(self.device) -
+                            srm.to(self.device) * noise_est)
+                        x0_np = x0_est.cpu().numpy()
+                    yield ([noisy_np, t_np, x0_np], [noise_np], [weights])
+                else:
+                    yield ([noisy_np, t_np], [noise_np], [weights])
 
     def generate(self,
                  num_samples: int = 1,
@@ -989,7 +1069,11 @@ class RFDiffusionModel(TorchModel):
 
         self.model.eval()
         shape = (num_samples, seq_length, self.coord_dim)
-        samples = self.schedule.sample(self.model, shape, device)
+        samples = self.schedule.sample(
+            self.model,
+            shape,
+            device,
+            self_conditioning=self._self_conditioning)
         self.model.train()
 
         result = samples.cpu().numpy()
