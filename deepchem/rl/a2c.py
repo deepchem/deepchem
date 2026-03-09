@@ -54,19 +54,24 @@ class A2CLossContinuous(object):
         self.std_index = std_index
         self.value_index = value_index
 
-    def __call__(self, outputs, labels, weights):
-        import tensorflow_probability as tfp
-        mean = outputs[self.mean_index]
-        std = outputs[self.std_index]
-        value = outputs[self.value_index]
+    def __call__(self, outputs: List[torch.Tensor], labels: List[np.ndarray],
+                 weights: List[np.ndarray]):
+        import torch.distributions as dist
+        mean: torch.Tensor = outputs[self.mean_index]
+        std: torch.Tensor = outputs[self.std_index]
+        value: torch.Tensor = outputs[self.value_index]
         reward, advantage = weights
-        action = labels[0]
-        distrib = tfp.distributions.Normal(mean, std)
-        reduce_axes = list(range(1, len(action.shape)))
-        log_prob = tf.reduce_sum(distrib.log_prob(action), reduce_axes)
-        policy_loss = -tf.reduce_mean(advantage * log_prob)
-        value_loss = tf.reduce_mean(tf.square(reward - value))
-        entropy = tf.reduce_mean(distrib.entropy())
+        device = mean.device
+        action: torch.Tensor = torch.from_numpy(labels[0]).to(device)
+        advantage_tensor: torch.Tensor = torch.from_numpy(advantage).to(device)
+        reward_tensor: torch.Tensor = torch.from_numpy(reward).to(device)
+        distrib = dist.Normal(mean, std)
+        reduce_axes: List[int] = list(range(1, len(action.shape)))
+        log_prob: torch.Tensor = torch.sum(distrib.log_prob(action), dim=reduce_axes)
+        policy_loss: torch.Tensor = -torch.mean(advantage_tensor * log_prob)
+        value_loss: torch.Tensor = torch.mean(
+           torch.square(reward_tensor - value))
+        entropy: torch.Tensor = torch.mean(distrib.entropy())
         return policy_loss + self.value_weight * value_loss - self.entropy_weight * entropy
 
 
