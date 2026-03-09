@@ -17,6 +17,7 @@ from deepchem.models.torch_models.rfdiffusion import (
 
 try:
     import torch
+    import torch.nn as nn
     import torch.nn.functional as F
     has_torch = True
 except ImportError:
@@ -194,6 +195,51 @@ class TestBackboneDiffusion:
         loss.backward()
         assert x.grad is not None
 
+    def test_self_conditioning_output_shape(self):
+        """Test output shape when self_conditioning is enabled."""
+        model = BackboneDiffusion(coord_dim=9,
+                                  embed_dim=64,
+                                  num_layers=2,
+                                  num_heads=4,
+                                  self_conditioning=True)
+        x = torch.randn(2, 10, 9)
+        t = torch.randint(0, 100, (2,))
+        x0_prev = torch.randn(2, 10, 9)
+        output = model([x, t, x0_prev])
+        assert output.shape == (2, 10, 9)
+
+    def test_self_conditioning_differs_from_without(self):
+        """Test that self-conditioning input changes the output."""
+        model = BackboneDiffusion(coord_dim=9,
+                                  embed_dim=64,
+                                  num_layers=2,
+                                  num_heads=4,
+                                  self_conditioning=True)
+        # Give the output projection non-zero weights so we can
+        # observe the effect of self-conditioning on the output.
+        nn.init.xavier_uniform_(model.output_proj[-1].weight)
+        x = torch.randn(2, 10, 9)
+        t = torch.randint(0, 100, (2,))
+        out_no_cond = model([x, t])
+        x0_prev = torch.randn(2, 10, 9)
+        out_with_cond = model([x, t, x0_prev])
+        assert not torch.allclose(out_no_cond, out_with_cond)
+
+    def test_self_conditioning_gradient_flow(self):
+        """Test gradients flow through self-conditioning input."""
+        model = BackboneDiffusion(coord_dim=9,
+                                  embed_dim=64,
+                                  num_layers=2,
+                                  num_heads=4,
+                                  self_conditioning=True)
+        x = torch.randn(2, 10, 9)
+        t = torch.randint(0, 100, (2,))
+        x0_prev = torch.randn(2, 10, 9, requires_grad=True)
+        output = model([x, t, x0_prev])
+        loss = output.sum()
+        loss.backward()
+        assert x0_prev.grad is not None
+
 
 @pytest.mark.torch
 @pytest.mark.skipif(not has_torch, reason="PyTorch not installed")
@@ -240,3 +286,32 @@ class TestCosineSchedule:
         schedule = CosineSchedule(num_timesteps=1000)
         assert (schedule.betas >= 0).all()
         assert (schedule.betas <= 1).all()
+
+    def test_p_sample_returns_tuple(self):
+        """Test that p_sample returns (x_prev, x0_pred) tuple."""
+        schedule = CosineSchedule(num_timesteps=50)
+        model = BackboneDiffusion(coord_dim=9,
+                                  embed_dim=64,
+                                  num_layers=2,
+                                  num_heads=4)
+        x_t = torch.randn(2, 10, 9)
+        t = torch.tensor([25, 25])
+        x_prev, x0_pred = schedule.p_sample(model, x_t, t)
+        assert x_prev.shape == (2, 10, 9)
+        assert x0_pred.shape == (2, 10, 9)
+
+    def test_sample_with_self_conditioning(self):
+        """Test full reverse diffusion with self-conditioning."""
+        schedule = CosineSchedule(num_timesteps=10)
+        model = BackboneDiffusion(coord_dim=9,
+                                  embed_dim=64,
+                                  num_layers=2,
+                                  num_heads=4,
+                                  self_conditioning=True)
+        shape = (2, 10, 9)
+        samples = schedule.sample(model,
+                                  shape,
+                                  device=torch.device('cpu'),
+                                  self_conditioning=True)
+        assert samples.shape == shape
+        assert torch.isfinite(samples).all()

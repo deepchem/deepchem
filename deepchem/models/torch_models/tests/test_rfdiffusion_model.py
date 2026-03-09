@@ -261,3 +261,85 @@ class TestRFDiffusionModel:
         samples = model.generate(num_samples=1, seq_length=10)
         assert samples.shape == (1, 10, 9)
         assert np.isfinite(samples).all()
+
+    def test_self_conditioning_model_creation(self):
+        """Test model creation with self_conditioning enabled."""
+        model = RFDiffusionModel(embed_dim=64,
+                                 num_layers=2,
+                                 num_heads=4,
+                                 num_diffusion_steps=50,
+                                 self_conditioning=True,
+                                 batch_size=2)
+        assert model._self_conditioning is True
+        assert model.model.self_conditioning is True
+
+    def test_self_conditioning_fit(self):
+        """Test that training works with self-conditioning."""
+        dataset = self._make_dataset(n_samples=8, seq_len=15)
+        model = RFDiffusionModel(embed_dim=64,
+                                 num_layers=2,
+                                 num_heads=4,
+                                 num_diffusion_steps=50,
+                                 self_conditioning=True,
+                                 batch_size=4)
+        loss = model.fit(dataset, nb_epoch=1)
+        assert np.isfinite(loss)
+        assert loss > 0
+
+    def test_self_conditioning_generate(self):
+        """Test generation with self-conditioning enabled."""
+        model = RFDiffusionModel(embed_dim=64,
+                                 num_layers=2,
+                                 num_heads=4,
+                                 num_diffusion_steps=10,
+                                 self_conditioning=True,
+                                 batch_size=2)
+        samples = model.generate(num_samples=2, seq_length=15)
+        assert samples.shape == (2, 15, 9)
+        assert np.isfinite(samples).all()
+
+    def test_self_conditioning_generator_format(self):
+        """Test that generator sometimes yields 3-element input list."""
+        np.random.seed(42)
+        dataset = self._make_dataset(n_samples=8, seq_len=10)
+        model = RFDiffusionModel(embed_dim=64,
+                                 num_layers=2,
+                                 num_heads=4,
+                                 num_diffusion_steps=50,
+                                 self_conditioning=True,
+                                 batch_size=4)
+        # Run many batches to check that at least one has 3 inputs
+        # and at least one has 2 inputs (50/50 split)
+        input_lengths = []
+        gen = model.default_generator(dataset, epochs=20)
+        for batch in gen:
+            inputs, labels, weights = batch
+            input_lengths.append(len(inputs))
+        # With 20 epochs, should see both 2 and 3 length inputs
+        assert 2 in input_lengths
+        assert 3 in input_lengths
+
+    def test_self_conditioning_loss_decreases(self):
+        """Test that loss decreases when training with self-conditioning.
+
+        This verifies that self-conditioning is properly integrated
+        into the training loop and that the model learns effectively
+        when self-conditioning is enabled.
+        """
+        dataset = self._make_dataset(n_samples=4, seq_len=10)
+        model = RFDiffusionModel(embed_dim=64,
+                                 num_layers=2,
+                                 num_heads=4,
+                                 num_diffusion_steps=50,
+                                 self_conditioning=True,
+                                 batch_size=4,
+                                 learning_rate=1e-3)
+
+        losses = []
+        for _ in range(50):
+            loss = model.fit(dataset, nb_epoch=1)
+            losses.append(loss)
+
+        avg_early = np.mean(losses[:5])
+        avg_late = np.mean(losses[-5:])
+        assert avg_late < avg_early
