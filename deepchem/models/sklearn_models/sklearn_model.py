@@ -100,11 +100,19 @@ class SklearnModel(Model):
             The `Dataset` to train this model on.
         """
         X = dataset.X
-        y = np.squeeze(dataset.y)
-        w = np.squeeze(dataset.w)
+        y = dataset.y
+        w = dataset.w
+
+        # Avoid using np.squeeze since it may remove task dimensions
+        # unintentionally for single-task datasets with shape (n_samples, 1)
+        if isinstance(y, np.ndarray) and y.ndim == 2 and y.shape[1] == 1:
+         y = y[:, 0]
+         
+        if isinstance(w, np.ndarray) and w.ndim == 2 and w.shape[1] == 1:
+         w = w[:, 0]
         # Some scikit-learn models don't use weights.
         if self.use_weights:
-            self.model.fit(X, y, w)
+            self.model.fit(X, y, sample_weight=w)
             return
         self.model.fit(X, y)
 
@@ -146,6 +154,11 @@ class SklearnModel(Model):
     def save(self):
         """Saves scikit-learn model to disk using joblib."""
         save_to_disk(self.model, self.get_model_filename(self.model_dir))
+
+    def reload(self):
+        """Loads scikit-learn model from joblib file on disk."""
+        self.model = load_from_disk(self.get_model_filename(self.model_dir))
+
 
     def reload(self):
         """Loads scikit-learn model from joblib file on disk."""
