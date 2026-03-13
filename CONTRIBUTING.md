@@ -33,7 +33,7 @@ style match our guidelines!
 To develop DeepChem on your machine, we recommend using Anaconda for managing
 packages. If you want to manage multiple builds of DeepChem, you can make use of
 [conda environments](https://conda.io/projects/conda/en/latest/user-guide/concepts/environments.html)
-to maintain seperate Python package environments, each of which can be tied
+to maintain separate Python package environments, each of which can be tied
 to a specific build of DeepChem. Here are some tips to get started:
 
 1. Fork the [DeepChem](https://github.com/deepchem/deepchem/) repository
