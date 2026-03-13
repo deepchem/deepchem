@@ -79,6 +79,37 @@ First, we'll load the dataset with :func:`load_delaney() <deepchem.molnet.load_d
     >>> valid_scores = model.evaluate(valid_dataset, [avg_pearson_r2], transformers)
     >>> assert valid_scores['mean-pearson_r2_score'] > 0.3, valid_scores
 
+Minimal runnable GraphConvModel example
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. doctest:: graphconv_minimal
+
+    >>> seed_all()
+    >>> # This minimal example shows how to featurize small molecules for
+    >>> # use with GraphConvModel and wrap them in a NumpyDataset. For real
+    >>> # workflows prefer dc.molnet.load_* functions which handle splitting
+    >>> # and transformers for you.
+    >>> from deepchem.feat import ConvMolFeaturizer
+    >>> from deepchem.data import NumpyDataset
+    >>> from rdkit import Chem
+    >>> # Two tiny example molecules
+    >>> smiles_list = ['CCO', 'CC']
+    >>> mols = [Chem.MolFromSmiles(s) for s in smiles_list]
+    >>> featurizer = ConvMolFeaturizer()
+    >>> X = featurizer.featurize(mols)
+    >>> # Create simple targets (2 samples, 1 task)
+    >>> y = np.array([[0.5], [0.2]], dtype=np.float32)
+    >>> dataset = NumpyDataset(X=X, y=y, ids=np.arange(len(X)))
+    >>> # Instantiate and train a tiny GraphConvModel
+    >>> model = dc.models.GraphConvModel(n_tasks=1, mode='regression', batch_size=2)
+    >>> model.fit(dataset, nb_epoch=1)
+    0...
+    >>> # Evaluate on the same data (for demonstration)
+    >>> metric = dc.metrics.Metric(dc.metrics.rms_score)
+    >>> scores = model.evaluate(dataset, [metric])
+    >>> isinstance(scores, dict)
+    True
+
 
 GraphConvModel
 ^^^^^^^^^^^^^^
