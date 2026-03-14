@@ -635,7 +635,7 @@ class HuggingFaceModel(TorchModel):
 
             # Decode the sequence with each of the top_k tokens inserted
             # Calculate the score as the probability of that token in the sequence.
-            text_results = []
+            text_results: List[HuggingFaceModel.FillMaskOutput] = []
             probs = torch.softmax(mask_token_logits, dim=1)
             for token in top_k_tokens:
                 token_str = self.tokenizer.decode([token])
@@ -656,19 +656,25 @@ class HuggingFaceModel(TorchModel):
         self._ensure_built()
         self.model.eval()
         if not hasattr(self.model, 'generate'):
-            raise ValueError("This HuggingFace model doesn't support text generation.")
+            raise ValueError(
+                "This HuggingFace model doesn't support text generation.")
         if isinstance(inputs, str):
             inputs = [inputs]
         if self.tokenizer.pad_token is None:
             self.tokenizer.pad_token = self.tokenizer.eos_token
             self.model.config.pad_token_id = self.model.config.eos_token_id
-        encoded = self.tokenizer(inputs, return_tensors='pt', padding=True, truncation=True)
+        encoded = self.tokenizer(inputs,
+                                 return_tensors='pt',
+                                 padding=True,
+                                 truncation=True)
         device = self.device
         if torch.cuda.is_available():
             device = torch.device('cuda')
         elif device.type == 'mps':
             # HuggingFace's generate method does not currently support MPS. Move model and inputs to CPU.
-            logger.warning("HuggingFace's generate method does not currently support MPS. Moving model and inputs to CPU for generation.")
+            logger.warning(
+                "HuggingFace's generate method does not currently support MPS. Moving model and inputs to CPU for generation."
+            )
             self.model.to('cpu')
             device = torch.device('cpu')
         self.model.to(device)
