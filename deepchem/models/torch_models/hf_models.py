@@ -863,12 +863,14 @@ class OLMoModel(HuggingFaceModel):
             unsloth_config: Optional[Dict] = None,
             lora_config: Optional[Dict] = None,
             sft_config: Optional[Dict] = None,
+            trust_remote_code: bool = True,
             **kwargs):
 
         self.hf_model_name_or_path = hf_model_name_or_path
         self.max_new_tokens = max_length
         self.generation_kwargs: Dict = generation_kwargs or {}
         self.use_unsloth: bool = use_unsloth
+        self.trust_remote_code: bool = trust_remote_code
 
         # Build the effective unsloth config by layering user overrides on
         # top of the class-level defaults.  A shallow copy is important here
@@ -919,11 +921,11 @@ class OLMoModel(HuggingFaceModel):
         """Load model and tokeniser via standard HuggingFace Transformers."""
         tokenizer = AutoTokenizer.from_pretrained(
             path,
-            trust_remote_code=True,
+            trust_remote_code=self.trust_remote_code,
         )
         model = AutoModelForCausalLM.from_pretrained(
             path,
-            trust_remote_code=True,
+            trust_remote_code=self.trust_remote_code,
         )
         return model, tokenizer
 
@@ -946,7 +948,7 @@ class OLMoModel(HuggingFaceModel):
 
         model, tokenizer = FastLanguageModel.from_pretrained(
             model_name=path,
-            trust_remote_code=True,
+            trust_remote_code=self.trust_remote_code,
             **self.unsloth_config,
         )
         # Store the class so generate() can call for_inference() later.
@@ -1027,7 +1029,7 @@ class OLMoModel(HuggingFaceModel):
             else:
                 self.model = AutoModelForCausalLM.from_pretrained(
                     path,
-                    trust_remote_code=True,
+                    trust_remote_code=self.trust_remote_code,
                     **self.config,
                 )
         else:
@@ -1592,4 +1594,3 @@ class OLMoModel(HuggingFaceModel):
         if self.use_unsloth and hasattr(self, '_FastLanguageModel'):
             self._FastLanguageModel.for_inference(self.model)
             logger.info("Switched to Unsloth inference mode.")
-
