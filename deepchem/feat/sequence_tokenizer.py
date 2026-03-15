@@ -23,16 +23,20 @@ class DNACharTokenizer(Featurizer):
     >>> features["input_ids"].shape
     (2, 8)
     """
-    def __init__(self, max_length: Optional[int] = None, pad_token: str = "<pad>"):
+    def __init__(self, max_length: Optional[int] = None, pad_token: str = "<pad>", mask_token: str = "<mask>"):
         self.vocab = {
             pad_token: 0,
-            "A": 1,
-            "C": 2,
-            "G": 3,
-            "T": 4,
-            "N": 5,
+            mask_token: 1,
+            "A": 2,
+            "C": 3,
+            "G": 4,
+            "T": 5,
+            "N": 6,
         }
+        self.pad_token = pad_token
+        self.mask_token = mask_token
         self.pad_id = self.vocab[pad_token]
+        self.mask_token_id = self.vocab[mask_token]
         self.max_length = max_length
 
     def _tokenize(self, seq: str) -> List[int]:
@@ -72,11 +76,14 @@ class DNAKmerTokenizer(Featurizer):
 
     Sequence: ACGT, k=2 -> [AC, CG, GT]
     """
-    def __init__(self, k: int = 3, max_length: Optional[int] = None, pad_token: str = "<pad>"):
+    def __init__(self, k: int = 3, max_length: Optional[int] = None, pad_token: str = "<pad>", mask_token: str = "<mask>"):
         self.k = k
         self.max_length = max_length
         self.pad_token = pad_token
-        self.vocab = {pad_token: 0}
+        self.mask_token = mask_token
+        self.vocab = {pad_token: 0, mask_token: 1}
+        self.pad_id = self.vocab[pad_token]
+        self.mask_token_id = self.vocab[mask_token]
         self._frozen = False
 
     def _build_vocab(self, sequences: List[str]):

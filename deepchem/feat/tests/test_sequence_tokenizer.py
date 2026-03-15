@@ -11,6 +11,7 @@ def test_dna_char_tokenizer_basic():
 
     # First sequence fully filled
     assert np.all(out["attention_mask"][0] == np.array([1, 1, 1, 1]))
+
     # Second sequence padded
     assert np.all(out["attention_mask"][1] == np.array([1, 0, 0, 0]))
 
@@ -38,3 +39,15 @@ def test_dna_kmer_padding():
 
     assert out["input_ids"].shape == (1, 5)
     assert np.all(out["attention_mask"] == np.array([[1, 1, 1, 0, 0]]))
+
+
+def test_mask_token_exists_char():
+    tokenizer = DNACharTokenizer()
+    assert hasattr(tokenizer, "mask_token_id")
+    assert tokenizer.mask_token_id == 1
+
+
+def test_mask_token_exists_kmer():
+    tokenizer = DNAKmerTokenizer()
+    assert hasattr(tokenizer, "mask_token_id")
+    assert tokenizer.mask_token_id == 1
