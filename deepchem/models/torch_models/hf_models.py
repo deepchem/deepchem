@@ -1215,6 +1215,9 @@ class OLMoModel(HuggingFaceModel):
                 k: v for k, v in effective_lora.items()
                 if k not in _unsloth_only_keys
             }
+            # PEFT calls kwargs.update(loftq_config) internally — crashes when None.
+            if peft_lora.get("loftq_config") is None:
+                peft_lora["loftq_config"] = {}
             lora_cfg = LoraConfig(
                 task_type=TaskType.CAUSAL_LM,
                 **peft_lora,
