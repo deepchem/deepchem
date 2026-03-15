@@ -11,7 +11,11 @@ from deepchem.models.torch_models import TorchModel
 from deepchem.trans import Transformer, undo_transforms
 from deepchem.utils.typing import LossFn, OneOrMany
 from transformers.data.data_collator import DataCollatorForLanguageModeling
-from transformers.models.auto import AutoModel, AutoModelForSequenceClassification, AutoModelForMaskedLM, AutoModelForUniversalSegmentation
+from transformers.models.auto import (AutoModel, AutoModelForCausalLM,
+                                       AutoModelForSequenceClassification,
+                                       AutoModelForMaskedLM,
+                                       AutoModelForUniversalSegmentation,
+                                       AutoTokenizer)
 
 logger = logging.getLogger(__name__)
 
@@ -636,3 +640,956 @@ class HuggingFaceModel(TorchModel):
             results.append(text_results)
 
         return results[0] if len(results) == 1 else results
+
+
+class OLMoModel(HuggingFaceModel):
+    """DeepChem wrapper for AllenAI OLMo-7B (decoder-only causal LM).
+
+    Wraps ``allenai/OLMo-7B`` (or any compatible OLMo checkpoint) inside
+    DeepChem's ``HuggingFaceModel`` abstraction.  For the GSoC scope this
+    implementation focuses on **inference / generation** only.  The model
+    receives one or more SMILES strings (or free-form molecular text) and
+    returns the generated continuation produced by OLMo's causal language
+    modelling head.
+
+    Why a subclass and not just ``HuggingFaceModel`` directly?
+    -----------------------------------------------------------
+    * ``HuggingFaceModel._prepare_batch`` has no ``generation`` branch.
+      Causal generation needs *no* label tensor — only ``input_ids`` and
+      ``attention_mask``.
+    * ``HuggingFaceModel._predict`` fetches ``logits`` from the model
+      output, which is irrelevant for generation; we need ``model.generate()``.
+    * ``HuggingFaceModel.load_from_pretrained`` has no
+      ``AutoModelForCausalLM`` branch, so loading from a HF checkpoint
+      would fall through to the bare ``AutoModel`` path (no LM head).
+
+    Unsloth support
+    ---------------
+    `Unsloth <https://github.com/unslothai/unsloth>`_ is an optional
+    acceleration library that rewrites key transformer kernels (attention,
+    RoPE, cross-entropy) in Triton, giving 2-5× faster inference and
+    training while using significantly less VRAM through 4-bit quantisation.
+    It is entirely optional — the model loads and runs correctly without it.
+
+    To enable unsloth, pass ``use_unsloth=True``.  The library must already
+    be installed (``pip install unsloth``).  A default configuration is
+    provided via ``DEFAULT_UNSLOTH_CONFIG``; override individual keys by
+    passing a partial dict to ``unsloth_config``.
+
+    Parameters
+    ----------
+    hf_model_name_or_path : str, optional
+        HuggingFace model id or local path.  Defaults to
+        ``"allenai/OLMo-7B"``.
+    max_length : int, optional
+        Maximum number of *new* tokens to generate per prompt.  Default 128.
+    generation_kwargs : dict, optional
+        Extra keyword arguments forwarded verbatim to ``model.generate()``.
+        Common keys: ``temperature``, ``top_p``, ``top_k``,
+        ``repetition_penalty``, ``do_sample``, ``num_beams``.
+    use_unsloth : bool, optional
+        If ``True``, load the model via Unsloth's ``FastLanguageModel`` for
+        optimised inference.  Requires the ``unsloth`` package.
+        Defaults to ``False``.
+    unsloth_config : dict, optional
+        Overrides for the default unsloth configuration.  Only the keys you
+        supply are changed; everything else stays at the defaults defined in
+        ``OLMoModel.DEFAULT_UNSLOTH_CONFIG``.  Ignored when
+        ``use_unsloth=False``.
+
+        Supported keys and their defaults:
+
+        .. code-block:: python
+
+            {
+                "max_seq_length": 2048,   # context window passed to unsloth
+                "dtype": None,            # None = auto-detect (bf16 on Ampere+)
+                "load_in_4bit": True,     # 4-bit NF4 quantisation
+            }
+
+    **kwargs
+        Remaining arguments are forwarded to ``HuggingFaceModel.__init__``
+        and ultimately to ``TorchModel``.
+
+    Examples
+    --------
+    Standard loading (no unsloth):
+
+    >>> model = OLMoModel(hf_model_name_or_path="allenai/OLMo-7B")
+    >>> outputs = model.generate(["CC(=O)Oc1ccccc1C(=O)O is a molecule that"])
+    >>> print(outputs[0])
+
+    Unsloth with default config (4-bit, auto dtype):
+
+    >>> model = OLMoModel(use_unsloth=True)
+    >>> outputs = model.generate(["CCO has the IUPAC name"])
+
+    Unsloth with a custom config — keep 4-bit but use full float16 and a
+    longer context window:
+
+    >>> model = OLMoModel(
+    ...     use_unsloth=True,
+    ...     unsloth_config={"dtype": torch.float16, "max_seq_length": 4096},
+    ... )
+    >>> outputs = model.generate(["The solubility of caffeine is"])
+
+    Unsloth with quantisation disabled (full weights, saves no VRAM but still
+    uses fast kernels):
+
+    >>> model = OLMoModel(
+    ...     use_unsloth=True,
+    ...     unsloth_config={"load_in_4bit": False},
+    ... )
+    """
+
+    # ------------------------------------------------------------------
+    # Default unsloth configuration
+    # ------------------------------------------------------------------
+    # These values are used whenever use_unsloth=True and the user has not
+    # explicitly overridden a key via the unsloth_config argument.
+    #
+    # max_seq_length : maximum context window that unsloth pre-allocates
+    #                  RoPE buffers for.  Longer = more VRAM.
+    # dtype          : None lets unsloth auto-detect the best dtype for the
+    #                  current GPU (bf16 on Ampere / fp16 elsewhere).
+    # load_in_4bit   : enables NF4 quantisation via bitsandbytes, cutting
+    #                  VRAM roughly in half versus fp16.
+    DEFAULT_UNSLOTH_CONFIG: Dict = {
+        "max_seq_length": 2048,
+        "dtype": None,
+        "load_in_4bit": True,
+    }
+
+    # ------------------------------------------------------------------
+    # Default LoRA configuration
+    # ------------------------------------------------------------------
+    # These values are passed to either Unsloth's FastLanguageModel.get_peft_model()
+    # or directly to PEFT's LoraConfig when use_unsloth=False.
+    #
+    # r                        : LoRA rank. Higher = more trainable params, higher quality.
+    #                            4/8/16/32/64 are common. 16 is a good starting point.
+    # lora_alpha               : Scaling factor. Rule of thumb: set equal to r.
+    # target_modules           : Which linear layers to attach LoRA to. These names
+    #                            match OLMo-7B's HuggingFace module naming. Override
+    #                            if you use a different OLMo variant.
+    # lora_dropout             : Unsloth recommends 0.0 for speed. Use 0.05–0.1 if
+    #                            you notice overfitting on small datasets.
+    # bias                     : "none" is standard. "all" trains bias terms too.
+    # use_gradient_checkpointing: "unsloth" enables Unsloth's smart gradient
+    #                            checkpointing (30% less VRAM than standard).
+    #                            Use True for standard HuggingFace checkpointing,
+    #                            False to disable.
+    # random_state             : Seed for LoRA weight initialisation.
+    # use_rslora               : Rank-Stabilised LoRA — normalises by sqrt(r) instead
+    #                            of r. Recommended for large ranks (r >= 32).
+    # loftq_config             : LoftQ initialisation for better quantised training.
+    #                            Pass a dict of LoftQ kwargs or None to disable.
+    DEFAULT_LORA_CONFIG: Dict = {
+        "r": 16,
+        "lora_alpha": 16,
+        "target_modules": [
+            "q_proj", "k_proj", "v_proj", "o_proj",
+            "gate_proj", "up_proj", "down_proj",
+        ],
+        "lora_dropout": 0.0,
+        "bias": "none",
+        "use_gradient_checkpointing": "unsloth",
+        "random_state": 42,
+        "use_rslora": False,
+        "loftq_config": None,
+    }
+
+    # ------------------------------------------------------------------
+    # Default SFT (Supervised Fine-Tuning) training configuration
+    # ------------------------------------------------------------------
+    # These map 1-to-1 onto trl's SFTConfig (which wraps TrainingArguments).
+    # Every key here can be overridden via the sft_config argument to sft().
+    #
+    # per_device_train_batch_size : Samples per GPU per step.  Keep at 1–4
+    #                               for 7B on a 24 GB GPU.
+    # gradient_accumulation_steps : Effective batch = batch_size × this value.
+    #                               Use to simulate larger batches without OOM.
+    # warmup_steps                : Linear warmup before full learning rate.
+    # num_train_epochs            : Full passes over the dataset.  Set to None
+    #                               and use max_steps for step-based training.
+    # max_steps                   : Hard cap on training steps.  Overrides
+    #                               num_train_epochs when set.
+    # learning_rate               : Peak LR after warmup.  2e-4 is a solid
+    #                               default for LoRA fine-tuning.
+    # optim                       : "adamw_8bit" uses bitsandbytes 8-bit Adam,
+    #                               halving optimiser memory vs full-precision.
+    # weight_decay                : L2 regularisation on non-bias params.
+    # lr_scheduler_type           : "linear" decays to 0 over training.
+    #                               "cosine" often gives slightly better results.
+    # fp16 / bf16                 : Set automatically based on GPU capability.
+    #                               Override to force a specific dtype.
+    # logging_steps               : Log loss every N steps.
+    # save_steps                  : Save a checkpoint every N steps.
+    # output_dir                  : Where SFTTrainer writes checkpoints.
+    # dataset_text_field          : Column name in the HuggingFace dataset that
+    #                               holds the training text.
+    # max_seq_length              : Maximum token length per training sample.
+    #                               Sequences are truncated to this.
+    # packing                     : If True, SFTTrainer packs multiple short
+    #                               sequences into one context window, greatly
+    #                               improving throughput on short molecular texts.
+    DEFAULT_SFT_CONFIG: Dict = {
+        "per_device_train_batch_size": 2,
+        "gradient_accumulation_steps": 4,
+        "warmup_steps": 5,
+        "num_train_epochs": 1,
+        "max_steps": -1,
+        "learning_rate": 2e-4,
+        "optim": "adamw_8bit",
+        "weight_decay": 0.01,
+        "lr_scheduler_type": "linear",
+        "fp16": False,
+        "bf16": False,
+        "logging_steps": 10,
+        "save_steps": 100,
+        "output_dir": "olmo_sft_output",
+        "dataset_text_field": "text",
+        "max_seq_length": 512,
+        "packing": True,
+        "seed": 42,
+    }
+
+    def __init__(
+            self,
+            hf_model_name_or_path: str = "allenai/OLMo-7B",
+            max_length: int = 128,
+            generation_kwargs: Optional[Dict] = None,
+            use_unsloth: bool = False,
+            unsloth_config: Optional[Dict] = None,
+            lora_config: Optional[Dict] = None,
+            sft_config: Optional[Dict] = None,
+            **kwargs):
+
+        self.hf_model_name_or_path = hf_model_name_or_path
+        self.max_new_tokens = max_length
+        self.generation_kwargs: Dict = generation_kwargs or {}
+        self.use_unsloth: bool = use_unsloth
+
+        # Build the effective unsloth config by layering user overrides on
+        # top of the class-level defaults.  A shallow copy is important here
+        # so that per-instance changes do not mutate DEFAULT_UNSLOTH_CONFIG.
+        self.unsloth_config: Dict = {
+            **OLMoModel.DEFAULT_UNSLOTH_CONFIG,
+            **(unsloth_config or {}),
+        }
+
+        # Effective LoRA config — user overrides class defaults.
+        # Stored at construction time so sft() can use it without requiring
+        # the user to repeat the same dict on every call.
+        self.lora_config: Dict = {
+            **OLMoModel.DEFAULT_LORA_CONFIG,
+            **(lora_config or {}),
+        }
+
+        # Effective SFT training config — same pattern.
+        self.sft_config: Dict = {
+            **OLMoModel.DEFAULT_SFT_CONFIG,
+            **(sft_config or {}),
+        }
+
+        if use_unsloth:
+            olmo, tokenizer = self._load_with_unsloth(hf_model_name_or_path)
+        else:
+            olmo, tokenizer = self._load_standard(hf_model_name_or_path)
+
+        # OLMo has no pad token by default (decoder-only).
+        # Reuse EOS as padding so the batch collation works correctly.
+        if tokenizer.pad_token is None:
+            tokenizer.pad_token = tokenizer.eos_token
+
+        # Pass task="generation" so the parent __init__ skips the
+        # DataCollatorForLanguageModeling (which is only for masked LMs).
+        super().__init__(
+            model=olmo,
+            tokenizer=tokenizer,
+            task="generation",
+            **kwargs,
+        )
+
+    # ------------------------------------------------------------------
+    # Private loading helpers
+    # ------------------------------------------------------------------
+
+    def _load_standard(self, path: str):
+        """Load model and tokeniser via standard HuggingFace Transformers."""
+        tokenizer = AutoTokenizer.from_pretrained(
+            path,
+            trust_remote_code=True,
+        )
+        model = AutoModelForCausalLM.from_pretrained(
+            path,
+            trust_remote_code=True,
+        )
+        return model, tokenizer
+
+    def _load_with_unsloth(self, path: str):
+        """Load model and tokeniser via Unsloth's FastLanguageModel.
+
+        Raises
+        ------
+        ImportError
+            If the ``unsloth`` package is not installed.
+        """
+        try:
+            from unsloth import FastLanguageModel
+        except ImportError as exc:
+            raise ImportError(
+                "Unsloth is not installed. "
+                "Install it with:  pip install unsloth\n"
+                "Or disable it by passing use_unsloth=False."
+            ) from exc
+
+        model, tokenizer = FastLanguageModel.from_pretrained(
+            model_name=path,
+            trust_remote_code=True,
+            **self.unsloth_config,
+        )
+        # Store the class so generate() can call for_inference() later.
+        self._FastLanguageModel = FastLanguageModel
+        return model, tokenizer
+
+    # ------------------------------------------------------------------
+    # Override 1: _prepare_batch
+    # ------------------------------------------------------------------
+    def _prepare_batch(
+            self, batch: Tuple[Any, Any, Any]
+    ) -> Tuple[Dict[str, torch.Tensor], Any, Any]:
+        """Prepare a single batch for the model.
+
+        For the generation task we only need ``input_ids`` and
+        ``attention_mask`` — no label tensor is required.  The parent
+        implementation raises a ``KeyError`` for task="generation" because
+        it has no branch for that value, so we override it here.
+
+        For any other task recognised by the parent (``mlm``, ``regression``,
+        ``classification``, ``mtr``) we delegate back to the parent so that
+        OLMoModel remains usable for fine-tuning later.
+        """
+        if self.task != "generation":
+            # Let the parent handle mlm / regression / classification / mtr.
+            return super()._prepare_batch(batch)
+
+        smiles_batch, y, w = batch
+
+        # smiles_batch[0] is a numpy array of raw SMILES / prompt strings.
+        prompts: List[str] = smiles_batch[0].tolist()
+
+        tokens = self.tokenizer(
+            prompts,
+            padding=True,           # pad all sequences to the longest one
+            truncation=True,        # truncate if a prompt is extremely long
+            max_length=512,         # reasonable context window for inference
+            return_tensors="pt",
+        )
+
+        # Move every tensor to the model's device (CPU / CUDA / MPS).
+        inputs = {key: val.to(self.device) for key, val in tokens.items()}
+
+        # y and w are unused during inference but kept for API consistency.
+        return inputs, y, w
+
+    # ------------------------------------------------------------------
+    # Override 2: load_from_pretrained — add CausalLM branch
+    # ------------------------------------------------------------------
+    def load_from_pretrained(  # type: ignore[override]
+            self,
+            model_dir: Optional[str] = None,
+            from_hf_checkpoint: bool = False) -> None:
+        """Load OLMo weights from a checkpoint.
+
+        Extends the parent with both an ``AutoModelForCausalLM`` branch and
+        an Unsloth ``FastLanguageModel`` branch so that
+        ``from_hf_checkpoint=True`` loads the correct model class regardless
+        of whether unsloth is enabled.
+
+        Parameters
+        ----------
+        model_dir : str, optional
+            Path or HF hub id.  Falls back to ``self.hf_model_name_or_path``
+            when not provided.
+        from_hf_checkpoint : bool
+            When ``True``, reload from a HuggingFace checkpoint using either
+            the standard or unsloth loader depending on ``self.use_unsloth``.
+            When ``False``, restore from a DeepChem ``torch.save`` checkpoint
+            (same behaviour as the parent, unsloth has no effect here).
+        """
+        if from_hf_checkpoint:
+            path = model_dir or self.hf_model_name_or_path
+            if self.use_unsloth:
+                # Re-use the same helper that __init__ calls so the
+                # effective unsloth_config is applied consistently.
+                self.model, self.tokenizer = self._load_with_unsloth(path)
+            else:
+                self.model = AutoModelForCausalLM.from_pretrained(
+                    path,
+                    trust_remote_code=True,
+                    **self.config,
+                )
+        else:
+            # Reuse the parent's checkpoint-restoration logic unchanged.
+            super().load_from_pretrained(
+                model_dir=model_dir,
+                from_hf_checkpoint=False,
+            )
+
+    # ------------------------------------------------------------------
+    # New public method: generate
+    # ------------------------------------------------------------------
+    def generate(
+            self,
+            inputs: Union[str, List[str]],
+            max_new_tokens: Optional[int] = None,
+            skip_special_tokens: bool = True,
+            **decode_kwargs,
+    ) -> List[str]:
+        """Run autoregressive generation on one or more prompts.
+
+        This is the primary inference entry-point for OLMoModel.  It
+        tokenises the prompts, calls ``model.generate()``, and returns the
+        decoded strings — stripping the original prompt so only the *newly
+        generated* text is returned.
+
+        When ``use_unsloth=True``, ``FastLanguageModel.for_inference()`` is
+        called automatically before generation.  This patches the model's
+        attention and FFN kernels in-place to use Unsloth's optimised Triton
+        implementations — you do not need to call it yourself.
+
+        Parameters
+        ----------
+        inputs : str or list of str
+            One SMILES string / molecular prompt or a list of them.
+        max_new_tokens : int, optional
+            Override the instance-level ``max_new_tokens`` for this call.
+        skip_special_tokens : bool
+            If ``True`` (default), remove special tokens such as ``<eos>``
+            from the decoded output.
+        **decode_kwargs
+            Any extra keyword arguments are merged with
+            ``self.generation_kwargs`` and forwarded to ``model.generate()``.
+            Call-level kwargs take priority over instance-level ones.
+
+        Returns
+        -------
+        list of str
+            One decoded string per input prompt, containing only the text
+            generated *after* the prompt.
+
+        Examples
+        --------
+        >>> model = OLMoModel()
+        >>> model.generate(["The SMILES CC(=O)O represents"])
+        ['acetic acid, also known as ethanoic acid.']
+        """
+        self._ensure_built()
+
+        # When unsloth is active, swap to its optimised inference kernels.
+        # for_inference() patches the model in-place and is idempotent, so
+        # calling it on every generate() is safe (and cheap after the first
+        # call).
+        if self.use_unsloth:
+            self._FastLanguageModel.for_inference(self.model)
+
+        self.model.eval()
+
+        # Normalise to list.
+        if isinstance(inputs, str):
+            inputs = [inputs]
+
+        # Tokenise all prompts together for batched generation.
+        encoded = self.tokenizer(
+            inputs,
+            return_tensors="pt",
+            padding=True,
+            truncation=True,
+            max_length=self.unsloth_config.get("max_seq_length", 512),
+        )
+        input_ids: torch.Tensor = encoded["input_ids"].to(self.device)
+        attention_mask: torch.Tensor = encoded["attention_mask"].to(self.device)
+
+        # Number of prompt tokens per sequence (needed to strip the prompt
+        # from the output later).  All sequences are padded to the same
+        # length, so we use the full width of input_ids as the prompt length.
+        prompt_len: int = input_ids.shape[1]
+
+        # Merge generation kwargs: instance defaults < call overrides.
+        gen_kwargs = {**self.generation_kwargs, **decode_kwargs}
+        gen_kwargs["max_new_tokens"] = max_new_tokens or self.max_new_tokens
+
+        # OLMo uses EOS as the pad token; suppress pad-token warnings from
+        # HuggingFace by explicitly setting pad_token_id.
+        gen_kwargs.setdefault("pad_token_id", self.tokenizer.eos_token_id)
+
+        with torch.no_grad():
+            output_ids: torch.Tensor = self.model.generate(
+                input_ids=input_ids,
+                attention_mask=attention_mask,
+                **gen_kwargs,
+            )
+
+        # output_ids includes the prompt tokens; slice them off so we return
+        # only the newly generated part.
+        new_ids = output_ids[:, prompt_len:]
+
+        decoded: List[str] = self.tokenizer.batch_decode(
+            new_ids,
+            skip_special_tokens=skip_special_tokens,
+        )
+        return decoded
+
+    # ------------------------------------------------------------------
+    # Private helper: apply LoRA adapters
+    # ------------------------------------------------------------------
+
+    def _apply_lora_adapters(self, effective_lora: Dict) -> None:
+        """Attach LoRA adapters to ``self.model`` in-place.
+
+        Chooses between two backends depending on ``self.use_unsloth``:
+
+        **Unsloth path** (``use_unsloth=True``):
+            Calls ``FastLanguageModel.get_peft_model()``.  Unsloth's
+            implementation fuses the LoRA adapters with its own Triton
+            kernels, giving an additional 10–30 % speed boost on top of the
+            base model optimisations.  It also enables Unsloth's "smart"
+            gradient checkpointing which uses 30 % less VRAM than the
+            standard HuggingFace version.
+
+        **PEFT fallback** (``use_unsloth=False``):
+            Calls ``peft.get_peft_model()`` with a ``LoraConfig`` built from
+            the same effective config dict.  Produces identical weights; the
+            only difference is speed and VRAM usage.
+
+        Parameters
+        ----------
+        effective_lora : dict
+            Fully-merged LoRA config (class defaults + ``__init__`` overrides
+            + ``sft()`` call overrides).  Must contain at minimum the keys
+            defined in ``DEFAULT_LORA_CONFIG``.
+
+        Notes
+        -----
+        ``use_gradient_checkpointing`` and ``random_state`` are Unsloth-
+        specific keys that are not recognised by PEFT's ``LoraConfig``.  They
+        are stripped before constructing the PEFT config.
+        """
+        # Keys recognised by Unsloth but NOT by PEFT — remove before PEFT path.
+        _unsloth_only_keys = {"use_gradient_checkpointing", "random_state"}
+
+        if self.use_unsloth:
+            if not hasattr(self, '_FastLanguageModel'):
+                # _load_with_unsloth sets this; guard in case the model was
+                # loaded via the standard path and unsloth was enabled later.
+                try:
+                    from unsloth import FastLanguageModel
+                    self._FastLanguageModel = FastLanguageModel
+                except ImportError as exc:
+                    raise ImportError(
+                        "Unsloth is not installed. "
+                        "Install it with:  pip install unsloth"
+                    ) from exc
+
+            # Unsloth expects use_gradient_checkpointing as a direct kwarg.
+            self.model = self._FastLanguageModel.get_peft_model(
+                self.model,
+                **effective_lora,
+            )
+            logger.info("LoRA adapters applied via Unsloth FastLanguageModel.")
+
+        else:
+            try:
+                from peft import LoraConfig, get_peft_model, TaskType
+            except ImportError as exc:
+                raise ImportError(
+                    "PEFT is required for LoRA when use_unsloth=False. "
+                    "Install it with:  pip install peft"
+                ) from exc
+
+            # Strip Unsloth-specific keys that PEFT does not understand.
+            peft_lora = {
+                k: v for k, v in effective_lora.items()
+                if k not in _unsloth_only_keys
+            }
+            lora_cfg = LoraConfig(
+                task_type=TaskType.CAUSAL_LM,
+                **peft_lora,
+            )
+            self.model = get_peft_model(self.model, lora_cfg)
+            self.model.print_trainable_parameters()
+            logger.info("LoRA adapters applied via PEFT.")
+
+    # ------------------------------------------------------------------
+    # Private helper: convert DeepChem dataset → HuggingFace Dataset
+    # ------------------------------------------------------------------
+
+    def _dc_dataset_to_hf(
+            self,
+            dataset,
+            text_field: str = "text",
+            formatting_func: Optional[Callable] = None,
+    ):
+        """Convert a DeepChem ``NumpyDataset`` to a HuggingFace ``Dataset``.
+
+        The ``X`` attribute of a DeepChem dataset holds raw SMILES strings
+        (or any text prompts) when a ``DummyFeaturizer`` was used at load
+        time.  This helper turns those strings into a HuggingFace Dataset
+        with a single text column suitable for ``SFTTrainer``.
+
+        If a ``formatting_func`` is provided it is applied to each row to
+        produce the final training string — useful for wrapping SMILES in an
+        instruction template (e.g. Alpaca / ChatML format).
+
+        Parameters
+        ----------
+        dataset : dc.data.Dataset or datasets.Dataset or list of str
+            The training data.  If it is already a HuggingFace Dataset it is
+            returned unchanged.  If it is a list of strings it is wrapped
+            into a Dataset directly.
+        text_field : str
+            The column name to use for the text in the output Dataset.
+        formatting_func : callable, optional
+            A function of the form ``f(row: dict) -> str`` that takes a row
+            dict (with at least a ``"text"`` key containing the raw SMILES)
+            and returns a formatted training string.  Example::
+
+                def format_row(row):
+                    return (
+                        f"### Molecule\\n{row['text']}\\n"
+                        "### Description\\n"
+                    )
+
+        Returns
+        -------
+        datasets.Dataset
+            A HuggingFace Dataset with a single column named ``text_field``.
+
+        Raises
+        ------
+        ImportError
+            If the ``datasets`` package is not installed.
+        """
+        try:
+            from datasets import Dataset as HFDataset
+        except ImportError as exc:
+            raise ImportError(
+                "The `datasets` package is required for SFT. "
+                "Install with:  pip install datasets"
+            ) from exc
+
+        # Already a HuggingFace Dataset — nothing to do.
+        if isinstance(dataset, HFDataset):
+            return dataset
+
+        # Plain list of strings.
+        if isinstance(dataset, list):
+            texts = dataset
+        else:
+            # DeepChem NumpyDataset: X is a numpy array where each element
+            # is a SMILES string (when DummyFeaturizer was used).
+            raw = dataset.X
+            if raw.ndim == 2:
+                # Shape (N, 1) — flatten to (N,)
+                raw = raw[:, 0]
+            texts = raw.tolist()
+
+        if formatting_func is not None:
+            texts = [formatting_func({text_field: t}) for t in texts]
+
+        return HFDataset.from_dict({text_field: texts})
+
+    # ------------------------------------------------------------------
+    # Public method: sft — Supervised Fine-Tuning
+    # ------------------------------------------------------------------
+
+    def sft(
+            self,
+            dataset,
+            lora_config: Optional[Dict] = None,
+            sft_config: Optional[Dict] = None,
+            formatting_func: Optional[Callable] = None,
+            resume_from_checkpoint: Optional[Union[str, bool]] = None,
+    ) -> None:
+        """Fine-tune OLMoModel with Supervised Fine-Tuning (SFT) via LoRA.
+
+        This is the primary training entry-point for the OLMoModel.  It
+        attaches LoRA adapters to the frozen OLMo backbone, converts the
+        input dataset to the format expected by ``trl.SFTTrainer``, and
+        runs the training loop.  After ``sft()`` returns, ``self.model``
+        holds the LoRA-adapted weights and ``generate()`` can be called
+        immediately without any additional setup.
+
+        Configuration precedence (highest wins):
+            call-level ``lora_config`` / ``sft_config`` kwargs
+                ↓
+            instance-level ``self.lora_config`` / ``self.sft_config``
+            (set via ``__init__`` arguments)
+                ↓
+            class-level ``DEFAULT_LORA_CONFIG`` / ``DEFAULT_SFT_CONFIG``
+
+        Parameters
+        ----------
+        dataset : dc.data.Dataset, datasets.Dataset, or list of str
+            Training data.  Accepted forms:
+
+            * A DeepChem ``NumpyDataset`` whose ``X`` attribute contains
+              SMILES strings loaded with ``DummyFeaturizer``.
+            * A HuggingFace ``datasets.Dataset`` with a text column whose
+              name matches ``sft_config["dataset_text_field"]`` (default
+              ``"text"``).
+            * A plain Python ``list`` of strings.
+
+        lora_config : dict, optional
+            Per-call overrides for LoRA configuration.  Merged on top of
+            ``self.lora_config`` (which itself overrides class defaults).
+
+            Full list of supported keys (with defaults from
+            ``DEFAULT_LORA_CONFIG``):
+
+            .. code-block:: python
+
+                {
+                    "r": 16,
+                    "lora_alpha": 16,
+                    "target_modules": [
+                        "q_proj", "k_proj", "v_proj", "o_proj",
+                        "gate_proj", "up_proj", "down_proj",
+                    ],
+                    "lora_dropout": 0.0,
+                    "bias": "none",
+                    "use_gradient_checkpointing": "unsloth",
+                    "random_state": 42,
+                    "use_rslora": False,
+                    "loftq_config": None,
+                }
+
+        sft_config : dict, optional
+            Per-call overrides for SFT training configuration.  Merged on
+            top of ``self.sft_config`` (which itself overrides class
+            defaults).  All keys map directly to ``trl.SFTConfig`` / HF
+            ``TrainingArguments``.
+
+            Full list of supported keys (with defaults from
+            ``DEFAULT_SFT_CONFIG``):
+
+            .. code-block:: python
+
+                {
+                    "per_device_train_batch_size": 2,
+                    "gradient_accumulation_steps": 4,
+                    "warmup_steps": 5,
+                    "num_train_epochs": 1,
+                    "max_steps": -1,
+                    "learning_rate": 2e-4,
+                    "optim": "adamw_8bit",
+                    "weight_decay": 0.01,
+                    "lr_scheduler_type": "linear",
+                    "fp16": False,
+                    "bf16": False,
+                    "logging_steps": 10,
+                    "save_steps": 100,
+                    "output_dir": "olmo_sft_output",
+                    "dataset_text_field": "text",
+                    "max_seq_length": 512,
+                    "packing": True,
+                    "seed": 42,
+                }
+
+        formatting_func : callable, optional
+            A function ``f(row: dict) -> str`` applied to each training
+            sample before it is fed to the tokeniser.  Use this to wrap
+            SMILES strings in an instruction template, e.g.::
+
+                def alpaca_format(row):
+                    return (
+                        "### Instruction:\\n"
+                        "Describe the following molecule.\\n"
+                        "### Input:\\n"
+                        f"{row['text']}\\n"
+                        "### Response:\\n"
+                    )
+
+            When ``formatting_func`` is provided the ``dataset_text_field``
+            setting is ignored because SFTTrainer calls the function
+            directly on each batch.
+
+        resume_from_checkpoint : str or bool, optional
+            Path to a checkpoint directory, or ``True`` to resume from the
+            most recent checkpoint in ``output_dir``.  Forwarded verbatim to
+            ``trainer.train()``.
+
+        Returns
+        -------
+        None
+            ``self.model`` is updated in-place with the LoRA-adapted weights.
+            Call ``generate()`` directly after ``sft()`` — no extra setup
+            required.
+
+        Raises
+        ------
+        ImportError
+            If ``trl`` is not installed (``pip install trl``).
+        ImportError
+            If ``datasets`` is not installed (``pip install datasets``).
+        ImportError
+            If ``peft`` is not installed and ``use_unsloth=False``
+            (``pip install peft``).
+
+        Examples
+        --------
+        Minimal fine-tune on a list of SMILES strings, all defaults:
+
+        >>> model = OLMoModel(use_unsloth=True)
+        >>> smiles = ["CC(=O)O", "CCO", "c1ccccc1", "CC(N)=O"]
+        >>> model.sft(smiles)
+        >>> outputs = model.generate(["The molecule CC(=O)O is"])
+
+        Customise LoRA rank and SFT learning rate:
+
+        >>> model = OLMoModel(use_unsloth=True)
+        >>> model.sft(
+        ...     dataset=smiles,
+        ...     lora_config={"r": 32, "lora_alpha": 64, "use_rslora": True},
+        ...     sft_config={"learning_rate": 5e-5, "num_train_epochs": 3},
+        ... )
+
+        Use an instruction template with a DeepChem dataset:
+
+        >>> import deepchem as dc
+        >>> loader = dc.data.CSVLoader(
+        ...     ["label"], feature_field="smiles",
+        ...     featurizer=dc.feat.DummyFeaturizer()
+        ... )
+        >>> dc_dataset = loader.create_dataset("molecules.csv")
+        >>>
+        >>> def format_smiles(row):
+        ...     return (
+        ...         "### Molecule\\n" + row["text"] +
+        ...         "\\n### Description\\n"
+        ...     )
+        >>>
+        >>> model = OLMoModel(use_unsloth=True)
+        >>> model.sft(dc_dataset, formatting_func=format_smiles)
+
+        Override LoRA targets to only fine-tune attention projections:
+
+        >>> model.sft(
+        ...     dataset=smiles,
+        ...     lora_config={
+        ...         "r": 8,
+        ...         "target_modules": ["q_proj", "v_proj"],
+        ...         "lora_dropout": 0.05,
+        ...         "bias": "none",
+        ...     },
+        ...     sft_config={
+        ...         "packing": False,
+        ...         "max_seq_length": 256,
+        ...         "output_dir": "my_lora_checkpoint",
+        ...     },
+        ... )
+
+        Disable 4-bit quantisation and use full bf16:
+
+        >>> model = OLMoModel(
+        ...     use_unsloth=True,
+        ...     unsloth_config={"load_in_4bit": False},
+        ...     lora_config={"r": 64, "use_rslora": True},
+        ...     sft_config={"bf16": True, "fp16": False},
+        ... )
+        >>> model.sft(smiles)
+        """
+        try:
+            from trl import SFTTrainer, SFTConfig
+        except ImportError as exc:
+            raise ImportError(
+                "trl is required for SFT. "
+                "Install it with:  pip install trl"
+            ) from exc
+
+        # ------------------------------------------------------------------
+        # Step 1 — Resolve the three effective configs (precedence chain).
+        # ------------------------------------------------------------------
+        # LoRA: class defaults → instance (set in __init__) → call overrides
+        effective_lora: Dict = {
+            **OLMoModel.DEFAULT_LORA_CONFIG,
+            **self.lora_config,
+            **(lora_config or {}),
+        }
+
+        # SFT: class defaults → instance → call overrides
+        effective_sft: Dict = {
+            **OLMoModel.DEFAULT_SFT_CONFIG,
+            **self.sft_config,
+            **(sft_config or {}),
+        }
+
+        # Separate SFTTrainer-specific keys from TrainingArguments keys.
+        # SFTConfig owns: dataset_text_field, max_seq_length, packing.
+        # Everything else goes into TrainingArguments via SFTConfig's **kwargs.
+        _sft_only_keys = {"dataset_text_field", "max_seq_length", "packing"}
+        sft_only = {k: effective_sft.pop(k) for k in list(effective_sft)
+                    if k in _sft_only_keys}
+
+        dataset_text_field: str = sft_only.get("dataset_text_field", "text")
+        max_seq_length: int = sft_only.get("max_seq_length", 512)
+        packing: bool = sft_only.get("packing", True)
+
+        logger.info("Effective LoRA config: %s", effective_lora)
+        logger.info("Effective SFT training config: %s", effective_sft)
+
+        # ------------------------------------------------------------------
+        # Step 2 — Apply LoRA adapters to the frozen backbone.
+        # ------------------------------------------------------------------
+        self._apply_lora_adapters(effective_lora)
+
+        # ------------------------------------------------------------------
+        # Step 3 — Convert dataset to HuggingFace format.
+        # ------------------------------------------------------------------
+        hf_dataset = self._dc_dataset_to_hf(
+            dataset,
+            text_field=dataset_text_field,
+            # Only apply formatting here if no formatting_func is given;
+            # if formatting_func is given, SFTTrainer calls it directly.
+            formatting_func=None,
+        )
+
+        # ------------------------------------------------------------------
+        # Step 4 — Build SFTConfig (wraps TrainingArguments).
+        # ------------------------------------------------------------------
+        training_cfg = SFTConfig(
+            max_seq_length=max_seq_length,
+            packing=packing,
+            dataset_text_field=dataset_text_field,
+            **effective_sft,
+        )
+
+        # ------------------------------------------------------------------
+        # Step 5 — Build SFTTrainer and run training.
+        # ------------------------------------------------------------------
+        trainer = SFTTrainer(
+            model=self.model,
+            tokenizer=self.tokenizer,
+            train_dataset=hf_dataset,
+            args=training_cfg,
+            # formatting_func is passed only when the user supplied one,
+            # because SFTTrainer ignores dataset_text_field when a
+            # formatting_func is present.
+            **({"formatting_func": formatting_func}
+               if formatting_func is not None else {}),
+        )
+
+        logger.info("Starting SFT training...")
+        trainer.train(resume_from_checkpoint=resume_from_checkpoint)
+        logger.info("SFT training complete.")
+
+        # Update self.model to the LoRA-adapted version returned by the
+        # trainer so that generate() picks up the fine-tuned weights.
+        self.model = trainer.model
+
+        # Switch to optimised inference kernels if Unsloth is active.
+        if self.use_unsloth and hasattr(self, '_FastLanguageModel'):
+            self._FastLanguageModel.for_inference(self.model)
+            logger.info("Switched to Unsloth inference mode.")
+
