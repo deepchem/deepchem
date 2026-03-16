@@ -34,6 +34,7 @@ class GeneticProgramming:
         complexity_weight: float = 0.001,
         operators: Optional[List[Operator]] = None,
         n_features: int = 6,
+        task: str = "regression",
     ):
         self.population_size = population_size
         self.max_depth = max_depth
@@ -42,6 +43,7 @@ class GeneticProgramming:
         self.crossover_rate = crossover_rate
         self.complexity_weight = complexity_weight
         self.n_features = n_features
+        self.task = task
 
         if operators is None:
             self.operators = [
@@ -148,7 +150,7 @@ class GeneticProgramming:
                generations: int = 50,
                verbose: bool = True) -> Tuple[ExpressionTree, dict]:
         population = self.initialize_population()
-        fitness_fn = FitnessFunction(x_train, y_train, self.complexity_weight)
+        fitness_fn = FitnessFunction(x_train, y_train, self.complexity_weight, task=self.task)
 
         history = {
             'best_fitness': [],
