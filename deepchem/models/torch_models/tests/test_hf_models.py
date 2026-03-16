@@ -269,6 +269,37 @@ def test_fill_mask_fidelity(tmpdir, hf_tokenizer):
 
 
 @pytest.mark.hf
+def test_invalid_hf_task_raises():
+    from transformers.models.roberta import RobertaConfig, RobertaForMaskedLM
+
+    config = RobertaConfig(vocab_size=100)
+    model = RobertaForMaskedLM(config)
+
+    with pytest.raises(ValueError, match="Unsupported task"):
+        HuggingFaceModel(model=model,
+                         tokenizer=None,
+                         task='invalid_task',
+                         device=torch.device('cpu'))
+
+
+@pytest.mark.hf
+def test_missing_tokenizer_for_regression_raises():
+    from transformers.models.roberta import (RobertaConfig,
+                                             RobertaForSequenceClassification)
+
+    config = RobertaConfig(vocab_size=100,
+                           problem_type='regression',
+                           num_labels=1)
+    model = RobertaForSequenceClassification(config)
+
+    with pytest.raises(ValueError, match="tokenizer"):
+        HuggingFaceModel(model=model,
+                         tokenizer=None,
+                         task='regression',
+                         device=torch.device('cpu'))
+
+
+@pytest.mark.hf
 def test_load_from_pretrained_with_diff_task(tmpdir):
     # Tests loading a pretrained model where the weight shape in last layer
     # (the final projection layer) of the pretrained model does not match
