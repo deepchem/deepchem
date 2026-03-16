@@ -1,6 +1,6 @@
 from transformers import AutoModelForCausalLM, AutoTokenizer
 import deepchem as dc
-def test_huggingface_generate():
+def test_huggingface_generate_batch():
     model = AutoModelForCausalLM.from_pretrained("distilgpt2")
     tokenizer = AutoTokenizer.from_pretrained("distilgpt2")
 
@@ -10,6 +10,10 @@ def test_huggingface_generate():
         task="text_generation"
     )
 
-    result = hf_model.generate("DeepChem is", max_length=20)
-    assert isinstance(result, list)
-    assert isinstance(result[0], str)
+    prompts = ["Water is a", "DeepChem is a"]
+    outputs = hf_model.generate(prompts, batch_size=2, max_length=10)
+    assert isinstance(outputs, list)
+    assert len(outputs) == 2
+
+if __name__ == "__main__":
+    test_huggingface_generate_batch()

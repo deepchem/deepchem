@@ -651,8 +651,23 @@ class HuggingFaceModel(TorchModel):
 
         return results[0] if len(results) == 1 else results
 
-    def generate(self, inputs: Union[str, List[str]], **kwargs) -> List[str]:
-        """Generate text using HuggingFace's text generation pipeline."""
+    def generate(self,
+                 inputs: Union[str, List[str]],
+                 batch_size: int = 10,
+                 **kwargs) -> List[str]:
+        """Generate text using HuggingFace's text generation pipeline.
+        Parameters
+        ----------
+        inputs : Union[str, List[str]]
+            One or several input sequences (or one list of input sequences) to condition the generation on.
+        batch_size : int, optional
+            The batch size to use for generation. Default is 10.
+        **kwargs:
+            Additional keyword arguments to pass to HuggingFace's `generate` method. This can include
+            Returns
+            -------
+            List[str]
+                A list of generated text sequences corresponding to each input sequence."""
         self._ensure_built()
         self.model.eval()
         if not hasattr(self.model, 'generate'):
@@ -663,10 +678,6 @@ class HuggingFaceModel(TorchModel):
         if self.tokenizer.pad_token is None:
             self.tokenizer.pad_token = self.tokenizer.eos_token
             self.model.config.pad_token_id = self.model.config.eos_token_id
-        encoded = self.tokenizer(inputs,
-                                 return_tensors='pt',
-                                 padding=True,
-                                 truncation=True)
         device = self.device
         if torch.cuda.is_available():
             device = torch.device('cuda')
@@ -678,7 +689,18 @@ class HuggingFaceModel(TorchModel):
             self.model.to('cpu')
             device = torch.device('cpu')
         self.model.to(device)
-        encoded = {key: value.to(device) for key, value in encoded.items()}
-        with torch.no_grad():
-            outputs = self.model.generate(**encoded, **kwargs)
-        return self.tokenizer.batch_decode(outputs, skip_special_tokens=True)
+        all_outputs = []
+        length = len(inputs)
+        for i in range(0, length, batch_size):
+            batch_inputs = inputs[i:i + batch_size]
+            encoded = self.tokenizer(batch_inputs,
+                                     return_tensors='pt',
+                                     padding=True,
+                                     truncation=True)
+            encoded = {k: v.to(device) for k, v in encoded.items()}
+            with torch.no_grad():
+                outputs = self.model.generate(**encoded, **kwargs)
+            decoded_outputs = self.tokenizer.batch_decode(
+                outputs, skip_special_tokens=True)
+            all_outputs.extend(decoded_outputs)
+        return all_outputs
