@@ -23,10 +23,29 @@ if TYPE_CHECKING:
 class HuggingFaceModel(TorchModel):
     r"""Wrapper class that wraps HuggingFace models as DeepChem models
 
-    The class provides a wrapper for wrapping models from HuggingFace
-    ecosystem in DeepChem and training it via DeepChem's api. The reason
-    for this might be that you might want to do an apples-to-apples comparison
-    between HuggingFace from the transformers library and DeepChem library.
+    This class provides an interface that allows models from the HuggingFace
+    `transformers` library to be used within the DeepChem training framework.
+    By wrapping a HuggingFace model, users can train, evaluate, and perform
+    inference using DeepChem's unified API while leveraging the powerful
+    architectures available in the HuggingFace ecosystem.
+
+    The wrapper integrates HuggingFace models with DeepChem's `TorchModel`
+    abstraction. Once wrapped, the model can be trained using DeepChem
+    datasets and utilities such as `Dataset`, `Transformer`, and
+    DeepChem's training loops.
+
+    Unlike the standard DeepChem workflow, tokenization is performed
+    dynamically using a HuggingFace tokenizer. This allows the use of
+    optimized tokenization pipelines and enables tasks such as masked
+    language modeling, sequence classification, and regression on
+    molecular SMILES representations.
+
+    Supported Tasks
+    ----------------
+    - ``mlm`` : Masked language modeling used during pretraining.
+    - ``mtr`` : Multitask regression.
+    - ``regression`` : Property prediction tasks.
+    - ``classification`` : Molecular classification tasks.
 
     The `HuggingFaceModel` has a Has-A relationship by wrapping models from
     `transformers` library. Once a model is wrapped, DeepChem's API are used
@@ -275,6 +294,32 @@ class HuggingFaceModel(TorchModel):
                 self.model.load_state_dict(data['model_state_dict'],
                                            strict=False)
 
+    """Prepare a batch for HuggingFace model training.
+
+    This method converts raw dataset batches into tokenized inputs that
+    can be consumed by HuggingFace transformer models. It performs the
+    following steps:
+
+    1. Tokenizes SMILES strings using the provided HuggingFace tokenizer.
+    2. Applies masking if the task is masked language modeling.
+    3. Converts labels to appropriate PyTorch tensor types.
+    4. Moves tensors to the correct device (CPU or GPU).
+
+    Parameters
+    ----------
+    batch: tuple
+        A batch of data consisting of (inputs, labels, weights).
+
+    Returns
+    -------
+    inputs : dict
+        Tokenized inputs formatted for HuggingFace models.
+    labels : torch.Tensor or None
+        Target labels for training.
+    weights : Any
+        Sample weights for the batch.
+    """
+
     def _prepare_batch(self, batch: Tuple[Any, Any, Any]):
         smiles_batch, y, w = batch
         tokens = self.tokenizer(smiles_batch[0].tolist(),
@@ -315,6 +360,12 @@ class HuggingFaceModel(TorchModel):
                       callbacks: Union[Callable, List[Callable]] = [],
                       all_losses: Optional[List[float]] = None) -> float:
         """Train this model on data from a generator.
+
+        This method overrides the default DeepChem training loop to support
+        HuggingFace models. Since HuggingFace models compute their own loss
+        internally during the forward pass, no external loss function is
+        required. The training loop retrieves the loss from the model outputs
+        and performs backpropagation using PyTorch optimizers.
 
         Parameters
         ----------
@@ -568,6 +619,11 @@ class HuggingFaceModel(TorchModel):
                   top_k: int = 5) -> Union[List[Dict], List[List[Dict]]]:
         """Implements the HuggingFace 'fill_mask' pipeline from HuggingFace.
         https://huggingface.co/docs/transformers/main_classes/pipelines
+
+
+        This method replicates the behavior of the HuggingFace `fill-mask`
+        pipeline within the DeepChem framework. It predicts the most likely
+        tokens to replace a masked position in the input sequence.
 
         Takes as input a sequence or list of sequences where each sequence
         containts a single masked position and returns a list of dictionaries per sequence
