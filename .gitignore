@@ -4,6 +4,8 @@ __pycache__/
 *$py.class
 .mypy_cache/
 model-dir/
+.DS_Store
+**/.DS_Store
 
 # C extensions
 *.so
