@@ -35,13 +35,13 @@ class BaseXC(EditableModule):
     Examples
     --------
     >>> import torch
-        >>> from deepchem.utils.dft_utils import ValGrad, SpinParam
-        >>> from deepchem.utils.dft_utils import BaseXC, MulBaseXC
-        >>> class MyXC(BaseXC):
-        ...     @property
-        ...     def family(self) -> str:
-        ...         return XCFamily.LDA
-        ...     def get_edensityxc(self, densinfo: Union[ValGrad, SpinParam[ValGrad]]) -> torch.Tensor:
+    >>> from deepchem.utils.dft_utils import ValGrad, SpinParam
+    >>> from deepchem.utils.dft_utils import BaseXC, MulBaseXC
+    >>> class MyXC(BaseXC):
+    ...     @property
+    ...     def family(self) -> str:
+    ...         return XCFamily.LDA
+    ...     def get_edensityxc(self, densinfo: Union[ValGrad, SpinParam[ValGrad]]) -> torch.Tensor:
     ...         if isinstance(densinfo, ValGrad):
     ...             return densinfo.value.pow(2)
     ...         else:

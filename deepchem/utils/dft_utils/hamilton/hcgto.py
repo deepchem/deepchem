@@ -814,7 +814,8 @@ class HamiltonCGTO(BaseHamilton):
             # basis: (nr, nao)
             vb = potinfo.value[..., ioff:iend].unsqueeze(
                 -1) * basis  # (*BD, nr, nao)
-            if XCFamily.order(self.xcfamily) >= XCFamily.order(XCFamily.GGA):  # GGA or MGGA
+            if XCFamily.order(self.xcfamily) >= XCFamily.order(
+                    XCFamily.GGA):  # GGA or MGGA
                 assert potinfo.grad is not None  # (..., ndim, nr)
                 vgrad = potinfo.grad[..., ioff:iend] * 2
                 grad_basis0 = self.grad_basis[0, ioff:iend, :]  # (nr, nao)
