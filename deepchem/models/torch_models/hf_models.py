@@ -19,6 +19,10 @@ from transformers.models.auto import (AutoModel, AutoModelForCausalLM,
 
 logger = logging.getLogger(__name__)
 
+# Sentinel for optional config parameters where None has a meaning
+# different from "not provided".
+_CONFIG_NOT_PROVIDED = object()
+
 if TYPE_CHECKING:
     import transformers
     from transformers.modeling_utils import PreTrainedModel
@@ -643,9 +647,9 @@ class HuggingFaceModel(TorchModel):
 
 
 class OLMoModel(HuggingFaceModel):
-    """DeepChem wrapper for AllenAI OLMo-7B (decoder-only causal LM).
+    """DeepChem wrapper for AllenAI OLMo-3-7B-Instruct (decoder-only causal LM).
 
-    Wraps ``allenai/OLMo-7B`` (or any compatible OLMo checkpoint) inside
+    Wraps ``allenai/Olmo-3-7B-Instruct`` (or any compatible OLMo checkpoint) inside
     DeepChem's ``HuggingFaceModel`` abstraction.  For the GSoC scope this
     implementation focuses on **inference / generation** only.  The model
     receives one or more SMILES strings (or free-form molecular text) and
@@ -679,8 +683,8 @@ class OLMoModel(HuggingFaceModel):
     Parameters
     ----------
     hf_model_name_or_path : str, optional
-        HuggingFace model id or local path.  Defaults to
-        ``"allenai/OLMo-7B"``.
+        HuggingFace model id or local path for the *standard* loader.
+        Defaults to ``"allenai/Olmo-3-7B-Instruct"``.
     max_length : int, optional
         Maximum number of *new* tokens to generate per prompt.  Default 128.
     generation_kwargs : dict, optional
@@ -696,6 +700,8 @@ class OLMoModel(HuggingFaceModel):
         supply are changed; everything else stays at the defaults defined in
         ``OLMoModel.DEFAULT_UNSLOTH_CONFIG``.  Ignored when
         ``use_unsloth=False``.
+        If explicitly set to ``None``, unsloth is disabled even when
+        ``use_unsloth=True``.
 
         Supported keys and their defaults:
 
@@ -707,6 +713,18 @@ class OLMoModel(HuggingFaceModel):
                 "load_in_4bit": True,     # 4-bit NF4 quantisation
             }
 
+    unsloth_model_name_or_path : str, optional
+        HuggingFace model id or local path for the unsloth loader.  Defaults
+        to ``"unsloth/Olmo-3-7B-Instruct"`` when the standard model id is the
+        class default, otherwise it falls back to ``hf_model_name_or_path``.
+
+    lora_config : dict, optional
+        Default LoRA config used by ``sft()``.  If explicitly set to
+        ``None``, LoRA is disabled by default for this instance.
+
+    sft_config : dict, optional
+        Default SFT training config used by ``sft()``.
+
     **kwargs
         Remaining arguments are forwarded to ``HuggingFaceModel.__init__``
         and ultimately to ``TorchModel``.
@@ -715,7 +733,7 @@ class OLMoModel(HuggingFaceModel):
     --------
     Standard loading (no unsloth):
 
-    >>> model = OLMoModel(hf_model_name_or_path="allenai/OLMo-7B")
+    >>> model = OLMoModel(hf_model_name_or_path="allenai/Olmo-3-7B-Instruct")
     >>> outputs = model.generate(["CC(=O)Oc1ccccc1C(=O)O is a molecule that"])
     >>> print(outputs[0])
 
@@ -741,6 +759,12 @@ class OLMoModel(HuggingFaceModel):
     ...     unsloth_config={"load_in_4bit": False},
     ... )
     """
+
+    # ------------------------------------------------------------------
+    # Default model ids
+    # ------------------------------------------------------------------
+    DEFAULT_HF_MODEL_ID: str = "allenai/Olmo-3-7B-Instruct"
+    DEFAULT_UNSLOTH_MODEL_ID: str = "unsloth/Olmo-3-7B-Instruct"
 
     # ------------------------------------------------------------------
     # Default unsloth configuration
@@ -770,8 +794,8 @@ class OLMoModel(HuggingFaceModel):
     #                            4/8/16/32/64 are common. 16 is a good starting point.
     # lora_alpha               : Scaling factor. Rule of thumb: set equal to r.
     # target_modules           : Which linear layers to attach LoRA to. These names
-    #                            match OLMo-7B's HuggingFace module naming. Override
-    #                            if you use a different OLMo variant.
+    #                            match OLMo-3-7B-Instruct's HuggingFace module
+    #                            naming. Override if you use a different OLMo variant.
     # lora_dropout             : Unsloth recommends 0.0 for speed. Use 0.05–0.1 if
     #                            you notice overfitting on small datasets.
     # bias                     : "none" is standard. "all" trains bias terms too.
@@ -856,37 +880,62 @@ class OLMoModel(HuggingFaceModel):
 
     def __init__(
             self,
-            hf_model_name_or_path: str = "allenai/OLMo-7B",
+            hf_model_name_or_path: str = DEFAULT_HF_MODEL_ID,
             max_length: int = 128,
             generation_kwargs: Optional[Dict] = None,
             use_unsloth: bool = False,
-            unsloth_config: Optional[Dict] = None,
-            lora_config: Optional[Dict] = None,
+            unsloth_config: Optional[Dict] = _CONFIG_NOT_PROVIDED,
+            lora_config: Optional[Dict] = _CONFIG_NOT_PROVIDED,
             sft_config: Optional[Dict] = None,
             trust_remote_code: bool = True,
+            unsloth_model_name_or_path: Optional[str] = None,
             **kwargs):
 
         self.hf_model_name_or_path = hf_model_name_or_path
+        self.unsloth_model_name_or_path = (
+            unsloth_model_name_or_path
+            if unsloth_model_name_or_path is not None else
+            (OLMoModel.DEFAULT_UNSLOTH_MODEL_ID
+             if hf_model_name_or_path == OLMoModel.DEFAULT_HF_MODEL_ID else
+             hf_model_name_or_path)
+        )
         self.max_new_tokens = max_length
         self.generation_kwargs: Dict = generation_kwargs or {}
-        self.use_unsloth: bool = use_unsloth
         self.trust_remote_code: bool = trust_remote_code
 
         # Build the effective unsloth config by layering user overrides on
         # top of the class-level defaults.  A shallow copy is important here
         # so that per-instance changes do not mutate DEFAULT_UNSLOTH_CONFIG.
-        self.unsloth_config: Dict = {
-            **OLMoModel.DEFAULT_UNSLOTH_CONFIG,
-            **(unsloth_config or {}),
-        }
+        # If the user explicitly passes unsloth_config=None, unsloth is disabled.
+        unsloth_config_disabled = unsloth_config is None
+        if unsloth_config is _CONFIG_NOT_PROVIDED or unsloth_config_disabled:
+            self.unsloth_config: Dict = {
+                **OLMoModel.DEFAULT_UNSLOTH_CONFIG,
+            }
+        else:
+            self.unsloth_config = {
+                **OLMoModel.DEFAULT_UNSLOTH_CONFIG,
+                **unsloth_config,
+            }
 
-        # Effective LoRA config — user overrides class defaults.
+        self.use_unsloth: bool = bool(use_unsloth and
+                                      not unsloth_config_disabled)
+
+        # Effective LoRA config - user overrides class defaults.
         # Stored at construction time so sft() can use it without requiring
-        # the user to repeat the same dict on every call.
-        self.lora_config: Dict = {
-            **OLMoModel.DEFAULT_LORA_CONFIG,
-            **(lora_config or {}),
-        }
+        # the user to repeat the same dict on every call. If explicitly
+        # passed as None, LoRA is disabled by default for this instance.
+        if lora_config is _CONFIG_NOT_PROVIDED:
+            self.lora_config: Optional[Dict] = {
+                **OLMoModel.DEFAULT_LORA_CONFIG,
+            }
+        elif lora_config is None:
+            self.lora_config = None
+        else:
+            self.lora_config = {
+                **OLMoModel.DEFAULT_LORA_CONFIG,
+                **lora_config,
+            }
 
         # Effective SFT training config — same pattern.
         self.sft_config: Dict = {
@@ -894,10 +943,11 @@ class OLMoModel(HuggingFaceModel):
             **(sft_config or {}),
         }
 
-        if use_unsloth:
-            olmo, tokenizer = self._load_with_unsloth(hf_model_name_or_path)
+        if self.use_unsloth:
+            olmo, tokenizer = self._load_with_unsloth(
+                self.unsloth_model_name_or_path)
         else:
-            olmo, tokenizer = self._load_standard(hf_model_name_or_path)
+            olmo, tokenizer = self._load_standard(self.hf_model_name_or_path)
 
         # OLMo has no pad token by default (decoder-only).
         # Reuse EOS as padding so the batch collation works correctly.
@@ -1013,7 +1063,8 @@ class OLMoModel(HuggingFaceModel):
         ----------
         model_dir : str, optional
             Path or HF hub id.  Falls back to ``self.hf_model_name_or_path``
-            when not provided.
+            for the standard loader, or ``self.unsloth_model_name_or_path``
+            when unsloth is enabled.
         from_hf_checkpoint : bool
             When ``True``, reload from a HuggingFace checkpoint using either
             the standard or unsloth loader depending on ``self.use_unsloth``.
@@ -1021,12 +1072,13 @@ class OLMoModel(HuggingFaceModel):
             (same behaviour as the parent, unsloth has no effect here).
         """
         if from_hf_checkpoint:
-            path = model_dir or self.hf_model_name_or_path
             if self.use_unsloth:
+                path = model_dir or self.unsloth_model_name_or_path
                 # Re-use the same helper that __init__ calls so the
                 # effective unsloth_config is applied consistently.
                 self.model, self.tokenizer = self._load_with_unsloth(path)
             else:
+                path = model_dir or self.hf_model_name_or_path
                 self.model = AutoModelForCausalLM.from_pretrained(
                     path,
                     trust_remote_code=self.trust_remote_code,
@@ -1312,7 +1364,7 @@ class OLMoModel(HuggingFaceModel):
     def sft(
             self,
             dataset,
-            lora_config: Optional[Dict] = None,
+            lora_config: Optional[Dict] = _CONFIG_NOT_PROVIDED,
             sft_config: Optional[Dict] = None,
             formatting_func: Optional[Callable] = None,
             resume_from_checkpoint: Optional[Union[str, bool]] = None,
@@ -1349,6 +1401,9 @@ class OLMoModel(HuggingFaceModel):
         lora_config : dict, optional
             Per-call overrides for LoRA configuration.  Merged on top of
             ``self.lora_config`` (which itself overrides class defaults).
+            If explicitly set to ``None``, LoRA is disabled for this call.
+            If both the instance and call-level configs are ``None``, no
+            adapters are applied and the full model is fine-tuned.
 
             Full list of supported keys (with defaults from
             ``DEFAULT_LORA_CONFIG``):
@@ -1516,12 +1571,18 @@ class OLMoModel(HuggingFaceModel):
         # ------------------------------------------------------------------
         # Step 1 — Resolve the three effective configs (precedence chain).
         # ------------------------------------------------------------------
-        # LoRA: class defaults → instance (set in __init__) → call overrides
-        effective_lora: Dict = {
-            **OLMoModel.DEFAULT_LORA_CONFIG,
-            **self.lora_config,
-            **(lora_config or {}),
-        }
+        # LoRA: class defaults -> instance (set in __init__) -> call overrides
+        effective_lora: Optional[Dict]
+        if lora_config is None:
+            effective_lora = None
+        elif lora_config is _CONFIG_NOT_PROVIDED:
+            effective_lora = self.lora_config
+        else:
+            effective_lora = {
+                **OLMoModel.DEFAULT_LORA_CONFIG,
+                **(self.lora_config or {}),
+                **lora_config,
+            }
 
         # SFT: class defaults → instance → call overrides
         effective_sft: Dict = {
@@ -1541,15 +1602,18 @@ class OLMoModel(HuggingFaceModel):
         max_seq_length: int = sft_only.get("max_seq_length", 512)
         packing: bool = sft_only.get("packing", True)
 
-        logger.info("Effective LoRA config: %s", effective_lora)
+        if effective_lora is None:
+            logger.info("LoRA disabled (no config provided).")
+        else:
+            logger.info("Effective LoRA config: %s", effective_lora)
         logger.info("Effective SFT training config: %s", effective_sft)
 
         # ------------------------------------------------------------------
-        # Step 2 — Apply LoRA adapters to the frozen backbone.
+        # Step 2 — Apply LoRA adapters to the frozen backbone (if enabled).
         # ------------------------------------------------------------------
-        self._apply_lora_adapters(effective_lora)
+        if effective_lora is not None:
+            self._apply_lora_adapters(effective_lora)
 
-        # ------------------------------------------------------------------
         # Step 3 — Convert dataset to HuggingFace format.
         # ------------------------------------------------------------------
         hf_dataset = self._dc_dataset_to_hf(

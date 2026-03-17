@@ -289,7 +289,8 @@ _dc_stub, _optim_stub, _tm_stub, FakeTorchModel = _make_deepchem_stub()
 # ── now load the module under test ────────────────────────────────────────────
 import importlib.util, pathlib
 
-_FINAL_PATH = pathlib.Path("/mnt/user-data/uploads/hf_models_final.py")
+_FINAL_PATH = (pathlib.Path(__file__).resolve().parent / "deepchem" / "models" /
+               "torch_models" / "hf_models.py")
 _spec = importlib.util.spec_from_file_location("hf_models_final", _FINAL_PATH)
 _mod  = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(_mod)
@@ -668,7 +669,7 @@ class TestOLMoModelInit(unittest.TestCase):
 
     def test_default_hf_model_name(self):
         o = self._build_olmo()
-        self.assertEqual(o.hf_model_name_or_path, "allenai/OLMo-7B")
+        self.assertEqual(o.hf_model_name_or_path, "allenai/Olmo-3-7B-Instruct")
 
     def test_custom_hf_model_name(self):
         o = self._build_olmo(hf_model_name_or_path="allenai/OLMo-1B")
@@ -770,14 +771,14 @@ class TestOLMoModelLoadStandard(unittest.TestCase):
         fake_model = MagicMock()
         with patch.object(OLMoModel, "_load_with_unsloth", return_value=(fake_model, tok)) as fu:
             o = OLMoModel(use_unsloth=True)
-            fu.assert_called_once_with("allenai/OLMo-7B")
+            fu.assert_called_once_with("unsloth/Olmo-3-7B-Instruct")
 
     def test_use_unsloth_false_calls_load_standard(self):
         tok = MagicMock(pad_token=None, eos_token="<eos>")
         fake_model = MagicMock()
         with patch.object(OLMoModel, "_load_standard", return_value=(fake_model, tok)) as fs:
             o = OLMoModel(use_unsloth=False)
-            fs.assert_called_once_with("allenai/OLMo-7B")
+            fs.assert_called_once_with("allenai/Olmo-3-7B-Instruct")
 
 
 class TestOLMoModelLoadFromPretrained(unittest.TestCase):
@@ -807,12 +808,12 @@ class TestOLMoModelLoadFromPretrained(unittest.TestCase):
     def test_from_hf_checkpoint_uses_hf_model_name_when_model_dir_none(self):
         o = self._build_olmo()
         o.use_unsloth = False
-        o.hf_model_name_or_path = "allenai/OLMo-7B"
+        o.hf_model_name_or_path = "allenai/Olmo-3-7B-Instruct"
         auto_causal = sys.modules["transformers.models.auto"].AutoModelForCausalLM
         with patch.object(auto_causal, "from_pretrained", return_value=_make_model()) as fp:
             o.load_from_pretrained(from_hf_checkpoint=True)
             args, _ = fp.call_args
-            self.assertEqual(args[0], "allenai/OLMo-7B")
+            self.assertEqual(args[0], "allenai/Olmo-3-7B-Instruct")
 
     def test_from_dc_checkpoint_delegates_to_parent(self):
         """from_hf_checkpoint=False should call parent's logic."""
@@ -1207,6 +1208,7 @@ class TestMethodSignatures(unittest.TestCase):
         self.assertIn("generation_kwargs", params)
         self.assertIn("use_unsloth", params)
         self.assertIn("unsloth_config", params)
+        self.assertIn("unsloth_model_name_or_path", params)
         self.assertIn("lora_config", params)
         self.assertIn("sft_config", params)
 
