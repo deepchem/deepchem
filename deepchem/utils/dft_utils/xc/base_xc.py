@@ -6,6 +6,23 @@ from typing import Any, List, Union, Iterator
 from deepchem.utils.dft_utils import ValGrad, SpinParam
 
 
+class XCFamily:
+    LDA = "LDA"
+    GGA = "GGA"
+    MGGA = "MGGA"
+
+    _ORDER = {LDA: 1, GGA: 2, MGGA: 3}
+    _TO_LIBXC = {LDA: 1, GGA: 2, MGGA: 4}
+
+    @staticmethod
+    def order(family: str) -> int:
+        return XCFamily._ORDER.get(family, 0)
+
+    @staticmethod
+    def to_libxc(family: str) -> int:
+        return XCFamily._TO_LIBXC.get(family, 0)
+
+
 class BaseXC(EditableModule):
     """
     This is the base class for the exchange-correlation (XC) functional.
@@ -18,13 +35,13 @@ class BaseXC(EditableModule):
     Examples
     --------
     >>> import torch
-    >>> from deepchem.utils.dft_utils import ValGrad, SpinParam
-    >>> from deepchem.utils.dft_utils import BaseXC
-    >>> class MyXC(BaseXC):
-    ...     @property
-    ...     def family(self) -> int:
-    ...         return 1
-    ...     def get_edensityxc(self, densinfo: Union[ValGrad, SpinParam[ValGrad]]) -> torch.Tensor:
+        >>> from deepchem.utils.dft_utils import ValGrad, SpinParam
+        >>> from deepchem.utils.dft_utils import BaseXC, MulBaseXC
+        >>> class MyXC(BaseXC):
+        ...     @property
+        ...     def family(self) -> str:
+        ...         return XCFamily.LDA
+        ...     def get_edensityxc(self, densinfo: Union[ValGrad, SpinParam[ValGrad]]) -> torch.Tensor:
     ...         if isinstance(densinfo, ValGrad):
     ...             return densinfo.value.pow(2)
     ...         else:
@@ -51,8 +68,8 @@ class BaseXC(EditableModule):
     """
 
     @abstractproperty
-    def family(self) -> int:
-        """Returns 1 for LDA, 2 for GGA, and 4 for Meta-GGA."""
+    def family(self) -> str:
+        """Returns the XC family: LDA, GGA, or MGGA."""
         pass
 
     @abstractmethod
@@ -121,7 +138,7 @@ class BaseXC(EditableModule):
             grad_enabled = torch.is_grad_enabled()
 
             if not isinstance(densinfo, ValGrad):  # polarized case
-                if self.family == 1:  # LDA
+                if self.family == XCFamily.LDA:
                     params = (densinfo.u.value, densinfo.d.value)
                     dedn_u, dedn_d = torch.autograd.grad(
                         edensity,
@@ -132,7 +149,7 @@ class BaseXC(EditableModule):
                     return SpinParam(u=ValGrad(value=dedn_u),
                                      d=ValGrad(value=dedn_d))
 
-                elif self.family == 2:  # GGA
+                elif self.family == XCFamily.GGA:
                     params = (
                         densinfo.u.value,
                         densinfo.d.value,  # type: ignore[assignment]
@@ -147,7 +164,7 @@ class BaseXC(EditableModule):
                     return SpinParam(u=ValGrad(value=dedn_u, grad=dedg_u),
                                      d=ValGrad(value=dedn_d, grad=dedg_d))
 
-                elif self.family == 4:
+                elif self.family == XCFamily.MGGA:
                     params = (
                         densinfo.u.value,
                         densinfo.d.value,  # type: ignore[assignment]
@@ -189,7 +206,7 @@ class BaseXC(EditableModule):
                         % self.family)
 
             else:  # unpolarized case
-                if self.family == 1:  # LDA
+                if self.family == XCFamily.LDA:
                     dedn, = torch.autograd.grad(edensity,
                                                 densinfo.value,
                                                 create_graph=grad_enabled,
@@ -197,7 +214,7 @@ class BaseXC(EditableModule):
 
                     return ValGrad(value=dedn)
 
-                elif self.family == 2:  # GGA
+                elif self.family == XCFamily.GGA:
                     assert densinfo.grad is not None
                     dedn, dedg = torch.autograd.grad(
                         edensity, [densinfo.value, densinfo.grad],
@@ -206,7 +223,7 @@ class BaseXC(EditableModule):
 
                     return ValGrad(value=dedn, grad=dedg)
 
-                elif self.family == 4:  # MGGA
+                elif self.family == XCFamily.MGGA:
                     assert densinfo.grad is not None
                     assert densinfo.lapl is not None
                     assert densinfo.kin is not None
@@ -300,11 +317,11 @@ class BaseXC(EditableModule):
         # getting which parameters should require grad
         if not isinstance(densinfo, ValGrad):  # a spinparam
             params = [densinfo.u.value, densinfo.d.value]
-            if self.family >= 2:  # GGA
+            if XCFamily.order(self.family) >= XCFamily.order(XCFamily.GGA):
                 assert densinfo.u.grad is not None
                 assert densinfo.d.grad is not None
                 params.extend([densinfo.u.grad, densinfo.d.grad])
-            if self.family >= 3:  # MGGA
+            if XCFamily.order(self.family) >= XCFamily.order(XCFamily.MGGA):
                 assert densinfo.u.lapl is not None
                 assert densinfo.d.lapl is not None
                 assert densinfo.u.kin is not None
@@ -315,10 +332,10 @@ class BaseXC(EditableModule):
                 ])
         else:
             params = [densinfo.value]
-            if self.family >= 2:
+            if XCFamily.order(self.family) >= XCFamily.order(XCFamily.GGA):
                 assert densinfo.grad is not None
                 params.append(densinfo.grad)
-            if self.family >= 3:
+            if XCFamily.order(self.family) >= XCFamily.order(XCFamily.MGGA):
                 assert densinfo.lapl is not None
                 assert densinfo.kin is not None
                 params.extend([densinfo.lapl, densinfo.kin])
@@ -341,8 +358,8 @@ class BaseXC(EditableModule):
         >>> from deepchem.utils.dft_utils import BaseXC, AddBaseXC
         >>> class MyXC(BaseXC):
         ...     @property
-        ...     def family(self) -> int:
-        ...         return 1
+        ...     def family(self) -> str:
+        ...         return XCFamily.LDA
         ...     def get_edensityxc(self, densinfo: Union[ValGrad, SpinParam[ValGrad]]) -> torch.Tensor:
         ...         if isinstance(densinfo, ValGrad):
         ...             return densinfo.value.pow(2)
@@ -400,8 +417,8 @@ class BaseXC(EditableModule):
         >>> from deepchem.utils.dft_utils import BaseXC, MulBaseXC
         >>> class MyXC(BaseXC):
         ...     @property
-        ...     def family(self) -> int:
-        ...         return 1
+        ...     def family(self) -> str:
+        ...         return XCFamily.LDA
         ...     def get_edensityxc(self, densinfo: Union[ValGrad, SpinParam[ValGrad]]) -> torch.Tensor:
         ...         if isinstance(densinfo, ValGrad):
         ...             return densinfo.value.pow(2)
@@ -465,8 +482,8 @@ class BaseXC(EditableModule):
         >>> from deepchem.utils.dft_utils import BaseXC, MulBaseXC
         >>> class MyXC(BaseXC):
         ...     @property
-        ...     def family(self) -> int:
-        ...         return 1
+        ...     def family(self) -> str:
+        ...         return XCFamily.LDA
         ...     def get_edensityxc(self, densinfo: Union[ValGrad, SpinParam[ValGrad]]) -> torch.Tensor:
         ...         if isinstance(densinfo, ValGrad):
         ...             return densinfo.value.pow(2)
@@ -525,8 +542,8 @@ class AddBaseXC(BaseXC):
     >>> from deepchem.utils.dft_utils import BaseXC, AddBaseXC
     >>> class MyXC(BaseXC):
     ...     @property
-    ...     def family(self) -> int:
-    ...         return 1
+    ...     def family(self) -> str:
+    ...         return XCFamily.LDA
     ...     def get_edensityxc(self, densinfo: Union[ValGrad, SpinParam[ValGrad]]) -> torch.Tensor:
     ...         if isinstance(densinfo, ValGrad):
     ...             return densinfo.value.pow(2)
@@ -576,11 +593,16 @@ class AddBaseXC(BaseXC):
         """
         self.a = a
         self.b = b
-        self._family = max(a.family, b.family)
+        family_a = XCFamily.order(a.family)
+        family_b = XCFamily.order(b.family)
+        if family_a >= family_b:
+            self._family = a.family
+        else:
+            self._family = b.family
 
     @property
     def family(self):
-        """Returns 1 for LDA, 2 for GGA, and 4 for Meta-GGA."""
+        """Returns the XC family: LDA, GGA, or MGGA."""
         return self._family
 
     def get_vxc(
@@ -672,14 +694,14 @@ class MulBaseXC(BaseXC):
 
     Examples
     --------
-    >>> import torch
-    >>> from deepchem.utils.dft_utils import ValGrad, SpinParam
-    >>> from deepchem.utils.dft_utils import BaseXC, MulBaseXC
-    >>> class MyXC(BaseXC):
-    ...     @property
-    ...     def family(self) -> int:
-    ...         return 1
-    ...     def get_edensityxc(self, densinfo: Union[ValGrad, SpinParam[ValGrad]]) -> torch.Tensor:
+        >>> import torch
+        >>> from deepchem.utils.dft_utils import ValGrad, SpinParam
+        >>> from deepchem.utils.dft_utils import BaseXC, MulBaseXC
+        >>> class MyXC(BaseXC):
+        ...     @property
+        ...     def family(self) -> str:
+        ...         return XCFamily.LDA
+        ...     def get_edensityxc(self, densinfo: Union[ValGrad, SpinParam[ValGrad]]) -> torch.Tensor:
     ...         if isinstance(densinfo, ValGrad):
     ...             return densinfo.value.pow(2)
     ...         else:

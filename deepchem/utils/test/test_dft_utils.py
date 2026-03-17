@@ -160,12 +160,13 @@ def test_base_xc():
     """Test BaseXC."""
     from deepchem.utils.dft_utils import ValGrad, SpinParam
     from deepchem.utils.dft_utils import BaseXC
+    from deepchem.utils.dft_utils.xc.base_xc import XCFamily
 
     class MyXC(BaseXC):
 
         @property
         def family(self) -> int:
-            return 1
+            return XCFamily.LDA
 
         def get_edensityxc(
                 self, densinfo: Union[ValGrad,
@@ -204,13 +205,14 @@ def test_base_xc():
 def test_addbase_xc():
     """Test AddBaseXC."""
     from deepchem.utils.dft_utils import ValGrad, SpinParam
-    from deepchem.utils.dft_utils import BaseXC, AddBaseXC
+    from deepchem.utils.dft_utils import BaseXC
+    from deepchem.utils.dft_utils.xc.base_xc import XCFamily, AddBaseXC
 
     class MyXC(BaseXC):
 
         @property
-        def family(self) -> int:
-            return 1
+        def family(self) -> str:
+            return XCFamily.LDA
 
         def get_edensityxc(
                 self, densinfo: Union[ValGrad,
@@ -265,13 +267,14 @@ def test_addbase_xc():
 def test_mulbase_xc():
     """Test AddBaseXC."""
     from deepchem.utils.dft_utils import ValGrad, SpinParam
-    from deepchem.utils.dft_utils import BaseXC, MulBaseXC
+    from deepchem.utils.dft_utils import BaseXC
+    from deepchem.utils.dft_utils.xc.base_xc import XCFamily, MulBaseXC
 
     class MyXC(BaseXC):
 
         @property
-        def family(self) -> int:
-            return 1
+        def family(self) -> str:
+            return XCFamily.LDA
 
         def get_edensityxc(
                 self, densinfo: Union[ValGrad,

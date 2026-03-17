@@ -1,6 +1,6 @@
 import torch
 from typing import Union, List
-from deepchem.utils.dft_utils.xc.base_xc import BaseXC
+from deepchem.utils.dft_utils.xc.base_xc import BaseXC, XCFamily
 from deepchem.utils.dft_utils.data.datastruct import ValGrad, SpinParam
 from deepchem.utils import safepow
 
@@ -57,15 +57,15 @@ class PyTorchLDA(BaseXC):
         self.functional = getattr(self, self.name)
 
     @property
-    def family(self) -> int:
-        """Returns the family identifier number of the XC.
+    def family(self) -> str:
+        """Returns the family name of the XC.
 
         Returns
         -------
-        int
-            It returns 1 for LDA based on BaseXC.
+        str
+            It returns "LDA" for LDA based on BaseXC.
         """
-        return 1
+        return XCFamily.LDA
 
     def lda_x(self, n: torch.Tensor) -> torch.Tensor:
         """Calculates the LDA_X exchange energy density based on [1].

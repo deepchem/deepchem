@@ -3,6 +3,7 @@ from typing import Union, List
 import torch
 
 from deepchem.utils.dft_utils import SpinParam, get_xc, ValGrad, BaseXC
+from deepchem.utils.dft_utils.xc.base_xc import XCFamily
 from deepchem.utils import safenorm, safepow
 
 
@@ -119,16 +120,16 @@ class NNLDA(BaseNNXC):
         self.nnmodel = nnmodel
 
     @property
-    def family(self) -> int:
+    def family(self) -> str:
         """Return the XC family type for LDA.
 
         Returns
         -------
-        int
-            Family type 1 for LDA functional.
+        str
+            Family type "LDA" for LDA functional.
 
         """
-        return 1
+        return XCFamily.LDA
 
     def get_edensityxc(
             self, densinfo: Union[ValGrad, SpinParam[ValGrad]]) -> torch.Tensor:
@@ -221,15 +222,15 @@ class NNPBE(BaseNNXC):
         self.nnmodel = nnmodel
 
     @property
-    def family(self) -> int:
+    def family(self) -> str:
         """Return the XC family type for GGA.
 
         Returns
         -------
-        int
-            Family type 2 for GGA functional.
+        str
+            Family type "GGA" for GGA functional.
         """
-        return 2
+        return XCFamily.GGA
 
     def get_edensityxc(
             self, densinfo: Union[ValGrad, SpinParam[ValGrad]]) -> torch.Tensor:
@@ -346,7 +347,7 @@ class HybridXC(BaseNNXC):
         self.weight_activation = torch.nn.Identity()
 
     @property
-    def family(self) -> int:
+    def family(self) -> str:
         """
         This method determines the type of model to be used, to train the
         neural network. Currently we only support an LDA based model and will
