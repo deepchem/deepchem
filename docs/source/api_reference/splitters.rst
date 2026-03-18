@@ -74,6 +74,16 @@ TaskSplitter
   :members:
   :inherited-members:
 
+Time-based Splitting
+^^^^^^^^^^^^^^^^^^^^
+Time-based Splitting is a technique used to divide datasets according to their chronological order.
+
+In this method, the earlier data points are used for the training of the model, while the later data points are reserved for validation and testing. 
+This allows the model to be evaluated on data that occurs later in time, simulating real-world scenarios where predictions are made on future data.
+
+By maintaining the chronological order of the dataset, time-based splitting helps avoid data leakage, since information from future data points  is not used during training.
+
+This technique is especially useful for time-dependent datasets and is pivotal for  reproducing benchmark results such as those in MoleculeNet.
 
 Molecule Splitters
 ------------------
