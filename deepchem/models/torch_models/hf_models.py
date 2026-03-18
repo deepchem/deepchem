@@ -687,25 +687,42 @@ class HuggingFaceModel(TorchModel):
                 A list of generated text sequences corresponding to each input sequence."""
         self._ensure_built()
         self.model.eval()
+
         if not hasattr(self.model, 'generate'):
             raise ValueError(
                 "This HuggingFace model doesn't support text generation.")
+
         if isinstance(inputs, str):
             inputs = [inputs]
+
+        elif not isinstance(inputs, list):
+            raise ValueError("Inputs should be a string or a list of strings.")
+
+        if len(inputs) == 0:
+            return []
+
         if self.tokenizer.pad_token is None:
             self.tokenizer.pad_token = self.tokenizer.eos_token
             self.model.config.pad_token_id = self.model.config.eos_token_id
+
+        if hasattr(self.tokenizer, "padding_side"):
+            self.tokenizer.padding_side = "left"
         device = self.device
-        if torch.cuda.is_available():
-            device = torch.device('cuda')
-        elif device.type == 'mps':
+
+        if device.type == 'cuda' and not torch.cuda.is_available():
+            logger.warning(
+                "CUDA is not available. Moving model and inputs to CPU for generation."
+            )
+            device = torch.device('cpu')
+        if device.type == 'mps':
             # HuggingFace's generate method does not currently support MPS. Move model and inputs to CPU.
             logger.warning(
                 "HuggingFace's generate method does not currently support MPS. Moving model and inputs to CPU for generation."
             )
-            self.model.to('cpu')
             device = torch.device('cpu')
-        self.model.to(device)
+        if next(self.model.parameters()).device != device:
+            self.model.to(device)
+
         all_outputs = []
         length = len(inputs)
         for i in range(0, length, batch_size):
