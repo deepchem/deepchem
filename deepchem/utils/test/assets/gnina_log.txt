@@ -1,0 +1,25 @@
+              _             
+             (_)            
+   __ _ _ __  _ _ __   __ _ 
+  / _` | '_ \| | '_ \ / _` |
+ | (_| | | | | | | | | (_| |
+  \__, |_| |_|_|_| |_|\__,_|
+   __/ |                    
+  |___/                     
+
+gnina  master:b4a640e   Built Jan 28 2021.
+gnina is based on smina and AutoDock Vina.
+Please cite appropriately.
+
+WARNING: No GPU detected. CNN scoring will be slow.
+Recommend running with single model (--cnn crossdock_default2018)
+or without cnn scoring (--cnn_scoring=none).
+
+Commandline: /tmp/gnina --autobox_ligand 10gs_rec.pdb --config conf.txt --out docked.pdbqt --log log.txt
+Using random seed: 2128721554
+
+mode |  affinity  |    CNN     |   CNN
+     | (kcal/mol) | pose score | affinity
+-----+------------+------------+----------
+    1       -4.37       0.6392      4.336
+    2       -3.56       0.6202      4.162

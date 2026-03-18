@@ -1,0 +1,11 @@
+task,smiles
+0,OCC3OC(OCC2OC(OC(C#N)c1ccccc1)C(O)C(O)C2O)C(O)C(O)C3O 
+0,Cc1occc1C(=O)Nc2ccccc2
+0,CCCCCCCCCCC
+0,c1ccc2c(c1)ccc3c2ccc4c5ccccc5ccc43
+0,CCCCCCCCCCCC
+1,CCCCCCCCCCCCC
+0,Clc1cc(Cl)c(c(Cl)c1)c2c(Cl)cccc2Cl
+0,C1CCNCC1
+0,ClC4=C(Cl)C5(Cl)C3C1CC(C2OC12)C3C4(Cl)C5(Cl)Cl
+1,COc5cc4OCC3Oc2c1CC(Oc1ccc2C(=O)C3c4cc5OC)C(C)=C 

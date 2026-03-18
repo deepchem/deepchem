@@ -1,0 +1,14 @@
+- e_type: ae
+  true_val: 0.237898
+  systems: [{
+      'moldesc': 'Be 0 0 0; H -2.5065 0 0; H 2.5065 0 0',
+      'basis': '6-311++G(3df,3pd)'
+   }, { 
+      'moldesc': 'H 0 0 0',
+      'basis': '6-311++G(3df,3pd)',
+      'spin': '1',
+      'number' : '2'
+ }, { 
+      'moldesc': 'Be 0 0 0',
+      'basis': '6-311++G(3df,3pd)'
+}]

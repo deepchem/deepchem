@@ -1,0 +1,151 @@
+name: Test for DeepChem Torch
+on:
+  push: # ci work when pushing master branch
+    branches:
+      - master
+  pull_request: # ci work when creating a PR to master branch
+    branches:
+      - master
+jobs:
+  torch-build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        python-version: ['3.8', '3.10', '3.11']
+        include:
+          - os: windows-latest
+            python-version: 3.9
+    steps:
+    - uses: actions/checkout@v4
+    - name: Cache pip modules for Linux
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('requirements/torch/**') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Build DeepChem
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e '.[torch]'
+    - name: Import checking
+      run: python -c "import deepchem; import torch;"
+
+  torch-tests:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        python-version: ['3.8', '3.10', '3.11']
+        include:
+          - os: windows-latest
+            python-version: '3.9'
+    env:
+      OS: ${{ matrix.os }}
+      PYTHON_VERSION: ${{ matrix.python-version }}
+    steps:
+    - name: Maximize build space
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        sudo rm -rf /usr/share/dotnet
+        sudo rm -rf /opt/ghc
+        sudo rm -rf "/usr/local/share/boost"
+        sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+        sudo rm -rf /usr/local/lib/android
+        sudo docker image prune --all --force
+        sudo rm -rf /opt/hostedtoolcache/CodeQL
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    # https://github.com/galaxyproject/tools-iuc/blob/master/.github/workflows/pr.yaml
+    # The range of commits to check for changes is:
+    # - for events on the master branch we compare against the sha before the event
+    #   (note that this does not work for feature branch events since we want all
+    #   commits on the feature branch and not just the commits of the last event)
+    # - for pull requests we compare against the 1st ancestor, given the current
+    #   HEAD is the merge between the PR branch and the base branch
+    - name: Set commit range (push to the master branch, e.g. merge)
+      if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+      run: echo "COMMIT_RANGE=${{ github.event.before }}.." >> $GITHUB_ENV
+    - name: Set commit range (pull request)
+      if: github.event_name == 'pull_request'
+      run: |
+        git fetch origin master
+        echo "COMMIT_RANGE=origin/master..." >> $GITHUB_ENV
+    - name: Cache pip packages for Linux
+      if: runner.os == 'Linux'
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('requirements/torch/**') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+    - name: Cache pip packages for MacOS
+      if: runner.os == 'macOS'
+      uses: actions/cache@v4
+      with:
+        path: ~/Library/Caches/pip
+        key: ${{ matrix.os }}-pip-${{ hashFiles('requirements/torch/**') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+    - name: Cache pip packages for Windows
+      if: runner.os == 'Windows'
+      uses: actions/cache@v4
+      with:
+        path: ~\AppData\Local\pip\Cache
+        key: ${{ matrix.os }}-pip-${{ hashFiles('requirements/torch/**') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Create env.yml for python 3.9+
+      shell: bash
+      if: ${{ matrix.python-version != '3.8' }}
+      run: |
+        python -m pip install --upgrade pip;
+        pip install conda-merge;
+        if [ "$(uname)" == 'Linux' ]; then
+          sudo apt-get update
+          sudo apt-get install -y libopenblas-dev libatlas-base-dev libblas-dev liblapack-dev libhdf5-dev
+          conda-merge requirements/env_common.yml requirements/torch/env_torch.cpu.yml requirements/env_test.yml > env.yml
+        elif [[  "$(uname)" == "MINGW64_NT"* ]]; then
+          conda-merge requirements/env_common.yml requirements/torch/env_torch.win.cpu.yml requirements/env_test.yml > env.yml
+        fi
+    - name: Create env.yml for python 3.8
+      shell: bash
+      # A special case of environment creation for python 3.8 which includes an older version of matminer 
+      if: ${{ matrix.python-version == '3.8' }}
+      run: |
+        python -m pip install --upgrade pip;
+        pip install conda-merge;
+        if [ "$(uname)" == 'Linux' ]; then
+          sudo apt-get update
+          sudo apt-get install -y libopenblas-dev libatlas-base-dev libblas-dev liblapack-dev libhdf5-dev
+        fi;
+        conda-merge requirements/env_common_3_8.yml requirements/torch/env_torch.cpu.yml requirements/env_test.yml > env.yml
+    - name: Install all dependencies
+      uses: conda-incubator/setup-miniconda@v3
+      with:
+        miniconda-version: "latest"
+        auto-update-conda: true
+        activate-environment: deepchem
+        channels: conda-forge,defaults
+        python-version: ${{ matrix.python-version }}
+        environment-file: env.yml
+    - name: Install DeepChem
+      id: install
+      shell: bash -l {0}
+      run: pip install -e .
+    - name: PyTest
+      if: ${{ (success() || failure()) && (steps.install.outcome == 'failure' || steps.install.outcome == 'success') }}
+      shell: bash -l {0}
+      run: pytest -v -m 'torch' deepchem

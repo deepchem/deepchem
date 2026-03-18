@@ -1,0 +1,11 @@
+user-specified2,split,user-specified1,Compound ID,log-solubility,smiles
+1,train,1,Amigdalin,-0.9740000000000001,OCC3OC(OCC2OC(OC(C#N)c1ccccc1)C(O)C(O)C2O)C(O)C(O)C3O 
+0,train,0,Fenfuram,-2.885,Cc1occc1C(=O)Nc2ccccc2
+1,train,1,citral,-2.5789999999999997,CC(C)=CCCC(C)=CC(=O)
+0,train,0,Picene,-6.617999999999999,c1ccc2c(c1)ccc3c2ccc4c5ccccc5ccc43
+1,train,1,Thiophene,-2.2319999999999998,c1ccsc1
+0,train,0,benzothiazole,-2.733,c2ccc1scnc1c2 
+1,valid,1,"2,2,4,6,6'-PCB",-6.545,Clc1cc(Cl)c(c(Cl)c1)c2c(Cl)cccc2Cl
+0,valid,0,Estradiol,-4.138,CC12CCC3C(CCc4cc(O)ccc34)C2CCC1O
+1,test,1,Dieldrin,-4.533,ClC4=C(Cl)C5(Cl)C3C1CC(C2OC12)C3C4(Cl)C5(Cl)Cl
+0,test,1,Rotenone,-5.246,COc5cc4OCC3Oc2c1CC(Oc1ccc2C(=O)C3c4cc5OC)C(C)=C 

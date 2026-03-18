@@ -1,0 +1,21 @@
+- e_type : 'ae'
+  true_val : '0.09194410469'
+  systems : [{
+        'moldesc': 'Li 1.5070 0 0; H -1.5070 0 0',
+        'basis': '6-311++G(3df,3pd)'
+    }, {
+        'moldesc': 'Li 0 0 0',
+        'basis': '6-311++G(3df,3pd)',
+        'spin': 1
+    }, {
+        'moldesc': 'H 0 0 0',
+        'basis': '6-311++G(3df,3pd)',
+        'spin': 1
+    }]
+  weight : 1340 
+- e_type : 'dm'
+  true_val : 'deepchem/feat/tests/data/dftHF_output.npy'
+  systems : [{
+        'moldesc': 'H 0.86625 0 0; F -0.86625 0 0',
+        'basis': '6-311++G(3df,3pd)'
+     }]

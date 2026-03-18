@@ -1,0 +1,21 @@
+Title,File Name
+The Basic Tools of the Deep Life Sciences,The_Basic_Tools_of_the_Deep_Life_Sciences.ipynb
+Working With Datasets,Working_With_Datasets.ipynb
+An Introduction to MoleculeNet,An_Introduction_To_MoleculeNet.ipynb
+Molecular Fingerprints,Molecular_Fingerprints.ipynb
+Creating Models with Tensorflow and Pytorch,Creating_Models_with_TensorFlow_and_PyTorch.ipynb
+Introduction to Graph Convolutions,Introduction_to_Graph_Convolutions.ipynb
+Going Deeper on Molecular Featurizations,Going_Deeper_on_Molecular_Featurizations.ipynb
+Working With Splitters,Working_With_Splitters.ipynb
+Advanced Model Training,Advanced_Model_Training.ipynb
+Creating a high fidelity model from experimental data,Creating_a_high_fidelity_model_from_experimental_data.ipynb
+Putting Multitask Learning to Work,Putting_Multitask_Learning_to_Work.ipynb
+Modeling Protein Ligand Interactions,Modeling_Protein_Ligand_Interactions.ipynb
+Modeling Protein Ligand Interactions with Atomic Convolutions,Modeling_Protein_Ligand_Interactions_With_Atomic_Convolutions.ipynb
+Conditional Generative Adversarial Networks,Conditional_Generative_Adversarial_Networks.ipynb
+Training a Generative Adversarial Network on MNIST,Training_a_Generative_Adversarial_Network_on_MNIST.ipynb
+Distributed Multi-GPU Training of DeepChem Models with LitMatter,https://github.com/ncfrey/litmatter/blob/main/LitDeepChem.ipynb
+Advanced model training using Hyperopt,Advanced_model_training_using_hyperopt.ipynb
+Introduction to Gaussian Processes,Introduction_to_Gaussian_Processes.ipynb
+Pytorch-Lightning Integration for DeepChem Models,PytorchLightning_Integration.ipynb
+Compiling DeepChem PyTorch Models,Compiling_DeepChem_Torch_Models.ipynb

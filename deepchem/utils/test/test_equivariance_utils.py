@@ -1,0 +1,1022 @@
+import unittest
+import math
+import numpy as np
+import deepchem as dc
+import shutil
+import os
+try:
+    import torch
+    has_torch = True
+except ModuleNotFoundError:
+    has_torch = False
+
+if has_torch:
+    from deepchem.utils import equivariance_utils
+
+
+def rotation_matrix(axis, angle):
+    """Generate a 3D rotation matrix."""
+    axis = axis / np.linalg.norm(axis)
+    a = np.cos(angle / 2.0)
+    b, c, d = -axis * np.sin(angle / 2.0)
+    return np.array([[
+        a * a + b * b - c * c - d * d, 2 * (b * c - a * d), 2 * (b * d + a * c)
+    ], [
+        2 * (b * c + a * d), a * a + c * c - b * b - d * d, 2 * (c * d - a * b)
+    ], [
+        2 * (b * d - a * c), 2 * (c * d + a * b), a * a + d * d - b * b - c * c
+    ]])
+
+
+def apply_rotation(x, axis, angle):
+    """Apply a 3D rotation to the positions."""
+    from deepchem.utils.test.test_equivariance_utils import rotation_matrix
+    R = torch.tensor(rotation_matrix(axis, angle), dtype=torch.float32)
+    return torch.matmul(x, R.T)
+
+
+class TestEquivarianceUtils(unittest.TestCase):
+    """Test cases for the equivariance utilities."""
+
+    def setUp(self):
+        """Set up test fixtures."""
+        from rdkit import Chem
+        # Create a sample graph for testing
+        # Load molecule and featurize
+        mol = Chem.MolFromSmiles("CCO")
+        featurizer = dc.feat.EquivariantGraphFeaturizer(fully_connected=False,
+                                                        embeded=True)
+        mol_graph = featurizer.featurize([mol])[0]
+
+        self.G = mol_graph.to_dgl_graph()
+
+        self.G.edata['w'] = torch.tensor(mol_graph.edge_weights,
+                                         dtype=torch.float32)
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_su2_generators_shape(self) -> None:
+        # Test if the output has the correct shape.
+        j_values = [1, 2, 3, 5,
+                    7]  # Test for multiple quantum angular momentum values
+        for j in j_values:
+            with self.subTest(j=j):
+                generators = equivariance_utils.su2_generators(j)
+                self.assertEqual(generators.shape, (3, 2 * j + 1, 2 * j + 1))
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_su2_generators_zero_momenta(self) -> None:
+        # Test for the case of zero momentum (j=0).
+        j = 0
+        generators = equivariance_utils.su2_generators(j)
+        expected_generators = torch.zeros((3, 1, 1), dtype=torch.complex64)
+        self.assertTrue(torch.allclose(generators, expected_generators))
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_su2_generators_angular_momentum_one(self) -> None:
+        # Test for the case of momentum j=1 (spin-1).
+        j = 1
+        generators = equivariance_utils.su2_generators(j)
+        # Expected J_x, J_z, J_y matrices for j=1
+
+        expected_generators = torch.tensor(
+            [[[0.0000 + 0.0000j, 0.7071 + 0.0000j, 0.0000 + 0.0000j],
+              [-0.7071 + 0.0000j, 0.0000 + 0.0000j, 0.7071 + 0.0000j],
+              [0.0000 + 0.0000j, -0.7071 + 0.0000j, 0.0000 + 0.0000j]],
+             [[-0.0000 - 1.0000j, 0.0000 + 0.0000j, 0.0000 + 0.0000j],
+              [0.0000 + 0.0000j, 0.0000 + 0.0000j, 0.0000 + 0.0000j],
+              [0.0000 + 0.0000j, 0.0000 + 0.0000j, 0.0000 + 1.0000j]],
+             [[0.0000 - 0.0000j, 0.0000 + 0.7071j, 0.0000 - 0.0000j],
+              [0.0000 + 0.7071j, 0.0000 - 0.0000j, 0.0000 + 0.7071j],
+              [0.0000 - 0.0000j, 0.0000 + 0.7071j, 0.0000 - 0.0000j]]])
+
+        self.assertTrue(torch.allclose(generators, expected_generators))
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_su2_commutation(self):
+        j_values = [0, 0.5, 1, 1.5, 2,
+                    2.5]  # Test for multiple quantum angular momentum values
+        for j in j_values:
+            with self.subTest(j=j):
+                X = equivariance_utils.su2_generators(j)
+                self.assertTrue(
+                    torch.allclose(equivariance_utils.commutator(X[0], X[1]),
+                                   X[2]))
+                self.assertTrue(
+                    torch.allclose(equivariance_utils.commutator(X[1], X[2]),
+                                   X[0]))
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_change_basis_real_to_complex_j_0(self):
+        # Test for j = 0, which means we have a 1x1 transformation matrix
+        j = 0
+        Q = equivariance_utils.change_basis_real_to_complex(
+            j, dtype=torch.complex128)
+        expected_Q = torch.tensor([[1]], dtype=torch.complex128)
+        self.assertTrue(torch.allclose(Q, expected_Q))
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_change_basis_real_to_complex_j_2(self):
+        # Test for j = 2, which means we have a 5x5 transformation matrix
+        j = 2
+        Q = equivariance_utils.change_basis_real_to_complex(
+            j, dtype=torch.complex64)
+        expected_Q = torch.tensor(
+            [[
+                0.0000 + 0.7071j, -0.0000 + 0.0000j, -0.0000 + 0.0000j,
+                -0.0000 + 0.0000j, -0.7071 + 0.0000j
+            ],
+             [
+                 -0.0000 + 0.0000j, 0.0000 + 0.7071j, -0.0000 + 0.0000j,
+                 -0.7071 + 0.0000j, -0.0000 + 0.0000j
+             ],
+             [
+                 -0.0000 + 0.0000j, -0.0000 + 0.0000j, -1.0000 + 0.0000j,
+                 -0.0000 + 0.0000j, -0.0000 + 0.0000j
+             ],
+             [
+                 -0.0000 + 0.0000j, 0.0000 + 0.7071j, -0.0000 + 0.0000j,
+                 0.7071 - 0.0000j, -0.0000 + 0.0000j
+             ],
+             [
+                 -0.0000 - 0.7071j, -0.0000 + 0.0000j, -0.0000 + 0.0000j,
+                 -0.0000 + 0.0000j, -0.7071 + 0.0000j
+             ]],
+            dtype=torch.complex64)
+        self.assertTrue(torch.allclose(Q, expected_Q))
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_change_basis_real_to_complex_device(self) -> None:
+        # Test for device placement (CPU to CUDA)
+        j = 1
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        Q = equivariance_utils.change_basis_real_to_complex(j, device=device)
+        self.assertEqual(Q.device, device)
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_change_basis_real_to_complex_dtype_conversion(self):
+        # Test for dtype conversion (complex128 to complex64)
+        j = 1
+        Q_complex128 = equivariance_utils.change_basis_real_to_complex(
+            j, dtype=torch.complex128)
+        Q_complex64 = equivariance_utils.change_basis_real_to_complex(
+            j, dtype=torch.complex64)
+
+        self.assertEqual(Q_complex128.dtype, torch.complex128)
+        self.assertEqual(Q_complex64.dtype, torch.complex64)
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_so3_generators_shape(self):
+        j_values = [1, 2, 3, 4, 5]
+        for j in j_values:
+            with self.subTest(j=j):
+                result = equivariance_utils.so3_generators(j)
+                expected_shape = (3, 2 * j + 1, 2 * j + 1)
+                self.assertEqual(result.shape, expected_shape)
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_so3_commutation(self):
+        j_values = [0, 1, 2, 3, 4,
+                    5]  # Test for multiple quantum angular momentum values
+        for j in j_values:
+            with self.subTest(j=j):
+                X = equivariance_utils.so3_generators(j)
+                self.assertTrue(
+                    torch.allclose(equivariance_utils.commutator(X[0], X[1]),
+                                   X[2]))
+                self.assertTrue(
+                    torch.allclose(equivariance_utils.commutator(X[1], X[2]),
+                                   X[0]))
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_so3_j0(self):
+        j = 0
+        result = equivariance_utils.so3_generators(j)
+        expected = torch.tensor([[[0.]], [[0.]], [[0.]]],
+                                dtype=torch.float64).float()
+        self.assertTrue(torch.allclose(result, expected))
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_so3_j1(self):
+        j = 1
+        result = equivariance_utils.so3_generators(j)
+        expected = torch.tensor(
+            [[[0.0000, 0.0000, 0.0000], [0.0000, 0.0000, -1.0000],
+              [0.0000, 1.0000, 0.0000]],
+             [[0.0000, 0.0000, 1.0000], [0.0000, 0.0000, 0.0000],
+              [-1.0000, 0.0000, 0.0000]],
+             [[0.0000, -1.0000, 0.0000], [1.0000, 0.0000, 0.0000],
+              [0.0000, 0.0000, 0.0000]]],
+            dtype=torch.float64).float()
+        self.assertTrue(torch.allclose(result, expected, atol=1e-5))
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_unitary_property(self):
+        j = 2
+        alpha = torch.tensor([0.2])
+        beta = torch.tensor([0.1])
+        gamma = torch.tensor([0.7])
+
+        D_matrix = equivariance_utils.wigner_D(j, alpha, beta, gamma)
+        D_matrix = D_matrix[0]
+        conjugate_transpose = torch.transpose(torch.conj(D_matrix), 0, 1)
+        identity_matrix = torch.eye(D_matrix.shape[0], dtype=D_matrix.dtype)
+
+        self.assertTrue(
+            torch.allclose(D_matrix @ conjugate_transpose,
+                           identity_matrix,
+                           atol=1e-5))
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_orthogonality(self):
+        j = 2
+        alpha = torch.tensor([0.2])
+        beta = torch.tensor([0.1])
+        gamma = torch.tensor([0.7])
+
+        D_matrix = equivariance_utils.wigner_D(j, alpha, beta, gamma)
+        D_matrix = D_matrix[0]
+        num_columns = D_matrix.shape[1]
+
+        for col1 in range(num_columns):
+            for col2 in range(num_columns):
+                if col1 != col2:
+                    dot_product = torch.dot(D_matrix[:, col1], D_matrix[:,
+                                                                        col2])
+                    self.assertAlmostEqual(dot_product.item(), 0.0, places=5)
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_semifactorial(self) -> None:
+        # Test base cases
+        self.assertEqual(equivariance_utils.semifactorial(0), 1.0)
+        self.assertEqual(equivariance_utils.semifactorial(1), 1.0)
+
+        self.assertEqual(equivariance_utils.semifactorial(5),
+                         15.0)  # 5!! = 5 * 3 * 1
+        self.assertEqual(equivariance_utils.semifactorial(6),
+                         48.0)  # 6!! = 6 * 4 * 2
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_pochhammer_base_case(self) -> None:
+        # Test k=0 (should return 1.0)
+        self.assertEqual(equivariance_utils.pochhammer(3, 0), 1.0)
+
+        self.assertEqual(equivariance_utils.pochhammer(3, 4),
+                         360.0)  # (3)_4 = 3 * 4 * 5 * 6
+        self.assertEqual(equivariance_utils.pochhammer(5, 2),
+                         30.0)  # (5)_2 = 5 * 6
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_lpmv(self) -> None:
+        x = torch.tensor([0.5])
+        # Test P_2^1(x)
+        result = equivariance_utils.lpmv(2, 1, x)
+        expected = torch.tensor([-1.2990])
+        self.assertTrue(torch.allclose(result, expected, atol=1e-4))
+
+        # Test P_1^1(x)
+        result = equivariance_utils.lpmv(1, 1, x)
+        expected = torch.tensor([-math.sqrt(1 - 0.5**2)])
+        self.assertTrue(torch.allclose(result, expected, atol=1e-4))
+
+        # Test P_2^2(x)
+        result = equivariance_utils.lpmv(2, 2, x)
+        expected = torch.tensor([3 * (1 - 0.5**2)])
+        self.assertTrue(torch.allclose(result, expected, atol=1e-4))
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_spherical_harmonics(self) -> None:
+        theta = torch.tensor([0.0, math.pi / 2])
+        phi = torch.tensor([0.0, math.pi])
+        sh = equivariance_utils.SphericalHarmonics()
+
+        # Test Y_1^0(theta, phi)
+        result = sh.get_element(1, 0, theta, phi)
+        expected = torch.tensor([0.4886, -0.0000])
+        self.assertTrue(torch.allclose(result, expected, atol=1e-4))
+
+        # Test Y_1^1(theta, phi)
+        result = sh.get_element(1, 1, theta, phi)
+        expected = torch.tensor([-0.0000, 0.4886])
+        self.assertTrue(torch.allclose(result, expected, atol=1e-5))
+
+        # Get all spherical harmonics
+        result = sh.get(1, theta, phi)
+        expected = torch.tensor([[-0.0000, 0.4886, -0.0000],
+                                 [0.0000, -0.0000, 0.4886]])
+        self.assertTrue(torch.allclose(result, expected, atol=1e-4))
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_irr_repr(self) -> None:
+        # Test irreducible representation of SO3.
+        order = 1
+        alpha = 0.1
+        beta = 0.2
+        gamma = 0.3
+
+        # Edge case: order = 0.
+        order_zero = 0
+        result_zero = equivariance_utils.irr_repr(order_zero, alpha, beta,
+                                                  gamma)
+        self.assertTrue(torch.allclose(result_zero, torch.tensor([[1.0]])))
+
+        result = equivariance_utils.irr_repr(order, alpha, beta, gamma)
+        expected = torch.tensor([[0.9216, 0.0587, 0.3836],
+                                 [0.0198, 0.9801, -0.1977],
+                                 [-0.3875, 0.1898, 0.9021]])
+        self.assertTrue(torch.allclose(result, expected, atol=1e-4))
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_get_matrix_kernel(self):
+        # Test for computing the kernel of a matrix
+        A = torch.tensor([[1.0, 2.0, 3.0], [2.0, 4.0, 6.0], [3.0, 6.0, 9.0]])
+        kernel = equivariance_utils.get_matrix_kernel(A)
+        for vector in kernel:
+            result = torch.matmul(A, vector)
+            self.assertTrue(
+                torch.allclose(result, torch.zeros_like(result), atol=1e-5))
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_basis_transformation_Q_J_output_shape(self):
+        J, order_in, order_out = 1, 1, 1
+        result = equivariance_utils.basis_transformation_Q_J(
+            J, order_in, order_out)
+        expected_shape = ((2 * order_out + 1) * (2 * order_in + 1), 2 * J + 1)
+        self.assertEqual(result.shape, expected_shape)
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_basis_transformation_Q_J_nonzero_output(self):
+        J, order_in, order_out = 1, 1, 1
+        result = equivariance_utils.basis_transformation_Q_J(
+            J, order_in, order_out)
+        self.assertTrue(torch.any(result != 0),
+                        "Output tensor should not be all zeros")
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_kron(self):
+        # Test Kronecker product
+        A = torch.tensor([[1.0, 2.0], [3.0, 4.0]])
+        B = torch.tensor([[0.0, 5.0], [6.0, 7.0]])
+        result = equivariance_utils.kron(A, B)
+        expected = torch.tensor([[0.0, 5.0, 0.0, 10.0], [6.0, 7.0, 12.0, 14.0],
+                                 [0.0, 15.0, 0.0, 20.0],
+                                 [18.0, 21.0, 24.0, 28.0]])
+        self.assertTrue(torch.allclose(result, expected, atol=1e-5))
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_spherical_from_cartesian(self):
+        cartesian = torch.tensor([[1.0, 1.0, 1.0]])  # [y, z, x]
+        result = equivariance_utils.get_spherical_from_cartesian(cartesian)
+
+        expected_radius = math.sqrt(1**2 + 1**2 + 1**2)
+        expected_phi = math.pi / 4
+        expected_theta = math.atan2(math.sqrt(1**2 + 1**2), 1)
+
+        self.assertAlmostEqual(result[0, 0].item(), expected_radius, places=6)
+        self.assertAlmostEqual(result[0, 1].item(), expected_phi, places=6)
+        self.assertAlmostEqual(result[0, 2].item(), expected_theta, places=6)
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_spherical_from_cartesian_zero_vector(self):
+        cartesian = torch.tensor([[0.0, 0.0, 0.0]])
+        result = equivariance_utils.get_spherical_from_cartesian(cartesian)
+
+        self.assertAlmostEqual(result[0, 0].item(), 0.0,
+                               places=6)  # Radius should be 0
+        self.assertAlmostEqual(result[0, 1].item(), 0.0,
+                               places=6)  # Azimuth phi should be 0
+        self.assertAlmostEqual(result[0, 2].item(), 0.0,
+                               places=6)  # Elevation theta should be 0
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_spherical_from_cartesian_negative(self):
+        cartesian = torch.tensor([[-1.0, -1.0, -1.0]])
+        result = equivariance_utils.get_spherical_from_cartesian(cartesian)
+        expected_radius = math.sqrt(1**2 + 1**2 + 1**1)
+        expected_phi = -3 * math.pi / 4
+        expected_theta = math.atan2(math.sqrt(1**2 + 1**2), -1)
+
+        self.assertAlmostEqual(result[0, 0].item(), expected_radius, places=6)
+        self.assertAlmostEqual(result[0, 1].item(), expected_phi, places=6)
+        self.assertAlmostEqual(result[0, 2].item(), expected_theta, places=6)
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_spherical_from_cartesian_divide_radius_arg(self):
+        cartesian = torch.tensor([[3.0, 4.0, 5.0]])
+        result = equivariance_utils.get_spherical_from_cartesian(
+            cartesian, divide_radius_by=2.0)
+        expected_radius = math.sqrt(3**2 + 4**2 + 5**2) / 2
+
+        self.assertAlmostEqual(result[0, 0].item(), expected_radius, places=6)
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_spherical_from_cartesian_angle_boundaries(self):
+        """Ensures φ is in [-π, π] and θ is in [0, π]"""
+        cartesian = torch.tensor([[2.0, -2.0, 2.0]])
+        result = equivariance_utils.get_spherical_from_cartesian(cartesian)
+
+        phi = result[0, 1].item()
+        theta = result[0, 2].item()
+
+        self.assertTrue(-math.pi <= phi <= math.pi,
+                        msg=f"Azimuth φ out of bounds: {phi}")
+        self.assertTrue(0 <= theta <= math.pi,
+                        msg=f"Elevation θ out of bounds: {theta}")
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_spherical_from_cartesian_high_dimensional_tensor(self):
+        cartesian = torch.tensor([[[1.0, 1.0, 1.0], [2.0, 2.0, 2.0]],
+                                  [[0.0, 0.0, 1.0], [-1.0, -1.0, -1.0]]])
+        result = equivariance_utils.get_spherical_from_cartesian(cartesian)
+
+        self.assertEqual(result.shape, (2, 2, 3))
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_precompute_sh(self):
+        """Test spherical harmonics computation for a simple input."""
+        r_ij = torch.tensor([[1.0, 0.5, 1.0]])  # [radius, phi, theta]
+        max_J = 2
+        result = equivariance_utils.precompute_sh(r_ij, max_J)
+
+        self.assertEqual(len(result), max_J + 1)
+        for J in range(max_J + 1):
+            self.assertTrue(isinstance(result[J], torch.Tensor))
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_precompute_sh_zero_order(self):
+        """Test when max_J = 0, only J=0 should be present."""
+        r_ij = torch.tensor([[1.0, 1.0, 1.0]])
+        result = equivariance_utils.precompute_sh(r_ij, max_J=0)
+
+        self.assertEqual(len(result), 1)  # Only J=0 should be present
+        self.assertIn(0, result)  # J=0 key should exist
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_precompute_sh_multiple_inputs(self):
+        """Test batch inputs to check if function handles multiple r_ij vectors."""
+        r_ij = torch.tensor([[1.0, 0.5, 1.0], [2.0, 1.0, 0.5]])
+        max_J = 3
+        result = equivariance_utils.precompute_sh(r_ij, max_J)
+
+        self.assertEqual(len(result), max_J + 1)
+        for J in range(max_J + 1):
+            self.assertEqual(result[J].shape[0], r_ij.shape[0])
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_precompute_sh_output_shape(self):
+        """Test if each J value has shape [B, N, K, 2J+1]."""
+        r_ij = torch.tensor([[1.0, 0.5, 1.0], [2.0, 1.0, 0.5]])
+        max_J = 2
+        result = equivariance_utils.precompute_sh(r_ij, max_J)
+
+        for J in range(max_J + 1):
+            expected_last_dim = 2 * J + 1
+            self.assertEqual(result[J].shape[-1], expected_last_dim)
+
+    def sample_graph(self):
+        """Create a test graph with SE(3) features using the SMILES 'CCO'."""
+        from rdkit import Chem
+        import deepchem as dc
+
+        mol = Chem.MolFromSmiles("CCO")
+        featurizer = dc.feat.EquivariantGraphFeaturizer(fully_connected=False,
+                                                        embeded=True)
+        features = featurizer.featurize([mol])[0]
+
+        G = features.to_dgl_graph()
+
+        return G
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_translation_equivariance(self):
+        """Check that translating node positions does not change basis functions or relative distances."""
+        from deepchem.utils.equivariance_utils import get_equivariant_basis_and_r
+
+        basis_original, r_original = get_equivariant_basis_and_r(
+            self.G, max_degree=2, compute_gradients=False)
+
+        # Apply random translation
+        translation = torch.randn(1, 3)
+        G_translated = self.G.clone()
+        G_translated.ndata['pos'] += translation
+        G_translated.edata['edge_attr'] = G_translated.ndata['pos'][
+            G_translated.edges()[1]] - G_translated.ndata['pos'][
+                G_translated.edges()[0]]
+
+        basis_translated, r_translated = get_equivariant_basis_and_r(
+            G_translated, max_degree=2, compute_gradients=False)
+
+        for key in basis_original:
+            if key == '0,0':
+                assert torch.allclose(
+                    basis_original[key], basis_translated[key],
+                    atol=1e-5), f"Failed translation equivariance for {key}"
+
+        dir_path = "cache"
+        if os.path.exists(dir_path) and os.path.isdir(dir_path):
+            shutil.rmtree(dir_path)
+        # r should be unchanged under translation
+        assert torch.allclose(r_original, r_translated, atol=1e-5)
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_rotation_equivariance(self):
+        """Check that rotating node positions results in equivalent basis transformations and correct `r` behavior."""
+        from deepchem.utils.equivariance_utils import get_equivariant_basis_and_r
+
+        basis_original, r_original = get_equivariant_basis_and_r(
+            self.G, max_degree=2, compute_gradients=False)
+
+        # Apply rotation
+        axis = torch.randn(3)
+        angle = torch.rand(1).item() * 2 * np.pi
+
+        G_rotated = self.G.clone()
+        G_rotated.ndata['pos'] = apply_rotation(self.G.ndata['pos'], axis,
+                                                angle)
+        G_rotated.edata['edge_attr'] = G_rotated.ndata['pos'][
+            G_rotated.edges()[1]] - G_rotated.ndata['pos'][G_rotated.edges()[0]]
+
+        basis_rotated, r_rotated = get_equivariant_basis_and_r(
+            G_rotated, max_degree=2, compute_gradients=False)
+
+        for key in basis_original:
+            if key == '0,0':
+                assert torch.allclose(
+                    basis_original[key], basis_rotated[key],
+                    atol=1e-5), f"Failed rotation equivariance for {key}"
+        dir_path = "cache"
+        if os.path.exists(dir_path) and os.path.isdir(dir_path):
+            shutil.rmtree(dir_path)
+        # Check if the norm of `r` is unchanged under rotation
+        assert torch.allclose(r_original[..., 0], r_rotated[..., 0], atol=1e-5)
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_fiber2head(self):
+        """Check that fiber2head correctly reshapes and concatenates SE(3)-equivariant features into a multi-head format."""
+        from deepchem.utils.equivariance_utils import fiber2head
+        from deepchem.models.torch_models.layers import Fiber
+
+        fiber_structure = Fiber(dictionary={0: 16, 1: 32})  # Scalars & Vectors
+
+        B, N = 10, 5  # Batch size, Number of nodes
+        F = {
+            '0': torch.randn(B, N, 16, 1),  # Degree 0 features (scalars)
+            '1':
+                torch.randn(B, N, 32, 3)  # Degree 1 features (vectors)
+        }
+
+        num_heads = 4  # Define number of attention heads
+        output = fiber2head(F, num_heads, fiber_structure, squeeze=False)
+
+        # Validate output shape
+        expected_channels_0 = 16 // num_heads
+        expected_channels_1 = 32 // num_heads
+
+        expected_shape = (B, N, num_heads,
+                          expected_channels_0 + expected_channels_1 * 3, 1)
+        assert output.shape == expected_shape
+
+        # Ensure reshaped output preserves original values per head
+        reshaped_F0 = F['0'].view(B, N, num_heads, -1, 1)
+        reshaped_F1 = F['1'].view(B, N, num_heads, -1, 1)
+
+        assert torch.allclose(output[..., :expected_channels_0, :],
+                              reshaped_F0,
+                              atol=1e-6)
+        assert torch.allclose(output[..., expected_channels_0:, :],
+                              reshaped_F1,
+                              atol=1e-6)
+
+
+class TestLieGroup(unittest.TestCase):
+    """Test cases for the LieGroup base class using translations as a concrete instance."""
+
+    def setUp(self) -> None:
+        """Set up a concrete LieGroup instance representing R^2 translations."""
+
+        class _TranslationLieGroup(equivariance_utils.LieGroup):
+            rep_dim = 2
+            lie_dim = 2
+            q_dim = 0
+
+            def exp(self, a: torch.Tensor) -> torch.Tensor:
+                return a
+
+            def log(self, g: torch.Tensor) -> torch.Tensor:
+                return g
+
+            def lifted_elems(
+                self,
+                points: torch.Tensor,
+                n_samples: int,
+                **kwargs,
+            ):
+                if n_samples != 1:
+                    raise ValueError(
+                        "Translations are Abelian; nsamples must be 1.")
+                return points, None
+
+            def components2matrix(self, a: torch.Tensor) -> torch.Tensor:
+                return torch.diag_embed(a)
+
+            def matrix2components(self, A: torch.Tensor) -> torch.Tensor:
+                return torch.diagonal(A, dim1=-2, dim2=-1)
+
+            def elems2pairs(self, a: torch.Tensor) -> torch.Tensor:
+                return a.unsqueeze(-2) - a.unsqueeze(-3)
+
+        self.G = _TranslationLieGroup(alpha=0.5)
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_exp_log_identity(self) -> None:
+        a = torch.tensor([1.0, -2.0])
+        self.assertTrue(torch.allclose(self.G.exp(a), a))
+        self.assertTrue(torch.allclose(self.G.log(a), a))
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_inverse(self) -> None:
+        g = torch.tensor([3.0, -4.0])
+        inv_g = self.G.inv(g)
+        self.assertTrue(torch.allclose(inv_g, -g))
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_lifted_elems(self) -> None:
+        xyz = torch.tensor([[0.0, 1.0], [2.0, 3.0]])
+        a, q = self.G.lifted_elems(xyz, n_samples=1)
+        self.assertTrue(torch.allclose(a, xyz))
+        self.assertIsNone(q)
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_lifted_elems_invalid_nsamples(self) -> None:
+        xyz = torch.zeros(2, 2)
+        with self.assertRaises(ValueError):
+            self.G.lifted_elems(xyz, n_samples=2)
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_distance_translation(self) -> None:
+        abq = torch.tensor([[3.0, 4.0]])
+        d = self.G.distance(abq)
+        d = torch.as_tensor(d)
+        self.assertTrue(torch.allclose(d, torch.tensor([2.5])))
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_elems2pairs(self) -> None:
+        a = torch.tensor([[0.0, 0.0], [1.0, 2.0]])
+        pairs = self.G.elems2pairs(a.unsqueeze(0))
+        expected = a[None, :, None, :] - a[None, None, :, :]
+        self.assertTrue(torch.allclose(pairs, expected))
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_expand_like(self) -> None:
+        v = torch.tensor([[1.0], [2.0]])
+        m = torch.tensor([1, 0])
+        a = torch.zeros(1, 2, 2)
+
+        v_exp, m_exp = self.G.expand_like(v, m, a)
+        self.assertEqual(v_exp.shape, (1, 2, 1))
+        self.assertEqual(m_exp.shape, (1, 2))
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_lift(self) -> None:
+        p = torch.tensor([[0.0, 0.0], [1.0, 1.0]])
+        v = torch.tensor([[1.0], [2.0]])
+        m = torch.tensor([1, 1])
+
+        embedded, v_exp, m_exp = self.G.lift((p, v, m), nsamples=1)
+
+        expected = p[None, :, None, :] - p[None, None, :, :]
+        self.assertTrue(torch.allclose(embedded, expected))
+        self.assertEqual(v_exp.shape, (2, 1))
+        self.assertEqual(m_exp.shape, (2,))
+
+
+class TestTranslationLieGroup(unittest.TestCase):
+    """Unit tests for the translation Lie group T."""
+
+    def setUp(self) -> None:
+        """Create a 2D translation group."""
+        self.G = equivariance_utils.T(k=2, alpha=0.5)
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_exp_log_identity(self) -> None:
+        """exp and log should be identity maps."""
+        a = torch.tensor([1.0, -2.0])
+        self.assertTrue(torch.allclose(self.G.exp(a), a))
+        self.assertTrue(torch.allclose(self.G.log(a), a))
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_inverse(self) -> None:
+        """Inverse should negate translations."""
+        g = torch.tensor([3.0, -4.0])
+        inv_g = self.G.inv(g)
+        self.assertTrue(torch.allclose(inv_g, -g))
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_lifted_elems(self) -> None:
+        """Lifting should return the input and no quotient."""
+        points = torch.tensor([[0.0, 1.0], [2.0, 3.0]])
+        a, q = self.G.lifted_elems(points, n_samples=1)
+        self.assertTrue(torch.allclose(a, points))
+        self.assertIsNone(q)
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_lifted_elems_invalid_nsamples(self) -> None:
+        """Translations do not support multiple samples."""
+        points = torch.zeros(2, 2)
+        with self.assertRaises(ValueError):
+            self.G.lifted_elems(points, n_samples=2)
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_distance_translation(self) -> None:
+        """Distance reduces to scaled Euclidean norm."""
+        # abq contains only Lie algebra part since q_dim = 0
+        abq = torch.tensor([[3.0, 4.0]])
+        d = self.G.distance(abq)
+        expected = 0.5 * torch.tensor([5.0])  # alpha * ||(3,4)||
+        self.assertTrue(torch.allclose(torch.as_tensor(d), expected))
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_elems2pairs(self) -> None:
+        """Pairwise differences should be simple subtraction."""
+        a = torch.tensor([[0.0, 0.0], [1.0, 2.0]])  # (n=2, k=2)
+
+        pairs = self.G.elems2pairs(a)
+
+        expected = torch.tensor([
+            [[0.0, 0.0], [-1.0, -2.0]],
+            [[1.0, 2.0], [0.0, 0.0]],
+        ])
+
+        self.assertTrue(torch.allclose(pairs, expected))
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_expand_like(self) -> None:
+        """expand_like should align features and masks."""
+        v = torch.tensor([[1.0], [2.0]])
+        m = torch.tensor([1, 0])
+
+        # a must have shape (batch, n, lie_dim)
+        a = torch.zeros(1, 2, 2)
+
+        v_exp, m_exp = self.G.expand_like(v, m, a)
+
+        self.assertEqual(v_exp.shape, (1, 2, 1))
+        self.assertEqual(m_exp.shape, (1, 2))
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_lift(self) -> None:
+        """lift should produce pairwise relative translations."""
+        p = torch.tensor([[0.0, 0.0], [1.0, 1.0]])
+        v = torch.tensor([[1.0], [2.0]])
+        m = torch.tensor([1, 1])
+
+        embedded, v_exp, m_exp = self.G.lift((p, v, m), nsamples=1)
+
+        expected = torch.tensor([
+            [[0.0, 0.0], [-1.0, -1.0]],
+            [[1.0, 1.0], [0.0, 0.0]],
+        ])
+
+        self.assertTrue(torch.allclose(embedded, expected))
+        self.assertEqual(v_exp.shape, (2, 1))
+        self.assertEqual(m_exp.shape, (2,))
+
+
+class TestSpecialFunctions(unittest.TestCase):
+    """Unit tests for special functions (sinc, sincc, sinc_inv, cosc, and coscc)"""
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_sinc_zero(self) -> None:
+        """sinc(0) should equal 1."""
+        from deepchem.utils.equivariance_utils import sinc
+        x = torch.tensor(0.0)
+        self.assertTrue(torch.allclose(sinc(x), torch.tensor(1.0)))
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_sinc_matches_definition(self) -> None:
+        """sinc(x) should match sin(x)/x away from zero."""
+        from deepchem.utils.equivariance_utils import sinc
+        x = torch.tensor([0.5, 1.0, 2.0])
+        expected = torch.sin(x) / x
+        self.assertTrue(torch.allclose(sinc(x), expected, atol=1e-6))
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_sinc_inv_identity(self) -> None:
+        """sinc(x) * sinc_inv(x) should be approximately 1."""
+        from deepchem.utils.equivariance_utils import sinc_inv, sinc
+        x = torch.tensor([0.1, 0.5, 1.0])
+        prod = sinc(x) * sinc_inv(x)
+        self.assertTrue(torch.allclose(prod, torch.ones_like(x), atol=1e-5))
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_sincc_zero_limit(self) -> None:
+        """sincc(0) should approach 1/6."""
+        from deepchem.utils.equivariance_utils import sincc
+        x = torch.tensor(0.0)
+        self.assertTrue(torch.allclose(sincc(x), torch.tensor(1 / 6)))
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_cosc_zero_limit(self) -> None:
+        """cosc(0) should approach 1/2."""
+        from deepchem.utils.equivariance_utils import cosc
+        x = torch.tensor(0.0)
+        self.assertTrue(torch.allclose(cosc(x), torch.tensor(0.5)))
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_coscc_zero_limit(self) -> None:
+        """coscc(0) should approach 1/12."""
+        from deepchem.utils.equivariance_utils import coscc
+        x = torch.tensor(0.0)
+        self.assertTrue(torch.allclose(coscc(x), torch.tensor(1 / 12)))
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_shape_preservation(self) -> None:
+        """All special functions should preserve input shape."""
+        from deepchem.utils.equivariance_utils import sinc, sincc, sinc_inv, cosc, coscc
+        x = torch.randn(4, 3, 2)
+        for fn in (sinc, sincc, cosc, coscc, sinc_inv):
+            self.assertEqual(fn(x).shape, x.shape)
+
+
+class TestCrossMatrix(unittest.TestCase):
+    """Unit tests for cross_matrix and uncross_matrix."""
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_skew_symmetric(self) -> None:
+        """cross_matrix should produce skew-symmetric matrices."""
+        from deepchem.utils.equivariance_utils import cross_matrix
+        k = torch.randn(3)
+        K = cross_matrix(k)
+        self.assertTrue(torch.allclose(K + K.T, torch.zeros_like(K)))
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_cross_uncross_inverse(self) -> None:
+        """uncross_matrix(cross_matrix(k)) should recover k."""
+        from deepchem.utils.equivariance_utils import uncross_matrix, cross_matrix
+        k = torch.randn(5, 3)
+        k_rec = uncross_matrix(cross_matrix(k))
+        self.assertTrue(torch.allclose(k, k_rec, atol=1e-6))
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_cross_product_action(self) -> None:
+        """cross_matrix(k) @ v should equal k × v."""
+        from deepchem.utils.equivariance_utils import cross_matrix
+        k = torch.tensor([1.0, 2.0, 3.0])
+        v = torch.tensor([4.0, 5.0, 6.0])
+
+        Kv = cross_matrix(k) @ v
+        expected = torch.cross(k, v)
+
+        self.assertTrue(torch.allclose(Kv, expected))
+
+
+class TestSO3LieGroup(unittest.TestCase):
+    """Unit tests for the SO(3) Lie group."""
+
+    def setUp(self) -> None:
+        self.G = equivariance_utils.SO3(alpha=0.5)
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_exp_log_identity(self) -> None:
+        """exp(log(R)) should recover the rotation."""
+        w = torch.tensor([0.3, -0.2, 0.1])
+        R = self.G.exp(w)
+        w_rec = self.G.log(R)
+        self.assertTrue(torch.allclose(w, w_rec, atol=1e-5))
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_rotation_matrix_properties(self) -> None:
+        """Rotation matrices should be orthogonal with det=1."""
+        w = torch.randn(3)
+        R = self.G.exp(w)
+
+        I_m = torch.eye(3)
+        self.assertTrue(torch.allclose(R @ R.T, I_m, atol=1e-5))
+        self.assertTrue(
+            torch.allclose(torch.det(R), torch.tensor(1.0), atol=1e-5))
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_lifted_elems(self) -> None:
+        """SO(3) lifting should return algebra elements and quotient."""
+        pts = torch.randn(4, 3)
+        a, q = self.G.lifted_elems(pts, n_samples=5)
+
+        self.assertEqual(a.shape, (20, 3))
+        self.assertEqual(q.shape, (20, 1))
+        self.assertFalse(torch.allclose(q, torch.zeros_like(q)))
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_distance_rotation_only(self) -> None:
+        """Distance should reduce to alpha * ||omega||."""
+        abq = torch.tensor([[3.0, 4.0, 0.0]])
+        d = self.G.distance(abq)
+        expected = 0.5 * torch.tensor([5.0])
+        self.assertTrue(torch.allclose(d, expected))
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_elems2pairs(self) -> None:
+        """Pairwise relative rotations should be computed."""
+        a = torch.zeros(2, 3)
+        pairs = self.G.elems2pairs(a)
+
+        self.assertEqual(pairs.shape, (2, 2, 3))
+        self.assertTrue(torch.allclose(pairs[0, 0], torch.zeros(3)))
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_identity_exp(self) -> None:
+        """exp(0) should be identity."""
+        w = torch.zeros(3)
+        R = self.G.exp(w)
+        self.assertTrue(torch.allclose(R, torch.eye(3)))
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_log_identity(self) -> None:
+        """log(I) should be zero."""
+        R = torch.eye(3)
+        w = self.G.log(R)
+        self.assertTrue(torch.allclose(w, torch.zeros(3)))
+
+
+class TestSE3LieGroup(unittest.TestCase):
+    """Unit tests for the SE(3) Lie group."""
+
+    def setUp(self) -> None:
+        self.G = equivariance_utils.SE3(alpha=0.3)
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_exp_log_identity(self) -> None:
+        """exp(log(T)) should recover the transformation."""
+        w = torch.tensor([0.2, -0.1, 0.3, 1.0, 2.0, -1.0])
+        T = self.G.exp(w)
+        w_rec = self.G.log(T)
+        self.assertTrue(torch.allclose(w, w_rec, atol=1e-5))
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_homogeneous_matrix_structure(self) -> None:
+        """SE(3) elements should be valid homogeneous matrices."""
+        w = torch.randn(6)
+        T = self.G.exp(w)
+
+        self.assertTrue(torch.allclose(T[3], torch.tensor([0.0, 0.0, 0.0,
+                                                           1.0])))
+        self.assertTrue(
+            torch.allclose(T[:3, :3] @ T[:3, :3].T, torch.eye(3), atol=1e-5))
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_lifted_elems(self) -> None:
+        """SE(3) lifting should return algebra elements and no quotient."""
+        pts = torch.randn(2, 4, 3)
+        a, q = self.G.lifted_elems(pts, n_samples=3)
+
+        self.assertEqual(a.shape, (2, 12, 6))
+        self.assertIsNone(q)
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_distance_rotation_translation(self) -> None:
+        """Distance should combine rotation and translation."""
+        abq = torch.tensor([[3.0, 4.0, 0.0, 6.0, 8.0, 0.0]])
+        d = self.G.distance(abq)
+        alpha = 0.3
+
+        expected = alpha * 5.0 + (1 - alpha) * 10.0
+        self.assertTrue(torch.allclose(d, torch.tensor([expected])))
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_elems2pairs(self) -> None:
+        """Pairwise relative rigid motions should be computed."""
+        a = torch.zeros(2, 6)
+        pairs = self.G.elems2pairs(a)
+
+        self.assertEqual(pairs.shape, (2, 2, 6))
+        self.assertTrue(torch.allclose(pairs[0, 0], torch.zeros(6)))
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_identity_exp(self) -> None:
+        """exp(0) should be identity transform."""
+        w = torch.zeros(6)
+        T = self.G.exp(w)
+        self.assertTrue(torch.allclose(T, torch.eye(4)))
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_log_identity(self) -> None:
+        """log(I) should be zero."""
+        T = torch.eye(4)
+        w = self.G.log(T)
+        self.assertTrue(torch.allclose(w, torch.zeros(6)))
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_translation_only(self) -> None:
+        """Translation transformation should not affect rotations."""
+        w = torch.tensor([0.0, 0.0, 0.0, 1.0, 2.0, 3.0])
+        T = self.G.exp(w)
+
+        self.assertTrue(torch.allclose(T[:3, :3], torch.eye(3)))
+        self.assertTrue(torch.allclose(T[:3, 3], torch.tensor([1.0, 2.0, 3.0])))
+
+    @unittest.skipIf(not has_torch, "torch is not available")
+    def test_distance_separates_components(self) -> None:
+        """Distance should combine rotation and translation norms."""
+        abq = torch.tensor([[3.0, 4.0, 0.0, 6.0, 8.0, 0.0]])
+        d = self.G.distance(abq)
+        alpha = 0.3
+        expected = alpha * 5.0 + (1 - alpha) * 10.0
+        self.assertTrue(torch.allclose(d, torch.tensor([expected])))

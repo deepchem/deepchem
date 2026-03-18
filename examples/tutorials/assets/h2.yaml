@@ -1,0 +1,220 @@
+- e_type: ae
+  true_val: 0.4898565927937677
+  systems: [{
+      'moldesc': 'H 0 0 0; H 0 0 0.5000',
+      'basis': '6-311++G(3df,3pd)'
+   }, { 
+      'moldesc': 'H 0 0 0',
+      'basis': '6-311++G(3df,3pd)',
+      'spin': '1',
+      'number' : '2'
+}]
+- e_type: ae
+  true_val: 0.10932575944669254 
+  systems: [{
+      'moldesc': 'H 0 0 0; H 0 0 0.6842',
+      'basis': '6-311++G(3df,3pd)'
+   }, { 
+      'moldesc': 'H 0 0 0',
+      'basis': '6-311++G(3df,3pd)',
+      'spin': '1',
+      'number' : '2'
+}]
+- e_type: ae
+  true_val: -0.05760793071522308 
+  systems: [{
+      'moldesc': 'H 0 0 0; H 0 0 0.8684',
+      'basis': '6-311++G(3df,3pd)'
+   }, {
+      'moldesc': 'H 0 0 0',
+      'basis': '6-311++G(3df,3pd)',
+      'spin': '1',
+      'number' : '2'
+}]
+- e_type: ae
+  true_val: -0.13225118127128965 
+  systems: [{
+      'moldesc': 'H 0 0 0; H 0 0 1.0526',
+      'basis': '6-311++G(3df,3pd)'
+   }, {
+      'moldesc': 'H 0 0 0',
+      'basis': '6-311++G(3df,3pd)',
+      'spin': '1',
+      'number' : '2'
+}]
+- e_type: ae
+  true_val: -0.16193739383046113
+  systems: [{
+      'moldesc': 'H 0 0 0; H 0 0 1.2368',
+      'basis': '6-311++G(3df,3pd)'
+   }, {
+      'moldesc': 'H 0 0 0',
+      'basis': '6-311++G(3df,3pd)',
+      'spin': '1',
+      'number' : '2'
+}]
+- e_type: ae
+  true_val: -0.1683281845467257
+  systems: [{
+      'moldesc': 'H 0 0 0; H 0 0 1.4211',
+      'basis': '6-311++G(3df,3pd)'
+   }, {
+      'moldesc': 'H 0 0 0',
+      'basis': '6-311++G(3df,3pd)',
+      'spin': '1',
+      'number' : '2'
+}]
+- e_type: ae
+  true_val: -0.162361273469797
+  systems: [{
+      'moldesc': 'H 0 0 0; H 0 0 1.6053',
+      'basis': '6-311++G(3df,3pd)'
+   }, {
+      'moldesc': 'H 0 0 0',
+      'basis': '6-311++G(3df,3pd)',
+      'spin': '1',
+      'number' : '2'
+}]
+- e_type: ae
+  true_val: -0.14995768824235967
+  systems: [{
+      'moldesc': 'H 0 0 0; H 0 0 1.7895',
+      'basis': '6-311++G(3df,3pd)'
+   }, {
+      'moldesc': 'H 0 0 0',
+      'basis': '6-311++G(3df,3pd)',
+      'spin': '1',
+      'number' : '2'
+}]
+- e_type: ae
+  true_val: -0.1344872415339624
+  systems: [{
+      'moldesc': 'H 0 0 0; H 0 0 1.9737',
+      'basis': '6-311++G(3df,3pd)'
+   }, {
+      'moldesc': 'H 0 0 0',
+      'basis': '6-311++G(3df,3pd)',
+      'spin': '1',
+      'number' : '2'
+}]
+- e_type: ae
+  true_val: -0.11793714211691841
+  systems: [{
+      'moldesc': 'H 0 0 0; H 0 0 2.1579',
+      'basis': '6-311++G(3df,3pd)'
+   }, {
+      'moldesc': 'H 0 0 0',
+      'basis': '6-311++G(3df,3pd)',
+      'spin': '1',
+      'number' : '2'
+}]
+- e_type: ae
+  true_val: -0.10150074768105943 
+  systems: [{
+      'moldesc': 'H 0 0 0; H 0 0 2.3421',
+      'basis': '6-311++G(3df,3pd)'
+   }, {
+      'moldesc': 'H 0 0 0',
+      'basis': '6-311++G(3df,3pd)',
+      'spin': '1',
+      'number' : '2'
+}]
+- e_type: ae
+  true_val: -0.08589880376035075
+  systems: [{
+      'moldesc': 'H 0 0 0; H 0 0 2.5263',
+      'basis': '6-311++G(3df,3pd)'
+   }, {
+      'moldesc': 'H 0 0 0',
+      'basis': '6-311++G(3df,3pd)',
+      'spin': '1',
+      'number' : '2'
+}]
+- e_type: ae
+  true_val: -0.07155999604986962
+  systems: [{
+      'moldesc': 'H 0 0 0; H 0 0 2.7105',
+      'basis': '6-311++G(3df,3pd)'
+   }, {
+      'moldesc': 'H 0 0 0',
+      'basis': '6-311++G(3df,3pd)',
+      'spin': '1',
+      'number' : '2'
+}]
+- e_type: ae
+  true_val: -0.058723501159802405
+  systems: [{
+      'moldesc': 'H 0 0 0; H 0 0 2.8974',
+      'basis': '6-311++G(3df,3pd)'
+   }, {
+      'moldesc': 'H 0 0 0',
+      'basis': '6-311++G(3df,3pd)',
+      'spin': '1',
+      'number' : '2'
+}]
+- e_type: ae  
+  true_val: -0.04749737580213531
+  systems: [{
+      'moldesc': 'H 0 0 0; H 0 0 3.0789',
+      'basis': '6-311++G(3df,3pd)'
+   }, {
+      'moldesc': 'H 0 0 0',
+      'basis': '6-311++G(3df,3pd)',
+      'spin': '1',
+      'number' : '2'
+}]
+- e_type: ae
+  true_val: -0.037887241438347985
+  systems: [{
+      'moldesc': 'H 0 0 0; H 0 0 3.2632',
+      'basis': '6-311++G(3df,3pd)'
+   }, {
+      'moldesc': 'H 0 0 0',
+      'basis': '6-311++G(3df,3pd)',
+      'spin': '1',
+      'number' : '2'
+}]
+- e_type: ae
+  true_val: -0.029837752205394974
+  systems: [{
+      'moldesc': 'H 0 0 0; H 0 0 3.4474',
+      'basis': '6-311++G(3df,3pd)'
+   }, {
+      'moldesc': 'H 0 0 0',
+      'basis': '6-311++G(3df,3pd)',
+      'spin': '1',
+      'number' : '2'
+}]
+- e_type: ae
+  true_val: -0.0232201015061122
+  systems: [{
+      'moldesc': 'H 0 0 0; H 0 0 3.6316',
+      'basis': '6-311++G(3df,3pd)'
+   }, {
+      'moldesc': 'H 0 0 0',
+      'basis': '6-311++G(3df,3pd)',
+      'spin': '1',
+      'number' : '2'
+}]
+- e_type: ae
+  true_val: -0.017873691580926998
+  systems: [{
+      'moldesc': 'H 0 0 0; H 0 0 3.8158',
+      'basis': '6-311++G(3df,3pd)'
+   }, {
+      'moldesc': 'H 0 0 0',
+      'basis': '6-311++G(3df,3pd)',
+      'spin': '1',
+      'number' : '2'
+}]
+- e_type: ae
+  true_val: -0.01362039956390726
+  systems: [{
+      'moldesc': 'H 0 0 0; H 0 0 4.000',
+      'basis': '6-311++G(3df,3pd)'
+   }, {
+      'moldesc': 'H 0 0 0',
+      'basis': '6-311++G(3df,3pd)',
+      'spin': '1',
+      'number' : '2'
+}]

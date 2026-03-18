@@ -1,0 +1,8 @@
+device: cpu
+graph_conv_layers: [1024, 1024, 1024, 512, 512, 512]
+mode: regression
+number_atom_features: 30
+batch_size: 1024
+learning_rate: 0.001
+max_epochs: 1
+num_device: 1

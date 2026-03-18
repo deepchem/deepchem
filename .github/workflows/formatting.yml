@@ -1,0 +1,104 @@
+name: Code Formatting
+
+on:
+  push: # ci work when pushing master branch
+    branches:
+      - master
+  pull_request: # ci work when creating a PR to master branch
+    branches:
+      - master
+
+
+jobs:
+  linting:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.10']
+    steps:
+    - name: Maximize build space
+      if: runner.os == 'ubuntu-latest'
+      run: |
+        sudo rm -rf /usr/share/dotnet
+        sudo rm -rf /opt/ghc
+        sudo rm -rf "/usr/local/share/boost"
+        sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+        sudo rm -rf /usr/local/lib/android
+        sudo docker image prune --all --force
+        sudo rm -rf /opt/hostedtoolcache/CodeQL
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Set commit range (push to the master branch, e.g. merge)
+      if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+      run: echo "COMMIT_RANGE=${{ github.event.before }}.." >> $GITHUB_ENV
+
+    - name: Set commit range (pull request)
+      if: github.event_name == 'pull_request'
+      run: |
+        git fetch origin master
+        echo "COMMIT_RANGE=origin/master..." >> $GITHUB_ENV
+
+    - name: Cache pip packages for Linux
+      if: runner.os == 'Linux'
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('requirements/**') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Create env.yml
+      shell: bash
+      run: |
+        python -m pip install --upgrade pip;
+        pip install conda-merge;
+        sudo apt-get update
+        sudo apt-get install -y libopenblas-dev libatlas-base-dev libblas-dev liblapack-dev libhdf5-dev
+        cd requirements
+        conda-merge env_common.yml env_test.yml env_ubuntu.yml tensorflow/env_tensorflow.cpu.yml torch/env_torch.cpu.yml jax/env_jax.cpu.yml > env.yml
+        cd ..
+        cp requirements/env.yml env.yml
+
+    - name: Install all dependencies using micromamba
+      uses: mamba-org/setup-micromamba@main
+      with:
+        environment-file: env.yml
+        environment-name: deepchem
+        create-args: python=${{ matrix.python-version }}
+
+    - name: Install DeepChem
+      id: install
+      shell: bash -l {0}
+      run: pip install -e .
+
+    - name: Show files modified
+      run: |
+        CHANGED_FILES=`git diff --name-only $COMMIT_RANGE || true`
+        echo "changed files are $CHANGED_FILES"
+
+    - name: Yapf (version 0.32.0)
+      id: yapf
+      shell: bash -l {0}
+      run: |
+        CHANGED_FILES=`git diff --name-only $COMMIT_RANGE | grep .py$ || true`
+        if [ -n "$CHANGED_FILES" ]; then
+          yapf -d $CHANGED_FILES
+        fi
+
+    - name: Flake8
+      if: ${{ (success() || failure()) && (steps.install.outcome == 'failure' || steps.install.outcome == 'success') }}
+      shell: bash -l {0}
+      run: source scripts/flake8_for_ci.sh
+
+    - name: Mypy
+      if: ${{ (success() || failure()) && (steps.install.outcome == 'failure' || steps.install.outcome == 'success') }}
+      shell: bash -l {0}
+      run: |
+        mypy -p deepchem

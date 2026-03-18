@@ -1,0 +1,4 @@
+Model,Reference,Type,Acceptable Featurizers,Backend,Comment
+CGCNNModel,`ref <https://arxiv.org/abs/1710.10324>`_,Classifier/Regressor,CGCNNFEaturizer,DGL/PTorch,crystal graph CNN
+MEGNetModel,`ref <https://arxiv.org/abs/1812.05055>`_,Classifier/Regressor,,PyTorch/PyTorch Geometric,
+LCNNModel,`ref <https://pubs.acs.org/doi/10.1021/acs.jpcc.9b03370>`_,Regressor,LCNNFeaturizer,PyTorch ,lattice CNN

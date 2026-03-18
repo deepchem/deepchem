@@ -1,0 +1,5 @@
+dependencies:
+  - pip:
+    - tensorflow<2.16
+    - tensorflow_probability<0.24
+    - tensorflow_addons

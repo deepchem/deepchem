@@ -1,0 +1,16 @@
+channels:
+  - pytorch
+dependencies:
+  - pytorch==2.2.1
+  - pylibxc
+  - pip:
+    - -f https://data.pyg.org/whl/torch-2.2.1+cpu.html
+    - dgl
+    - torch-geometric
+    - lightning
+    - pydantic
+    - torch-cluster
+    - git+https://github.com/diffqc/dqclibs.git
+    - basis-set-exchange
+    - pyscf
+    - h5py

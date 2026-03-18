@@ -1,0 +1,14 @@
+dependencies:
+  - pip:
+    - -f https://download.pytorch.org/whl/cpu/torch_stable.html
+    # - -f https://data.dgl.ai/wheels/repo.html
+    # DGL is no longer supported on windows
+    - torchdata<0.8.0
+    - dgl<2.2.1
+    - torch==2.2.1+cpu
+    - torch-geometric
+    - lightning
+    - pydantic
+    - -f https://data.pyg.org/whl/torch-2.2.1+cpu.html
+    - torch-cluster
+    - h5py

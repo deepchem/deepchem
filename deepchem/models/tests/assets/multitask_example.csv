@@ -1,0 +1,11 @@
+mol_id,smiles,task0,task1,task2,task3,task4,task5,task6,task7,task8,task9,task10,task11,task12,task13,task14,task15,task16
+CID2999678,Cc1cccc(N2CCN(C(=O)C34CC5CC(CC(C5)C3)C4)CC2)c1C,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+CID2999679,Cn1ccnc1SCC(=O)Nc1ccc(Oc2ccccc2)cc1,1,0,,0,,0,,,,,0,0,,,0,0,0
+CID5390003,COc1ccccc1NC(=O)C1=C(C)N=C2N=CNN2C1c1ccc(C)o1,0,,,,,,,0,,1,,0,,,,,
+CID5390002,O=C1c2ccccc2/C(=C\NC2CCS(=O)(=O)C2)C(=O)N1c1ccccc1,,0,,,,0,,1,,,,0,,,,,
+CID2999670,NC(=O)NC(Cc1ccccc1)C(=O)O,0,,,,,,,,,0,,,,,0,0,
+CID5390000,Cc1[nH]nc(NC=C2C(=O)N(C)C(=O)N(C)C2=O)c1-c1ccccc1,,,,,,,,1,,,,,,,,,
+CID1511280,CC(=O)N1CCC2(CC1)NC(=O)N(c1ccccc1)N2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+CID5390006,COc1ccc(C2C(C(=O)NCc3ccccc3)=C(C)N=C3N=CNN32)cc1OC,,,,,,,,,,0,0,,,,,,
+CID5390005,CCc1cc2c(CN3CCN(C)CC3)cc(=O)oc2cc1O,,,,,,,,,,0,,,,,,,
+CID5390004,CCc1cc2c(CN3CCN(CCO)CC3)cc(=O)oc2cc1O,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1

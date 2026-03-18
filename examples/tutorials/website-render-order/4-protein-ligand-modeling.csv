@@ -1,0 +1,6 @@
+Title,File Name
+Introduction to Binding Sites,Introduction_to_Binding_Sites.ipynb
+Modeling Protein Ligand Interactions,Modeling_Protein_Ligand_Interactions.ipynb
+Modeling Protein Ligand Interactions with Atomic Convolutions,Modeling_Protein_Ligand_Interactions_With_Atomic_Convolutions.ipynb
+Applications of DeepChem with Alphafold,DeepChemXAlphafold.ipynb
+UniProt data pre-processing for binding site prediction downstream task,UniProt_Data_Preprocessing_for_Binding_Sites.ipynb

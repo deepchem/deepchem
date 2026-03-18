@@ -1,0 +1,24 @@
+No.,ADC name,Brand name,Company,Target,Payload,Antibody ,Indication,Payload SMILES,Launch year
+1,Gemtuzumab ozogamicin (GO),Mylotarg,Pfizer/Wyeth,CD33,Calicheamicin,Gemtuzumab,Acute myeloid leukemia,CCN(C(C)=O)[C@H]1CO[C@@H](O[C@@H]2[C@@H](O)[C@H](NO[C@H]3C[C@H](O)[C@H](SC(=O)c4c(C)c(I)c(O[C@@H]5O[C@@H](C)[C@H](O)[C@@H](OC)[C@H]5O)c(OC)c4OC)[C@@H](C)O3)[C@@H](C)O[C@H]2O[C@H]2C#C/C=C\C#C[C@]3(O)CC(=O)C(NC(=O)OC)=C2C3=CCSSSC)C[C@@H]1OC,"2000.05
+Relaunched in 2017.09"
+2,Brentuximab vedotin (SGN-35),Adcetris,Seattle Genetics Millennium/Takeda,CD30,MMAE,Brentuximab,"Hodgkin lymphoma, large cell lymphoma","CC[C@H](C)[C@@H]([C@@H](CC(=O)N1CCC[C@H]1[C@@H]([C@@H](C)C(=O)N[C@H](C)[C@H](C2=CC=CC=C2)O)OC)OC)N(C)C(=O)[C@H](C(C)C)NC(=O)[C@H](C(C)C)NC
+",2011.08
+3,Trastuzumab emtansine (T-DM1),Kadcyla,Genentech/Roche,HER2,DM1,Trastuzumab,HER2+ breast cancer,"C[C@@H]1[C@@H]2C[C@]([C@@H](/C=C/C=C(/CC3=CC(=C(C(=C3)OC)Cl)N(C(=O)C[C@@H]([C@]4([C@H]1O4)C)OC(=O)[C@H](C)N(C)C(=O)CCS)C)\C)OC)(NC(=O)O2)O
+",2013.02
+4,Inotuzumab ozogamicin,Besponsa,Pfizer/Wyeth,CD22,Calicheamicin,Inotuzumab,Acute lymphoblastic leukemia,"CCN(C(C)=O)[C@H]1CO[C@@H](O[C@@H]2[C@@H](O)[C@H](NO[C@H]3C[C@H](O)[C@H](SC(=O)c4c(C)c(I)c(O[C@@H]5O[C@@H](C)[C@H](O)[C@@H](OC)[C@H]5O)c(OC)c4OC)[C@@H](C)O3)[C@@H](C)O[C@H]2O[C@H]2C#C/C=C\C#C[C@]3(O)CC(=O)C(NC(=O)OC)=C2C3=CCSSSC)C[C@@H]1OC
+",2017.08
+5,Moxetumomab pasudotox,Lumoxiti,AstraZeneca,CD22,Pseudomonas exotoxin,Moxetumomab,Relapsed or refractory hairy cell leukemia,NaN,2018.09
+6,Polatuzumab vedotin,Polivy,Genentech/Roche,CD79b,MMAE,Polatuzumab,Diffuse large B-cell lymphoma,"CC[C@H](C)[C@@H]([C@@H](CC(=O)N1CCC[C@H]1[C@@H]([C@@H](C)C(=O)N[C@H](C)[C@H](C2=CC=CC=C2)O)OC)OC)N(C)C(=O)[C@H](C(C)C)NC(=O)[C@H](C(C)C)NC
+",2019.07
+7,Enfortumab vedotin,Padcev,Astellas/Seattle Genetics,Nectin-4,MMAE,Enfortumab,Advanced or metastatic urothelial cancer,CC[C@H](C)[C@@H]([C@@H](CC(=O)N1CCC[C@H]1[C@@H]([C@@H](C)C(=O)N[C@H](C)[C@H](C2=CC=CC=C2)O)OC)OC)N(C)C(=O)[C@H](C(C)C)NC(=O)[C@H](C(C)C)NC,2019.12
+8,Fam-trastuzumab deruxtecan (DS-8201),Enhertu,AstraZeneca/Daiichi Sankyo,HER2,Dxd,Fam-trastuzumab,Metastatic breast cancer,"CC[C@@]1(C2=C(COC1=O)C(=O)N3CC4=C5[C@H](CCC6=C5C(=CC(=C6C)F)N=C4C3=C2)NC(=O)CO)O
+",2019.12
+9,Sacituzumab govitecan,Trodelvy,Immunomedics,Trop-2,SN-38,Sacituzumab,Triple-negative breast cancer,CCc1c2c(nc3ccc(O)cc13)-c1cc3c(c(=O)n1C2)COC(=O)C3(O)CC,2020.04
+10,Belantamab mafodotin,Blenrep,GlaxoSmithKline,BCMA,MMAF,Belantamab,Relapsed or refractory multiple myeloma,"CC[C@H](C)[C@@H]([C@@H](CC(=O)N1CCC[C@H]1[C@@H]([C@@H](C)C(=O)N[C@@H](CC2=CC=CC=C2)C(=O)O)OC)OC)N(C)C(=O)[C@H](C(C)C)NC(=O)[C@H](C(C)C)NC
+",2020.08
+11,Loncastuximab tesirine-lpyl,Zynlonta,ADC Therapeutics,CD19,SG3199,Loncastuximab,Large B-cell lymphoma,CC1=CN2[C@@H](C1)C=NC3=CC(=C(C=C3C2=O)OC)OCCCCCOC4=C(C=C5C(=C4)N=C[C@@H]6CC(=CN6C5=O)C)OC,2021.04
+12,Disitamab vedotin,Aidixi,RemeGen,HER2,MMAE,Disitamab,HER2+ gastric carcinoma,"CC[C@H](C)[C@@H]([C@@H](CC(=O)N1CCC[C@H]1[C@@H]([C@@H](C)C(=O)N[C@H](C)[C@H](C2=CC=CC=C2)O)OC)OC)N(C)C(=O)[C@H](C(C)C)NC(=O)[C@H](C(C)C)NC
+",2021.06
+13,Tisotumab vedotin-tftv,Tivdak,Seagen,Tissue factor,MMAE,Tisotumab,Cervical cancer,"CC[C@H](C)[C@@H]([C@@H](CC(=O)N1CCC[C@H]1[C@@H]([C@@H](C)C(=O)N[C@H](C)[C@H](C2=CC=CC=C2)O)OC)OC)N(C)C(=O)[C@H](C(C)C)NC(=O)[C@H](C(C)C)NC
+",2021.09
+14,Mirvetuximab soravtansine-gyxn,ELAHERE™,"ImmunoGen, Inc.",Fra,DM4,Mirvetuximab,Ovarian cancer,C[C@@H]1[C@@H]2C[C@]([C@@H](/C=C/C=C(/CC3=CC(=C(C(=C3)OC)Cl)N(C(=O)C[C@@H]([C@]4([C@H]1O4)C)OC(=O)[C@H](C)N(C)C(=O)CCC(C)(C)S)C)\C)OC)(NC(=O)O2)O,2022.11

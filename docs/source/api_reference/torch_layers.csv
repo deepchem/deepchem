@@ -1,0 +1,61 @@
+﻿Layer,Reference, Model
+MultilayerPerceptron,,
+ScaleNorm,`ref <https://arxiv.org/abs/2002.08264>`_, Molecular Attention Transformer
+MATEncoderLayer,`ref <https://arxiv.org/abs/2002.08264>`_, Molecular Attention Transformer
+MultiHeadedMATAttention,`ref <https://arxiv.org/abs/2002.08264>`_, Molecular Attention Transformer
+SublayerConnection,`ref <https://arxiv.org/abs/1706.03762>`_, Transformer
+MATEmbedding,`ref <https://arxiv.org/abs/2002.08264>`_, Molecular Attention Transformer
+MATGenerator, `ref <https://arxiv.org/abs/2002.08264>`_, Molecular Attention Transformer
+Affine,`ref <http://arxiv.org/abs/2110.15828>`_, Normalizing Flow
+RealNVPLayer,`ref <http://arxiv.org/abs/2110.15828>`_, Normalizing Flow
+DMPNNEncoderLayer,`ref <https://arxiv.org/pdf/1904.01561.pdf>`_, Normalizing Flow
+PositionwiseFeedForward,`ref <https://arxiv.org/abs/2002.08264>`_, Molecular Attention Transformer
+GraphPool, `ref <https://arxiv.org/abs/1509.09292>`_,
+GroverMPNEncoder, `ref <https://drug.ai.tencent.com/publications/GROVER.pdf>`_, Grover
+GroverAttentionHead, `ref <https://drug.ai.tencent.com/publications/GROVER.pdf>`_, Grover
+GroverMTBlock, `ref <https://drug.ai.tencent.com/publications/GROVER.pdf>`_, Grover
+GroverTransEncoder, `ref <https://drug.ai.tencent.com/publications/GROVER.pdf>`_, Grover
+GroverEmbedding, `ref <https://drug.ai.tencent.com/publications/GROVER.pdf>`_, Grover
+GroverAtomVocabPredictor, `ref <https://drug.ai.tencent.com/publications/GROVER.pdf>`_, Grover
+GroverBondVocabPredictor, `ref <https://drug.ai.tencent.com/publications/GROVER.pdf>`_, Grover
+GroverFunctionalGroupPredictor, `ref <https://drug.ai.tencent.com/publications/GROVER.pdf>`_, Grover
+ScaledDotProductAttention, `ref <https://arxiv.org/abs/1706.03762>`_, Transformer
+SelfAttention, `ref <https://arxiv.org/abs/1706.03762>`_, Transformer
+GroverReadout, `ref <https://drug.ai.tencent.com/publications/GROVER.pdf>`_, Grover
+DFTXC, `ref <https://arxiv.org/abs/2102.04229>`_, XCModel-DFT
+NNLDA, `ref <https://arxiv.org/abs/2102.04229>`_, XCModel-DFT
+HybridXC, `ref <https://arxiv.org/abs/2102.04229>`_, XCModel-DFT
+XCNNSCF, `ref <https://arxiv.org/abs/2102.04229>`_, XCModel-DFT
+AtomEncoder, `https://arxiv.org/abs/2110.04126`_, 3D InfoMax
+BondEncoder, `https://arxiv.org/abs/2110.04126`_, 3D InfoMax
+Net3DLayer, `https://arxiv.org/abs/2110.04126`_, 3D InfoMax
+Net3D, `https://arxiv.org/abs/2110.04126`_, 3D InfoMax
+PNALayer, `https://arxiv.org/abs/2004.05718`_, Principal Neighbourhood Aggregation
+PNAGNN, `https://arxiv.org/abs/2004.05718`_, Principal Neighbourhood Aggregation
+EdgeNetwork, `ref <https://arxiv.org/abs/1704.01212>`_, Message Passing Neural Network
+WeaveLayer,`ref <https://pubmed.ncbi.nlm.nih.gov/27558503/>`_, WeaveModel
+WeaveGather,`ref <https://pubmed.ncbi.nlm.nih.gov/27558503/>`_, WeaveModel
+GradientPenalty, `ref <https://arxiv.org/abs/1704.00028>`_, WGANModel
+MolGANConvolutionLayer,`ref <https://arxiv.org/abs/1805.11973>`_, MolGan
+MolGANAggregationLayer,`ref <https://arxiv.org/abs/1805.11973>`_, MolGan
+MolGANMultiConvolutionLayer,`ref <https://arxiv.org/abs/1805.11973>`_, MolGan
+MolGANEncoderLayer, `ref <https://arxiv.org/abs/1805.11973>`_, MolGan
+DTNNEmbedding, ref`<https://arxiv.org/abs/1609.08259>`_, DTNNModel
+DTNNStep, ref`<https://arxiv.org/abs/1609.08259>`_, DTNNModel
+DTNNGather, ref`<https://arxiv.org/abs/1609.08259>`_, DTNNModel
+MXMNetGlobalMessagePassing, `ref <https://arxiv.org/pdf/2011.07457>`_, MXMNetModel
+MXMNetBesselBasisLayer, `ref <https://arxiv.org/pdf/2011.07457>`_, MXMNetModel
+VariationalRandomizer, `ref <https://arxiv.org/abs/1511.06349>`_, SeqToSeqModel
+EncoderRNN, `ref <https://arxiv.org/abs/1409.3215>`_, SeqToSeqModel
+DecoderRNN, `ref <https://arxiv.org/abs/1409.3215>`_, SeqToSeqModel
+FerminetElectronFeature, `ref <https://arxiv.org/pdf/1909.02487.pdf>`_, FerminetModel
+FerminetEnvelope, `ref <https://arxiv.org/pdf/1909.02487.pdf>`_, FerminetModel
+MXMNetLocalMessagePassing, `ref <https://arxiv.org/pdf/2011.07457>`_, MXMNetModel
+MXMNetModelMXMNetSphericalBasisLayer, ref`<https://arxiv.org/pdf/2011.07457>`_, MXMNetModel
+HighwayLayer, `ref <https://arxiv.org/abs/1507.06228>`_,
+GraphConv,`ref <https://arxiv.org/abs/1509.09292>`_,
+GraphPool,`ref <https://arxiv.org/abs/1509.09292>`_,
+GraphGather,`ref <https://arxiv.org/abs/1509.09292>`_,
+IRVLayer,`ref <https://pmc.ncbi.nlm.nih.gov/articles/PMC2750043/>`_,
+DAGLayer,`ref <https://pmc.ncbi.nlm.nih.gov/articles/PMC3739985/>`_,
+DAGGather,`ref <https://pmc.ncbi.nlm.nih.gov/articles/PMC3739985/>`_,
