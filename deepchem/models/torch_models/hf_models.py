@@ -2,7 +2,7 @@ import logging
 import time
 from collections.abc import Sequence as SequenceCollection
 from typing import (TYPE_CHECKING, Any, Callable, Iterable, List, Optional,
-                    Tuple, Union, Dict)
+                    Tuple, Union, Dict, TypedDict)
 
 import numpy as np
 import torch
@@ -11,7 +11,7 @@ from deepchem.models.torch_models import TorchModel
 from deepchem.trans import Transformer, undo_transforms
 from deepchem.utils.typing import LossFn, OneOrMany
 from transformers.data.data_collator import DataCollatorForLanguageModeling
-from transformers.models.auto import AutoModel, AutoModelForSequenceClassification, AutoModelForMaskedLM, AutoModelForUniversalSegmentation
+from transformers.models.auto import AutoModel, AutoModelForSequenceClassification, AutoModelForMaskedLM, AutoModelForUniversalSegmentation, AutoModelForCausalLM
 
 logger = logging.getLogger(__name__)
 
@@ -238,6 +238,10 @@ class HuggingFaceModel(TorchModel):
             elif self.task == "universal_segmentation":
                 self.model = AutoModelForUniversalSegmentation.from_pretrained(
                     model_dir, trust_remote_code=True, **self.config)
+            elif self.task == 'causal_lm':
+                self.model = AutoModelForCausalLM.from_pretrained(
+                    model_dir, trust_remote_code=True,
+                    **self.config).to(self.device)
             else:
                 self.model = AutoModel.from_pretrained(model_dir,
                                                        trust_remote_code=True,
@@ -277,6 +281,10 @@ class HuggingFaceModel(TorchModel):
 
     def _prepare_batch(self, batch: Tuple[Any, Any, Any]):
         smiles_batch, y, w = batch
+        if self.tokenizer.pad_token is None:
+            self.tokenizer.pad_token = self.tokenizer.eos_token
+            if hasattr(self.model, "config"):
+                self.model.config.pad_token_id = self.model.config.eos_token_id
         tokens = self.tokenizer(smiles_batch[0].tolist(),
                                 padding=True,
                                 return_tensors="pt")
@@ -288,6 +296,15 @@ class HuggingFaceModel(TorchModel):
                 'input_ids': inputs.to(self.device),
                 'labels': labels.to(self.device),
                 'attention_mask': tokens['attention_mask'].to(self.device),
+            }
+            return inputs, None, w
+        elif self.task == 'causal_lm':
+            input_ids = tokens['input_ids'].to(self.device)
+            attention_mask = tokens['attention_mask'].to(self.device)
+            inputs = {
+                'input_ids': input_ids,
+                'attention_mask': attention_mask,
+                'labels': input_ids.clone()
             }
             return inputs, None, w
         elif self.task in ['regression', 'classification', 'mtr']:
@@ -563,14 +580,22 @@ class HuggingFaceModel(TorchModel):
         else:
             return np.array(final_results)
 
-    def fill_mask(self,
-                  inputs: Union[str, List[str]],
-                  top_k: int = 5) -> Union[List[Dict], List[List[Dict]]]:
+    class FillMaskOutput(TypedDict):
+        sequence: str
+        score: float
+        token: int
+        token_str: str
+
+    def fill_mask(
+        self,
+        inputs: Union[str, List[str]],
+        top_k: int = 5
+    ) -> Union[List[FillMaskOutput], List[List[FillMaskOutput]]]:
         """Implements the HuggingFace 'fill_mask' pipeline from HuggingFace.
         https://huggingface.co/docs/transformers/main_classes/pipelines
 
         Takes as input a sequence or list of sequences where each sequence
-        containts a single masked position and returns a list of dictionaries per sequence
+        contains a single masked position and returns a list of dictionaries per sequence
         containing the filled sequence, the token, and the score for that token.
 
         Parameters
@@ -582,7 +607,7 @@ class HuggingFaceModel(TorchModel):
 
         Returns
         -------
-        Union[List[Dict], List[List[Dict]]]
+        Union[List[FillMaskOutput], List[List[FillMaskOutput]]]
             A list or a list of list of dictionaries with the following keys:
             - sequence (str): The corresponding input with the mask token prediction.
             - score (float): The corresponding probability.
@@ -591,6 +616,8 @@ class HuggingFaceModel(TorchModel):
         """
 
         # First make sure tha the model is successfully loaded, then set to eval mode.
+        if top_k <= 0:
+            raise ValueError("top_k must be a positive integer.")
         self._ensure_built()
         self.model.eval()
 
@@ -607,8 +634,11 @@ class HuggingFaceModel(TorchModel):
             mask_token_index = torch.where(
                 encoded_input["input_ids"] == self.tokenizer.mask_token_id)[1]
             # Ensure that the masked token index appears EXACTLY once.
-            assert mask_token_index.numel(
-            ) == 1, f"Sequence has masked indices at: {list(mask_token_index)}. Please ensure that only one position is masked in the sequence."
+            if mask_token_index.numel() != 1:
+                raise ValueError(
+                    f"Sequence has masked indices at: {list(mask_token_index)}."
+                    "Please ensure that only one position is masked in the sequence."
+                )
 
             with torch.no_grad():
                 output = self.model(**encoded_input)
@@ -622,11 +652,12 @@ class HuggingFaceModel(TorchModel):
 
             # Decode the sequence with each of the top_k tokens inserted
             # Calculate the score as the probability of that token in the sequence.
-            text_results = []
+            text_results: List[HuggingFaceModel.FillMaskOutput] = []
+            probs = torch.softmax(mask_token_logits, dim=1)
             for token in top_k_tokens:
                 token_str = self.tokenizer.decode([token])
                 filled_text = text.replace(self.tokenizer.mask_token, token_str)
-                score = torch.softmax(mask_token_logits, dim=1)[0, token].item()
+                score = probs[0, token].item()
                 text_results.append({
                     'sequence': filled_text,
                     'score': score,
@@ -636,3 +667,74 @@ class HuggingFaceModel(TorchModel):
             results.append(text_results)
 
         return results[0] if len(results) == 1 else results
+
+    def generate(self,
+                 inputs: Union[str, List[str]],
+                 batch_size: int = 10,
+                 **kwargs) -> List[str]:
+        """Generate text using HuggingFace's text generation pipeline.
+        Parameters
+        ----------
+        inputs : Union[str, List[str]]
+            One or several input sequences (or one list of input sequences) to condition the generation on.
+        batch_size : int, optional
+            The batch size to use for generation. Default is 10.
+        **kwargs:
+            Additional keyword arguments to pass to HuggingFace's `generate` method. This can include
+            Returns
+            -------
+            List[str]
+                A list of generated text sequences corresponding to each input sequence."""
+        self._ensure_built()
+        self.model.eval()
+
+        if not hasattr(self.model, 'generate'):
+            raise ValueError(
+                "This HuggingFace model doesn't support text generation.")
+
+        if isinstance(inputs, str):
+            inputs = [inputs]
+
+        elif not isinstance(inputs, list):
+            raise ValueError("Inputs should be a string or a list of strings.")
+
+        if len(inputs) == 0:
+            return []
+
+        if self.tokenizer.pad_token is None:
+            self.tokenizer.pad_token = self.tokenizer.eos_token
+            self.model.config.pad_token_id = self.model.config.eos_token_id
+
+        if hasattr(self.tokenizer, "padding_side"):
+            self.tokenizer.padding_side = "left"
+        device = self.device
+
+        if device.type == 'cuda' and not torch.cuda.is_available():
+            logger.warning(
+                "CUDA is not available. Moving model and inputs to CPU for generation."
+            )
+            device = torch.device('cpu')
+        if device.type == 'mps':
+            # HuggingFace's generate method does not currently support MPS. Move model and inputs to CPU.
+            logger.warning(
+                "HuggingFace's generate method does not currently support MPS. Moving model and inputs to CPU for generation."
+            )
+            device = torch.device('cpu')
+        if next(self.model.parameters()).device != device:
+            self.model.to(device)
+
+        all_outputs = []
+        length = len(inputs)
+        for i in range(0, length, batch_size):
+            batch_inputs = inputs[i:i + batch_size]
+            encoded = self.tokenizer(batch_inputs,
+                                     return_tensors='pt',
+                                     padding=True,
+                                     truncation=True)
+            encoded = {k: v.to(device) for k, v in encoded.items()}
+            with torch.no_grad():
+                outputs = self.model.generate(**encoded, **kwargs)
+            decoded_outputs = self.tokenizer.batch_decode(
+                outputs, skip_special_tokens=True)
+            all_outputs.extend(decoded_outputs)
+        return all_outputs
