@@ -35,7 +35,7 @@ def compare_gga_h2():
     system = Mol(moldesc=moldesc, basis=basis)
 
     # DeepChem LDA_X
-    print("\n1. DeepChem LDA (exchange only):")
+    print("\n1. DeepChem GGA (exchange only):")
     xc_dc = PyTorchGGA("gga_x_pbe")
     ks_dc = KS(system, xc_dc, variational=False)
     ks_dc.run()
@@ -45,7 +45,7 @@ def compare_gga_h2():
     print(f"   Total Energy: {e_dc} Ha")
 
     # LibXC LDA_X
-    print("\n2. LibXC LDA (exchange only):")
+    print("\n2. LibXC GGA (exchange only):")
     xc_libxc = "gga_x_pbe"
     ks_libxc = KS(system, xc_libxc, variational=False)
     ks_libxc.run()
@@ -64,7 +64,7 @@ def compare_mgga_h2():
     system = Mol(moldesc=moldesc, basis=basis)
 
     # DeepChem LDA_X
-    print("\n1. DeepChem LDA (exchange only):")
+    print("\n1. DeepChem MGGA (exchange only):")
     xc_dc = PyTorchMGGA()
     ks_dc = KS(system, xc_dc, variational=False)
     ks_dc.run()
@@ -72,7 +72,7 @@ def compare_mgga_h2():
     print(f"   Total Energy: {e_dc:.6f} Ha")
 
     # LibXC LDA_X
-    print("\n2. LibXC LDA (exchange only):")
+    print("\n2. LibXC MGGA (exchange only):")
     xc_libxc = "mgga_x_tpss"
     ks_libxc = KS(system, xc_libxc, variational=False)
     ks_libxc.run()
