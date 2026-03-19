@@ -112,11 +112,12 @@ class HuggingFaceModel(TorchModel):
     >>> hf_model = HuggingFaceModel(model=model, tokenizer=tokenizer, task='mlm', model_dir='model-dir')
     >>> training_loss = hf_model.fit(dataset, nb_epoch=1)
 
-    >>> # finetuning a regression model
+    >>> # finetuning a regression model with custom tokenizer kwargs
     >>> from transformers.models.roberta import RobertaForSequenceClassification
     >>> config = RobertaConfig(vocab_size=tokenizer.vocab_size, problem_type='regression', num_labels=1)
     >>> model = RobertaForSequenceClassification(config)
-    >>> hf_model = HuggingFaceModel(model=model, tokenizer=tokenizer, task='regression', model_dir='model-dir')
+    >>> tokenizer_kwargs = {'max_length': 512, 'truncation': True}
+    >>> hf_model = HuggingFaceModel(model=model, tokenizer=tokenizer, task='regression', tokenizer_kwargs=tokenizer_kwargs, model_dir='model-dir')
     >>> hf_model.load_from_pretrained()
     >>> training_loss = hf_model.fit(dataset, nb_epoch=1)
     >>> prediction = hf_model.predict(dataset)  # prediction
@@ -147,6 +148,7 @@ class HuggingFaceModel(TorchModel):
             tokenizer: 'transformers.tokenization_utils.PreTrainedTokenizer',
             task: Optional[str] = None,
             config: Optional[Dict] = None,
+            tokenizer_kwargs: Optional[Dict] = None,
             **kwargs):
         self.task = task
         self.tokenizer = tokenizer
@@ -161,6 +163,12 @@ class HuggingFaceModel(TorchModel):
             self.config = config
         else:
             self.config = {}
+
+        if tokenizer_kwargs:
+            self.tokenizer_kwargs = tokenizer_kwargs
+        else:
+            self.tokenizer_kwargs = {}
+
         super(HuggingFaceModel, self).__init__(
             model=model,
             loss=None,  # type: ignore
@@ -277,9 +285,13 @@ class HuggingFaceModel(TorchModel):
 
     def _prepare_batch(self, batch: Tuple[Any, Any, Any]):
         smiles_batch, y, w = batch
-        tokens = self.tokenizer(smiles_batch[0].tolist(),
-                                padding=True,
-                                return_tensors="pt")
+        # Merge default padding and return_tensors with user provided tokenizer_kwargs
+        tokenizer_kwargs = {
+            'padding': True,
+            'return_tensors': "pt",
+            **self.tokenizer_kwargs
+        }
+        tokens = self.tokenizer(smiles_batch[0].tolist(), **tokenizer_kwargs)
 
         if self.task == 'mlm':
             inputs, labels = self.data_collator.torch_mask_tokens(
