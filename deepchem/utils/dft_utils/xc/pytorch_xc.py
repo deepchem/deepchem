@@ -165,11 +165,6 @@ class PyTorchLDA(BaseXC):
         """
         return []
 
-import torch
-from typing import Union, List
-from deepchem.utils.dft_utils.xc.base_xc import BaseXC
-from deepchem.utils.dft_utils.data.datastruct import ValGrad, SpinParam
-from deepchem.utils import safepow
 
 
 class PyTorchGGA(BaseXC):
@@ -351,14 +346,6 @@ class PyTorchGGA(BaseXC):
     def getparamnames(self, methodname: str, prefix: str = "") -> List[str]:
         """Returns an empty list — all constants are local tensors."""
         return []
-
-
-import torch
-from typing import Union, List
-from deepchem.utils.dft_utils.xc.base_xc import BaseXC
-from deepchem.utils.dft_utils.data.datastruct import ValGrad, SpinParam
-from deepchem.utils import safepow
-
 
 class PyTorchMGGA(BaseXC):
     """Meta-Generalized Gradient Approximation (MGGA) XC functional.

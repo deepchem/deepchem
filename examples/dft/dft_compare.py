@@ -82,4 +82,4 @@ def compare_mgga_h2():
     print(f"\n   Difference: {abs(e_dc - e_libxc):.6f} Ha")
 
 if __name__ == "__main__":
-    compare_mgga_h2()
+    compare_gga_h2()
