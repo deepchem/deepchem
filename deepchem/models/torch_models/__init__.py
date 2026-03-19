@@ -58,13 +58,17 @@ try:
     from deepchem.models.torch_models.gnn import GNN, GNNHead, GNNModular
     from deepchem.models.torch_models.pna_gnn import AtomEncoder, BondEncoder, PNALayer, PNAGNN, PNA
     from deepchem.models.torch_models.gnn3d import Net3D, InfoMax3DModular
-    from deepchem.models.torch_models.weavemodel_pytorch import Weave, WeaveModel
     from deepchem.models.torch_models.mxmnet import MXMNet
+except ModuleNotFoundError as e:
+    logger.warning(
+        f'Skipped loading modules with pytorch-geometric dependency, missing a dependency. {e}'
+    )
+try:
     from deepchem.models.torch_models.se3_transformer import SE3Transformer, SE3TransformerModel
     from deepchem.models.torch_models.tfn import TFN, TFNModel
 except ModuleNotFoundError as e:
     logger.warning(
-        f'Skipped loading modules with pytorch-geometric dependency, missing a dependency. {e}'
+        f'Skipped loading modules with dgl dependency, missing a dependency. {e}'
     )
 try:
     from deepchem.models.torch_models.hf_models import HuggingFaceModel
