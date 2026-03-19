@@ -5,6 +5,7 @@ import operator
 from functools import reduce
 import numpy as np
 import torch
+from deepchem.utils.analytical_integrators.optimizer import int1e_ovlp_optimizer
 from deepchem.utils.dft_utils import LibcintWrapper
 from deepchem.utils.dft_utils.hamilton.intor.utils import np2ctypes, int2ctypes, NDIM, CINT, CGTO
 from deepchem.utils.dft_utils.hamilton.intor.namemgr import IntorNameManager
@@ -1535,9 +1536,13 @@ def _get_intgl_optimizer(opname: str, atm: np.ndarray, bas: np.ndarray,
     """
     cintopt = ctypes.POINTER(ctypes.c_void_p)()
     optname = opname.replace("_cart", "").replace("_sph", "") + "_optimizer"
-    copt = getattr(CINT(), optname)
-    copt(ctypes.byref(cintopt), np2ctypes(atm), int2ctypes(atm.shape[0]),
-         np2ctypes(bas), int2ctypes(bas.shape[0]), np2ctypes(env))
+    if optname == "int1e_ovlp_optimizer":
+        print("here")
+        copt = int1e_ovlp_optimizer
+        copt(None, atm, atm.shape[0], bas, bas.shape[0], env)
+    else:
+        copt = getattr(CINT(), optname)
+        copt(ctypes.byref(cintopt), np2ctypes(atm), int2ctypes(atm.shape[0]), np2ctypes(bas), int2ctypes(bas.shape[0]), np2ctypes(env))
     opt = ctypes.cast(cintopt, _cintoptHandler)
     return opt
 
