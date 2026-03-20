@@ -10,6 +10,7 @@ model-dir/
 #DeepChem Checkpoints
 checkpoints_classification/
 checkpoints_regression/
+olmo_checkpoints/
 
 # C extensions
 *.so
