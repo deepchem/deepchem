@@ -2,7 +2,7 @@
 import logging
 
 logger = logging.getLogger(__name__)
-
+from deepchem.models.torch_models.fem_solver import FEMModel
 from deepchem.models.torch_models.torch_model import TorchModel
 from deepchem.models.torch_models.modular import ModularTorchModel
 from deepchem.models.torch_models.attentivefp import AttentiveFP, AttentiveFPModel
