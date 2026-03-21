@@ -7,6 +7,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 # base classes for featurizers
+from deepchem.feat.mesh_featurizer import MeshFeaturizer
 from deepchem.feat.base_classes import Featurizer
 from deepchem.feat.base_classes import MolecularFeaturizer
 from deepchem.feat.base_classes import MaterialStructureFeaturizer
