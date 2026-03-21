@@ -7,6 +7,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 # TODO(rbharath): Get rid of * import
+from deepchem.data.mesh_dataset import MeshDataset
 from deepchem.data.datasets import pad_features
 from deepchem.data.datasets import pad_batch
 from deepchem.data.datasets import Dataset
