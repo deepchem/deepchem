@@ -21,7 +21,7 @@ if TYPE_CHECKING:
 
 
 class HuggingFaceModel(TorchModel):
-    r"""Wrapper class that wraps HuggingFace models as DeepChem models
+    r"""Wrapper class for integrating HuggingFace models into DeepChem
 
     The class provides a wrapper for wrapping models from HuggingFace
     ecosystem in DeepChem and training it via DeepChem's api. The reason
@@ -29,12 +29,12 @@ class HuggingFaceModel(TorchModel):
     between HuggingFace from the transformers library and DeepChem library.
 
     The `HuggingFaceModel` has a Has-A relationship by wrapping models from
-    `transformers` library. Once a model is wrapped, DeepChem's API are used
+    `transformers` library. Once a model is wrapped, DeepChem's APIs are used
     for training, prediction, evaluation and other downstream tasks.
 
     A `HuggingFaceModel` wrapper also has a `tokenizer` which tokenizes raw
     SMILES strings into tokens to be used by downstream models.  The SMILES
-    strings are generally stored in the `X` attribute of deepchem.data.Dataset object'.
+    strings are generally stored in the `X` attribute of deepchem.data.Dataset object.
     This differs from the DeepChem standard workflow as tokenization is done
     on the fly here. The approach allows us to leverage `transformers` library's fast
     tokenization algorithms and other utilities like data collation, random masking of tokens
@@ -58,12 +58,12 @@ class HuggingFaceModel(TorchModel):
     tokenizer: transformers.tokenization_utils.PreTrainedTokenizer
         Tokenizer
     config: dict, (optional, default None)
-        A dictionary of model configuration parameters that will be passed to the Hugging Face
+        A dictionary of model configuration parameters that will be passed to the HuggingFace
         `AutoModel` classes via `**kwargs` when loading from the hf_checkpoint. These parameters
         are typically used to customize the behavior and architecture of the underlying transformer
         model (e.g., number of layers, hidden size, dropout rates, etc.). When loading from pretrained
         from hf_checkpoint, If any keys in `config` match configuration attributes supported by
-        the specific Hugging Face `AutoModel` being used, they will override the default settings
+        the specific HuggingFace `AutoModel` being used, they will override the default settings
         for that model.
 
     Example
@@ -490,12 +490,12 @@ class HuggingFaceModel(TorchModel):
 
         Returns
         -------
-            a NumPy array of the model produces a single output, or a list of arrays
+            a NumPy array if the model produces a single output, or a list of arrays
             if it produces multiple outputs
 
         Note
         ----
-        A HuggingFace model does not output uncertainity. The argument is here
+        A HuggingFace model does not output uncertainty. The argument is here
         since it is also present in TorchModel. Similarly, other variables like
         other_output_types are also not used. Instead, a HuggingFace model outputs
         loss, logits, hidden state and attentions.
@@ -532,7 +532,7 @@ class HuggingFaceModel(TorchModel):
             if isinstance(output_values, torch.Tensor):
                 output_values = [output_values]
             output_values = [t.detach().cpu().numpy() for t in output_values]
-            # Apply tranformers and record results.
+            # Apply transformers and record results.
             if uncertainty:
                 var = [output_values[i] for i in self._variance_outputs]
                 if variances is None:
@@ -615,7 +615,7 @@ class HuggingFaceModel(TorchModel):
             - token_str (str): The predicted token (to replace the masked one)
         """
 
-        # First make sure tha the model is successfully loaded, then set to eval mode.
+        # First make sure that the model is successfully loaded, then set to eval mode.
         if top_k <= 0:
             raise ValueError("top_k must be a positive integer.")
         self._ensure_built()
