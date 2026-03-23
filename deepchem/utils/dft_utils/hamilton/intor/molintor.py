@@ -5,8 +5,7 @@ import operator
 from functools import reduce
 import numpy as np
 import torch
-from deepchem.utils.analytical_integrators.optimizer import int1e_ovlp_optimizer, int1e_kin_optimizer, int1e_nuc_optimizer
-from deepchem.utils.analytical_integrators.optim import int2e_ar12b_optimizer
+from deepchem.utils.analytical_integrators.optimizer import int1e_ovlp_optimizer, int1e_kin_optimizer, int1e_nuc_optimizer, int2e_ar12b_optimizer
 from deepchem.utils.dft_utils import LibcintWrapper
 from deepchem.utils.dft_utils.hamilton.intor.utils import np2ctypes, int2ctypes, NDIM, CINT, CGTO
 from deepchem.utils.dft_utils.hamilton.intor.namemgr import IntorNameManager
