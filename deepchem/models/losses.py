@@ -1,4 +1,5 @@
 from typing import List, Optional, Sequence
+import tensorflow as tf
 
 
 class Loss:
@@ -145,9 +146,8 @@ class PoissonLoss(Loss):
     """
 
     def _compute_tf_loss(self, output, labels):
-        import tensorflow as tf
         output, labels = _make_tf_shapes_consistent(output, labels)
-        loss = tf.keras.losses.Poisson(reduction='auto')
+        loss = tf.keras.losses.Poisson(reduction='none')
         return loss(labels, output)
 
     def _create_pytorch_loss(self):
@@ -401,8 +401,8 @@ class VAE_KLDivergence(Loss):
         logvar, mu = _make_tf_shapes_consistent(logvar, mu)
         logvar, mu = _ensure_float(logvar, mu)
         return 0.5 * tf.reduce_mean(
-            tf.square(mu) + tf.square(logvar) -
-            tf.math.log(1e-20 + tf.square(logvar)) - 1, -1)
+            tf.square(mu) + tf.exp(logvar) -
+            logvar - 1, -1)
 
     def _create_pytorch_loss(self):
         import torch
@@ -410,8 +410,8 @@ class VAE_KLDivergence(Loss):
         def loss(logvar, mu):
             logvar, mu = _make_pytorch_shapes_consistent(logvar, mu)
             return 0.5 * torch.mean(
-                torch.square(mu) + torch.square(logvar) -
-                torch.log(1e-20 + torch.square(logvar)) - 1, -1)
+                torch.square(mu) + torch.exp(logvar) -
+                logvar - 1, -1)
 
         return loss
 
