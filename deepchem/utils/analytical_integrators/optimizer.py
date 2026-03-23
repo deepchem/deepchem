@@ -520,3 +520,61 @@ def int1e_ovlp_optimizer(opt_ref, atm: np.ndarray, natm: int,
     opt = CINTinit_2e_optimizer(atm, natm, bas, nbas, env)
     CINTall_1e_optimizer(opt, ng, atm, natm, bas, nbas, env)
     return opt
+
+
+def int1e_kin_optimizer(opt_ref, atm: np.ndarray, natm: int,
+                        bas: np.ndarray, nbas: int,
+                        env: np.ndarray) -> CINTOpt:
+    """
+    Top-level entry point — mirrors:
+
+        void int1e_ovlp_optimizer(CINTOpt **opt, ...)
+        { FINT ng[] = {0,2,0,0,2,1,1,1};
+          CINTall_1e_optimizer(opt, ng, ...); }
+
+    Parameters
+    ----------
+    atm  : shape (natm, ATM_SLOTS) int32
+    natm : number of atoms
+    bas  : shape (nbas, BAS_SLOTS) int32
+    nbas : number of shells
+    env  : flat float64 array (exponents, coefficients, coordinates)
+
+    Returns
+    -------
+    CINTOpt with log_max_coeff, non0ctr, sortedidx, index_xyz_array populated.
+    """
+    ng  = np.array([0, 2, 0, 0, 2, 1, 1, 1], dtype=np.int32)
+    opt = CINTinit_2e_optimizer(atm, natm, bas, nbas, env)
+    CINTall_1e_optimizer(opt, ng, atm, natm, bas, nbas, env)
+    return opt
+
+
+def int1e_nuc_optimizer(opt_ref, atm: np.ndarray, natm: int,
+                        bas: np.ndarray, nbas: int,
+                        env: np.ndarray) -> CINTOpt:
+    """
+    Top-level entry point — mirrors:
+
+        void int1e_ovlp_optimizer(CINTOpt **opt, ...)
+        { FINT ng[] = {0,0,0,0,0,1,0,1};
+          CINTall_1e_optimizer(opt, ng, ...); }
+
+    Parameters
+    ----------
+    atm  : shape (natm, ATM_SLOTS) int32
+    natm : number of atoms
+    bas  : shape (nbas, BAS_SLOTS) int32
+    nbas : number of shells
+    env  : flat float64 array (exponents, coefficients, coordinates)
+
+    Returns
+    -------
+    CINTOpt with log_max_coeff, non0ctr, sortedidx, index_xyz_array populated.
+    """
+    ng  = np.array([0, 0, 0, 0, 0, 1, 0, 1], dtype=np.int32)
+    opt = CINTinit_2e_optimizer(atm, natm, bas, nbas, env)
+    CINTall_1e_optimizer(opt, ng, atm, natm, bas, nbas, env)
+    return opt
+
+
