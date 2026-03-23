@@ -1370,6 +1370,7 @@ class Intor(object):
 
         # get the operator
         opname = int_nmgr.get_intgl_name(wrapper0.spherical)
+        print(opname)
         self.op = getattr(CINT(), opname)
         self.optimizer = _get_intgl_optimizer(opname, self.atm, self.bas,
                                               self.env)
