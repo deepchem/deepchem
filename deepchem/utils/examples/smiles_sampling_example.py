@@ -37,7 +37,7 @@ for smi in trajectory:
 print("\nUnique molecules:", len(set(trajectory)))
 
 
-# ---- Advanced usage (commented) ----
+# ---- Advanced usage ----
 # Example with a masked language model:
 #
 # from transformers import AutoTokenizer, AutoModelForMaskedLM
