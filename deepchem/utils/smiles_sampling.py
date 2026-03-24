@@ -1,9 +1,24 @@
+"""
+Utilities for constrained molecular generation using Gibbs-style sampling.
+
+This module provides:
+- SMILES validation
+- Similarity computation (Tanimoto)
+- QED scoring
+- Gibbs-style mutation step using masked language models
+- Sampling chains with simple constraints
+
+The implementation is model-agnostic and can be used with any masked language
+model for molecular generation (e.g., ChemBERTa-style models).
+"""
 
 import random
+import torch
 from rdkit import Chem
 from rdkit.Chem import QED, AllChem, DataStructs
 
 
+#Validation
 def is_valid_smiles(smiles):
     try:
         return Chem.MolFromSmiles(smiles) is not None
@@ -11,6 +26,7 @@ def is_valid_smiles(smiles):
         return False
 
 
+# Metrics
 def tanimoto(s1, s2):
     m1 = Chem.MolFromSmiles(s1)
     m2 = Chem.MolFromSmiles(s2)
@@ -31,9 +47,23 @@ def qed_score(smiles):
     return QED.qed(mol)
 
 
+# Sampling 
 def gibbs_step(smiles, model, tokenizer, allowed_tokens, k=50):
     """
     Perform one Gibbs-style mutation step using a masked language model.
+
+    This function is model-agnostic and works with any masked language model
+    that supports token masking and logits prediction (e.g., ChemBERTa-style models).
+
+    Args:
+        smiles (str): Input SMILES string.
+        model: Masked language model.
+        tokenizer: Corresponding tokenizer.
+        allowed_tokens (set): Tokens allowed for mutation.
+        k (int): Top-k sampling size.
+
+    Returns:
+        str: Mutated SMILES string (or original if no valid mutation found).
     """
 
     tokens = tokenizer.tokenize(smiles)
@@ -48,13 +78,13 @@ def gibbs_step(smiles, model, tokenizer, allowed_tokens, k=50):
     inputs = tokenizer(smiles, return_tensors="pt")
     inputs["input_ids"][0][pos] = tokenizer.mask_token_id
 
-    outputs = model(**inputs)
-    logits = outputs.logits[0, pos]
+    with torch.no_grad():
+        outputs = model(**inputs)
 
+    logits = outputs.logits[0, pos]
     topk_indices = logits.topk(k).indices
 
     for idx in topk_indices:
-
         token = tokenizer.decode([idx])
 
         if token not in allowed_tokens:
