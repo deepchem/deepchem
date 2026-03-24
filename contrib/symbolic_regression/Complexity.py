@@ -1,47 +1,70 @@
-import torch
-import math
+def _get_var_complexity(options, feature):
+    if options is None:
+        return 1.0
+    value = getattr(options, "complexity_of_variables", 1.0)
+    if isinstance(value, (list, tuple)):
+        if feature is None:
+            return float(value[0]) if len(value) > 0 else 1.0
+        idx = int(feature)
+        if 0 <= idx < len(value):
+            return float(value[idx])
+        return float(value[-1]) if len(value) > 0 else 1.0
+    return float(value)
 
-def calculate_complexity(tree, seen=None):
-    """
-    Complexity = number of nodes in the tree.
-    """
-    if seen is None:
-        seen = set()
+
+def _compute_complexity_raw(
+    tree,
+    options,
+    _seen,
+):
+    if _seen is None:
+        _seen = set()
     node_id = id(tree)
-    seen.add(node_id)
-    total = 1 + sum(calculate_complexity(child, seen) for child in tree.children)
-    seen.remove(node_id)
-    return total
+    if node_id in _seen:
+        raise ValueError("Cycle detected in Tree while computing complexity.")
+    _seen.add(node_id)
+
+    if tree.is_leaf():
+        if tree.op == "const":
+            raw = (
+                float(getattr(options, "complexity_of_constants", 1.0))
+                if options
+                else 1.0
+            )
+        elif tree.op == "var":
+            raw = _get_var_complexity(options, tree.feature)
+        else:
+            raw = 1.0
+        _seen.remove(node_id)
+        return raw
+
+    op_weights = getattr(options, "complexity_of_operators", None) if options else None
+    op_complexity = (
+        float(op_weights.get(tree.op, 1.0)) if op_weights is not None else 1.0
+    )
+    child_sum = sum(
+        _compute_complexity_raw(child, options, _seen) for child in tree.children
+    )
+    _seen.remove(node_id)
+    return op_complexity + child_sum
 
 
-def normalization(dataset) -> float:
-    baseline = getattr(dataset, "baseline_loss", None)
-    use_baseline = bool(getattr(dataset, "use_baseline", False))
-    if baseline is None or not math.isfinite(float(baseline)):
-        use_baseline = False
-    if use_baseline and float(baseline) >= 0.01:
-        return float(baseline)
-    return 0.01
+def calculate_complexity(
+    tree,
+    options=None,
+    _seen=None,
+):
+    if options is not None and getattr(options, "complexity_mapping", None) is not None:
+        fn = options.complexity_mapping
+        try:
+            out = fn(tree, options)
+        except TypeError:
+            out = fn(tree)
+        return max(1, int(round(float(out))))
 
-def calculate_loss_and_cost(complexity,dataset,tree,parsimony_penalty):
-    X = dataset.X
-    y = dataset.y
-    w = getattr(dataset, "weights", None) # for future implementaion
+    raw = _compute_complexity_raw(tree, options, _seen)
+    return max(1, int(round(raw)))
 
-    yhat = tree.forward(X)
-    if torch.isnan(yhat).any() or torch.isinf(yhat).any():
-        return float("inf"), float("inf")
-    err2 = (yhat - y) ** 2
 
-    if w is None:
-        loss_t = err2.mean()
-    else:
-        # weighted mean
-        loss_t = (err2 * w).sum() / (w.sum() + 1e-12)
 
-    loss = float(loss_t.detach().cpu().item())
-    norm = normalization(dataset)
-    cost = float((loss / norm) + parsimony_penalty * complexity)
-    if math.isnan(loss) or math.isinf(loss):
-        return float("inf"), float("inf")
-    return loss, cost
+

@@ -14,25 +14,42 @@ if REPO_ROOT not in sys.path:
 from equation_search import equation_search
 
 
+<<<<<<< HEAD
 def load_csv(path: str) -> tuple[torch.Tensor, torch.Tensor]:
+=======
+def load_csv(path):
+>>>>>>> add test cases on deepchem data
     with open(path, newline="") as f:
         reader = csv.DictReader(f)
         x_rows = []
         y_vals = []
         for row in reader:
+<<<<<<< HEAD
             x_rows.append([float(row['V']), float(row['T'])])
             y_vals.append(float(row['P']))
+=======
+            x_rows.append([float(row["V"]), float(row["T"])])
+            y_vals.append(float(row["P"]))
+>>>>>>> add test cases on deepchem data
 
     X = torch.tensor(x_rows, dtype=torch.float32)
     y = torch.tensor(y_vals, dtype=torch.float32)
     return X, y
 
 
+<<<<<<< HEAD
 def mse_torch(yhat: torch.Tensor, y: torch.Tensor) -> float:
     return float(((yhat - y) ** 2).mean().item())
 
 
 def write_results(name: str, es_eq: str, es_loss: float, pysr_eq: str, pysr_loss: float) -> None:
+=======
+def mse_torch(yhat, y):
+    return float(((yhat - y) ** 2).mean().item())
+
+
+def write_results(name, es_eq, es_loss, pysr_eq, pysr_loss):
+>>>>>>> add test cases on deepchem data
     out_dir = os.path.join(REPO_ROOT, "outputs")
     os.makedirs(out_dir, exist_ok=True)
     out_path = os.path.join(out_dir, "results.csv")
@@ -40,11 +57,27 @@ def write_results(name: str, es_eq: str, es_loss: float, pysr_eq: str, pysr_loss
     with open(out_path, "a", newline="") as f:
         w = csv.writer(f)
         if header_needed:
+<<<<<<< HEAD
             w.writerow(["dataset", "equation_search_equation", "equation_search_loss", "pysr_equation", "pysr_loss"])
         w.writerow([name, es_eq, es_loss, pysr_eq, pysr_loss])
 
 
 def main() -> None:
+=======
+            w.writerow(
+                [
+                    "dataset",
+                    "equation_search_equation",
+                    "equation_search_loss",
+                    "pysr_equation",
+                    "pysr_loss",
+                ]
+            )
+        w.writerow([name, es_eq, es_loss, pysr_eq, pysr_loss])
+
+
+def main():
+>>>>>>> add test cases on deepchem data
     csv_path = os.path.join(os.path.dirname(__file__), "ideal_gas.csv")
     dataset_name = os.path.splitext(os.path.basename(csv_path))[0]
     X, y = load_csv(csv_path)

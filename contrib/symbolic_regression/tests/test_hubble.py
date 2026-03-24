@@ -2,15 +2,26 @@ import csv
 import os
 import sys
 from multiprocessing import freeze_support
+<<<<<<< HEAD
 import matplotlib.pyplot as plt
 from pysr import PySRRegressor
 import torch
 from EquationSearch import equation_search
+=======
+
+import matplotlib.pyplot as plt
+from pysr import PySRRegressor
+import torch
+>>>>>>> add test cases on deepchem data
 
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if REPO_ROOT not in sys.path:
     sys.path.insert(0, REPO_ROOT)
 
+<<<<<<< HEAD
+=======
+from equation_search import equation_search
+>>>>>>> add test cases on deepchem data
 
 
 def load_hubble_csv(path):
@@ -39,7 +50,19 @@ def write_results(name, es_eq, es_loss, pysr_eq, pysr_loss):
     with open(out_path, "a", newline="") as f:
         w = csv.writer(f)
         if header_needed:
+<<<<<<< HEAD
             w.writerow(["dataset", "equation_search_equation", "equation_search_loss", "pysr_equation", "pysr_loss"])
+=======
+            w.writerow(
+                [
+                    "dataset",
+                    "equation_search_equation",
+                    "equation_search_loss",
+                    "pysr_equation",
+                    "pysr_loss",
+                ]
+            )
+>>>>>>> add test cases on deepchem data
         w.writerow([name, es_eq, es_loss, pysr_eq, pysr_loss])
 
 
@@ -47,9 +70,15 @@ def main():
     csv_path = os.path.join(os.path.dirname(__file__), "hubble.csv")
     dataset_name = os.path.splitext(os.path.basename(csv_path))[0]
     X, y = load_hubble_csv(csv_path)
+<<<<<<< HEAD
     state = equation_search(X, y, niterations=250, nout=1)
 
     best_overall = min(state.hof[0].values(), key=lambda c: c.cost)
+=======
+    state = equation_search(X, y, niterations=1000)
+
+    best_overall = min(state.halls_of_fame[0].values(), key=lambda c: c.cost)
+>>>>>>> add test cases on deepchem data
     es_yhat = best_overall.tree.forward(X)
     es_loss = mse_torch(es_yhat, y)
     es_eq = best_overall.tree.to_string()
@@ -59,7 +88,11 @@ def main():
     X_np = X.detach().cpu().numpy()
     y_np = y.detach().cpu().numpy()
     model = PySRRegressor(
+<<<<<<< HEAD
         niterations=250,
+=======
+        niterations=1000,
+>>>>>>> add test cases on deepchem data
         populations=8,
         maxsize=30,
         batching=False,

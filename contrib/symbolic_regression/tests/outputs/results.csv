@@ -1,0 +1,71 @@
+dataset,equation_search_equation,equation_search_loss,pysr_equation,pysr_loss
+bode,(exp((x0 + -4.512)) + (((x0 + -3.036) * 1.081) * x0)),13.428945541381836,"complexity                                                      6
+loss                                                     1.770911
+equation                       exp(0.6858487 * (x0 + -1.6647514))
+score                                                    1.842834
+sympy_format                      exp(0.6858487*(x0 - 1.6647514))
+lambda_format    PySRFunction(X=>exp(0.6858487*(x0 - 1.6647514)))
+Name: 3, dtype: object",1.7709121842462785
+kepler,(((x0 - -1.768) * x0) * 0.3702),0.0035101412795484066,"complexity                                    5
+loss                                   0.001634
+equation               exp(log(x0) * 1.5041116)
+score                                  2.300086
+sympy_format                      x0**1.5041116
+lambda_format    PySRFunction(X=>x0**1.5041116)
+Name: 2, dtype: object",0.0016340196769901588
+hubble,((x0 * 474.7) + (sin(sin((x0 * 49.97))) * 8.48)),669.1981811523438,"complexity                                  3
+loss                                 697.1633
+equation                        x0 * 474.6231
+score                                2.333724
+sympy_format                      x0*474.6231
+lambda_format    PySRFunction(X=>x0*474.6231)
+Name: 1, dtype: object",697.1634511080416
+newton,((log(-1.605) * (x0 / x2)) * ((2.121 / x2) * x1)),0.020086966454982758,"complexity                                                      26
+loss                                                      0.007455
+equation         (((x1 - (cos(x0 * exp(x0)) / ((((x2 + 3.798320...
+score                                                     0.276771
+sympy_format     x0*(x1 - cos(x0*exp(x0))/((cos(2.553994*x1) + ...
+lambda_format    PySRFunction(X=>x0*(x1 - cos(x0*exp(x0))/((cos...
+Name: 17, dtype: object",0.007455421032842735
+tully,((((x0 + (exp(x0) - 4.27)) * x0) + 1.146) * 1.421),2.409501314163208,"complexity                                   5
+loss                                  2.304514
+equation               exp(log(x0) * 3.998568)
+score                                 1.439176
+sympy_format                      x0**3.998568
+lambda_format    PySRFunction(X=>x0**3.998568)
+Name: 4, dtype: object",2.304517822670868
+leavitt,(-7.111 - log(log(((x0 + -351.9) / -351.6)))),0.0026901676319539547,"complexity                                                     6
+loss                                                    0.002258
+equation                     (log(x0) * -1.0880733) + -0.9907868
+score                                                   0.668185
+sympy_format                      -1.0880733*log(x0) - 0.9907868
+lambda_format    PySRFunction(X=>-1.0880733*log(x0) - 0.9907868)
+Name: 2, dtype: object",0.0022582922173425856
+schechter,exp((-(x0) - (log(x0) * 1.103))),0.0019855492282658815,"complexity                                                      25
+loss                                                      0.000602
+equation         (cos(cos(1.5041249 / cos(cos(((-0.52883995 - x...
+score                                                      0.42423
+sympy_format     cos(cos(1.5041249/cos(cos((-x0 - 0.52883995)*1...
+lambda_format    PySRFunction(X=>cos(cos(1.5041249/cos(cos((-x0...
+Name: 18, dtype: object",0.0006019654187260971
+rydberg,((((x0 * 50.69) + -126.8) / x1) * (x0 + -1.507)),359.6120300292969,"complexity                                                      21
+loss                                                      0.322726
+equation         (((x1 / 2.1789393) / ((x1 / x0) + -1.0069089))...
+score                                                     0.134394
+sympy_format     x0*x1/(2.1789393*(-1.0069089 + x1/x0)) + x0*0....
+lambda_format    PySRFunction(X=>x0*x1/(2.1789393*(-1.0069089 +...
+Name: 11, dtype: object",0.3227262859215154
+planck,(((((x1 - sin(x0)) / x0) / x0) / x0) * 1.512),0.100376196205616,"complexity                                                      19
+loss                                                        0.0119
+equation         (((1.3953297 / x0) / (exp(x0) + sin(x1 * -0.63...
+score                                                     0.731338
+sympy_format     1.3953297*(x1 - 0.32401642)/(x0*(x0 - 1*0.1603...
+lambda_format    PySRFunction(X=>1.3953297*(x1 - 0.32401642)/(x...
+Name: 14, dtype: object",0.011899583711444213
+ideal_gas,(x1 * (335.6 / (x0 * 335.6))),0.0023601858410984278,"complexity                                                     8
+loss                                                    0.001931
+equation                   x1 / (x0 + (-0.0031501087 / sin(x1)))
+score                                                   0.100176
+sympy_format                      x1/(x0 - 0.0031501087/sin(x1))
+lambda_format    PySRFunction(X=>x1/(x0 - 0.0031501087/sin(x1)))
+Name: 4, dtype: object",0.0019311480514719347
