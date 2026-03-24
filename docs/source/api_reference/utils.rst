@@ -503,6 +503,15 @@ The utilites here are used to create an object that contains information about a
 .. autoclass:: deepchem.utils.dft_utils.qccalc.ks.KSEngine
   :members:
 
+.. autofunction:: deepchem.utils.dft_utils.hamilton.intor.gtoft.evl_ft
+
+.. autofunction:: deepchem.utils.dft_utils.hamilton.intor.gtoft.eval_gto_ft
+
+.. autoclass:: deepchem.utils.dft_utils.hamilton.intor.gtoft._EvalGTO_FT
+  :members:
+
+.. autofunction:: deepchem.utils.dft_utils.hamilton.intor.gtoft.gto_ft_evaluator
+
 .. autoclass:: deepchem.utils.differentiation_utils.editable_module.EditableModule
   :members:
 
@@ -783,6 +792,10 @@ Pytorch Utilities
 
 .. autofunction:: deepchem.utils.pytorch_utils.unsorted_segment_max
 
+.. autofunction:: deepchem.utils.pytorch_utils.unweighted_coul_ft
+
+.. autofunction:: deepchem.utils.pytorch_utils.get_complex_dtype
+
 Batch Utilities
 ---------------
 
@@ -849,6 +862,32 @@ for additional information regarding equivariance and Deepchem's support for equ
 .. autofunction:: deepchem.utils.equivariance_utils.get_equivariant_basis_and_r
 
 .. autofunction:: deepchem.utils.equivariance_utils.fiber2head
+
+.. autoclass:: deepchem.utils.equivariance_utils.LieGroup
+  :members:
+
+.. autoclass:: deepchem.utils.equivariance_utils.T
+  :members:
+
+.. autofunction:: deepchem.utils.equivariance_utils.sinc
+
+.. autofunction:: deepchem.utils.equivariance_utils.sincc
+
+.. autofunction:: deepchem.utils.equivariance_utils.cosc
+
+.. autofunction:: deepchem.utils.equivariance_utils.coscc
+
+.. autofunction:: deepchem.utils.equivariance_utils.sinc_inv
+
+.. autofunction:: deepchem.utils.equivariance_utils.cross_matrix
+
+.. autofunction:: deepchem.utils.equivariance_utils.uncross_matrix
+
+.. autoclass:: deepchem.utils.equivariance_utils.SO3
+  :members:
+
+.. autoclass:: deepchem.utils.equivariance_utils.SE3
+  :members:
 
 Miscellaneous Utilities
 -----------------------

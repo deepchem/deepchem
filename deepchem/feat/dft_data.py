@@ -9,15 +9,9 @@ import numpy as np
 import warnings
 
 try:
-    from deepchem.utils.dft_utils.system.mol import Mol
-    from deepchem.utils.dft_utils.system.base_system import BaseSystem
-    from deepchem.utils.dftutils import KSCalc
-except Exception as e:
-    warnings.warn(f"Failed to import DFT dependencies with error: {e}")
-
-try:
     import torch
-    from deepchem.utils.dft_utils import parse_moldesc, BaseGrid
+    from deepchem.utils.dftutils import KSCalc
+    from deepchem.utils.dft_utils import parse_moldesc, BaseGrid, Mol, BaseSystem
 except Exception as e:
     warnings.warn(f"Failed to import DFT dependencies with error: {e}")
 

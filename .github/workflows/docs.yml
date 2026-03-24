@@ -15,7 +15,6 @@ jobs:
         python-version: ['3.9', '3.11']
     steps:
     - name: Maximize build space
-      if: runner.os == 'ubuntu-latest'
       run: |
         sudo rm -rf /usr/share/dotnet
         sudo rm -rf /opt/ghc

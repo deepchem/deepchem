@@ -206,6 +206,27 @@ QM8 Datasets
 QM9 Datasets
 ------------
 
+A bug was reported in the issue `https://github.com/deepchem/deepchem/issues/4413` in the previously 
+included SDF files for the QM9 dataset, where some molecules incorrectly carried formal charges, 
+despite QM9 molecules being charge-neutral. To address this, we now use the original QM9 XYZ files 
+and convert them to SDF format using Open Babel, which preserves correct charge information. The updated
+SDF file is uploaded to the Deepchem S3 bucket.
+
+Note:
+
+1. Molecules such as **gdb 24** previously contained incorrect formal charges on nitrogen atoms. 
+This issue has been resolved in the latest SDF files by re-parsing the original `_XYZ files` 
+files using the script `deepchem/examples/qm9/qm9_data_preprocessing.py`.
+
+2. However, some molecules (e.g., **gdb 21968**) exhibit a discrepancy depending on the sanitization
+setting. When parsed with rdkit using `sanitize=False`, no atom is assigned a formal charge. 
+In contrast, parsing the same molecule with `sanitize=True`` assigns formal charges to nitrogen and oxygen 
+atoms, even though the molecule is neutral overall.
+
+.. _`XYZ files`: https://doi.org/10.6084/m9.figshare.978904_D12
+
+.. _`updated QM9 file`: https://deepchemdata.s3.us-west-1.amazonaws.com/datasets/qm9.tar.gz
+
 .. autofunction:: deepchem.molnet.load_qm9
 
 
