@@ -18,16 +18,16 @@ from rdkit import Chem
 from rdkit.Chem import QED, AllChem, DataStructs
 
 
-#Validation
-def is_valid_smiles(smiles):
+# --- Validation ---
+def is_valid_smiles(smiles: str) -> bool:
     try:
         return Chem.MolFromSmiles(smiles) is not None
     except Exception:
         return False
 
 
-# Metrics
-def tanimoto(s1, s2):
+# --- Metrics ---
+def tanimoto(s1: str, s2: str) -> float:
     m1 = Chem.MolFromSmiles(s1)
     m2 = Chem.MolFromSmiles(s2)
 
@@ -40,15 +40,21 @@ def tanimoto(s1, s2):
     return DataStructs.TanimotoSimilarity(fp1, fp2)
 
 
-def qed_score(smiles):
+def qed_score(smiles: str) -> float:
     mol = Chem.MolFromSmiles(smiles)
     if mol is None:
         return 0.0
     return QED.qed(mol)
 
 
-# Sampling 
-def gibbs_step(smiles, model, tokenizer, allowed_tokens, k=50):
+# --- Sampling ---
+def gibbs_step(
+    smiles: str,
+    model,
+    tokenizer,
+    allowed_tokens: set,
+    k: int = 50
+) -> str:
     """
     Perform one Gibbs-style mutation step using a masked language model.
 
@@ -76,6 +82,8 @@ def gibbs_step(smiles, model, tokenizer, allowed_tokens, k=50):
     pos = random.choice(safe_positions)
 
     inputs = tokenizer(smiles, return_tensors="pt")
+    inputs = {k: v.to(next(model.parameters()).device) for k, v in inputs.items()}
+
     inputs["input_ids"][0][pos] = tokenizer.mask_token_id
 
     with torch.no_grad():
@@ -85,7 +93,7 @@ def gibbs_step(smiles, model, tokenizer, allowed_tokens, k=50):
     topk_indices = logits.topk(k).indices
 
     for idx in topk_indices:
-        token = tokenizer.decode([idx])
+        token = tokenizer.convert_ids_to_tokens(int(idx))
 
         if token not in allowed_tokens:
             continue
@@ -101,9 +109,28 @@ def gibbs_step(smiles, model, tokenizer, allowed_tokens, k=50):
     return smiles
 
 
-def run_chain(seed, gibbs_step_fn, steps=50, min_sim=0.3, min_qed=0.4):
+def run_chain(
+    seed: str,
+    gibbs_step_fn,
+    steps: int = 50,
+    min_sim: float = 0.3,
+    min_qed: float = 0.4
+) -> list:
     """
     Run constrained Gibbs-style sampling.
+
+    Applies iterative local mutations using a Gibbs-style proposal function,
+    while enforcing similarity and QED constraints.
+
+    Args:
+        seed (str): Initial SMILES string.
+        gibbs_step_fn (Callable): Function that proposes mutations.
+        steps (int): Number of sampling steps.
+        min_sim (float): Minimum Tanimoto similarity threshold.
+        min_qed (float): Minimum QED threshold.
+
+    Returns:
+        list: Trajectory of SMILES strings.
     """
 
     current = seed
