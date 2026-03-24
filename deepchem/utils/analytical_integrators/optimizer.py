@@ -808,6 +808,92 @@ def CINTall_2e_optimizer(opt: CINTOpt, ng: np.ndarray,
     gen_idx(opt, CINTinit_int2e_EnvVars, CINTg2e_index_xyz,
             4, 0, ng, atm, natm, bas, nbas, env)
 
+def CINTinit_int3c2e_EnvVars(envs: CINTEnvVars, ng: np.ndarray, shls: np.ndarray,
+                             atm: np.ndarray, natm: int,
+                             bas: np.ndarray, nbas: int, env: np.ndarray) -> None:
+    """Populate CINTEnvVars for a 3c2e integral over shell triple (i,j,k).
+    The 3c2e integral maps k -> ll_ceil position and sets lk_ceil=0 to reuse
+    CINTg0_2e_lj2d4d. The 4th shell (l) is a dummy s-function with al=0."""
+    envs.natm = natm;  envs.nbas = nbas
+    envs.atm  = atm;   envs.bas  = bas;  envs.env = env;  envs.shls = shls
+    i_sh, j_sh, k_sh = int(shls[0]), int(shls[1]), int(shls[2])
+    envs.i_l = int(bas[i_sh, ANG_OF]);  envs.j_l = int(bas[j_sh, ANG_OF])
+    envs.k_l = int(bas[k_sh, ANG_OF]);  envs.l_l = 0
+    envs.x_ctr = np.array([bas[i_sh, NCTR_OF], bas[j_sh, NCTR_OF],
+                            bas[k_sh, NCTR_OF], 1], dtype=np.int32)
+    envs.nfi = (envs.i_l + 1) * (envs.i_l + 2) // 2
+    envs.nfj = (envs.j_l + 1) * (envs.j_l + 2) // 2
+    envs.nfk = (envs.k_l + 1) * (envs.k_l + 2) // 2
+    envs.nfl = 1
+    envs.nf  = envs.nfi * envs.nfj * envs.nfk
+    i_atom = int(bas[i_sh, ATOM_OF]);  j_atom = int(bas[j_sh, ATOM_OF])
+    k_atom = int(bas[k_sh, ATOM_OF])
+    envs.ri = env[atm[i_atom, PTR_COORD] : atm[i_atom, PTR_COORD] + 3]
+    envs.rj = env[atm[j_atom, PTR_COORD] : atm[j_atom, PTR_COORD] + 3]
+    envs.rk = env[atm[k_atom, PTR_COORD] : atm[k_atom, PTR_COORD] + 3]
+    envs.rl = envs.rk.copy()  # dummy l = k position
+    envs.common_factor = (math.pi ** 3) * 2 / math.sqrt(math.pi) \
+        * CINTcommon_fac_sp(envs.i_l) * CINTcommon_fac_sp(envs.j_l) \
+        * CINTcommon_fac_sp(envs.k_l)
+    ecoff = env[PTR_EXPCUTOFF]
+    envs.expcutoff    = EXPCUTOFF if ecoff == 0 else max(MIN_EXPCUTOFF, float(ecoff))
+    envs.gbits        = int(ng[GSHIFT])
+    envs.ncomp_e1     = int(ng[POS_E1])
+    envs.ncomp_e2     = int(ng[POS_E2])
+    envs.ncomp_tensor = int(ng[TENSOR])
+    envs.li_ceil = envs.i_l + int(ng[IINC]);  envs.lj_ceil = envs.j_l + int(ng[JINC])
+    envs.lk_ceil = 0  # to reuse CINTg0_2e_lj2d4d
+    envs.ll_ceil = envs.k_l + int(ng[KINC])
+    envs.nrys_roots = (envs.li_ceil + envs.lj_ceil + envs.ll_ceil) // 2 + 1
+    ibase = int(envs.li_ceil > envs.lj_ceil)
+    if envs.nrys_roots <= 2:
+        ibase = 0
+    if ibase:
+        dli = envs.li_ceil + envs.lj_ceil + 1
+        dlj = envs.lj_ceil + 1
+    else:
+        dli = envs.li_ceil + 1
+        dlj = envs.li_ceil + envs.lj_ceil + 1
+    dlk = envs.ll_ceil + 1
+    nr = envs.nrys_roots
+    envs.g_stride_i = nr
+    envs.g_stride_k = nr * dli
+    envs.g_stride_l = nr * dli  # same as g_stride_k for 3c2e
+    envs.g_stride_j = nr * dli * dlk
+    envs.g_size     = nr * dli * dlk * dlj
+    envs.al  = 0.0
+    envs.rkl = envs.rk.copy()
+    envs.rklrx = np.zeros(3)
+    envs.rx_in_rklrx = envs.rk
+    envs.rkrl = envs.rk.copy()
+    envs.g2d_klmax = envs.g_stride_k
+    if ibase:
+        envs.g2d_ijmax   = envs.g_stride_i
+        envs.rx_in_rijrx = envs.ri
+        envs.rirj        = envs.ri - envs.rj
+        envs.f_g0_2d4d   = 'il2d4d'
+    else:
+        envs.g2d_ijmax   = envs.g_stride_j
+        envs.rx_in_rijrx = envs.rj
+        envs.rirj        = envs.rj - envs.ri
+        envs.f_g0_2d4d   = 'lj2d4d'
+    envs.f_g0_2e = 'CINTg0_2e'
+
+
+def int3c2e_ar12_optimizer(opt_ref,
+                            atm: np.ndarray, natm: int,
+                            bas: np.ndarray, nbas: int,
+                            env: np.ndarray) -> CINTOpt:
+    """3c2e optimizer entry point."""
+    ng  = np.array([0, 0, 0, 0, 0, 1, 1, 1], dtype=np.int32)
+    opt = CINTinit_2e_optimizer(atm, natm, bas, nbas, env)
+    CINTOpt_setij(opt, ng, atm, natm, bas, nbas, env)
+    CINTOpt_set_non0coeff(opt, atm, natm, bas, nbas, env)
+    gen_idx(opt, CINTinit_int3c2e_EnvVars, CINTg2e_index_xyz,
+            3, 0, ng, atm, natm, bas, nbas, env)
+    return opt
+
+
 def int2e_ar12b_optimizer(opt_ref,
                            atm: np.ndarray, natm: int,
                            bas: np.ndarray, nbas: int,

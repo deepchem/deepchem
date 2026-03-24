@@ -5,15 +5,20 @@ import operator
 from functools import reduce
 import numpy as np
 import torch
-from deepchem.utils.analytical_integrators.optimizer import int1e_ovlp_optimizer, int1e_kin_optimizer, int1e_nuc_optimizer, int2e_ar12b_optimizer
+from deepchem.utils.analytical_integrators.optimizer import (
+    int1e_ovlp_optimizer, int1e_kin_optimizer, int1e_nuc_optimizer,
+    int2e_ar12b_optimizer, int3c2e_ar12_optimizer,
+)
 from deepchem.utils.analytical_integrators.integrals import (
     INTEGRAL_REGISTRY,
     GTOint2c as py_GTOint2c,
     GTOnr2e_fill_drv as py_GTOnr2e_fill_drv,
     GTOnr2e_fill_s1 as py_GTOnr2e_fill_s1,
+    GTOnr3c_drv as py_GTOnr3c_drv,
+    GTOnr3c_fill_s1 as py_GTOnr3c_fill_s1,
 )
 from deepchem.utils.dft_utils import LibcintWrapper
-from deepchem.utils.dft_utils.hamilton.intor.utils import np2ctypes, int2ctypes, CGTO
+from deepchem.utils.dft_utils.hamilton.intor.utils import np2ctypes, int2ctypes  # noqa: F401 - kept for potential external use
 from deepchem.utils.dft_utils.hamilton.intor.namemgr import IntorNameManager
 
 NDIM = 3
@@ -1312,12 +1317,9 @@ class _cintoptHandler(ctypes.c_void_p):
         """
         Destructor for the _cintoptHandler class.
 
-        Releases resources when the object is deleted.
+        No-op for pure Python implementation (no C resources to release).
         """
-        try:
-            CGTO().CINTdel_optimizer(ctypes.byref(self))
-        except AttributeError:
-            pass
+        pass
 
 
 class Intor(object):
@@ -1442,19 +1444,15 @@ class Intor(object):
         torch.Tensor
             Tensor containing the calculated 3-centre integrals.
         """
-        # performing 3-centre integrals with libcint
-        drv = CGTO().GTOnr3c_drv
-        fill = CGTO().GTOnr3c_fill_s1
         outsh = self.outshape
-        out = np.empty((*outsh[:-3], outsh[-1], outsh[-2], outsh[-3]),
+        out = np.zeros((*outsh[:-3], outsh[-1], outsh[-2], outsh[-3]),
                        dtype=np.float64)
-        drv(self.op, fill, out.ctypes.data_as(ctypes.c_void_p),
-            int2ctypes(self.ncomp),
-            (ctypes.c_int * len(self.shls_slice))(*self.shls_slice),
-            np2ctypes(self.wrapper0.full_shell_to_aoloc), self.optimizer,
-            np2ctypes(self.atm), int2ctypes(self.atm.shape[0]),
-            np2ctypes(self.bas), int2ctypes(self.bas.shape[0]),
-            np2ctypes(self.env))
+        ao_loc = self.wrapper0.full_shell_to_aoloc
+        py_GTOnr3c_drv(
+            self.op, py_GTOnr3c_fill_s1, out.ravel(),
+            self.ncomp, list(self.shls_slice), ao_loc,
+            self.optimizer, self.atm, self.atm.shape[0],
+            self.bas, self.bas.shape[0], self.env)
 
         out = np.swapaxes(out, -3, -1)
         return self._to_tensor(out)
@@ -1545,6 +1543,9 @@ def _get_intgl_optimizer(opname: str, atm: np.ndarray, bas: np.ndarray,
         copt(None, atm, atm.shape[0], bas, bas.shape[0], env)
     elif optname == "int2e_ar12b_optimizer":
         copt = int2e_ar12b_optimizer
+        copt(None, atm, atm.shape[0], bas, bas.shape[0], env)
+    elif optname == "int3c2e_ar12_optimizer":
+        copt = int3c2e_ar12_optimizer
         copt(None, atm, atm.shape[0], bas, bas.shape[0], env)
     else:
         print("Integral Not available")

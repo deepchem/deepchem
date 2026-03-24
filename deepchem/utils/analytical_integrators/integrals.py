@@ -17,6 +17,7 @@ from deepchem.utils.analytical_integrators.optimizer import (
     CINTEnvVars, CINTcart_comp, CINTcommon_fac_sp,
     CINTinit_int1e_EnvVars, CINTg1e_index_xyz,
     CINTinit_int2e_EnvVars, CINTg2e_index_xyz,
+    CINTinit_int3c2e_EnvVars,
     ATOM_OF, ANG_OF, NPRIM_OF, NCTR_OF, PTR_EXP, PTR_COEFF,
     PTR_COORD, EXPCUTOFF, MIN_EXPCUTOFF, PTR_EXPCUTOFF,
     BAS_SLOTS, ATM_SLOTS,
@@ -1297,6 +1298,252 @@ def GTOnr2e_fill_drv(intor, fill, eri, comp, shls_slice, ao_loc,
 
 
 # ================================================================
+# 3-center 2-electron integrals
+# ================================================================
+
+def CINT3c2e_loop_nopt(envs, atm, bas, env):
+    """
+    3c2e integral primitive loop (no optimizer).
+    Like CINT2e_loop_nopt but with only 3 shells (i,j,k) and no l-shell.
+    Returns (gctr, has_value).
+    """
+    shls = envs.shls
+    i_sh, j_sh, k_sh = int(shls[0]), int(shls[1]), int(shls[2])
+    i_ctr = int(envs.x_ctr[0])
+    j_ctr = int(envs.x_ctr[1])
+    k_ctr = int(envs.x_ctr[2])
+    i_prim = int(bas[i_sh, NPRIM_OF])
+    j_prim = int(bas[j_sh, NPRIM_OF])
+    k_prim = int(bas[k_sh, NPRIM_OF])
+
+    ri, rj = envs.ri, envs.rj
+    ai_arr = env[bas[i_sh, PTR_EXP]:bas[i_sh, PTR_EXP] + i_prim]
+    aj_arr = env[bas[j_sh, PTR_EXP]:bas[j_sh, PTR_EXP] + j_prim]
+    ak_arr = env[bas[k_sh, PTR_EXP]:bas[k_sh, PTR_EXP] + k_prim]
+    ci = env[bas[i_sh, PTR_COEFF]:bas[i_sh, PTR_COEFF] + i_prim * i_ctr]
+    cj = env[bas[j_sh, PTR_COEFF]:bas[j_sh, PTR_COEFF] + j_prim * j_ctr]
+    ck = env[bas[k_sh, PTR_COEFF]:bas[k_sh, PTR_COEFF] + k_prim * k_ctr]
+
+    nf = envs.nf
+    n_comp = envs.ncomp_e1 * envs.ncomp_tensor  # note: no ncomp_e2 for 3c
+    nc = i_ctr * j_ctr * k_ctr
+
+    idx = CINTg2e_index_xyz(envs)
+
+    expcutoff = envs.expcutoff
+    dist_ij = float(np.sum((ri - rj) ** 2))
+
+    gctr = np.zeros(nf * nc * n_comp)
+    has_value = False
+    g_alloc = envs.g_size * 3
+
+    for kp in range(k_prim):
+        envs.ak = ak_arr[kp]
+        envs.akl = ak_arr[kp]  # al=0, so akl = ak
+
+        gctrj = np.zeros(nf * i_ctr * j_ctr * n_comp)
+
+        for jp in range(j_prim):
+            envs.aj = aj_arr[jp]
+            gctri = np.zeros(nf * i_ctr * n_comp)
+
+            for ip in range(i_prim):
+                envs.ai = ai_arr[ip]
+                aij = ai_arr[ip] + aj_arr[jp]
+                eij = dist_ij * ai_arr[ip] * aj_arr[jp] / aij
+                if eij > expcutoff:
+                    continue
+                envs.aij = aij
+                envs.rij = (ai_arr[ip] * ri + aj_arr[jp] * rj) / aij
+                envs.rijrx = envs.rij - envs.rx_in_rijrx
+
+                expij = math.exp(-eij)
+                fac1i = envs.common_factor * expij
+                if i_ctr == 1:
+                    fac1i *= ci[ip]
+                if j_ctr == 1:
+                    fac1i *= cj[jp]
+                if k_ctr == 1:
+                    fac1i *= ck[kp]
+
+                g = np.zeros(g_alloc)
+                if CINTg0_2e(g, fac1i, envs):
+                    has_value = True
+                    gout = np.zeros(nf * n_comp)
+                    gout_2e_ar12b(gout, g, idx, envs, True)
+
+                    # Contract i
+                    if i_ctr == 1:
+                        gctri[:nf * n_comp] += gout
+                    else:
+                        for ic in range(i_ctr):
+                            c = ci[i_prim * ic + ip]
+                            if c != 0:
+                                gctri[ic * nf:(ic + 1) * nf] += c * gout[:nf]
+
+            # Contract j
+            if j_ctr == 1:
+                gctrj[:nf * i_ctr * n_comp] += gctri
+            else:
+                for jc in range(j_ctr):
+                    c = cj[j_prim * jc + jp]
+                    if c != 0:
+                        off_j = jc * nf * i_ctr
+                        gctrj[off_j:off_j + nf * i_ctr] += c * gctri[:nf * i_ctr]
+
+        # Contract k
+        if k_ctr == 1:
+            gctr[:nf * nc * n_comp] += gctrj
+        else:
+            for kc in range(k_ctr):
+                c = ck[k_prim * kc + kp]
+                if c != 0:
+                    off_k = kc * nf * i_ctr * j_ctr
+                    gctrj_size = nf * i_ctr * j_ctr
+                    gctr[off_k:off_k + gctrj_size] += c * gctrj[:gctrj_size]
+
+    return gctr, has_value
+
+
+def c2s_sph_3c2e1(gctr, i_l, j_l, k_l, x_ctr, nfi, nfj, nfk, nf):
+    """Cart-to-spherical transformation for 3c2e integrals.
+    Returns array of shape (di*i_ctr, dj*j_ctr, dk*k_ctr)."""
+    i_ctr, j_ctr, k_ctr = x_ctr[0], x_ctr[1], x_ctr[2]
+    di = 2 * i_l + 1
+    dj = 2 * j_l + 1
+    dk = 2 * k_l + 1
+
+    c2s_i = cart2sph_matrix(i_l)
+    c2s_j = cart2sph_matrix(j_l)
+    c2s_k = cart2sph_matrix(k_l)
+
+    nc = i_ctr * j_ctr * k_ctr
+    # gctr layout: (nc, nf) where nf = nfi * nfj * nfk
+    gctr_3d = gctr.reshape(nc, nf)
+
+    out = np.zeros((di * i_ctr, dj * j_ctr, dk * k_ctr))
+
+    n = 0
+    for kc in range(k_ctr):
+        for jc in range(j_ctr):
+            for ic in range(i_ctr):
+                # gctr layout is (nfj, nfk, nfi) in Fortran order from
+                # the contraction loop order j->l(k)->k(unused)->i
+                block = gctr_3d[n].reshape(nfj, nfk, nfi)
+                # Transform j: (nfj, nfk, nfi) -> (dj, nfk, nfi)
+                tmp = np.tensordot(c2s_j, block, axes=([1], [0]))
+                # Transform k: (dj, nfk, nfi) -> (dj, dk, nfi)
+                tmp = np.tensordot(tmp, c2s_k.T, axes=([1], [0]))
+                # Transform i: (dj, dk, nfi) -> (dj, dk, di)
+                tmp = np.tensordot(tmp, c2s_i.T, axes=([2], [0]))
+                # Reorder to (di, dj, dk)
+                out[ic*di:(ic+1)*di, jc*dj:(jc+1)*dj, kc*dk:(kc+1)*dk] = tmp.transpose(2, 0, 1)
+                n += 1
+
+    return out
+
+
+def CINT3c2e_spheric_drv(envs, atm, bas, env):
+    """3c2e integral driver. Returns contracted spherical integrals."""
+    x_ctr = envs.x_ctr
+    i_ctr, j_ctr, k_ctr = int(x_ctr[0]), int(x_ctr[1]), int(x_ctr[2])
+    nf = envs.nf
+    n_comp = envs.ncomp_e1 * envs.ncomp_tensor
+
+    gctr, has_value = CINT3c2e_loop_nopt(envs, atm, bas, env)
+
+    if not has_value:
+        di = (2 * envs.i_l + 1) * i_ctr
+        dj = (2 * envs.j_l + 1) * j_ctr
+        dk = (2 * envs.k_l + 1) * k_ctr
+        return np.zeros((di, dj, dk))
+
+    nfi = envs.nfi
+    nfj = envs.nfj
+    nfk = envs.nfk
+    return c2s_sph_3c2e1(gctr, envs.i_l, envs.j_l, envs.k_l,
+                          [i_ctr, j_ctr, k_ctr], nfi, nfj, nfk, nf)
+
+
+def int3c2e_ar12_sph(out, dims, shls, atm, natm, bas, nbas, env, opt=None, cache=None):
+    """Pure Python int3c2e_ar12_sph."""
+    ng = np.array([0, 0, 0, 0, 0, 1, 1, 1], dtype=np.int32)
+    envs = CINTEnvVars()
+    CINTinit_int3c2e_EnvVars(envs, ng, shls, atm, natm, bas, nbas, env)
+    envs.f_gout = gout_2e_ar12b
+    result = CINT3c2e_spheric_drv(envs, atm, bas, env)
+    # result shape: (di*i_ctr, dj*j_ctr, dk*k_ctr)
+
+    if dims is None:
+        # Block mode: write flat block into out
+        block = result.ravel()
+        out[:len(block)] = block
+    else:
+        # Full matrix mode: write at correct position using dims as strides
+        naoi, naoj, naok = dims[0], dims[1], dims[2]
+        di_total, dj_total, dk_total = result.shape
+        for k in range(dk_total):
+            for j in range(dj_total):
+                for i in range(di_total):
+                    flat_idx = (k * naoj + j) * naoi + i
+                    out[flat_idx] = result[i, j, k]
+    return 1
+
+
+def GTOnr3c_fill_s1(intor, out, buf, comp, jobid, shls_slice, ao_loc,
+                     opt, atm, natm, bas, nbas, env):
+    """Fill function for 3-center integrals with s1 symmetry."""
+    BLKSIZE = 8
+    ish0 = shls_slice[0]
+    ish1 = shls_slice[1]
+    jsh0 = shls_slice[2]
+    jsh1 = shls_slice[3]
+    ksh0 = shls_slice[4]
+    ksh1 = shls_slice[5]
+    nksh = ksh1 - ksh0
+
+    ksh = jobid % nksh + ksh0
+    jstart = (jobid // nksh) * BLKSIZE + jsh0
+    jend = min(jstart + BLKSIZE, jsh1)
+    if jstart >= jend:
+        return
+
+    naoi = ao_loc[ish1] - ao_loc[ish0]
+    naoj = ao_loc[jsh1] - ao_loc[jsh0]
+    naok = ao_loc[ksh1] - ao_loc[ksh0]
+    dims = [naoi, naoj, naok]
+
+    k0 = ao_loc[ksh] - ao_loc[ksh0]
+    out_offset = naoi * naoj * k0
+
+    for jsh in range(jstart, jend):
+        for ish in range(ish0, ish1):
+            shls = np.array([ish, jsh, ksh, 0], dtype=np.int32)
+            i0 = ao_loc[ish] - ao_loc[ish0]
+            j0 = ao_loc[jsh] - ao_loc[jsh0]
+            intor(out[out_offset + j0 * naoi + i0:], dims, shls,
+                  atm, natm, bas, nbas, env, opt, None)
+
+
+def GTOnr3c_drv(intor, fill, eri, comp, shls_slice, ao_loc,
+                 opt, atm, natm, bas, nbas, env):
+    """Pure Python replacement for CGTO().GTOnr3c_drv."""
+    BLKSIZE = 8
+    ish0, ish1 = shls_slice[0], shls_slice[1]
+    jsh0, jsh1 = shls_slice[2], shls_slice[3]
+    ksh0, ksh1 = shls_slice[4], shls_slice[5]
+    nish = ish1 - ish0
+    njsh = jsh1 - jsh0
+    nksh = ksh1 - ksh0
+
+    njobs = ((max(nish, njsh) + BLKSIZE - 1) // BLKSIZE) * nksh
+
+    for jobid in range(njobs):
+        fill(intor, eri, None, comp, jobid, shls_slice, ao_loc,
+             opt, atm, natm, bas, nbas, env)
+
+
+# ================================================================
 # Integral function registry (maps opname -> Python function)
 # ================================================================
 
@@ -1305,4 +1552,5 @@ INTEGRAL_REGISTRY = {
     'int1e_kin_sph': int1e_kin_sph,
     'int1e_nuc_sph': int1e_nuc_sph,
     'int2e_ar12b_sph': int2e_ar12b_sph,
+    'int3c2e_ar12_sph': int3c2e_ar12_sph,
 }
