@@ -14,6 +14,7 @@ model for molecular generation (e.g., ChemBERTa-style models).
 
 import random
 import torch
+from typing import Callable, List
 from rdkit import Chem
 from rdkit.Chem import QED, AllChem, DataStructs
 
@@ -61,6 +62,9 @@ def gibbs_step(
     This function is model-agnostic and works with any masked language model
     that supports token masking and logits prediction (e.g., ChemBERTa-style models).
 
+    Note:
+        This uses top-k candidate filtering with validity checks, not exact Gibbs sampling.
+
     Args:
         smiles (str): Input SMILES string.
         model: Masked language model.
@@ -82,7 +86,9 @@ def gibbs_step(
     pos = random.choice(safe_positions)
 
     inputs = tokenizer(smiles, return_tensors="pt")
-    inputs = {k: v.to(next(model.parameters()).device) for k, v in inputs.items()}
+
+    device = next(model.parameters()).device
+    inputs = {key: val.to(device) for key, val in inputs.items()}
 
     inputs["input_ids"][0][pos] = tokenizer.mask_token_id
 
@@ -111,11 +117,11 @@ def gibbs_step(
 
 def run_chain(
     seed: str,
-    gibbs_step_fn,
+    gibbs_step_fn: Callable[[str], str],
     steps: int = 50,
     min_sim: float = 0.3,
     min_qed: float = 0.4
-) -> list:
+) -> List[str]:
     """
     Run constrained Gibbs-style sampling.
 
@@ -130,7 +136,7 @@ def run_chain(
         min_qed (float): Minimum QED threshold.
 
     Returns:
-        list: Trajectory of SMILES strings.
+        List[str]: Trajectory of SMILES strings.
     """
 
     current = seed
