@@ -18,7 +18,6 @@ from deepchem.utils.analytical_integrators.integrals import (
     GTOnr3c_fill_s1 as py_GTOnr3c_fill_s1,
 )
 from deepchem.utils.dft_utils import LibcintWrapper
-from deepchem.utils.dft_utils.hamilton.intor.utils import np2ctypes, int2ctypes  # noqa: F401 - kept for potential external use
 from deepchem.utils.dft_utils.hamilton.intor.namemgr import IntorNameManager
 
 NDIM = 3

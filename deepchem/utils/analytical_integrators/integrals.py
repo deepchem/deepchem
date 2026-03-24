@@ -1544,6 +1544,332 @@ def GTOnr3c_drv(intor, fill, eri, comp, shls_slice, ao_loc,
 
 
 # ================================================================
+# Fourier Transform of GTO basis functions
+# ================================================================
+
+def _ft_1d_poly(k, n, a2):
+    """Compute the 1D polynomial P_n(-ik*a2) for FT of x^n * exp(-alpha*x^2).
+
+    The recurrence is:
+        P_0 = 1
+        P_1 = -ik*a2
+        P_{n+1} = n*a2 * P_{n-1} + (-ik*a2) * P_n
+
+    Parameters
+    ----------
+    k : ndarray, shape (NGv,)
+        G-vector component.
+    n : int
+        Power of the coordinate.
+    a2 : float
+        0.5 / alpha.
+
+    Returns
+    -------
+    ndarray, shape (NGv,), complex
+    """
+    if n == 0:
+        return np.ones(len(k), dtype=np.complex128)
+    ikha = -1j * k * a2
+    if n == 1:
+        return ikha
+    # General recurrence
+    p_prev = np.ones(len(k), dtype=np.complex128)
+    p_curr = ikha.copy()
+    for m in range(1, n):
+        p_next = m * a2 * p_prev + ikha * p_curr
+        p_prev = p_curr
+        p_curr = p_next
+    return p_curr
+
+
+def gto_ft_evaluator_py(wrapper, gvgrid):
+    """Pure Python FT evaluator for GTO basis functions.
+
+    Computes FT(phi_i)(G) = integral phi_i(r) * exp(-iG.r) dr
+    for each AO i and G-vector.
+
+    Uses the analytical formula for the FT of Cartesian GTOs:
+        FT(x^a y^b z^c exp(-alpha*r^2))(G) = prod_d f(G_d, l_d, alpha)
+    where f(k, n, alpha) = sqrt(pi/alpha) * exp(-k^2/(4*alpha)) * P_n(-ik/(2*alpha))
+
+    Parameters
+    ----------
+    wrapper : LibcintWrapper
+        Basis set wrapper.
+    gvgrid : torch.Tensor, shape (NGv, 3)
+        G-vectors at which to evaluate the FT.
+
+    Returns
+    -------
+    ndarray, shape (nao, NGv), complex128
+    """
+    from deepchem.utils.analytical_integrators.optimizer import (
+        CINTcommon_fac_sp, ATOM_OF, ANG_OF, NPRIM_OF, NCTR_OF,
+        PTR_EXP, PTR_COEFF, PTR_COORD,
+    )
+
+    atm, bas, env = wrapper.atm_bas_env
+    ao_loc = wrapper.full_shell_to_aoloc
+    nao = wrapper.nao()
+    Gv = np.asarray(gvgrid.detach().cpu().numpy(), dtype=np.float64)
+    NGv = Gv.shape[0]
+    Gx, Gy, Gz = Gv[:, 0], Gv[:, 1], Gv[:, 2]
+    G2 = Gx**2 + Gy**2 + Gz**2
+
+    out = np.zeros((nao, NGv), dtype=np.complex128)
+
+    ish0, ish1 = wrapper.shell_idxs
+    for ish in range(ish0, ish1):
+        l = int(bas[ish, ANG_OF])
+        nprim = int(bas[ish, NPRIM_OF])
+        nctr = int(bas[ish, NCTR_OF])
+        nf_cart = (l + 1) * (l + 2) // 2
+        di = 2 * l + 1  # spherical components
+
+        atom_idx = int(bas[ish, ATOM_OF])
+        R = env[atm[atom_idx, PTR_COORD]: atm[atom_idx, PTR_COORD] + 3]
+        alphas = env[bas[ish, PTR_EXP]: bas[ish, PTR_EXP] + nprim]
+        coeffs = env[bas[ish, PTR_COEFF]: bas[ish, PTR_COEFF] + nprim * nctr]
+
+        # Phase factor exp(-iG.R) for this shell
+        phase = np.exp(-1j * (Gx * R[0] + Gy * R[1] + Gz * R[2]))
+
+        # Cartesian component indices
+        i_nx, i_ny, i_nz = CINTcart_comp(l)
+
+        # Normalization factor matching C code:
+        # fac1 = sqrt(pi) * pi * CINTcommon_fac_sp(l) * CINTcommon_fac_sp(0)
+        # ghost coeff = sqrt(4*pi)
+        # dij = 1 / (alpha^(3/2))
+        # Total per-primitive = ci * ghost_c * fac1 * dij
+        fac_norm = (math.sqrt(math.pi) * math.pi
+                    * CINTcommon_fac_sp(l) * CINTcommon_fac_sp(0)
+                    * math.sqrt(4.0 * math.pi))
+
+        # For each contraction
+        for ic in range(nctr):
+            # Accumulate Cartesian FT over primitives
+            cart_ft = np.zeros((nf_cart, NGv), dtype=np.complex128)
+
+            for ip in range(nprim):
+                alpha = alphas[ip]
+                c = coeffs[ic * nprim + ip]
+                if abs(c) < 1e-30:
+                    continue
+
+                a2 = 0.5 / alpha
+                # Radial factor: fac_norm * c / alpha^(3/2) * exp(-G^2/(4*alpha))
+                radial = fac_norm * c / (alpha * math.sqrt(alpha))
+                exp_factor = np.exp(-G2 * a2 * 0.5)  # exp(-G^2/(4*alpha))
+                base = radial * exp_factor * phase  # shape (NGv,)
+
+                # Build 1D polynomials for each needed power
+                max_n = l
+                px = {}
+                py = {}
+                pz = {}
+                for n in range(max_n + 1):
+                    px[n] = _ft_1d_poly(Gx, n, a2)
+                    py[n] = _ft_1d_poly(Gy, n, a2)
+                    pz[n] = _ft_1d_poly(Gz, n, a2)
+
+                # Compute Cartesian FT components
+                for f in range(nf_cart):
+                    a, b, cc = i_nx[f], i_ny[f], i_nz[f]
+                    cart_ft[f] += base * px[a] * py[b] * pz[cc]
+
+            # Transform from Cartesian to spherical
+            c2s = cart2sph_matrix(l)  # shape (di, nf_cart)
+            sph_ft = c2s @ cart_ft  # shape (di, NGv)
+
+            # Place into output
+            ao_start = ao_loc[ish] - ao_loc[ish0] + ic * di
+            out[ao_start: ao_start + di, :] = sph_ft
+
+    return out
+
+
+# ================================================================
+# GTO grid evaluator (replaces CGTO().GTOval_*_sph/cart)
+# ================================================================
+
+def gto_evaluator_py_grid(wrapper, shortname, rgrid, spherical):
+    """Pure Python GTO grid evaluator.
+
+    Replaces CGTO().GTOval_sph, GTOval_ip_sph, GTOval_lapl_sph,
+    GTOval_rr_sph, and their _cart variants.
+
+    Parameters
+    ----------
+    wrapper : LibcintWrapper
+        Basis set wrapper.
+    shortname : str
+        Operation type: "" (value), "ip" (gradient), "lapl" (Laplacian),
+        "rr" (value * r^2).
+    rgrid : torch.Tensor, shape (ngrid, 3)
+        Real-space grid points.
+    spherical : bool
+        If True, use spherical harmonics; if False, Cartesian.
+
+    Returns
+    -------
+    ndarray
+        Shape (nao, ngrid) for "" / "lapl" / "rr",
+        or (3, nao, ngrid) for "ip".
+    """
+    import re
+
+    atm, bas, env = wrapper.atm_bas_env
+    ao_loc = np.asarray(wrapper.full_shell_to_aoloc, dtype=np.int32)
+    nao = wrapper.nao()
+    coords = np.asarray(rgrid.detach().cpu().numpy(), dtype=np.float64)
+    ngrid = coords.shape[0]
+
+    n_ip = len(re.findall(r"^(?:ip)*(?:ip)?", shortname)[0]) // 2
+    comp_shape = (3,) * n_ip
+    ncomp = 3 ** n_ip if n_ip > 0 else 1
+
+    if ncomp > 1:
+        out = np.zeros(comp_shape + (nao, ngrid), dtype=np.float64)
+    else:
+        out = np.zeros((nao, ngrid), dtype=np.float64)
+
+    ish0, ish1 = wrapper.shell_idxs
+
+    for ish in range(ish0, ish1):
+        l = int(bas[ish, ANG_OF])
+        nprim = int(bas[ish, NPRIM_OF])
+        nctr = int(bas[ish, NCTR_OF])
+        atom_idx = int(bas[ish, ATOM_OF])
+        nf_cart = (l + 1) * (l + 2) // 2
+        di = 2 * l + 1 if spherical else nf_cart
+
+        R = env[atm[atom_idx, PTR_COORD]: atm[atom_idx, PTR_COORD] + 3]
+        alphas_arr = env[bas[ish, PTR_EXP]: bas[ish, PTR_EXP] + nprim]
+        coeffs_flat = env[bas[ish, PTR_COEFF]: bas[ish, PTR_COEFF] + nprim * nctr]
+
+        fac = CINTcommon_fac_sp(l)
+
+        # Relative coordinates (r - R)
+        rx = coords[:, 0] - R[0]
+        ry = coords[:, 1] - R[1]
+        rz = coords[:, 2] - R[2]
+        r2 = rx * rx + ry * ry + rz * rz
+
+        # Primitive exponentials: (nprim, ngrid)
+        eprim = np.exp(-alphas_arr[:, None] * r2[None, :]) * fac
+
+        # Max coordinate power needed
+        max_pow = l
+        if 'ip' in shortname:
+            max_pow = max(max_pow, l + 1)
+        if 'lapl' in shortname or 'rr' in shortname:
+            max_pow = max(max_pow, l + 2)
+
+        # Pre-compute coordinate powers
+        xpows = np.ones((max_pow + 1, ngrid))
+        ypows = np.ones((max_pow + 1, ngrid))
+        zpows = np.ones((max_pow + 1, ngrid))
+        for p in range(1, max_pow + 1):
+            xpows[p] = xpows[p - 1] * rx
+            ypows[p] = ypows[p - 1] * ry
+            zpows[p] = zpows[p - 1] * rz
+
+        # Cartesian component ordering (lx descending, matching C code)
+        cart_indices = []
+        for lx in range(l, -1, -1):
+            for ly in range(l - lx, -1, -1):
+                lz = l - lx - ly
+                cart_indices.append((lx, ly, lz))
+
+        for ic in range(nctr):
+            coeff_ic = coeffs_flat[ic * nprim: (ic + 1) * nprim]
+
+            if shortname == "":
+                ectr = coeff_ic @ eprim
+                cart_vals = np.empty((nf_cart, ngrid))
+                for f, (lx, ly, lz) in enumerate(cart_indices):
+                    cart_vals[f] = ectr * xpows[lx] * ypows[ly] * zpows[lz]
+
+            elif shortname == "ip":
+                ectr = coeff_ic @ eprim
+                ectr_2a = ((-2 * alphas_arr) * coeff_ic) @ eprim
+                cart_vals = np.zeros((3, nf_cart, ngrid))
+                for f, (lx, ly, lz) in enumerate(cart_indices):
+                    yz = ypows[ly] * zpows[lz]
+                    xz = xpows[lx] * zpows[lz]
+                    xy = xpows[lx] * ypows[ly]
+                    dx_val = ectr_2a * xpows[lx + 1]
+                    if lx > 0:
+                        dx_val = dx_val + ectr * lx * xpows[lx - 1]
+                    cart_vals[0, f] = dx_val * yz
+                    dy_val = ectr_2a * ypows[ly + 1]
+                    if ly > 0:
+                        dy_val = dy_val + ectr * ly * ypows[ly - 1]
+                    cart_vals[1, f] = dy_val * xz
+                    dz_val = ectr_2a * zpows[lz + 1]
+                    if lz > 0:
+                        dz_val = dz_val + ectr * lz * zpows[lz - 1]
+                    cart_vals[2, f] = dz_val * xy
+
+            elif shortname == "lapl":
+                ectr = coeff_ic @ eprim
+                ectr_2a = ((-2 * alphas_arr) * coeff_ic) @ eprim
+                ectr_4a2 = ((4 * alphas_arr**2) * coeff_ic) @ eprim
+                cart_vals = np.zeros((nf_cart, ngrid))
+                for f, (lx, ly, lz) in enumerate(cart_indices):
+                    yz = ypows[ly] * zpows[lz]
+                    xz = xpows[lx] * zpows[lz]
+                    xy = xpows[lx] * ypows[ly]
+                    d2x = ((2 * lx + 1) * xpows[lx] * ectr_2a
+                           + xpows[lx + 2] * ectr_4a2)
+                    if lx >= 2:
+                        d2x = d2x + lx * (lx - 1) * xpows[lx - 2] * ectr
+                    d2y = ((2 * ly + 1) * ypows[ly] * ectr_2a
+                           + ypows[ly + 2] * ectr_4a2)
+                    if ly >= 2:
+                        d2y = d2y + ly * (ly - 1) * ypows[ly - 2] * ectr
+                    d2z = ((2 * lz + 1) * zpows[lz] * ectr_2a
+                           + zpows[lz + 2] * ectr_4a2)
+                    if lz >= 2:
+                        d2z = d2z + lz * (lz - 1) * zpows[lz - 2] * ectr
+                    cart_vals[f] = d2x * yz + xz * d2y + xy * d2z
+
+            elif shortname == "rr":
+                ectr = coeff_ic @ eprim
+                cart_vals = np.empty((nf_cart, ngrid))
+                for f, (lx, ly, lz) in enumerate(cart_indices):
+                    cart_vals[f] = (ectr * r2
+                                   * xpows[lx] * ypows[ly] * zpows[lz])
+
+            else:
+                raise NotImplementedError(
+                    "GTO grid evaluation for shortname='%s' not implemented"
+                    % shortname)
+
+            # Cartesian to spherical transform
+            if spherical and l >= 2:
+                c2s = cart2sph_matrix(l)
+                if ncomp > 1:
+                    sph = np.empty(comp_shape + (di, ngrid))
+                    for idx in np.ndindex(comp_shape):
+                        sph[idx] = c2s @ cart_vals[idx]
+                else:
+                    sph = c2s @ cart_vals
+            else:
+                sph = cart_vals
+
+            ao_start = ao_loc[ish] - ao_loc[ish0] + ic * di
+            if ncomp > 1:
+                out[..., ao_start:ao_start + di, :] = sph
+            else:
+                out[ao_start:ao_start + di, :] = sph
+
+    return out
+
+
+# ================================================================
 # Integral function registry (maps opname -> Python function)
 # ================================================================
 
