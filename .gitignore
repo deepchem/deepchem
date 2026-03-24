@@ -109,3 +109,5 @@ env.yml
 **/*.ipynb_checkpoints/
 
 .database/dc-env/
+*.pdb
+*.sdf
