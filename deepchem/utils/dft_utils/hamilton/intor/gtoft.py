@@ -4,7 +4,10 @@ import numpy as np
 from typing import Tuple, Optional
 from deepchem.utils import get_complex_dtype
 from deepchem.utils.dft_utils import LibcintWrapper, AtomCGTOBasis, CGTOBasis
-from deepchem.utils.dft_utils.hamilton.intor.utils import np2ctypes, int2ctypes, NDIM, CGTO, c_null_ptr
+from deepchem.utils.dft_utils.hamilton.intor.utils import np2ctypes, int2ctypes, CGTO, c_null_ptr
+
+
+NDIM = 3
 
 
 def evl_ft(shortname: str, wrapper: LibcintWrapper,

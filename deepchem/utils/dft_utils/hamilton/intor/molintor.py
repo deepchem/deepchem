@@ -6,9 +6,17 @@ from functools import reduce
 import numpy as np
 import torch
 from deepchem.utils.analytical_integrators.optimizer import int1e_ovlp_optimizer, int1e_kin_optimizer, int1e_nuc_optimizer, int2e_ar12b_optimizer
+from deepchem.utils.analytical_integrators.integrals import (
+    INTEGRAL_REGISTRY,
+    GTOint2c as py_GTOint2c,
+    GTOnr2e_fill_drv as py_GTOnr2e_fill_drv,
+    GTOnr2e_fill_s1 as py_GTOnr2e_fill_s1,
+)
 from deepchem.utils.dft_utils import LibcintWrapper
-from deepchem.utils.dft_utils.hamilton.intor.utils import np2ctypes, int2ctypes, NDIM, CINT, CGTO
+from deepchem.utils.dft_utils.hamilton.intor.utils import np2ctypes, int2ctypes, CGTO
 from deepchem.utils.dft_utils.hamilton.intor.namemgr import IntorNameManager
+
+NDIM = 3
 
 
 def int1e(shortname: str,
@@ -1370,8 +1378,8 @@ class Intor(object):
 
         # get the operator
         opname = int_nmgr.get_intgl_name(wrapper0.spherical)
-        print(opname)
-        self.op = getattr(CINT(), opname)
+        # Use pure Python integral if available, fall back to C
+        self.op = INTEGRAL_REGISTRY[opname]
         self.optimizer = _get_intgl_optimizer(opname, self.atm, self.bas,
                                               self.env)
 
@@ -1411,24 +1419,16 @@ class Intor(object):
         torch.Tensor
             Tensor containing the calculated 2-centre integrals.
         """
-        # performing 2-centre integrals with libcint
-        drv = CGTO().GTOint2c
         outshape = self.outshape
         out = np.empty((*outshape[:-2], outshape[-1], outshape[-2]),
                        dtype=np.float64)
-        drv(
-            self.op,
-            out.ctypes.data_as(ctypes.c_void_p),
-            ctypes.c_int(self.ncomp),
-            ctypes.c_int(0),  # do not assume hermitian
-            (ctypes.c_int * len(self.shls_slice))(*self.shls_slice),
-            np2ctypes(self.wrapper0.full_shell_to_aoloc),
-            self.optimizer,
-            np2ctypes(self.atm),
-            int2ctypes(self.atm.shape[0]),
-            np2ctypes(self.bas),
-            int2ctypes(self.bas.shape[0]),
-            np2ctypes(self.env))
+
+        # Pure Python driver
+        ao_loc = self.wrapper0.full_shell_to_aoloc
+        py_GTOint2c(self.op, out.ravel(), self.ncomp, 0,
+                    list(self.shls_slice), ao_loc,
+                    self.optimizer, self.atm, self.atm.shape[0],
+                    self.bas, self.bas.shape[0], self.env)
 
         out = np.swapaxes(out, -2, -1)
         return self._to_tensor(out)
@@ -1468,24 +1468,21 @@ class Intor(object):
         torch.Tensor
             Tensor containing the calculated 4-centre integrals.
         """
-        # performing 4-centre integrals with libcint
         symm = self.int_nmgr.get_intgl_symmetry(self.wrapper_uniqueness)
         outshape = symm.get_reduced_shape(self.outshape)
 
         out = np.empty(outshape, dtype=np.float64)
 
-        drv = CGTO().GTOnr2e_fill_drv
-        fill = getattr(CGTO(), "GTOnr2e_fill_%s" % symm.code)
-        prescreen = ctypes.POINTER(ctypes.c_void_p)()
-        drv(self.op, fill, prescreen, out.ctypes.data_as(ctypes.c_void_p),
-            ctypes.c_int(self.ncomp), (ctypes.c_int * 8)(*self.shls_slice),
-            np2ctypes(self.wrapper0.full_shell_to_aoloc), self.optimizer,
-            np2ctypes(self.atm), int2ctypes(self.atm.shape[0]),
-            np2ctypes(self.bas), int2ctypes(self.bas.shape[0]),
-            np2ctypes(self.env))
-
-        out = symm.reconstruct_array(out, self.outshape)
+        # Pure Python: compute full (unreduced) 4D integrals
+        out = np.zeros(self.outshape, dtype=np.float64)
+        ao_loc = self.wrapper0.full_shell_to_aoloc
+        py_GTOnr2e_fill_drv(
+            self.op, py_GTOnr2e_fill_s1, out.ravel(),
+            self.ncomp, list(self.shls_slice), ao_loc,
+            self.optimizer, self.atm, self.atm.shape[0],
+            self.bas, self.bas.shape[0], self.env)
         return self._to_tensor(out)
+
 
     def _to_tensor(self, out: np.ndarray) -> torch.Tensor:
         """
@@ -1550,9 +1547,7 @@ def _get_intgl_optimizer(opname: str, atm: np.ndarray, bas: np.ndarray,
         copt = int2e_ar12b_optimizer
         copt(None, atm, atm.shape[0], bas, bas.shape[0], env)
     else:
-        print(optname)
-        copt = getattr(CINT(), optname)
-        copt(ctypes.byref(cintopt), np2ctypes(atm), int2ctypes(atm.shape[0]), np2ctypes(bas), int2ctypes(bas.shape[0]), np2ctypes(env))
+        print("Integral Not available")
     opt = ctypes.cast(cintopt, _cintoptHandler)
     return opt
 

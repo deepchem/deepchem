@@ -1,16 +1,15 @@
 import ctypes
-import ctypes.util
 import dqclibs
 import numpy as np
 
 # CONSTANTS
 NDIM = 3
 
-CINT = dqclibs.CINT
+# CINT = dqclibs.CINT
 CGTO = dqclibs.CGTO
-CPBC = dqclibs.CPBC
+# CPBC = dqclibs.CPBC
 # CVHF = dqclibs.CVHF
-CSYMM = dqclibs.CSYMM
+# CSYMM = dqclibs.CSYMM
 
 c_null_ptr = ctypes.POINTER(ctypes.c_void_p)
 

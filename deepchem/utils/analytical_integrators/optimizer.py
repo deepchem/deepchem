@@ -69,9 +69,9 @@ IINC              = 0
 JINC              = 1
 KINC              = 2
 LINC              = 3
-GSHIFT            = 5
-POS_E1            = 6
-POS_E2            = 7
+GSHIFT            = 4
+POS_E1            = 5
+POS_E2            = 6
 TENSOR            = 7
 
 # cutoff defaults

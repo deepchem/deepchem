@@ -6,7 +6,6 @@ import torch
 import numpy as np
 from deepchem.utils import memoize_method
 from deepchem.utils.dft_utils import AtomCGTOBasis, CGTOBasis, Lattice
-from deepchem.utils.dft_utils.hamilton.intor.utils import np2ctypes, int2ctypes, NDIM, CINT
 
 # Terminology:
 # * gauss: one gaussian element (multiple gaussian becomes one shell)
@@ -16,7 +15,7 @@ from deepchem.utils.dft_utils.hamilton.intor.utils import np2ctypes, int2ctypes,
 #       e.g. p-shell is splitted into 3 components for cartesian (x, y, z)
 
 PTR_RINV_ORIG = 4  # from libcint/src/cint_const.h
-
+NDIM = 3
 
 class LibcintWrapper(object):
     """ A class to wrap the libcint environment and parameters for the
