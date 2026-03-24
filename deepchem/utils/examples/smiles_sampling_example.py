@@ -1,12 +1,13 @@
 """
 Example usage of Gibbs-style SMILES sampler.
 
-This demonstrates how to run constrained sampling and observe
+This demonstrates how to run constrained sampling and inspect
 trajectory behavior such as stability and diversity.
 
 NOTE:
-In practice, `gibbs_step_fn` should be implemented using a masked language model.
-See comments below for integration with models like MoLFormer.
+In practice, `gibbs_step_fn` should be implemented using a masked
+language model. See the commented section below for integration
+with models like MoLFormer.
 """
 
 from deepchem.utils.smiles_sampling import run_chain
@@ -14,7 +15,8 @@ from deepchem.utils.smiles_sampling import run_chain
 
 def dummy_step(smiles: str) -> str:
     """
-    Simple mutation: returns the same molecule.
+    Identity step (no mutation).
+
     Replace this with a model-based step function.
     """
     return smiles
@@ -39,6 +41,7 @@ print("\nUnique molecules:", len(set(trajectory)))
 # Example with a masked language model:
 #
 # from transformers import AutoTokenizer, AutoModelForMaskedLM
+# from deepchem.utils.smiles_sampling import gibbs_step
 #
 # model_name = "DeepChem/MoLFormer-c3-1.1B"
 # tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
