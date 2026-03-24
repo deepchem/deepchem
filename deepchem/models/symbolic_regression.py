@@ -1,34 +1,11 @@
-<<<<<<< HEAD
-=======
 """
 DeepChem wrapper for the local symbolic regression implementation.
 """
 
->>>>>>> add test cases on deepchem data
 import copy
 import random
 import sys
 from pathlib import Path
-<<<<<<< HEAD
-import numpy as np
-import torch
-from deepchem.data import Dataset
-from deepchem.models.models import Model
-from deepchem.utils.data_utils import load_from_disk, save_to_disk
-
-
-
-def default_symbolic_regression_path():
-    here = Path(__file__).resolve()
-    candidate = here.parents[2] / "contrib" / "symbolic_regression"
-    if candidate.exists():
-        return candidate
-    return None
-
-
-
-
-=======
 from uuid import uuid4
 
 import numpy as np
@@ -50,7 +27,6 @@ def default_symbolic_regression_path():
     return None
 
 
->>>>>>> add test cases on deepchem data
 class SymbolicRegressionModel(Model):
 
     def __init__(
@@ -72,10 +48,7 @@ class SymbolicRegressionModel(Model):
         opt_method="LBFGS",
         opt_steps=100,
         opt_lr=0.1,
-<<<<<<< HEAD
-=======
         opt_nrestarts=2,
->>>>>>> add test cases on deepchem data
         tournament_selection_n=15,
         tournament_selection_p=0.982,
         annealing=True,
@@ -108,10 +81,7 @@ class SymbolicRegressionModel(Model):
         self.opt_method = str(opt_method)
         self.opt_steps = int(opt_steps)
         self.opt_lr = float(opt_lr)
-<<<<<<< HEAD
-=======
         self.opt_nrestarts = int(opt_nrestarts)
->>>>>>> add test cases on deepchem data
         self.tournament_selection_n = int(tournament_selection_n)
         self.tournament_selection_p = float(tournament_selection_p)
         self.annealing = bool(annealing)
@@ -123,10 +93,6 @@ class SymbolicRegressionModel(Model):
         self.options_kwargs = options_kwargs or {}
         self.symbolic_regression_path = symbolic_regression_path
         self.use_multiprocessing = bool(use_multiprocessing)
-<<<<<<< HEAD
-=======
-
->>>>>>> add test cases on deepchem data
         self._sr_imports = None
         self._options = None
         self._hall_of_fame = None
@@ -138,14 +104,6 @@ class SymbolicRegressionModel(Model):
         if self._sr_imports is not None:
             return self._sr_imports
 
-<<<<<<< HEAD
-        sr_path = None
-        if self.symbolic_regression_path is not None:
-            sr_path = Path(self.symbolic_regression_path)
-        else:
-            sr_path = default_symbolic_regression_path()
-
-=======
         if self.symbolic_regression_path is not None:
             sr_path = Path(self.symbolic_regression_path).expanduser().resolve()
         else:
@@ -159,30 +117,10 @@ class SymbolicRegressionModel(Model):
                 "(e.g. `<repo>/contrib/symbolic_regression`)."
             )
 
->>>>>>> add test cases on deepchem data
         sr_path_str = str(sr_path)
         if sr_path_str not in sys.path:
             sys.path.insert(0, sr_path_str)
 
-<<<<<<< HEAD
-        from Candidate import Candidate, Tree 
-        from Dataset import Dataset as SRDataset 
-        from Options import Options 
-        from Population import Population 
-        from SymbolicRegression import ( 
-            optimize_and_simplify_population,
-            s_r_cycle,
-        )
-        from Utils import ( 
-            get_cur_maxsize,
-            update_hof_from_best_seen,
-            update_hof_from_candidates,
-        )
-        from equation_search import ( 
-            State,
-            main_search_loop,
-        )
-=======
         try:
             from Candidate import Candidate
             from TreeDS import Tree
@@ -210,7 +148,6 @@ class SymbolicRegressionModel(Model):
                 f"`{sr_path}`. Ensure that directory includes the expected "
                 "modules such as `Candidate.py` and `SymbolicRegression.py`."
             ) from e
->>>>>>> add test cases on deepchem data
 
         self._sr_imports = {
             "Candidate": Candidate,
@@ -220,17 +157,11 @@ class SymbolicRegressionModel(Model):
             "Population": Population,
             "optimize_and_simplify_population": optimize_and_simplify_population,
             "s_r_cycle": s_r_cycle,
-<<<<<<< HEAD
-            "get_cur_maxsize": get_cur_maxsize,
-            "update_hof_from_best_seen": update_hof_from_best_seen,
-            "update_hof_from_candidates": update_hof_from_candidates,
-=======
             "RunningSearchStatistics": RunningSearchStatistics,
             "get_cur_maxsize": get_cur_maxsize,
             "update_hof_from_best_seen": update_hof_from_best_seen,
             "update_hof_from_candidates": update_hof_from_candidates,
             "select_best_candidate": select_best_candidate,
->>>>>>> add test cases on deepchem data
             "State": State,
             "main_search_loop": main_search_loop,
         }
@@ -253,8 +184,6 @@ class SymbolicRegressionModel(Model):
         if w is not None:
             if w.ndim == 2 and w.shape[1] == 1:
                 w = w[:, 0]
-<<<<<<< HEAD
-=======
             if w.ndim != 1:
                 raise ValueError("Sample weights must be 1D or shape (n_samples, 1).")
 
@@ -263,7 +192,6 @@ class SymbolicRegressionModel(Model):
 
         if w is not None and len(w) != len(y):
             raise ValueError("Weights must have the same number of samples as y.")
->>>>>>> add test cases on deepchem data
 
         return X, y, w
 
@@ -316,10 +244,7 @@ class SymbolicRegressionModel(Model):
                 opt_method=self.opt_method,
                 opt_steps=self.opt_steps,
                 opt_lr=self.opt_lr,
-<<<<<<< HEAD
-=======
                 optimizer_nrestarts=self.opt_nrestarts,
->>>>>>> add test cases on deepchem data
                 tournament_selection_n=self.tournament_selection_n,
                 tournament_selection_p=self.tournament_selection_p,
                 annealing=self.annealing,
@@ -344,10 +269,7 @@ class SymbolicRegressionModel(Model):
                 "opt_method": self.opt_method,
                 "opt_steps": self.opt_steps,
                 "opt_lr": self.opt_lr,
-<<<<<<< HEAD
-=======
                 "optimizer_nrestarts": self.opt_nrestarts,
->>>>>>> add test cases on deepchem data
                 "tournament_selection_n": self.tournament_selection_n,
                 "tournament_selection_p": self.tournament_selection_p,
                 "annealing": self.annealing,
@@ -360,11 +282,8 @@ class SymbolicRegressionModel(Model):
                     setattr(options, key, value)
 
         for key, value in self.options_kwargs.items():
-<<<<<<< HEAD
-=======
             if not hasattr(options, key):
                 raise ValueError(f"Unknown options field: {key}")
->>>>>>> add test cases on deepchem data
             setattr(options, key, value)
 
         if options.tournament_selection_n > options.population_size:
@@ -382,22 +301,13 @@ class SymbolicRegressionModel(Model):
             options=options,
         )
 
-<<<<<<< HEAD
-    def _run_population_niterations(self,dataset,options):
-=======
     def _run_population_niterations(self, dataset, options):
->>>>>>> add test cases on deepchem data
         sr = self.ensure_symbolic_regression()
         s_r_cycle = sr["s_r_cycle"]
         optimize_and_simplify_population = sr["optimize_and_simplify_population"]
         update_hof_from_candidates = sr["update_hof_from_candidates"]
         update_hof_from_best_seen = sr["update_hof_from_best_seen"]
         get_cur_maxsize = sr["get_cur_maxsize"]
-<<<<<<< HEAD
-
-        cur_pop = self._build_initial_population(dataset, options)
-        hof = {}
-=======
         RunningSearchStatistics = sr["RunningSearchStatistics"]
 
         cur_pop = self._build_initial_population(dataset, options)
@@ -408,7 +318,6 @@ class SymbolicRegressionModel(Model):
                 options.maxsize,
                 options.frequency_window_size,
             )
->>>>>>> add test cases on deepchem data
 
         if options.should_optimize_constants:
             cur_pop = optimize_and_simplify_population(dataset, cur_pop, options)
@@ -423,22 +332,16 @@ class SymbolicRegressionModel(Model):
                 population=cur_pop,
                 ncycles=options.ncycles_per_iteration,
                 curmaxsize=cur_maxsize,
-<<<<<<< HEAD
-=======
                 running_stats=running_stats,
->>>>>>> add test cases on deepchem data
                 options=options,
             )
             cur_pop = optimize_and_simplify_population(dataset, cur_pop, options)
             update_hof_from_candidates(hof, cur_pop.members, options)
             update_hof_from_best_seen(hof, best_seen, options)
-<<<<<<< HEAD
-=======
             if running_stats is not None:
                 running_stats.update_many([c.complexity for c in cur_pop.members])
                 running_stats.move_window()
                 running_stats.normalize()
->>>>>>> add test cases on deepchem data
 
             cycles_remaining -= 1
             cur_maxsize = get_cur_maxsize(
@@ -447,20 +350,9 @@ class SymbolicRegressionModel(Model):
                 cycles_remaining=cycles_remaining,
             )
 
-<<<<<<< HEAD
-
-
-        return cur_pop, hof
-    
-
-    
-
-    def _run_sequential(self,dataset,options):
-=======
         return cur_pop, hof
 
     def _run_sequential(self, dataset, options):
->>>>>>> add test cases on deepchem data
         sr = self.ensure_symbolic_regression()
         update_hof_from_best_seen = sr["update_hof_from_best_seen"]
 
@@ -470,13 +362,7 @@ class SymbolicRegressionModel(Model):
             update_hof_from_best_seen(hall_of_fame, local_hof, options)
         return hall_of_fame
 
-<<<<<<< HEAD
-
-
-    def _run_multiprocessing(self,dataset,options):
-=======
     def _run_multiprocessing(self, dataset, options):
->>>>>>> add test cases on deepchem data
         sr = self.ensure_symbolic_regression()
         Population = sr["Population"]
         State = sr["State"]
@@ -501,10 +387,7 @@ class SymbolicRegressionModel(Model):
             halls_of_fame=[{}],
             cur_maxsizes=[options.maxsize],
             cycles_remaining=[options.niterations * options.populations],
-<<<<<<< HEAD
-=======
             run_id=uuid4().hex[:8],
->>>>>>> add test cases on deepchem data
         )
 
         main_search_loop(state, [dataset], options)
@@ -512,12 +395,6 @@ class SymbolicRegressionModel(Model):
         update_hof_from_best_seen(hall_of_fame, state.halls_of_fame[0], options)
         return hall_of_fame
 
-<<<<<<< HEAD
-    def _select_best_candidate(self,hall_of_fame):
-        return min(hall_of_fame.values(), key=lambda c: c.cost)
-    
-
-=======
     def _select_best_candidate(self, hall_of_fame):
         if not hall_of_fame:
             raise ValueError("No candidates found in hall of fame.")
@@ -528,7 +405,6 @@ class SymbolicRegressionModel(Model):
             if selected is not None:
                 return selected
         return min(hall_of_fame.values(), key=lambda c: c.cost)
->>>>>>> add test cases on deepchem data
 
     def fit(self, dataset):
         self._set_seed()
@@ -538,12 +414,8 @@ class SymbolicRegressionModel(Model):
         self._options = options
 
         device = torch.device(self.device)
-<<<<<<< HEAD
-        dtype = self.dtype or torch.float32
-=======
         # PySR/Julia commonly runs with Float64; keep that as our default.
         dtype = self.dtype or torch.float64
->>>>>>> add test cases on deepchem data
 
         X_t = torch.tensor(X, device=device, dtype=dtype)
         y_t = torch.tensor(y, device=device, dtype=dtype)
@@ -555,31 +427,13 @@ class SymbolicRegressionModel(Model):
         SRDataset = sr["SRDataset"]
         sr_dataset = SRDataset(X_t, y_t, weights=w_t)
 
-<<<<<<< HEAD
-        if self.use_multiprocessing and options.populations > 1:
-            hall_of_fame = self._run_multiprocessing(sr_dataset, options)
-        else:
-            hall_of_fame = self._run_sequential(sr_dataset, options)
-=======
         # Prefer the stateful search loop so behavior matches the backend's
         # async/batch orchestration (including hall-of-fame migration logic).
         hall_of_fame = self._run_multiprocessing(sr_dataset, options)
->>>>>>> add test cases on deepchem data
 
         self._hall_of_fame = hall_of_fame
         self._best_candidate = self._select_best_candidate(hall_of_fame)
 
-<<<<<<< HEAD
-
-
-
-    def predict_on_batch(self, X):
-
-        X_arr = np.asarray(X)
-
-        device = torch.device(self.device)
-        dtype = self.dtype or torch.float32
-=======
     def predict_on_batch(self, X):
         if self._best_candidate is None:
             raise ValueError("Model has not been trained. Call fit() first.")
@@ -590,7 +444,6 @@ class SymbolicRegressionModel(Model):
 
         device = torch.device(self.device)
         dtype = self.dtype or torch.float64
->>>>>>> add test cases on deepchem data
         X_t = torch.tensor(X_arr, device=device, dtype=dtype)
 
         with torch.no_grad():
@@ -614,11 +467,6 @@ class SymbolicRegressionModel(Model):
         }
         save_to_disk(state, self.get_model_filename(self.model_dir))
 
-<<<<<<< HEAD
-
-
-=======
->>>>>>> add test cases on deepchem data
     def reload(self):
         state = load_from_disk(self.get_model_filename(self.model_dir))
         self.ensure_symbolic_regression()
@@ -633,11 +481,6 @@ class SymbolicRegressionModel(Model):
             self.tree_depth = config.get("tree_depth", self.tree_depth)
             self.seed_simple_trees = config.get("seed_simple_trees", self.seed_simple_trees)
 
-<<<<<<< HEAD
-
-
-=======
->>>>>>> add test cases on deepchem data
     def get_task_type(self):
         return "regression"
 
