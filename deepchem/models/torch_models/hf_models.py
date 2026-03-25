@@ -12,6 +12,7 @@ from deepchem.trans import Transformer, undo_transforms
 from deepchem.utils.typing import LossFn, OneOrMany
 from transformers.data.data_collator import DataCollatorForLanguageModeling
 from transformers.models.auto import AutoModel, AutoModelForSequenceClassification, AutoModelForMaskedLM, AutoModelForUniversalSegmentation
+from transformers import AutoModelForCausalLM
 
 logger = logging.getLogger(__name__)
 
@@ -238,6 +239,9 @@ class HuggingFaceModel(TorchModel):
             elif self.task == "universal_segmentation":
                 self.model = AutoModelForUniversalSegmentation.from_pretrained(
                     model_dir, trust_remote_code=True, **self.config)
+            elif self.task in ["generation", "causal_lm"]:
+                self.model = AutoModelForCausalLM.from_pretrained(
+                     model_dir, trust_remote_code=True, **self.config)
             else:
                 self.model = AutoModel.from_pretrained(model_dir,
                                                        trust_remote_code=True,
@@ -562,7 +566,102 @@ class HuggingFaceModel(TorchModel):
             return final_results[0]
         else:
             return np.array(final_results)
+        
+    def generate(self, inputs, max_new_tokens=50, temperature=1.0,
+        top_p=0.9, do_sample=True, batch_size=4, **kwargs,):
+        """
+            Generate text outputs using causal language models.
 
+            Parameters
+            ----------
+            inputs: str or List[str]
+                Input prompts
+            max_new_tokens: int
+                Number of tokens to generate
+            temperature: float
+                Sampling temperature
+            top_p: float
+                Nucleus sampling probability
+            do_sample: bool
+                Whether to sample or use greedy decoding
+            batch_size: int
+                Batch size for generation
+
+            Example
+            -------
+            >>> model = HuggingFaceModel("gpt2", task="generation")
+            >>> model.generate("Hello", max_new_tokens=10)
+            """
+
+        # Task check
+        if self.task not in ["generation", "causal_lm"]:
+            raise ValueError(
+                "generate() is only supported for causal language models. "
+                "Initialize with task='generation'."
+            )
+
+        # Tokenizer check
+        if not hasattr(self, "tokenizer") or self.tokenizer is None:
+            raise ValueError("Tokenizer is not initialized for this model.")
+        
+        if max_new_tokens <= 0:
+            raise ValueError("max_new_tokens must be > 0")
+        if temperature <= 0:
+            raise ValueError("temperature must be > 0")
+        if not (0 < top_p <= 1):
+            raise ValueError("top_p must be in (0, 1]")
+        if batch_size <= 0:
+            raise ValueError("batch_size must be > 0")        
+
+        # Normalize input
+        if isinstance(inputs, str):
+            inputs = [inputs]
+        elif not isinstance(inputs, list):
+            raise ValueError("Inputs must be a string or list of strings")
+        
+        self._ensure_built()
+        self.model.eval()
+        device = next(self.model.parameters()).device
+
+        results = []
+
+        gen_kwargs = {
+                "max_new_tokens": max_new_tokens,
+                "temperature": temperature,
+                "top_p": top_p,
+                "do_sample": do_sample,
+            }
+        gen_kwargs.update(kwargs)
+
+        for i in range(0, len(inputs), batch_size):
+            batch = inputs[i:i + batch_size]
+
+            # Tokenize
+            encodings = self.tokenizer(
+                batch,
+                return_tensors="pt",
+                padding=True,
+                truncation=True,
+            )
+            encodings = {k: v.to(device) for k, v in encodings.items()}
+
+            # Generate safely
+            with torch.no_grad():
+                outputs = self.model.generate(
+                    **encodings,
+                    **gen_kwargs,
+                )
+
+            # Decode
+            decoded = self.tokenizer.batch_decode(
+                outputs,
+                skip_special_tokens=True
+            )
+
+            results.extend(decoded)
+
+        return results
+    
     def fill_mask(self,
                   inputs: Union[str, List[str]],
                   top_k: int = 5) -> Union[List[Dict], List[List[Dict]]]:
