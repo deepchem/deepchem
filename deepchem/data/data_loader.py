@@ -1,6 +1,7 @@
 """
 Process an input dataset into a format suitable for machine learning.
 """
+
 import os
 import tempfile
 import zipfile
@@ -12,7 +13,13 @@ from typing import List, Optional, Tuple, Any, Sequence, Union, Iterator
 import pandas as pd
 import numpy as np
 from deepchem.utils.typing import OneOrMany
-from deepchem.utils.data_utils import load_image_files, load_csv_files, load_json_files, load_sdf_files, unzip_file
+from deepchem.utils.data_utils import (
+    load_image_files,
+    load_csv_files,
+    load_json_files,
+    load_sdf_files,
+    unzip_file,
+)
 from deepchem.feat import UserDefinedFeaturizer, Featurizer
 from deepchem.data import Dataset, DiskDataset, NumpyDataset, ImageDataset
 from deepchem.feat.molecule_featurizers import OneHotFeaturizer
@@ -61,8 +68,8 @@ def _convert_df_to_numpy(df: pd.DataFrame,
         np.reshape(np.array(df[task].values), (n_samples, 1)) for task in tasks
     ])
     w = np.ones((n_samples, n_tasks))
-    if y.dtype.kind in ['O', 'U']:
-        missing = (y == '')
+    if y.dtype.kind in ["O", "U"]:
+        missing = y == ""
         y[missing] = 0
         w[missing] = 0
 
@@ -99,11 +106,13 @@ class DataLoader(object):
     for you by performing this work under the hood.
     """
 
-    def __init__(self,
-                 tasks: List[str],
-                 featurizer: Featurizer,
-                 id_field: Optional[str] = None,
-                 log_every_n: int = 1000):
+    def __init__(
+        self,
+        tasks: List[str],
+        featurizer: Featurizer,
+        id_field: Optional[str] = None,
+        log_every_n: int = 1000,
+    ):
         """Construct a DataLoader object.
 
         This constructor is provided as a template mainly. You
@@ -138,10 +147,12 @@ class DataLoader(object):
         self.featurizer = featurizer
         self.log_every_n = log_every_n
 
-    def featurize(self,
-                  inputs: OneOrMany[Any],
-                  data_dir: Optional[str] = None,
-                  shard_size: Optional[int] = 8192) -> Dataset:
+    def featurize(
+        self,
+        inputs: OneOrMany[Any],
+        data_dir: Optional[str] = None,
+        shard_size: Optional[int] = 8192,
+    ) -> Dataset:
         """Featurize provided files and write to specified location.
 
         DEPRECATED: This method is now a wrapper for `create_dataset()`
@@ -171,13 +182,17 @@ class DataLoader(object):
         """
         warnings.warn(
             "featurize() is deprecated and has been renamed to create_dataset()."
-            "featurize() will be removed in DeepChem 3.0", FutureWarning)
+            "featurize() will be removed in DeepChem 3.0",
+            FutureWarning,
+        )
         return self.create_dataset(inputs, data_dir, shard_size)
 
-    def create_dataset(self,
-                       inputs: OneOrMany[Any],
-                       data_dir: Optional[str] = None,
-                       shard_size: Optional[int] = 8192) -> Dataset:
+    def create_dataset(
+        self,
+        inputs: OneOrMany[Any],
+        data_dir: Optional[str] = None,
+        shard_size: Optional[int] = 8192,
+    ) -> Dataset:
         """Creates and returns a `Dataset` object by featurizing provided files.
 
         Reads in `inputs` and uses `self.featurizer` to featurize the
@@ -337,13 +352,15 @@ class CSVLoader(DataLoader):
 
     """
 
-    def __init__(self,
-                 tasks: List[str],
-                 featurizer: Featurizer,
-                 feature_field: Optional[str] = None,
-                 id_field: Optional[str] = None,
-                 smiles_field: Optional[str] = None,
-                 log_every_n: int = 1000):
+    def __init__(
+        self,
+        tasks: List[str],
+        featurizer: Featurizer,
+        feature_field: Optional[str] = None,
+        id_field: Optional[str] = None,
+        smiles_field: Optional[str] = None,
+        log_every_n: int = 1000,
+    ):
         """Initializes CSVLoader.
 
         Parameters
@@ -565,14 +582,16 @@ class JsonLoader(DataLoader):
     2
     """
 
-    def __init__(self,
-                 tasks: List[str],
-                 feature_field: str,
-                 featurizer: Featurizer,
-                 label_field: Optional[str] = None,
-                 weight_field: Optional[str] = None,
-                 id_field: Optional[str] = None,
-                 log_every_n: int = 1000):
+    def __init__(
+        self,
+        tasks: List[str],
+        feature_field: str,
+        featurizer: Featurizer,
+        label_field: Optional[str] = None,
+        weight_field: Optional[str] = None,
+        id_field: Optional[str] = None,
+        log_every_n: int = 1000,
+    ):
         """Initializes JsonLoader.
 
         Parameters
@@ -606,10 +625,12 @@ class JsonLoader(DataLoader):
         self.featurizer = featurizer
         self.log_every_n = log_every_n
 
-    def create_dataset(self,
-                       input_files: OneOrMany[str],
-                       data_dir: Optional[str] = None,
-                       shard_size: Optional[int] = 8192) -> DiskDataset:
+    def create_dataset(
+        self,
+        input_files: OneOrMany[str],
+        data_dir: Optional[str] = None,
+        shard_size: Optional[int] = 8192,
+    ) -> DiskDataset:
         """Creates a `Dataset` from input JSON files.
 
         Parameters
@@ -642,7 +663,6 @@ class JsonLoader(DataLoader):
             """Yield X, y, w, and ids for shards."""
             for shard_num, shard in enumerate(
                     self._get_shards(input_files, shard_size)):
-
                 time1 = time.time()
                 X, valid_inds = self._featurize_shard(shard)
                 if self.id_field:
@@ -749,11 +769,13 @@ class SDFLoader(DataLoader):
     2
     """
 
-    def __init__(self,
-                 tasks: List[str],
-                 featurizer: Featurizer,
-                 sanitize: bool = False,
-                 log_every_n: int = 1000):
+    def __init__(
+        self,
+        tasks: List[str],
+        featurizer: Featurizer,
+        sanitize: bool = False,
+        log_every_n: int = 1000,
+    ):
         """Initialize SDF Loader
 
         Parameters
@@ -776,10 +798,12 @@ class SDFLoader(DataLoader):
         self.id_field = "smiles"
         self.log_every_n = log_every_n
 
-    def create_dataset(self,
-                       inputs: OneOrMany[Any],
-                       data_dir: Optional[str] = None,
-                       shard_size: Optional[int] = 8192) -> Dataset:
+    def create_dataset(
+        self,
+        inputs: OneOrMany[Any],
+        data_dir: Optional[str] = None,
+        shard_size: Optional[int] = 8192,
+    ) -> Dataset:
         """Creates and returns a `Dataset` object by featurizing provided sdf files.
 
         Parameters
@@ -871,10 +895,12 @@ class SDFLoader(DataLoader):
         Iterator[pd.DataFrame]
             Iterator over shards
         """
-        return load_sdf_files(input_files=input_files,
-                              clean_mols=self.sanitize,
-                              tasks=self.tasks,
-                              shard_size=shard_size)
+        return load_sdf_files(
+            input_files=input_files,
+            clean_mols=self.sanitize,
+            tasks=self.tasks,
+            shard_size=shard_size,
+        )
 
     def _featurize_shard(self,
                          shard: pd.DataFrame) -> Tuple[np.ndarray, np.ndarray]:
@@ -896,13 +922,15 @@ class SDFLoader(DataLoader):
             Boolean values indicating successful featurization for corresponding
             sample in the source.
         """
-        pos_cols = ['pos_x', 'pos_y', 'pos_z']
+        pos_cols = ["pos_x", "pos_y", "pos_z"]
         if set(pos_cols).issubset(shard.columns):
             features = [
-                elt for elt in self.featurizer(shard[self.mol_field],
-                                               pos_x=shard['pos_x'],
-                                               pos_y=shard['pos_y'],
-                                               pos_z=shard['pos_z'])
+                elt for elt in self.featurizer(
+                    shard[self.mol_field],
+                    pos_x=shard["pos_x"],
+                    pos_y=shard["pos_y"],
+                    pos_z=shard["pos_z"],
+                )
             ]
         else:
             features = [elt for elt in self.featurizer(shard[self.mol_field])]
@@ -944,11 +972,13 @@ class FASTALoader(DataLoader):
 
     """
 
-    def __init__(self,
-                 featurizer: Optional[Featurizer] = None,
-                 auto_add_annotations: bool = False,
-                 legacy: bool = True,
-                 use_raw_fasta: bool = False):
+    def __init__(
+        self,
+        featurizer: Optional[Featurizer] = None,
+        auto_add_annotations: bool = False,
+        legacy: bool = True,
+        use_raw_fasta: bool = False,
+    ):
         """Initialize FASTALoader.
 
         Parameters
@@ -990,7 +1020,7 @@ class FASTALoader(DataLoader):
         used with Linux or MacOS X. To use Pysam on Windows, use Windows Subsystem for
         Linux(WSL).
 
-       """
+        """
 
         # Process legacy toggle
         if legacy:
@@ -999,7 +1029,9 @@ class FASTALoader(DataLoader):
                     Legacy mode is deprecated and will be removed in
                     DeepChem 3.0. Disable legacy mode by passing legacy=False
                     during construction of FASTALoader object.
-                    """, FutureWarning)
+                    """,
+                FutureWarning,
+            )
             if featurizer is not None or auto_add_annotations:
                 raise ValueError(f"""
                           featurizer option must be None and
@@ -1019,6 +1051,7 @@ class FASTALoader(DataLoader):
         # Handle special featurizer cases
         if use_raw_fasta:
             from deepchem.feat import FASTAFeaturizer
+
             featurizer = FASTAFeaturizer()
         elif isinstance(featurizer,
                         UserDefinedFeaturizer):  # User defined featurizer
@@ -1030,10 +1063,12 @@ class FASTALoader(DataLoader):
         # Set self.featurizer
         self.featurizer = featurizer
 
-    def create_dataset(self,
-                       input_files: OneOrMany[str],
-                       data_dir: Optional[str] = None,
-                       shard_size: Optional[int] = None) -> DiskDataset:
+    def create_dataset(
+        self,
+        input_files: OneOrMany[str],
+        data_dir: Optional[str] = None,
+        shard_size: Optional[int] = None,
+    ) -> DiskDataset:
         """Creates a `Dataset` from input FASTA files.
 
         At present, FASTA support is limited and doesn't allow for sharding.
@@ -1090,7 +1125,7 @@ class FASTALoader(DataLoader):
                         sequences = _add_sequence(sequences, sequence)
                         sequence = np.array([])
                     elif header_read:  # Line contains sequence in FASTA format
-                        if line[-1:] == '\n':  # Check last character in string
+                        if line[-1:] == "\n":  # Check last character in string
                             line = line[0:-1]  # Remove last character
                         sequence = np.append(sequence, line)
                 sequences = _add_sequence(sequences,
@@ -1106,11 +1141,11 @@ class FASTALoader(DataLoader):
                 if self.auto_add_annotations:
                     sequence = np.insert(sequence, 0, "[CLS]")
                     sequence = np.append(sequence, "[SEP]")
-                new_sequence = ''.join(sequence)
+                new_sequence = "".join(sequence)
                 new_sequences = np.append(sequences, new_sequence)
                 return new_sequences
 
-            with open(input_file, 'r') as f:  # Read FASTA file
+            with open(input_file, "r") as f:  # Read FASTA file
                 return _generate_sequences(f)
 
         return DiskDataset.create_dataset(shard_generator(), data_dir)
@@ -1136,15 +1171,15 @@ def _fastq_load_files(input_files: List[str],
     for input_file in input_files:
         logger.info("About to start loading fastq from %s." % input_file)
         # Open index file
-        with open(input_file, 'r') as f:
+        with open(input_file, "r") as f:
             # create an empty list to store lines in files.
             df = []
             line_number = 0
             # iterate through each line in the input file
             for num, line in enumerate(f):
                 # If the number of lines iterated through is equal or less than the shard size:
-                if (shard_size is not None) and ((num + 1) - line_number <=
-                                                 (shard_size * 4)):
+                if (shard_size is not None) and ((num + 1) - line_number
+                                                 <= (shard_size * 4)):
                     # append to list
                     df.append(line)
                 else:
@@ -1184,10 +1219,12 @@ class FASTQLoader(DataLoader):
     `Info on the structure of FASTQ files <https://support.illumina.com/bulletins/2016/04/fastq-files-explained.html>`
     """
 
-    def __init__(self,
-                 featurizer: Optional[Featurizer] = None,
-                 auto_add_annotations: bool = False,
-                 return_quality_scores: bool = False):
+    def __init__(
+        self,
+        featurizer: Optional[Featurizer] = None,
+        auto_add_annotations: bool = False,
+        return_quality_scores: bool = False,
+    ):
         """Initialize FASTQLoader.
 
         Parameters
@@ -1202,7 +1239,7 @@ class FASTQLoader(DataLoader):
             Keep False if your FASTQ file already includes [CLS] and [SEP] annotations.
         return_quality_scores: bool (default True)
             returns the quality (likelihood) score of the nucleotides in the sequence.
-       """
+        """
 
         # Set attributes
         self.auto_add_annotations = auto_add_annotations
@@ -1246,10 +1283,12 @@ class FASTQLoader(DataLoader):
 
         return _fastq_load_files(input_files, shard_size)
 
-    def create_dataset(self,
-                       input_files: OneOrMany[str],
-                       data_dir: Optional[str] = None,
-                       shard_size: Optional[int] = 4096) -> DiskDataset:
+    def create_dataset(
+        self,
+        input_files: OneOrMany[str],
+        data_dir: Optional[str] = None,
+        shard_size: Optional[int] = 4096,
+    ) -> DiskDataset:
         """Creates a `Dataset` from input FASTQ files.
 
         Parameters
@@ -1270,7 +1309,6 @@ class FASTQLoader(DataLoader):
             input_files = [input_files]
 
         def shard_generator():
-
             for shard_num, shard in enumerate(
                     self._get_shards(input_files, shard_size)):
                 if self.return_quality_scores:
@@ -1292,12 +1330,12 @@ class FASTQLoader(DataLoader):
             """
             Creates a numpy array of annotated FASTQ-format strings.
             """
-            assert len(
-                shard
-            ) % 4 == 0, f'Sharded length not divisible by four: Length of shard = {len(shard)}. File is possibly incomplete'
-            sequences: np.ndarray = np.array([], dtype='object')
+            assert len(shard) % 4 == 0, (
+                f"Sharded length not divisible by four: Length of shard = {len(shard)}. File is possibly incomplete"
+            )
+            sequences: np.ndarray = np.array([], dtype="object")
             if self.return_quality_scores:
-                quality_scores: np.ndarray = np.array([], dtype='object')
+                quality_scores: np.ndarray = np.array([], dtype="object")
 
             # Go through each sequence entity in the fastq_file: each sequence consists of 4 lines
             # First line : header description
@@ -1331,7 +1369,7 @@ class FASTQLoader(DataLoader):
             if self.auto_add_annotations:
                 sequence = np.insert(sequence, 0, "[CLS]")
                 sequence = np.append(sequence, "[SEP]")
-            new_sequence = ''.join(sequence)
+            new_sequence = "".join(sequence)
             new_sequences = np.append(sequences, new_sequence)
             return new_sequences
 
@@ -1432,12 +1470,13 @@ class ImageLoader(DataLoader):
         self.tasks = tasks
         self.sorting = sorting
 
-    def create_dataset(self,
-                       inputs: Union[OneOrMany[str], Tuple[Any], Tuple[str,
-                                                                       Any]],
-                       data_dir: Optional[str] = None,
-                       shard_size: Optional[int] = 8192,
-                       in_memory: bool = False) -> Dataset:
+    def create_dataset(
+        self,
+        inputs: Union[OneOrMany[str], Tuple[Any], Tuple[str, Any]],
+        data_dir: Optional[str] = None,
+        shard_size: Optional[int] = 8192,
+        in_memory: bool = False,
+    ) -> Dataset:
         """Creates and returns a `Dataset` object by featurizing provided image files and labels/weights.
 
         Parameters
@@ -1505,7 +1544,7 @@ class ImageLoader(DataLoader):
                     remainder += dirfiles
                 elif extension == ".zip":
                     zip_dir = tempfile.mkdtemp()
-                    zip_ref = zipfile.ZipFile(input_file, 'r')
+                    zip_ref = zipfile.ZipFile(input_file, "r")
                     zip_ref.extractall(path=zip_dir)
                     zip_ref.close()
                     zip_files = [
@@ -1547,7 +1586,7 @@ class ImageLoader(DataLoader):
                     remainder += dirfiles
                 elif extension == ".zip":
                     zip_dir = tempfile.mkdtemp()
-                    zip_ref = zipfile.ZipFile(label_file, 'r')
+                    zip_ref = zipfile.ZipFile(label_file, "r")
                     zip_ref.extractall(path=zip_dir)
                     zip_ref.close()
                     zip_files = [
@@ -1572,15 +1611,19 @@ class ImageLoader(DataLoader):
         if in_memory:
             if data_dir is None:
                 if isinstance(labels, str):
-                    return NumpyDataset(load_image_files(image_files),
-                                        y=load_image_files(label_image_files),
-                                        w=weights,
-                                        ids=image_files)
+                    return NumpyDataset(
+                        load_image_files(image_files),
+                        y=load_image_files(label_image_files),
+                        w=weights,
+                        ids=image_files,
+                    )
                 else:
-                    return NumpyDataset(load_image_files(image_files),
-                                        y=labels,
-                                        w=weights,
-                                        ids=image_files)
+                    return NumpyDataset(
+                        load_image_files(image_files),
+                        y=labels,
+                        w=weights,
+                        ids=image_files,
+                    )
             else:
                 if isinstance(labels, str):
                     dataset = DiskDataset.from_numpy(
@@ -1589,7 +1632,8 @@ class ImageLoader(DataLoader):
                         w=weights,
                         ids=image_files,
                         tasks=self.tasks,
-                        data_dir=data_dir)
+                        data_dir=data_dir,
+                    )
                 else:
                     dataset = DiskDataset.from_numpy(
                         load_image_files(image_files),
@@ -1597,7 +1641,8 @@ class ImageLoader(DataLoader):
                         w=weights,
                         ids=image_files,
                         tasks=self.tasks,
-                        data_dir=data_dir)
+                        data_dir=data_dir,
+                    )
                 if shard_size is not None:
                     dataset.reshard(shard_size)
                 return dataset
@@ -1664,10 +1709,12 @@ class InMemoryLoader(DataLoader):
 
     """
 
-    def create_dataset(self,
-                       inputs: Sequence[Any],
-                       data_dir: Optional[str] = None,
-                       shard_size: Optional[int] = 8192) -> DiskDataset:
+    def create_dataset(
+        self,
+        inputs: Sequence[Any],
+        data_dir: Optional[str] = None,
+        shard_size: Optional[int] = 8192,
+    ) -> DiskDataset:
         """Creates and returns a `Dataset` object by featurizing provided files.
 
         Reads in `inputs` and uses `self.featurizer` to featurize the
@@ -1850,10 +1897,12 @@ class DFTYamlLoader(DataLoader):
         Initialize DFTYAML loader
         """
 
-    def create_dataset(self,
-                       inputs: OneOrMany[Any],
-                       data_dir: Optional[str] = None,
-                       shard_size: Optional[int] = 1) -> Dataset:
+    def create_dataset(
+        self,
+        inputs: OneOrMany[Any],
+        data_dir: Optional[str] = None,
+        shard_size: Optional[int] = 1,
+    ) -> Dataset:
         """
         Creates and returns a `Dataset` object by featurizing provided YAML
         files.
@@ -1902,7 +1951,7 @@ class DFTYamlLoader(DataLoader):
         """
         with open(inputs) as f:
             data = yaml.load(f, Loader=SafeLoader)
-        return (data)
+        return data
 
     def _featurize_shard(self, shard):
         """
@@ -1918,19 +1967,20 @@ class DFTYamlLoader(DataLoader):
         x: featurized shard (DFTEntry objects)
         """
         from deepchem.feat.dft_data import DFTEntry
+
         try:
-            e_type = shard['e_type']
-            if 'true_val' in shard.keys():
-                true_val = shard['true_val']
+            e_type = shard["e_type"]
+            if "true_val" in shard.keys():
+                true_val = shard["true_val"]
             else:
-                true_val = '0.0'
-            systems = shard['systems']
+                true_val = "0.0"
+            systems = shard["systems"]
         except KeyError:
             raise ValueError(
                 "Unknown key in yaml file. Please check format for correctness."
             )
-        if 'weight' in shard.keys():
-            weight = shard['weight']
+        if "weight" in shard.keys():
+            weight = shard["weight"]
             x = DFTEntry.create(e_type, true_val, systems, weight)
         else:
             x = DFTEntry.create(e_type, true_val, systems)
@@ -1970,7 +2020,7 @@ class SAMLoader(DataLoader):
         featurizer: Featurizer (default: None)
             The Featurizer to be used for the loaded SAM data.
 
-       """
+        """
 
         # Set attributes
         self.user_specified_features = None
@@ -1981,15 +2031,18 @@ class SAMLoader(DataLoader):
             self.user_specified_features = featurizer.feature_fields
         elif featurizer is None:  # Default featurizer
             from deepchem.feat import SAMFeaturizer
+
             featurizer = SAMFeaturizer()
 
         # Set self.featurizer
         self.featurizer = featurizer
 
-    def create_dataset(self,
-                       input_files: OneOrMany[str],
-                       data_dir: Optional[str] = None,
-                       shard_size: Optional[int] = None) -> DiskDataset:
+    def create_dataset(
+        self,
+        input_files: OneOrMany[str],
+        data_dir: Optional[str] = None,
+        shard_size: Optional[int] = None,
+    ) -> DiskDataset:
         """Creates a `Dataset` from input SAM files.
 
         Parameters
@@ -2052,9 +2105,11 @@ class BAMLoader(DataLoader):
     or MacOS X. To use Pysam on Windows, use Windows Subsystem for Linux(WSL).
     """
 
-    def __init__(self,
-                 featurizer: Optional[Featurizer] = None,
-                 get_pileup: Optional[bool] = False):
+    def __init__(
+        self,
+        featurizer: Optional[Featurizer] = None,
+        get_pileup: Optional[bool] = False,
+    ):
         """Initialize BAMLoader.
 
         Parameters
@@ -2065,7 +2120,7 @@ class BAMLoader(DataLoader):
             If True, the pileup of reads at each position is
             returned, to be used in DeepVariant.
 
-       """
+        """
 
         # Set attributes
         self.user_specified_features = None
@@ -2076,6 +2131,7 @@ class BAMLoader(DataLoader):
             self.user_specified_features = featurizer.feature_fields
         elif featurizer is None:  # Default featurizer
             from deepchem.feat import BAMFeaturizer
+
             if get_pileup:
                 featurizer = BAMFeaturizer(max_records=None, get_pileup=True)
             else:
@@ -2084,10 +2140,12 @@ class BAMLoader(DataLoader):
         # Set self.featurizer
         self.featurizer = featurizer
 
-    def create_dataset(self,
-                       input_files: OneOrMany[str],
-                       data_dir: Optional[str] = None,
-                       shard_size: Optional[int] = None) -> DiskDataset:
+    def create_dataset(
+        self,
+        input_files: OneOrMany[str],
+        data_dir: Optional[str] = None,
+        shard_size: Optional[int] = None,
+    ) -> DiskDataset:
         """Creates a `Dataset` from input BAM files.
 
         Parameters
@@ -2097,8 +2155,8 @@ class BAMLoader(DataLoader):
         data_dir: str, optional (default None)
             Name of directory where featurized data is stored.
         shard_size: int, optional (default None)
-            For now, this argument is ignored and each BAM file gets its
-            own shard.
+            Number of records to process per shard. If None, the entire
+            file is processed as a single shard.
 
         Returns
         -------
@@ -2110,13 +2168,18 @@ class BAMLoader(DataLoader):
         if isinstance(input_files, str):
             input_files = [input_files]
 
-        def shard_generator():  # TODO Enable sharding with shard size parameter
+        def shard_generator():
             for input_file in input_files:
                 bamfile = pysam.AlignmentFile(input_file, "rb")
+                # Use shard_size to limit records per shard if provided
+                if shard_size is not None:
+                    self.featurizer.max_records = shard_size
                 X = self.featurizer._featurize(bamfile)
                 ids = np.ones(len(X))
                 # (X, y, w, ids)
                 yield X, None, None, ids
+                # Reset max_records for next file
+                self.featurizer.max_records = None
 
         return DiskDataset.create_dataset(shard_generator(), data_dir)
 
@@ -2156,7 +2219,7 @@ class CRAMLoader(DataLoader):
         ----------
         featurizer: Featurizer (default: None)
             The Featurizer to be used for the loaded CRAM data.
-       """
+        """
 
         # Set attributes
         self.user_specified_features = None
@@ -2167,15 +2230,18 @@ class CRAMLoader(DataLoader):
             self.user_specified_features = featurizer.feature_fields
         elif featurizer is None:  # Default featurizer
             from deepchem.feat import CRAMFeaturizer
+
             featurizer = CRAMFeaturizer(max_records=None)
 
         # Set self.featurizer
         self.featurizer = featurizer
 
-    def create_dataset(self,
-                       input_files: OneOrMany[str],
-                       data_dir: Optional[str] = None,
-                       shard_size: Optional[int] = None) -> DiskDataset:
+    def create_dataset(
+        self,
+        input_files: OneOrMany[str],
+        data_dir: Optional[str] = None,
+        shard_size: Optional[int] = None,
+    ) -> DiskDataset:
         """Creates a `Dataset` from input CRAM files.
 
         Parameters
@@ -2185,8 +2251,8 @@ class CRAMLoader(DataLoader):
         data_dir: str, optional (default None)
             Name of directory where featurized data is stored.
         shard_size: int, optional (default None)
-            For now, this argument is ignored and each CRAM file gets its
-            own shard.
+            Number of records to process per shard. If None, the entire
+            file is processed as a single shard.
 
         Returns
         -------
@@ -2198,12 +2264,17 @@ class CRAMLoader(DataLoader):
         if isinstance(input_files, str):
             input_files = [input_files]
 
-        def shard_generator():  # TODO Enable sharding with shard size parameter
+        def shard_generator():
             for input_file in input_files:
                 cramfile = pysam.AlignmentFile(input_file, "rc")
+                # Use shard_size to limit records per shard if provided
+                if shard_size is not None:
+                    self.featurizer.max_records = shard_size
                 X = self.featurizer._featurize(cramfile)
                 ids = np.ones(len(X))
                 # (X, y, w, ids)
                 yield X, None, None, ids
+                # Reset max_records for next file
+                self.featurizer.max_records = None
 
         return DiskDataset.create_dataset(shard_generator(), data_dir)
