@@ -1244,7 +1244,8 @@ class DiskDataset(Dataset):
     @staticmethod
     def create_dataset(shard_generator: Iterable[Batch],
                        data_dir: Optional[str] = None,
-                       tasks: Optional[ArrayLike] = None) -> "DiskDataset":
+                       tasks: Optional[ArrayLike] = None,
+                       overwrite: bool = False) -> "DiskDataset":
         """Creates a new DiskDataset
 
         Parameters
@@ -1256,6 +1257,8 @@ class DiskDataset(Dataset):
             Filename for data directory. Creates a temp directory if none specified.
         tasks: Sequence, optional (default [])
             List of tasks for this dataset.
+        overwrite: bool, optional (default False)
+            If True, will not check whether data_dir is empty or not and overwrite existing files.
 
         Returns
         -------
@@ -1266,6 +1269,10 @@ class DiskDataset(Dataset):
             data_dir = tempfile.mkdtemp()
         elif not os.path.exists(data_dir):
             os.makedirs(data_dir)
+        elif len(os.listdir(data_dir)) > 0 and not overwrite:
+            raise ValueError(
+                "The data_dir is not empty. To overwrite existing files, use overwrite=True."
+            )
 
         metadata_rows = []
         time1 = time.time()
@@ -1937,7 +1944,8 @@ class DiskDataset(Dataset):
                    w: Optional[ArrayLike] = None,
                    ids: Optional[ArrayLike] = None,
                    tasks: Optional[ArrayLike] = None,
-                   data_dir: Optional[str] = None) -> "DiskDataset":
+                   data_dir: Optional[str] = None,
+                   overwrite: bool = False) -> "DiskDataset":
         """Creates a DiskDataset object from specified Numpy arrays.
 
         Parameters
@@ -1955,6 +1963,8 @@ class DiskDataset(Dataset):
         data_dir: str, optional (default None)
             The directory to write this dataset to. If none is specified, will use
             a temporary directory instead.
+        overwrite: bool, optional (default False)
+            If True, will not check whether data_dir is empty or not and overwrite existing files.
 
         Returns
         -------
@@ -1971,7 +1981,8 @@ class DiskDataset(Dataset):
         return DiskDataset.create_dataset(
             [(dataset.X, dataset.y, dataset.w, dataset.ids)],
             data_dir=data_dir,
-            tasks=tasks)
+            tasks=tasks,
+            overwrite=overwrite)
 
     @staticmethod
     def merge(datasets: Iterable["Dataset"],
