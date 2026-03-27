@@ -4,10 +4,10 @@ import numpy as np
 from typing import Tuple, Optional
 from deepchem.utils import estimate_ovlp_rcut
 from deepchem.utils.dft_utils.hamilton.intor.molintor import _gather_at_dims
-from deepchem.utils.dft_utils.hamilton.intor.utils import NDIM
 from deepchem.utils.dft_utils import LibcintWrapper, get_default_kpts, get_default_options, PBCIntOption
 from deepchem.utils.analytical_integrators.integrals import gto_evaluator_py_grid
 
+NDIM = 3
 
 # evaluation of the gaussian basis
 def evl(shortname: str,

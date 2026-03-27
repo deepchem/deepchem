@@ -79,7 +79,7 @@ def compare_lda_lih():
 
 if __name__ == "__main__":
     compare_lda_h2()
-    #compare_lda_ch4()
-    #compare_lda_h2o()
-    #compare_lda_nh3()
-    #compare_lda_lih()
+    compare_lda_ch4()
+    compare_lda_h2o()
+    compare_lda_nh3()
+    compare_lda_lih()
