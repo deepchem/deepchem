@@ -908,3 +908,27 @@ class TestDatasets(unittest.TestCase):
         """Test creating a PyTorch Dataset from a DiskDataset."""
         dataset = load_solubility_data()
         _validate_pytorch_dataset(dataset)
+
+def test_create_disk_dataset_overwrite():
+    """Test that DiskDataset.create_dataset respects the overwrite flag."""
+    import tempfile
+    import os
+    import pytest
+    import numpy as np
+    import deepchem as dc
+    
+    with tempfile.TemporaryDirectory() as temp_dir:
+        # Create a dummy file to make the directory non-empty
+        dummy_file = os.path.join(temp_dir, 'dummy.txt')
+        with open(dummy_file, 'w') as f:
+            f.write('dummy')
+            
+        shard_generator = [(np.zeros((5, 1)), np.zeros((5, 1)), np.zeros((5, 1)), np.arange(5))]
+        
+        # Without overwrite=True, it should raise ValueError
+        with pytest.raises(ValueError):
+            dc.data.DiskDataset.create_dataset(shard_generator, data_dir=temp_dir)
+            
+        # With overwrite=True, it should succeed
+        dataset = dc.data.DiskDataset.create_dataset(shard_generator, data_dir=temp_dir, overwrite=True)
+        assert len(dataset) == 5
