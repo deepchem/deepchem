@@ -276,6 +276,27 @@ class HuggingFaceModel(TorchModel):
                                            strict=False)
 
     def _prepare_batch(self, batch: Tuple[Any, Any, Any]):
+        """Prepare a batch of data for model input.
+
+        Tokenizes SMILES strings and formats inputs based on the task type.
+        For masked language modeling, applies random token masking via the
+        data collator. For regression, classification, and multitask regression,
+        converts labels to the appropriate tensor dtype and moves all tensors
+        to the model device.
+
+        Parameters
+        ----------
+        batch: Tuple[Any, Any, Any]
+            A tuple of (X, y, w) where X contains SMILES strings, y contains
+            labels, and w contains sample weights.
+
+        Returns
+        -------
+        Tuple[Dict[str, torch.Tensor], Optional[torch.Tensor], Any]
+            A tuple of (inputs, labels, weights) where inputs is a dictionary
+            of tokenized tensors ready for the model. For mlm tasks, labels
+            are embedded in inputs and returned as None separately.
+        """
         smiles_batch, y, w = batch
         tokens = self.tokenizer(smiles_batch[0].tolist(),
                                 padding=True,
