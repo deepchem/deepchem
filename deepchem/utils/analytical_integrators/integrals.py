@@ -152,7 +152,6 @@ def c2s_sph_2e1(gctr, i_l, j_l, k_l, l_l, x_ctr, nfi, nfj, nfk, nfl, nf):
     c2s_k = cart2sph_matrix(k_l)
     c2s_l = cart2sph_matrix(l_l)
 
-    nc = i_ctr * j_ctr * k_ctr * l_ctr
     out = np.zeros((di * i_ctr, dj * j_ctr, dk * k_ctr, dl * l_ctr))
 
     for lc in range(l_ctr):
@@ -161,30 +160,12 @@ def c2s_sph_2e1(gctr, i_l, j_l, k_l, l_l, x_ctr, nfi, nfj, nfk, nfl, nf):
                 for ic in range(i_ctr):
                     idx = ((lc * k_ctr + kc) * j_ctr + jc) * i_ctr + ic
                     offset = idx * nf
-                    # gctr layout: nfl, nfk, nfj, nfi (j outer in C loop)
-                    cart = gctr[offset:offset + nf].reshape(nfj, nfl, nfk, nfi)
-                    # Transform each index
-                    # i: (nfi,) -> (di,)
-                    sph = np.einsum('si,jlki->sjlk', c2s_i, cart)
-                    # j: (nfj,) -> (dj,)
-                    sph = np.einsum('tj,tjlk->tlk', c2s_j, sph)
-                    # k: (nfk,) -> (dk,)
-                    sph = np.einsum('uk,tlk->tlu', c2s_k, sph)
-                    # l: (nfl,) -> (dl,)
-                    sph = np.einsum('vl,tlu->tvu', c2s_l, sph)
-                    # sph shape: (dj, dl, dk) -- wait, let me reconsider
-
-                    i0 = ic * di
-                    j0 = jc * dj
-                    k0 = kc * dk
-                    l0 = lc * dl
-                    # Actually let me just use a simpler approach for the contraction
                     cart_4d = gctr[offset:offset + nf].reshape(nfj, nfl, nfk, nfi)
-                    # Apply transforms
                     tmp = np.tensordot(c2s_i, cart_4d, axes=([1], [3]))  # (di, nfj, nfl, nfk)
                     tmp = np.tensordot(c2s_j, tmp, axes=([1], [1]))      # (dj, di, nfl, nfk)
                     tmp = np.tensordot(c2s_k, tmp, axes=([1], [3]))      # (dk, dj, di, nfl)
                     tmp = np.tensordot(c2s_l, tmp, axes=([1], [3]))      # (dl, dk, dj, di)
+                    i0, j0, k0, l0 = ic * di, jc * dj, kc * dk, lc * dl
                     out[i0:i0+di, j0:j0+dj, k0:k0+dk, l0:l0+dl] = tmp.transpose(3, 2, 1, 0)
 
     return out
@@ -194,94 +175,47 @@ def c2s_sph_2e1(gctr, i_l, j_l, k_l, l_l, x_ctr, nfi, nfj, nfk, nfl, nf):
 # G-value generation (recurrence relations)
 # ================================================================
 
-def CINTg_ovlp(g, ai, aj, fac, envs):
-    """
-    Generate g-values for overlap integrals via Obara-Saika recurrence.
-    Modifies g in-place.
-    """
-    nmax = envs.li_ceil + envs.lj_ceil
-    lj = envs.lj_ceil
-    dj = envs.g_stride_j
-    aij = ai + aj
-    ri = envs.ri
-    rj = envs.rj
-    g_size = envs.g_size
-
-    gx = g[:g_size]
-    gy = g[g_size:2 * g_size]
-    gz = g[2 * g_size:3 * g_size]
-
-    rirj = ri - rj
-    # ririj = ri - Rij where Rij = (ai*ri + aj*rj) / aij
-    ririj = ri - (ai * ri + aj * rj) / aij
-
-    gx[0] = 1.0
-    gy[0] = 1.0
-    gz[0] = SQRTPI * math.pi * fac
-
-    if nmax > 0:
-        gx[1] = -ririj[0] * gx[0]
-        gy[1] = -ririj[1] * gy[0]
-        gz[1] = -ririj[2] * gz[0]
-
-    for i in range(1, nmax):
-        gx[i + 1] = 0.5 * i / aij * gx[i - 1] - ririj[0] * gx[i]
-        gy[i + 1] = 0.5 * i / aij * gy[i - 1] - ririj[1] * gy[i]
-        gz[i + 1] = 0.5 * i / aij * gz[i - 1] - ririj[2] * gz[i]
-
-    # Horizontal recurrence for j
-    for j in range(1, lj + 1):
-        ptr = dj * j
-        for i in range(ptr, ptr + nmax - j + 1):
-            gx[i] = gx[i + 1 - dj] + rirj[0] * gx[i - dj]
-            gy[i] = gy[i + 1 - dj] + rirj[1] * gy[i - dj]
-            gz[i] = gz[i + 1 - dj] + rirj[2] * gz[i - dj]
-
-
-def CINTg_nuc(g, aij, rij, cr, t2, fac, envs):
-    """
-    Generate g-values for nuclear attraction integrals.
+def _CINTg_vrr_hrr(g, envs, gz0_fac, rir0, cfac, aij):
+    """Unified vertical + horizontal recurrence for 1e g-values.
+    gz0_fac: initial gz[0] value.  rir0: shift vector for vertical recurrence.
+    cfac: prefactor for vertical coeff (0.5/aij for ovlp, 0.5*(1-t2)/aij for nuc).
     """
     nmax = envs.li_ceil + envs.lj_ceil
     lj = envs.lj_ceil
     dj = envs.g_stride_j
-    ri = envs.ri
-    rj = envs.rj
     g_size = envs.g_size
+    gx, gy, gz = g[:g_size], g[g_size:2 * g_size], g[2 * g_size:3 * g_size]
+    rirj = envs.ri - envs.rj
 
-    gx = g[:g_size]
-    gy = g[g_size:2 * g_size]
-    gz = g[2 * g_size:3 * g_size]
-
-    # rir0 = ri - (rij + t2 * (cr - rij))
-    rir0 = np.array([
-        ri[0] - (rij[0] + t2 * (cr[0] - rij[0])),
-        ri[1] - (rij[1] + t2 * (cr[1] - rij[1])),
-        ri[2] - (rij[2] + t2 * (cr[2] - rij[2])),
-    ])
-    rirj = ri - rj
-
-    gx[0] = 1.0
-    gy[0] = 1.0
-    gz[0] = 2.0 * math.pi * fac
-
+    gx[0] = 1.0;  gy[0] = 1.0;  gz[0] = gz0_fac
     if nmax > 0:
         gx[1] = -rir0[0] * gx[0]
         gy[1] = -rir0[1] * gy[0]
         gz[1] = -rir0[2] * gz[0]
-
     for i in range(1, nmax):
-        c = 0.5 * (1.0 - t2) * i / aij
+        c = cfac * i
         gx[i + 1] = c * gx[i - 1] - rir0[0] * gx[i]
         gy[i + 1] = c * gy[i - 1] - rir0[1] * gy[i]
         gz[i + 1] = c * gz[i - 1] - rir0[2] * gz[i]
-
     for j in range(1, lj + 1):
         ptr = dj * j
         for i in range(ptr, ptr + nmax - j + 1):
             gx[i] = gx[i + 1 - dj] + rirj[0] * gx[i - dj]
             gy[i] = gy[i + 1 - dj] + rirj[1] * gy[i - dj]
             gz[i] = gz[i + 1 - dj] + rirj[2] * gz[i - dj]
+
+
+def CINTg_ovlp(g, ai, aj, fac, envs):
+    """Generate g-values for overlap integrals."""
+    aij = ai + aj
+    rir0 = envs.ri - (ai * envs.ri + aj * envs.rj) / aij
+    _CINTg_vrr_hrr(g, envs, SQRTPI * math.pi * fac, rir0, 0.5 / aij, aij)
+
+
+def CINTg_nuc(g, aij, rij, cr, t2, fac, envs):
+    """Generate g-values for nuclear attraction integrals."""
+    rir0 = envs.ri - (rij + t2 * (cr - rij))
+    _CINTg_vrr_hrr(g, envs, 2.0 * math.pi * fac, rir0, 0.5 * (1.0 - t2) / aij, aij)
 
 
 # ================================================================
@@ -318,15 +252,11 @@ def CINTnabla1j_1e(f, g, li, lj, lk, envs):
 # ================================================================
 
 def gout_1e_ovlp(gout, g, idx, envs):
-    """Extract overlap gout: gout[n] += g[ix]*g[iy]*g[iz].
-    Note: idx values are absolute offsets into the full g array.
-    ix is in [0, g_size), iy in [g_size, 2*g_size), iz in [2*g_size, 3*g_size).
-    """
-    for n in range(envs.nf):
-        ix = idx[n * 3]
-        iy = idx[n * 3 + 1]
-        iz = idx[n * 3 + 2]
-        gout[n] += g[ix] * g[iy] * g[iz]
+    """Extract overlap gout using vectorized indexing."""
+    ix = idx[0::3]
+    iy = idx[1::3]
+    iz = idx[2::3]
+    gout[:envs.nf] += g[ix] * g[iy] * g[iz]
 
 
 def gout_1e_nuc(gout, g, idx, envs):
@@ -335,14 +265,7 @@ def gout_1e_nuc(gout, g, idx, envs):
 
 
 def gout_1e_kin(gout, g, idx, envs):
-    """
-    Extract kinetic energy gout: <i| -1/2 nabla^2 |j>.
-    Uses derivative g-arrays g1, g2, g3.
-    The g array has 4 sections of (g_size*3) each: g0, g1, g2, g3.
-    g0 contains the base overlap g-values.
-    We compute derivatives in g1, g2, g3 via nabla operators.
-    The idx values are absolute offsets within a single g_size*3 section.
-    """
+    """Extract kinetic energy gout: <i| -1/2 nabla^2 |j>."""
     g_size = envs.g_size
     g_len = g_size * 3
     g0 = g[:g_len]
@@ -354,66 +277,32 @@ def gout_1e_kin(gout, g, idx, envs):
     CINTnabla1j_1e(g2, g0, envs.i_l, envs.j_l + 1, 0, envs)
     CINTnabla1j_1e(g3, g2, envs.i_l, envs.j_l, 0, envs)
 
-    for n in range(envs.nf):
-        ix = idx[n * 3]      # offset into x-section (0..g_size-1)
-        iy = idx[n * 3 + 1]  # offset into y-section (g_size..2*g_size-1)
-        iz = idx[n * 3 + 2]  # offset into z-section (2*g_size..3*g_size-1)
-        # s[0] = g3[ix] * g0[iy] * g0[iz] (d^2/dx^2)
-        s0 = g3[ix] * g0[iy] * g0[iz]
-        # s[4] = g0[ix] * g3[iy] * g0[iz] (d^2/dy^2)
-        s4 = g0[ix] * g3[iy] * g0[iz]
-        # s[8] = g0[ix] * g0[iy] * g3[iz] (d^2/dz^2)
-        s8 = g0[ix] * g0[iy] * g3[iz]
-        gout[n] += -(s0 + s4 + s8)
+    ix = idx[0::3]
+    iy = idx[1::3]
+    iz = idx[2::3]
+    gout[:envs.nf] += -(g3[ix] * g0[iy] * g0[iz] +
+                         g0[ix] * g3[iy] * g0[iz] +
+                         g0[ix] * g0[iy] * g3[iz])
 
 
 def gout_2e_ar12b(gout, g, idx, envs, gout_empty):
-    """Extract 2e gout: sum over Rys roots of g[ix]*g[iy]*g[iz].
-    idx values are absolute offsets into the full g array (size g_size*3)."""
+    """Extract 2e gout: sum over Rys roots of g[ix]*g[iy]*g[iz]."""
     nroots = envs.nrys_roots
-    for n in range(envs.nf):
-        ix = idx[n * 3]
-        iy = idx[n * 3 + 1]
-        iz = idx[n * 3 + 2]
-        s = 0.0
-        for i in range(nroots):
-            s += g[ix + i] * g[iy + i] * g[iz + i]
-        if gout_empty:
-            gout[n] = s
-        else:
-            gout[n] += s
+    ix = idx[0::3]
+    iy = idx[1::3]
+    iz = idx[2::3]
+    s = np.zeros(envs.nf)
+    for i in range(nroots):
+        s += g[ix + i] * g[iy + i] * g[iz + i]
+    if gout_empty:
+        gout[:envs.nf] = s
+    else:
+        gout[:envs.nf] += s
 
 
 # ================================================================
 # Primitive-to-contracted transformation
 # ================================================================
-
-def CINTprim_to_ctr(gc, nf, gp, inc, nprim, nctr, coeff):
-    """
-    Contract primitive integrals with contraction coefficients.
-    gc: (nctr * inc, nf) accumulated output
-    gp: (inc, nf) primitive block
-    coeff: pointer into coefficient array (coeff[n*nprim] for contraction n)
-    """
-    for i in range(inc):
-        for n in range(nctr):
-            c = coeff[nprim * n]
-            if c != 0:
-                for k in range(nf):
-                    gc[n * nf + k] += c * gp[k * inc + i] if inc > 1 else c * gp[k]
-
-
-def CINTprim_to_ctr_simple(gc, nf, gp, nprim, nctr, coeff):
-    """
-    Simplified contraction for the common case inc=1.
-    gc shape: (nctr * nf,)
-    gp shape: (nf,)
-    """
-    for n in range(nctr):
-        c = coeff[nprim * n]
-        if c != 0:
-            gc[n * nf:(n + 1) * nf] += c * gp[:nf]
-
 
 # ================================================================
 # 1e integral loops
@@ -629,19 +518,18 @@ def CINT1e_drv(envs, atm, bas, env, int1e_type):
 # Top-level 1e integral functions
 # ================================================================
 
-def int1e_ovlp_sph(out, dims, shls, atm, natm, bas, nbas, env, opt=None, cache=None):
-    """Pure Python int1e_ovlp_sph."""
-    ng = np.array([0, 0, 0, 0, 0, 1, 1, 1], dtype=np.int32)
+def _int1e_sph_common(out, dims, shls, atm, natm, bas, nbas, env, ng, f_gout, int1e_type, fac=1.0):
+    """Common driver for all 1e spherical integrals."""
     envs = CINTEnvVars()
     CINTinit_int1e_EnvVars(envs, ng, shls, atm, natm, bas, nbas, env)
-    envs.f_gout = gout_1e_ovlp
-    result = CINT1e_drv(envs, atm, bas, env, INT1E_TYPE_OVLP)
-    # Write into output buffer at correct position
+    envs.f_gout = f_gout
+    envs.common_factor *= fac
+    result = CINT1e_drv(envs, atm, bas, env, int1e_type)
     di = 2 * envs.i_l + 1
     dj = 2 * envs.j_l + 1
     i_ctr = int(envs.x_ctr[0])
     j_ctr = int(envs.x_ctr[1])
-    naoi, naoj = dims[0], dims[1]
+    naoi = dims[0]
     for jc in range(j_ctr):
         for ic in range(i_ctr):
             for j in range(dj):
@@ -649,49 +537,27 @@ def int1e_ovlp_sph(out, dims, shls, atm, natm, bas, nbas, env, opt=None, cache=N
                     out[(jc * dj + j) * naoi + (ic * di + i)] = \
                         result[ic * di + i, jc * dj + j]
     return 1
+
+
+def int1e_ovlp_sph(out, dims, shls, atm, natm, bas, nbas, env, opt=None, cache=None):
+    """Pure Python int1e_ovlp_sph."""
+    ng = np.array([0, 0, 0, 0, 0, 1, 1, 1], dtype=np.int32)
+    return _int1e_sph_common(out, dims, shls, atm, natm, bas, nbas, env,
+                             ng, gout_1e_ovlp, INT1E_TYPE_OVLP)
 
 
 def int1e_kin_sph(out, dims, shls, atm, natm, bas, nbas, env, opt=None, cache=None):
     """Pure Python int1e_kin_sph."""
     ng = np.array([0, 2, 0, 0, 2, 1, 1, 1], dtype=np.int32)
-    envs = CINTEnvVars()
-    CINTinit_int1e_EnvVars(envs, ng, shls, atm, natm, bas, nbas, env)
-    envs.f_gout = gout_1e_kin
-    envs.common_factor *= 0.5
-    result = CINT1e_drv(envs, atm, bas, env, INT1E_TYPE_OVLP)
-    di = 2 * envs.i_l + 1
-    dj = 2 * envs.j_l + 1
-    i_ctr = int(envs.x_ctr[0])
-    j_ctr = int(envs.x_ctr[1])
-    naoi, naoj = dims[0], dims[1]
-    for jc in range(j_ctr):
-        for ic in range(i_ctr):
-            for j in range(dj):
-                for i in range(di):
-                    out[(jc * dj + j) * naoi + (ic * di + i)] = \
-                        result[ic * di + i, jc * dj + j]
-    return 1
+    return _int1e_sph_common(out, dims, shls, atm, natm, bas, nbas, env,
+                             ng, gout_1e_kin, INT1E_TYPE_OVLP, fac=0.5)
 
 
 def int1e_nuc_sph(out, dims, shls, atm, natm, bas, nbas, env, opt=None, cache=None):
     """Pure Python int1e_nuc_sph."""
     ng = np.array([0, 0, 0, 0, 0, 1, 0, 1], dtype=np.int32)
-    envs = CINTEnvVars()
-    CINTinit_int1e_EnvVars(envs, ng, shls, atm, natm, bas, nbas, env)
-    envs.f_gout = gout_1e_nuc
-    result = CINT1e_drv(envs, atm, bas, env, INT1E_TYPE_NUC)
-    di = 2 * envs.i_l + 1
-    dj = 2 * envs.j_l + 1
-    i_ctr = int(envs.x_ctr[0])
-    j_ctr = int(envs.x_ctr[1])
-    naoi, naoj = dims[0], dims[1]
-    for jc in range(j_ctr):
-        for ic in range(i_ctr):
-            for j in range(dj):
-                for i in range(di):
-                    out[(jc * dj + j) * naoi + (ic * di + i)] = \
-                        result[ic * di + i, jc * dj + j]
-    return 1
+    return _int1e_sph_common(out, dims, shls, atm, natm, bas, nbas, env,
+                             ng, gout_1e_nuc, INT1E_TYPE_NUC)
 
 
 # ================================================================
@@ -778,46 +644,30 @@ def CINTg0_2e_2d(g, bc, envs):
                     gz[j + dn] = c00[i, 2] * gz[j] + n * b10[i] * gz[j - dn] + m * b00[i] * gz[j - dm]
 
 
-def CINTg0_lj2d_4d(g, envs):
-    """4D horizontal recurrence: 2D (n,m) basis -> 4D (i,j,k,l) basis."""
-    nmax = envs.li_ceil + envs.lj_ceil
-    mmax = envs.lk_ceil + envs.ll_ceil
-    li = envs.li_ceil
-    lk = envs.lk_ceil
-    lj = envs.lj_ceil
-    nroots = envs.nrys_roots
-    di = envs.g_stride_i
-    dk = envs.g_stride_k
-    dl = envs.g_stride_l
-    dj = envs.g_stride_j
+def _CINTg0_hrr_phase(gx, gy, gz, r, l_tgt, n_max, d_tgt, d_src, d_oth, l_oth, stride):
+    """One phase of horizontal recurrence for 4D g-values.
+    g[a] = r * g[a - d_tgt] + g[a - d_tgt + d_src]
+    Loops: a in 1..l_tgt, b in 0..n_max-a, c in 0..l_oth.
+    """
+    for a in range(1, l_tgt + 1):
+        for b in range(n_max - a + 1):
+            for c in range(l_oth + 1):
+                ptr = a * d_tgt + b * d_src + c * d_oth
+                for n in range(ptr, ptr + stride):
+                    gx[n] = r[0] * gx[n - d_tgt] + gx[n - d_tgt + d_src]
+                    gy[n] = r[1] * gy[n - d_tgt] + gy[n - d_tgt + d_src]
+                    gz[n] = r[2] * gz[n - d_tgt] + gz[n - d_tgt + d_src]
+
+
+def _CINTg0_2d4d(g, envs, ij_args, kl_args):
+    """Unified 4D horizontal recurrence with two phases.
+    Each args tuple: (l_tgt, n_max, d_tgt, d_src, d_oth, l_oth, stride, r)
+    """
     g_size = envs.g_size
+    gx, gy, gz = g[:g_size], g[g_size:2 * g_size], g[2 * g_size:3 * g_size]
+    for l_tgt, n_max, d_tgt, d_src, d_oth, l_oth, stride, r in (ij_args, kl_args):
+        _CINTg0_hrr_phase(gx, gy, gz, r, l_tgt, n_max, d_tgt, d_src, d_oth, l_oth, stride)
 
-    gx = g[:g_size]
-    gy = g[g_size:2 * g_size]
-    gz = g[2 * g_size:3 * g_size]
-
-    rirj = envs.rirj
-    rkrl = envs.rkrl
-
-    # g(i,...,j) = rirj * g(i-1,...,j) + g(i-1,...,j+1)
-    for i in range(1, li + 1):
-        for j in range(nmax - i + 1):
-            for l in range(mmax + 1):
-                ptr = j * dj + l * dl + i * di
-                for n in range(ptr, ptr + nroots):
-                    gx[n] = rirj[0] * gx[n - di] + gx[n - di + dj]
-                    gy[n] = rirj[1] * gy[n - di] + gy[n - di + dj]
-                    gz[n] = rirj[2] * gz[n - di] + gz[n - di + dj]
-
-    # g(...,k,l,..) = rkrl * g(...,k-1,l,..) + g(...,k-1,l+1,..)
-    for j in range(lj + 1):
-        for k in range(1, lk + 1):
-            for l in range(mmax - k + 1):
-                ptr = j * dj + l * dl + k * dk
-                for n in range(ptr, ptr + dk):
-                    gx[n] = rkrl[0] * gx[n - dk] + gx[n - dk + dl]
-                    gy[n] = rkrl[1] * gy[n - dk] + gy[n - dk + dl]
-                    gz[n] = rkrl[2] * gz[n - dk] + gz[n - dk + dl]
 
 
 def CINTg0_2e(g, fac, envs):
@@ -881,137 +731,22 @@ def CINTg0_2e(g, fac, envs):
     bc = {'c00': c00, 'c0p': c0p, 'b00': b00, 'b10': b10, 'b01': b01}
 
     CINTg0_2e_2d(g, bc, envs)
-    # Select the right 4D recurrence based on envs.f_g0_2d4d
-    if envs.f_g0_2d4d == 'lj2d4d':
-        CINTg0_lj2d_4d(g, envs)
-    elif envs.f_g0_2d4d == 'kj2d4d':
-        CINTg0_kj2d_4d(g, envs)
-    elif envs.f_g0_2d4d == 'ik2d4d':
-        CINTg0_ik2d_4d(g, envs)
-    elif envs.f_g0_2d4d == 'il2d4d':
-        CINTg0_il2d_4d(g, envs)
+    # 4D recurrence via dict lookup
+    nmax = envs.li_ceil + envs.lj_ceil
+    mmax = envs.lk_ceil + envs.ll_ceil
+    di, dk, dl, dj = envs.g_stride_i, envs.g_stride_k, envs.g_stride_l, envs.g_stride_j
+    nr, rirj, rkrl = envs.nrys_roots, envs.rirj, envs.rkrl
+    li, lj, lk, ll = envs.li_ceil, envs.lj_ceil, envs.lk_ceil, envs.ll_ceil
+    _4d_args = {
+        'lj2d4d': ((li, nmax, di, dj, dl, mmax, nr, rirj), (lk, mmax, dk, dl, dj, lj, dk, rkrl)),
+        'kj2d4d': ((li, nmax, di, dj, dk, mmax, nr, rirj), (ll, mmax, dl, dk, dj, lj, dl, rkrl)),
+        'ik2d4d': ((lj, nmax, dj, di, dl, mmax, nr, rirj), (ll, mmax, dl, dk, di, li, dl, rkrl)),
+        'il2d4d': ((lj, nmax, dj, di, dk, mmax, nr, rirj), (lk, mmax, dk, dl, di, li, dk, rkrl)),
+    }
+    ij_args, kl_args = _4d_args[envs.f_g0_2d4d]
+    _CINTg0_2d4d(g, envs, ij_args, kl_args)
 
     return True
-
-
-def CINTg0_kj2d_4d(g, envs):
-    """4D recurrence variant: based on k,j."""
-    nmax = envs.li_ceil + envs.lj_ceil
-    mmax = envs.lk_ceil + envs.ll_ceil
-    li = envs.li_ceil
-    ll = envs.ll_ceil
-    lj = envs.lj_ceil
-    nroots = envs.nrys_roots
-    di = envs.g_stride_i
-    dk = envs.g_stride_k
-    dl = envs.g_stride_l
-    dj = envs.g_stride_j
-    g_size = envs.g_size
-
-    gx = g[:g_size]
-    gy = g[g_size:2 * g_size]
-    gz = g[2 * g_size:3 * g_size]
-
-    rirj = envs.rirj
-    rkrl = envs.rkrl
-
-    for i in range(1, li + 1):
-        for j in range(nmax - i + 1):
-            for k in range(mmax + 1):
-                ptr = j * dj + k * dk + i * di
-                for n in range(ptr, ptr + nroots):
-                    gx[n] = rirj[0] * gx[n - di] + gx[n - di + dj]
-                    gy[n] = rirj[1] * gy[n - di] + gy[n - di + dj]
-                    gz[n] = rirj[2] * gz[n - di] + gz[n - di + dj]
-
-    for j in range(lj + 1):
-        for l in range(1, ll + 1):
-            for k in range(mmax - l + 1):
-                ptr = j * dj + k * dk + l * dl
-                for n in range(ptr, ptr + dl):
-                    gx[n] = rkrl[0] * gx[n - dl] + gx[n - dl + dk]
-                    gy[n] = rkrl[1] * gy[n - dl] + gy[n - dl + dk]
-                    gz[n] = rkrl[2] * gz[n - dl] + gz[n - dl + dk]
-
-
-def CINTg0_ik2d_4d(g, envs):
-    """4D recurrence variant: based on i,k."""
-    nmax = envs.li_ceil + envs.lj_ceil
-    mmax = envs.lk_ceil + envs.ll_ceil
-    lj = envs.lj_ceil
-    ll = envs.ll_ceil
-    li = envs.li_ceil
-    nroots = envs.nrys_roots
-    di = envs.g_stride_i
-    dk = envs.g_stride_k
-    dl = envs.g_stride_l
-    dj = envs.g_stride_j
-    g_size = envs.g_size
-
-    gx = g[:g_size]
-    gy = g[g_size:2 * g_size]
-    gz = g[2 * g_size:3 * g_size]
-
-    rirj = envs.rirj
-    rkrl = envs.rkrl
-
-    for j in range(1, lj + 1):
-        for i in range(nmax - j + 1):
-            for l in range(mmax + 1):
-                ptr = i * di + l * dl + j * dj
-                for n in range(ptr, ptr + nroots):
-                    gx[n] = rirj[0] * gx[n - dj] + gx[n - dj + di]
-                    gy[n] = rirj[1] * gy[n - dj] + gy[n - dj + di]
-                    gz[n] = rirj[2] * gz[n - dj] + gz[n - dj + di]
-
-    for i in range(li + 1):
-        for l in range(1, ll + 1):
-            for k in range(mmax - l + 1):
-                ptr = i * di + k * dk + l * dl
-                for n in range(ptr, ptr + dl):
-                    gx[n] = rkrl[0] * gx[n - dl] + gx[n - dl + dk]
-                    gy[n] = rkrl[1] * gy[n - dl] + gy[n - dl + dk]
-                    gz[n] = rkrl[2] * gz[n - dl] + gz[n - dl + dk]
-
-
-def CINTg0_il2d_4d(g, envs):
-    """4D recurrence variant: based on i,l."""
-    nmax = envs.li_ceil + envs.lj_ceil
-    mmax = envs.lk_ceil + envs.ll_ceil
-    lj = envs.lj_ceil
-    lk = envs.lk_ceil
-    li = envs.li_ceil
-    nroots = envs.nrys_roots
-    di = envs.g_stride_i
-    dk = envs.g_stride_k
-    dl = envs.g_stride_l
-    dj = envs.g_stride_j
-    g_size = envs.g_size
-
-    gx = g[:g_size]
-    gy = g[g_size:2 * g_size]
-    gz = g[2 * g_size:3 * g_size]
-
-    rirj = envs.rirj
-    rkrl = envs.rkrl
-
-    for j in range(1, lj + 1):
-        for i in range(nmax - j + 1):
-            for k in range(mmax + 1):
-                ptr = i * di + k * dk + j * dj
-                for n in range(ptr, ptr + nroots):
-                    gx[n] = rirj[0] * gx[n - dj] + gx[n - dj + di]
-                    gy[n] = rirj[1] * gy[n - dj] + gy[n - dj + di]
-                    gz[n] = rirj[2] * gz[n - dj] + gz[n - dj + di]
-
-    for i in range(li + 1):
-        for k in range(1, lk + 1):
-            for l in range(mmax - k + 1):
-                ptr = i * di + l * dl + k * dk
-                for n in range(ptr, ptr + dk):
-                    gx[n] = rkrl[0] * gx[n - dk] + gx[n - dk + dl]
-                    gy[n] = rkrl[1] * gy[n - dk] + gy[n - dk + dl]
-                    gz[n] = rkrl[2] * gz[n - dk] + gz[n - dk + dl]
 
 
 # ================================================================

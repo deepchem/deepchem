@@ -8,7 +8,6 @@ Pure Python/NumPy port of the libcint optimizer pipeline:
         ├── CINTinit_2e_optimizer
         ├── CINTOpt_set_log_maxc
         │   └── CINTOpt_log_max_pgto_coeff  (via numpy_vec)
-        │       └── approx_log              (IEEE 754 bit-hack)
         ├── CINTOpt_set_non0coeff
         │   └── CINTOpt_non0coeff_byshell
         └── gen_idx
@@ -90,12 +89,12 @@ NOVALUE           = object()
 # ================================================================
 # Data structures
 # ================================================================
-@dataclass
 class PairData:
     """Shell-pair precomputed data (populated separately, not by optimizer)."""
-    rij:   np.ndarray   # shape (3,) — displacement vector between shell centres
-    eij:   float        # exponent of the pair
-    cceij: float        # contracted coefficient * exp factor
+    def __init__(self, rij: np.ndarray, eij: float, cceij: float):
+        self.rij = rij      # shape (3,) — displacement vector between shell centres
+        self.eij = eij           # exponent of the pair
+        self.cceij = cceij         # contracted coefficient * exp factor
 
 
 @dataclass
@@ -178,24 +177,6 @@ class CINTEnvVars:
     f_g0_2e:   Optional[str]      = None
     f_g0_2d4d: Optional[str]      = None
     f_gout:    Optional[Callable]  = None
-
-# ================================================================
-# approx_log  (IEEE 754 bit-hack, ~4x faster than math.log)
-# ================================================================
-def approx_log(x: float) -> float:
-    """
-    Fast approximate log via IEEE 754 exponent extraction.
-    Extracts the binary exponent from the double's bit representation
-    and scales by ln(2). Accurate to the nearest power of 2 — exact
-    only at exact powers of 2, off by at most ln(2) ≈ 0.693 otherwise.
-
-    Equivalent to the C union trick:
-        type_IEEE754 y; y.d = x;
-        return ((y.s[3] >> 4) - 1023 + 1) * 0.693145751953125;
-    """
-    bits = int(np.float64(x).view(np.uint64))
-    exp  = (bits >> 52) & 0x7FF
-    return (exp - 1023 + 1) * 0.693145751953125
 
 
 # ================================================================
@@ -464,34 +445,16 @@ def gen_idx(opt: CINTOpt,
     max_l    = max_l1 if max_l_override == 0 else min(max_l_override, max_l1)
     fakenbas = max_l + 1
 
+    from itertools import product as _prod
     opt.index_xyz_array = [None] * ((max_l + 1) * (LMAX1 ** (order - 1)))
     envs = CINTEnvVars()
+    rng = range(max_l + 1)
 
-    if order == 2:
-        for i in range(max_l + 1):
-            for j in range(max_l + 1):
-                shls = np.array([i, j, 0, 0], dtype=np.int32)
-                finit(envs, ng, shls, atm, natm, fakebas, fakenbas, env)
-                opt.index_xyz_array[i * LMAX1 + j] = findex_xyz(envs)
-
-    elif order == 3:
-        for i in range(max_l + 1):
-            for j in range(max_l + 1):
-                for k in range(max_l + 1):
-                    shls = np.array([i, j, k, 0], dtype=np.int32)
-                    finit(envs, ng, shls, atm, natm, fakebas, fakenbas, env)
-                    opt.index_xyz_array[i*LMAX1**2 + j*LMAX1 + k] = findex_xyz(envs)
-
-    else:  # order == 4
-        for i in range(max_l + 1):
-            for j in range(max_l + 1):
-                for k in range(max_l + 1):
-                    for l in range(max_l + 1):
-                        shls = np.array([i, j, k, l], dtype=np.int32)
-                        finit(envs, ng, shls, atm, natm, fakebas, fakenbas, env)
-                        opt.index_xyz_array[
-                            i*LMAX1**3 + j*LMAX1**2 + k*LMAX1 + l
-                        ] = findex_xyz(envs)
+    for combo in _prod(rng, repeat=order):
+        shls = np.array(list(combo) + [0] * (4 - order), dtype=np.int32)
+        finit(envs, ng, shls, atm, natm, fakebas, fakenbas, env)
+        flat_idx = sum(c * LMAX1 ** (order - 1 - p) for p, c in enumerate(combo))
+        opt.index_xyz_array[flat_idx] = findex_xyz(envs)
 
 
 # ================================================================
@@ -518,88 +481,24 @@ def CINTall_1e_optimizer(opt: CINTOpt, ng: np.ndarray,
             2, 0, ng, atm, natm, bas, nbas, env)
 
 
-def int1e_ovlp_optimizer(opt_ref, atm: np.ndarray, natm: int,
-                          bas: np.ndarray, nbas: int,
-                          env: np.ndarray) -> CINTOpt:
-    """
-    Top-level entry point — mirrors:
-
-        void int1e_ovlp_optimizer(CINTOpt **opt, ...)
-        { FINT ng[] = {0,0,0,0,0,1,1,1};
-          CINTall_1e_optimizer(opt, ng, ...); }
-
-    Parameters
-    ----------
-    atm  : shape (natm, ATM_SLOTS) int32
-    natm : number of atoms
-    bas  : shape (nbas, BAS_SLOTS) int32
-    nbas : number of shells
-    env  : flat float64 array (exponents, coefficients, coordinates)
-
-    Returns
-    -------
-    CINTOpt with log_max_coeff, non0ctr, sortedidx, index_xyz_array populated.
-    """
-    ng  = np.array([0, 0, 0, 0, 0, 1, 1, 1], dtype=np.int32)
+def _int1e_optimizer(ng_list, opt_ref, atm, natm, bas, nbas, env):
+    """Common 1e optimizer entry point."""
+    ng  = np.array(ng_list, dtype=np.int32)
     opt = CINTinit_2e_optimizer(atm, natm, bas, nbas, env)
     CINTall_1e_optimizer(opt, ng, atm, natm, bas, nbas, env)
     return opt
 
 
-def int1e_kin_optimizer(opt_ref, atm: np.ndarray, natm: int,
-                        bas: np.ndarray, nbas: int,
-                        env: np.ndarray) -> CINTOpt:
-    """
-    Top-level entry point — mirrors:
-
-        void int1e_ovlp_optimizer(CINTOpt **opt, ...)
-        { FINT ng[] = {0,2,0,0,2,1,1,1};
-          CINTall_1e_optimizer(opt, ng, ...); }
-
-    Parameters
-    ----------
-    atm  : shape (natm, ATM_SLOTS) int32
-    natm : number of atoms
-    bas  : shape (nbas, BAS_SLOTS) int32
-    nbas : number of shells
-    env  : flat float64 array (exponents, coefficients, coordinates)
-
-    Returns
-    -------
-    CINTOpt with log_max_coeff, non0ctr, sortedidx, index_xyz_array populated.
-    """
-    ng  = np.array([0, 2, 0, 0, 2, 1, 1, 1], dtype=np.int32)
-    opt = CINTinit_2e_optimizer(atm, natm, bas, nbas, env)
-    CINTall_1e_optimizer(opt, ng, atm, natm, bas, nbas, env)
-    return opt
+def int1e_ovlp_optimizer(opt_ref, atm, natm, bas, nbas, env):
+    return _int1e_optimizer([0, 0, 0, 0, 0, 1, 1, 1], opt_ref, atm, natm, bas, nbas, env)
 
 
-def int1e_nuc_optimizer(opt_ref, atm: np.ndarray, natm: int,
-                        bas: np.ndarray, nbas: int,
-                        env: np.ndarray) -> CINTOpt:
-    """
-    Top-level entry point — mirrors:
+def int1e_kin_optimizer(opt_ref, atm, natm, bas, nbas, env):
+    return _int1e_optimizer([0, 2, 0, 0, 2, 1, 1, 1], opt_ref, atm, natm, bas, nbas, env)
 
-        void int1e_ovlp_optimizer(CINTOpt **opt, ...)
-        { FINT ng[] = {0,0,0,0,0,1,0,1};
-          CINTall_1e_optimizer(opt, ng, ...); }
 
-    Parameters
-    ----------
-    atm  : shape (natm, ATM_SLOTS) int32
-    natm : number of atoms
-    bas  : shape (nbas, BAS_SLOTS) int32
-    nbas : number of shells
-    env  : flat float64 array (exponents, coefficients, coordinates)
-
-    Returns
-    -------
-    CINTOpt with log_max_coeff, non0ctr, sortedidx, index_xyz_array populated.
-    """
-    ng  = np.array([0, 0, 0, 0, 0, 1, 0, 1], dtype=np.int32)
-    opt = CINTinit_2e_optimizer(atm, natm, bas, nbas, env)
-    CINTall_1e_optimizer(opt, ng, atm, natm, bas, nbas, env)
-    return opt
+def int1e_nuc_optimizer(opt_ref, atm, natm, bas, nbas, env):
+    return _int1e_optimizer([0, 0, 0, 0, 0, 1, 0, 1], opt_ref, atm, natm, bas, nbas, env)
 
 _FAC_SP = [0.282094791773878, 0.488602511902920]
 
@@ -721,7 +620,7 @@ def CINTset_pairdata(pairdata: list, ai: np.ndarray, aj: np.ndarray,
     Returns True if ALL pairs are screened out (empty).
     Uses math.exp to match C libm exactly (avoids numpy SVML 1-ULP difference).
     """
-    log_rr_ij = (li_ceil + lj_ceil + 1) * approx_log(rr_ij + 1) / 2
+    log_rr_ij = (li_ceil + lj_ceil + 1) * math.log(rr_ij + 1) / 2
     empty = True;  n = 0
     for jp in range(jprim):
         for ip in range(iprim):
