@@ -288,14 +288,26 @@ class HuggingFaceModel(TorchModel):
         ----------
         batch: Tuple[Any, Any, Any]
             A tuple of (X, y, w) where X contains SMILES strings, y contains
-            labels, and w contains sample weights.
+            labels, and w contains sample weights. During prediction, ``y``
+            may be ``None``.
 
         Returns
         -------
         Tuple[Dict[str, torch.Tensor], Optional[torch.Tensor], Any]
-            A tuple of (inputs, labels, weights) where inputs is a dictionary
-            of tokenized tensors ready for the model. For mlm tasks, labels
-            are embedded in inputs and returned as None separately.
+            A tuple of ``(inputs, labels, weights)`` where ``inputs`` is a
+            dictionary of tokenized tensors ready for the model.
+
+            For ``mlm`` tasks, random masking is applied and the masked
+            language modeling labels are stored in ``inputs["labels"]``.
+            In this case, the second return value ``labels`` is always
+            ``None``.
+
+            For ``regression``, ``classification``, and ``mtr`` tasks, the
+            labels from ``y`` (when provided) are converted to tensors,
+            stored in ``inputs["labels"]``, and also returned as the second
+            element of the tuple. During prediction, ``y`` can be ``None``,
+            in which case both the returned ``labels`` and
+            ``inputs["labels"]`` will be ``None``.
         """
         smiles_batch, y, w = batch
         tokens = self.tokenizer(smiles_batch[0].tolist(),
