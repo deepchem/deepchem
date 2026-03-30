@@ -135,6 +135,28 @@ class SCF_QCCalc(BaseQCCalc):
                 dm = self._get_zero_dm()
                 scp0 = self._engine.dm2scp(dm)
                 dm = self._engine.scp2dm(scp0)
+            elif dm0 == "gwh":
+                # 1. Retrieve the core quantum matrices from the Hamiltonian
+                h = self.get_system().get_hamiltonian()
+                s_mat = h.get_overlap().fullmatrix()
+                h_core = h.get_kinnucl().fullmatrix()
+
+                # 2. Extract the diagonal elements H_ii (handles batched dimensions: ..., N)
+                diag_h = torch.diagonal(h_core, dim1=-2, dim2=-1)
+
+                # 3. Reshape for broadcasting to create the (H_ii + H_jj) matrix
+                diag_h_col = diag_h.unsqueeze(-1)  # Shape: (..., N, 1)
+                diag_h_row = diag_h_col.transpose(-2, -1)  # Shape: (..., 1, N)
+                sum_diags = diag_h_col + diag_h_row  # Shape: (..., N, N)
+
+                # 4. Apply the GWH approximation formula
+                fock_gwh = 0.875 * s_mat * sum_diags
+
+                # 5. Strictly enforce F_ii = H_ii on the diagonal
+                fock_gwh = fock_gwh.diagonal_scatter(diag_h, dim1=-2, dim2=-1)
+
+                # 6. Convert the initial Fock matrix to a Density Matrix
+                dm = self._engine.scp2dm(fock_gwh)
             else:
                 raise RuntimeError("Unknown dm0: %s" % dm0)
         else:
