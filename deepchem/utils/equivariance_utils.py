@@ -9,7 +9,7 @@ def fiber2head(F: Dict[str, torch.Tensor],
                h: int,
                structure: Fiber,
                squeeze: bool = False) -> torch.Tensor:
-    """
+    r"""
     Converts SE(3)-equivariant features into multi-head format for attention.
     This function reshapes and concatenates fiber-based features into a format
     suitable for multi-head attention.
@@ -112,7 +112,7 @@ def fiber2head(F: Dict[str, torch.Tensor],
 def get_basis(G,
               max_degree: int,
               compute_gradients: bool = False) -> Dict[str, torch.Tensor]:
-    """
+    r"""
     Precompute the SE(3)-equivariant weight basis, \( W_J^{lk}(x) \).
 
     This function computes the equivariant weight basis used in SE(3)-equivariant
@@ -559,7 +559,7 @@ def irr_repr(order: int,
 
 
 def su2_generators(k: int) -> torch.Tensor:
-    """Generate the generators of the special unitary group SU(2) in a given representation.
+    r"""Generate the generators of the special unitary group SU(2) in a given representation.
 
     The function computes the generators of the SU(2) group for a specific representation
     determined by the value of 'k'. These generators are commonly used in the study of
@@ -993,7 +993,7 @@ def change_basis_real_to_complex(
         k: int,
         dtype: Optional[torch.dtype] = None,
         device: Optional[torch.device] = None) -> torch.Tensor:
-    """Construct a transformation matrix to change the basis from real to complex spherical harmonics.
+    r"""Construct a transformation matrix to change the basis from real to complex spherical harmonics.
 
     This function constructs a transformation matrix Q that converts real spherical
     harmonics into complex spherical harmonics.
@@ -1311,29 +1311,29 @@ class LieGroup:
         self.alpha = alpha
 
     def exp(self, a: torch.Tensor) -> torch.Tensor:
-        """Exponential map from the Lie algebra to the Lie group.
+        r"""Exponential map from the Lie algebra to the Lie group.
 
         Computes the group element
-        $\\exp\\left(\\sum_i a_i A_i\\right)$,
-        where $\\{A_i\\}$ are the generators of the Lie algebra and
-        $a \\in \\mathbb{R}^{\\text{lie\\_dim}}$ are the corresponding coefficients.
+        $\exp\left(\sum_i a_i A_i\right)$,
+        where $\{A_i\}$ are the generators of the Lie algebra and
+        $a \in \mathbb{R}^{\text{lie\_dim}}$ are the corresponding coefficients.
 
         Parameters
         ----------
         a : torch.Tensor
             Lie algebra coefficients taking values in
-            $\mathbb{R}^{\\text{lie\\_dim}}$.
+            $\mathbb{R}^{\text{lie\_dim}}$.
 
         Returns
         -------
         torch.Tensor
             Group elements represented as matrices in
-            $\mathbb{R}^{\\text{rep\\_dim} \\times \\text{rep\\_dim}}$.
+            $\mathbb{R}^{\text{rep\_dim} \times \text{rep\_dim}}$.
         """
         raise NotImplementedError
 
     def log(self, u: torch.Tensor) -> torch.Tensor:
-        """Logarithm map from the Lie group to the Lie algebra.
+        r"""Logarithm map from the Lie group to the Lie algebra.
 
         Computes the Lie algebra element corresponding to a group element,
         expressed in the chosen Lie algebra basis.
@@ -1342,13 +1342,13 @@ class LieGroup:
         ----------
         u : torch.Tensor
             Group elements represented as matrices in
-            $\mathbb{R}^{\\text{rep\\_dim} \\times \\text{rep\\_dim}}$.
+            $\mathbb{R}^{\text{rep\_dim} \times \text{rep\_dim}}$.
 
         Returns
         -------
         torch.Tensor
             Lie algebra coefficients taking values in
-            $\mathbb{R}^{\\text{lie\\_dim}}$.
+            $\mathbb{R}^{\text{lie\_dim}}$.
         """
         raise NotImplementedError
 
@@ -1358,7 +1358,7 @@ class LieGroup:
         n_samples: int,
         **kwargs,
     ) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
-        """Lift Euclidean coordinates into Lie algebra and quotient representations.
+        r"""Lift Euclidean coordinates into Lie algebra and quotient representations.
 
         This method maps input points in Euclidean space to elements of the Lie
         algebra, together with optional quotient (orbit) embeddings. For groups
@@ -1367,55 +1367,55 @@ class LieGroup:
         Parameters
         ----------
         points : torch.Tensor
-            Input points taking values in $\mathbb{R}^{\\text{rep\\_dim}}$.
+            Input points taking values in $\mathbb{R}^{\text{rep\_dim}}$.
         n_samples : int
             Number of lifted samples per point.
 
         Returns
         -------
         a : torch.Tensor
-            Lie algebra elements taking values in $\mathbb{R}^{\\text{lie\\_dim}}$.
+            Lie algebra elements taking values in $\mathbb{R}^{\text{lie\_dim}}$.
         q : torch.Tensor or None
             Quotient (orbit) embeddings taking values in
-            $\mathbb{R}^{\\text{q\\_dim}}$, or ``None`` if the quotient is trivial.
+            $\mathbb{R}^{\text{q\_dim}}$, or ``None`` if the quotient is trivial.
         """
         raise NotImplementedError
 
     def inv(self, g: torch.Tensor) -> torch.Tensor:
-        """Compute the inverse of a group element.
+        r"""Compute the inverse of a group element.
 
-        Uses the identity $g^{-1} = \\exp(-\\log(g))$.
+        Uses the identity $g^{-1} = \exp(-\log(g))$.
 
         Parameters
         ----------
         g : torch.Tensor
             Group elements represented as matrices in
-            $\mathbb{R}^{\\text{rep\\_dim} \\times \\text{rep\\_dim}}$.
+            $\mathbb{R}^{\text{rep\_dim} \times \text{rep\_dim}}$.
 
         Returns
         -------
         torch.Tensor
             Inverse group elements in
-            $\mathbb{R}^{\\text{rep\\_dim} \\times \\text{rep\\_dim}}$.
+            $\mathbb{R}^{\text{rep\_dim} \times \text{rep\_dim}}$.
         """
         return self.exp(-self.log(g))
 
     def distance(self, abq_pairs: torch.Tensor) -> torch.Tensor:
-        """Compute the combined group and orbit distance.
+        r"""Compute the combined group and orbit distance.
 
         The distance between two lifted points is defined as
         $$
-        \\alpha \\, \\lVert \\Delta a \\rVert
-        + (1 - \\alpha) \\, \\lVert q_1 - q_2 \\rVert,
+        \alpha \, \lVert \Delta a \rVert
+        + (1 - \alpha) \, \lVert q_1 - q_2 \rVert,
         $$
-        where $\\Delta a = \\log(v^{-1} u)$ is the relative Lie algebra element and
+        where $\Delta a = \log(v^{-1} u)$ is the relative Lie algebra element and
         $q_1, q_2$ are the corresponding quotient embeddings.
 
         Parameters
         ----------
         abq_pairs : torch.Tensor
             Concatenated relative Lie algebra and quotient components taking values in
-            $\mathbb{R}^{\\text{lie\\_dim} + 2\\,\\text{q\\_dim}}$.
+            $\mathbb{R}^{\text{lie\_dim} + 2\,\text{q\_dim}}$.
 
         Returns
         -------
@@ -1441,7 +1441,7 @@ class LieGroup:
         nsamples: int,
         **kwargs,
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        """Lift inputs to pairwise Lie group representations.
+        r"""Lift inputs to pairwise Lie group representations.
 
         This method lifts Euclidean points into the Lie algebra (and optional
         quotient space), expands associated features and masks, and constructs
@@ -1451,7 +1451,7 @@ class LieGroup:
         ----------
         x : Tuple
             Tuple ``(p, v, m)`` consisting of:
-            - ``p``: input points taking values in $\mathbb{R}^{\\text{rep\\_dim}}$
+            - ``p``: input points taking values in $\mathbb{R}^{\text{rep\_dim}}$
             - ``v``: feature values associated with each point
             - ``m``: binary mask indicating valid points
         nsamples : int
@@ -1462,7 +1462,7 @@ class LieGroup:
         embedded_locations : torch.Tensor
             Pairwise relative group elements, optionally augmented with quotient
             embeddings, taking values in
-            $\mathbb{R}^{\\text{lie\\_dim} + 2\\,\\text{q\\_dim}}$.
+            $\mathbb{R}^{\text{lie\_dim} + 2\\,\\text{q\\_dim}}$.
         expanded_v : torch.Tensor
             Feature values expanded to align with pairwise group elements.
         expanded_mask : torch.Tensor
@@ -1538,7 +1538,7 @@ class LieGroup:
         return expanded_v, expanded_mask
 
     def elems2pairs(self, a: torch.Tensor) -> torch.Tensor:
-        """Compute pairwise relative Lie algebra elements.
+        r"""Compute pairwise relative Lie algebra elements.
 
         For lifted elements $a_i, a_j \in \mathbb{R}^{\text{lie\_dim}}$, this method
         computes the relative displacement
@@ -1563,7 +1563,7 @@ class LieGroup:
 
 
 class T(LieGroup):
-    """k-dimensional translation group R^k adapted from [1] (https://github.com/mfinzi/LieConv).
+    r"""k-dimensional translation group R^k adapted from [1] (https://github.com/mfinzi/LieConv).
 
     This Lie group (T) represents pure translations acting on R^k.
 
@@ -1620,7 +1620,7 @@ class T(LieGroup):
         self.q_dim: int = 0
 
     def exp(self, a: torch.Tensor) -> torch.Tensor:
-        """Exponential map (identity for translations).
+        r"""Exponential map (identity for translations).
 
         Parameters
         ----------
@@ -1635,7 +1635,7 @@ class T(LieGroup):
         return a
 
     def log(self, g: torch.Tensor) -> torch.Tensor:
-        """Logarithm map from the Lie group to the Lie algebra.
+        r"""Logarithm map from the Lie group to the Lie algebra.
 
         For the translation group, this map is the identity.
 
@@ -1657,7 +1657,7 @@ class T(LieGroup):
         n_samples: int,
         **kwargs,
     ) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
-        """Lift Euclidean points into the Lie algebra.
+        r"""Lift Euclidean points into the Lie algebra.
 
         For the translation group, the lift is unique since the group is Abelian
         and simply connected; therefore `nsamples` must be 1.
@@ -1697,6 +1697,24 @@ class T(LieGroup):
             Pairwise differences of shape (*, n, n, k).
         """
         return a.unsqueeze(-2) - a.unsqueeze(-3)
+
+    def distance(self, ab_dist: torch.Tensor) -> torch.Tensor:
+        r"""Compute the distance for the translation group.
+
+        The distance between two points relative to the translation group
+        is simply the Euclidean distance.
+
+        Parameters
+        ----------
+        ab_dist : torch.Tensor
+            Relative Lie algebra elements.
+
+        Returns
+        -------
+        torch.Tensor
+            Scalar distance values.
+        """
+        return torch.norm(ab_dist, dim=-1)
 
 
 def sinc(x: torch.Tensor, tresh: float = 7e-02) -> torch.Tensor:
@@ -2096,7 +2114,7 @@ class SO3(LieGroup):
     q_dim: int = 1
 
     def __init__(self, alpha: float = 0.2):
-        """Initialize the :math:`\mathrm{SO}(3)` group.
+        r"""Initialize the :math:`\mathrm{SO}(3)` group.
 
         Parameters
         ----------
@@ -2177,7 +2195,7 @@ class SO3(LieGroup):
         device: torch.device = torch.device("cpu"),
         dtype: torch.dtype = torch.float32,
     ) -> torch.Tensor:
-        """Sample random rotations from :math:`\mathrm{SO}(3)`.
+        r"""Sample random rotations from :math:`\mathrm{SO}(3)`.
 
         Rotations are sampled by drawing random unit quaternions and
         converting them to axis–angle form.
@@ -2221,7 +2239,7 @@ class SO3(LieGroup):
         n_samples: int,
         **kwargs,
     ):
-        """Lift points in :math:`\mathbb{R}^3` to :math:`\mathrm{SO}(3)` elements.
+        r"""Lift points in :math:`\mathbb{R}^3` to :math:`\mathrm{SO}(3)` elements.
 
         Each point is lifted by aligning a reference axis with the direction
         of the point and composing with samples from the stabilizer subgroup.
@@ -2365,7 +2383,7 @@ class SE3(SO3):
     q_dim: int = 0
 
     def __init__(self, alpha: float = 0.2, per_point: bool = True):
-        """Initialize the :math:`\mathrm{SE}(3)` group.
+        r"""Initialize the :math:`\mathrm{SE}(3)` group.
 
         Parameters
         ----------
