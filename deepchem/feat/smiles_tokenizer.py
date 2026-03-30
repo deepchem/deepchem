@@ -1,5 +1,5 @@
-# Requriments - transformers, tokenizers
-# Right now, the Smiles Tokenizer uses an exiesting vocab file from rxnfp that is fairly comprehensive and from the USPTO dataset.
+# Requirements - transformers, tokenizers
+# Right now, the Smiles Tokenizer uses an existing vocab file from rxnfp that is fairly comprehensive and from the USPTO dataset.
 # The vocab may be expanded in the near future
 
 import collections
@@ -218,14 +218,15 @@ class SmilesTokenizer(BertTokenizer):
         token_ids: list[optional[int]]
             list of tokenized input ids. Can be obtained using the encode or encode_plus methods.
         length: int
-            TODO
+            Target length for the padded sequence.
         right: bool, default True
-            TODO
+            If True, add padding tokens to the right of the sequence.
+            If False, add padding tokens to the left.
 
         Returns
         -------
         List[int]
-            TODO
+            List of token IDs padded to the specified length.
         """
         padding = [self.pad_token_id] * (length - len(token_ids))
 
@@ -243,16 +244,15 @@ class SmilesTokenizer(BertTokenizer):
 
         Parameters
         ----------
-        vocab_path: obj: str
+        save_directory: str
             The directory in which to save the SMILES character per line vocabulary file.
-            Default vocab file is found in deepchem/feat/tests/data/vocab.txt
+        filename_prefix: str, optional
+            An optional prefix to add to the saved vocabulary filename.
 
         Returns
         -------
-        vocab_file: Tuple
-            Paths to the files saved.
-            typle with string to a SMILES character per line vocabulary file.
-            Default vocab file is found in deepchem/feat/tests/data/vocab.txt
+        vocab_file: tuple[str]
+            Tuple with the path to the saved vocabulary file.
         """
         index = 0
         if os.path.isdir(save_directory):
