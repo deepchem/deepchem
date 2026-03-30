@@ -80,9 +80,9 @@ class SCF_QCCalc(BaseQCCalc):
         Parameters
         ----------
         dm0: Optional[Union[str, torch.Tensor, SpinParam[torch.Tensor]]]
-            Initial density matrix. If it is a string, it can be
-            "1e" to use the 1-electron Hamiltonian to generate the
-            initial density matrix.
+            Initial density matrix. If it is a string, it can be:
+            - "1e": use the 1-electron Hamiltonian to generate the initial density matrix.
+            - "gwh": use the Generalized Wolfsberg-Helmholtz approximation using the overlap matrix.
         eigen_options: Optional[Dict[str, Any]]
             Options for the diagonalization (i.e. eigendecomposition).
         fwd_options: Optional[Dict[str, Any]]
@@ -156,9 +156,17 @@ class SCF_QCCalc(BaseQCCalc):
                 fock_gwh = fock_gwh.diagonal_scatter(diag_h, dim1=-2, dim2=-1)
 
                 # 6. Convert the initial Fock matrix to a Density Matrix
-                dm = self._engine.scp2dm(fock_gwh)
+                if self._polarized:
+                    # For polarized/unrestricted engines, provide a spin-resolved SCP tensor
+                    scp0 = torch.stack((fock_gwh, fock_gwh), dim=0)
+                else:
+                    scp0 = fock_gwh
+                
+                dm = self._engine.scp2dm(scp0)
             else:
-                raise RuntimeError("Unknown dm0: %s" % dm0)
+                raise RuntimeError(
+                    "Unknown dm0: %s. Allowed values are: None, '1e', 'gwh'." % dm0
+                )
         else:
             dm = SpinParam.apply_fcn(lambda dm0: dm0.detach(), dm0)
 
