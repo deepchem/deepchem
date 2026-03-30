@@ -298,9 +298,10 @@ def load_molecule(molecule_file,
                 continue
 
             if add_hydrogens or calc_charges:
-                mol = apply_pdbfixer(mol,
-                                    hydrogenate=add_hydrogens,
-                                    is_protein=is_protein)
+                mol = apply_pdbfixer(
+                    mol,
+                    hydrogenate=add_hydrogens,
+                    is_protein=is_protein)
             if sanitize:
                 try:
                     Chem.SanitizeMol(mol)
