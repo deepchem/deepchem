@@ -6,6 +6,7 @@ from typing import List, Optional, Sequence, Set, Tuple, Union
 import logging
 from deepchem.utils.typing import RDKitAtom, RDKitMol
 from deepchem.utils.geometry_utils import compute_pairwise_distances
+from deepchem.utils.rdkit_utils import compute_charges
 
 logger = logging.getLogger(__name__)
 
@@ -376,31 +377,3 @@ def reduce_molecular_complex_to_contacts(
         contact_frag = get_mol_subset(frag[0], frag[1], keep)
         reduced_complex.append(contact_frag)
     return reduced_complex
-
-
-# TODO: This is duplicated! Clean up
-def compute_charges(mol):
-    """Attempt to compute Gasteiger Charges on Mol
-
-    This also has the side effect of calculating charges on mol.  The
-    mol passed into this function has to already have been sanitized
-
-    Parameters
-    ----------
-    mol: rdkit molecule
-
-    Returns
-    -------
-    No return since updates in place.
-
-    Note
-    ----
-    This function requires RDKit to be installed.
-    """
-    from rdkit.Chem import AllChem
-    try:
-        # Updates charges in place
-        AllChem.ComputeGasteigerCharges(mol)
-    except Exception as e:
-        logger.exception("Unable to compute charges for mol")
-        raise MoleculeLoadException(e)
