@@ -1,17 +1,45 @@
-from typing import Dict, Any, Tuple
+import os
+from typing import Dict, Any
 from deepchem.models.torch_models.hf_models import HuggingFaceModel
 from transformers.models.roberta.modeling_roberta import (
     RobertaConfig, RobertaForMaskedLM, RobertaForSequenceClassification)
-from transformers.models.roberta.tokenization_roberta_fast import \
-    RobertaTokenizerFast
+from transformers import RobertaTokenizerFast
 from transformers.modeling_utils import PreTrainedModel
-try:
-    import torch
-    has_torch = True
-except:
-    has_torch = False
+
+class TokenizerWrapper:
+    def __init__(self, tokenizer):
+        self.tokenizer = tokenizer
+
+        vocab_size = tokenizer.get_vocab_size()
+
+         #dummy token ids
+        self.mask_token_id = 0
+        self.pad_token_id = min(1, vocab_size -1)
+        self.cls_token_id = min(2, vocab_size -1)
+        self.sep_token_id = min(3, vocab_size -1)
+
+        #required special tokens
+        self.mask_token = "<mask>"
+        self.pad_token = "<pad>"
+        self.cls_token = "<s>"
+        self.sep_token = "</s>"
 
 
+    def __call__(self, texts, padding=True, return_tensors=None):
+        encoding = self.tokenizer.encode_batch(texts)
+        input_ids = [e.ids for e in encoding]
+
+        import torch
+        input_ids = torch.tensor(input_ids)
+
+        return {
+            "input_ids": input_ids,
+            "attention_mask" : torch.ones_like(input_ids)
+        }
+
+    def get_vocab_size(self):
+        return self.tokenizer.get_vocab_size()
+    
 class Chemberta(HuggingFaceModel):
     """Chemberta Model
 
@@ -49,7 +77,6 @@ class Chemberta(HuggingFaceModel):
     -------
     >>> import os
     >>> import tempfile
-    >>> import shutil
     >>> tempdir = tempfile.mkdtemp()
 
     >>> # preparing dataset
@@ -80,10 +107,6 @@ class Chemberta(HuggingFaceModel):
     >>> result = finetune_model.predict(dataset)
     >>> eval_results = finetune_model.evaluate(dataset, metrics=dc.metrics.Metric(dc.metrics.mae_score))
 
-    >>> # removing temporary directory
-    >>> if os.path.exists(tempdir):
-    ...     shutil.rmtree(tempdir)
-
 
     Reference
     ---------
@@ -98,10 +121,46 @@ class Chemberta(HuggingFaceModel):
                  config: Dict[Any, Any] = {},
                  **kwargs):
         self.n_tasks = n_tasks
-        tokenizer = RobertaTokenizerFast.from_pretrained(tokenizer_path)
+        #tokenizer = RobertaTokenizerFast.from_pretrained(tokenizer_path)
+        try:
+            tokenizer = RobertaTokenizerFast.from_pretrained(tokenizer_path)
+
+        except Exception as e:
+            print("Falling back to ByteLevelBPETokenizer due to:", str(e))
+
+            from huggingface_hub import snapshot_download
+            from tokenizers import ByteLevelBPETokenizer
+
+            if not os.path.isdir(tokenizer_path):
+                base_path = snapshot_download(tokenizer_path)
+            else:
+                base_path = tokenizer_path
+
+            vocab_file = os.path.join(base_path, "vocab.json")
+            merges_file = os.path.join(base_path, "merges.txt")
+
+            raw_tokenizer = ByteLevelBPETokenizer(vocab_file, merges_file)
+            tokenizer = TokenizerWrapper(raw_tokenizer)
+            
         model: PreTrainedModel
-        chemberta_config = RobertaConfig(vocab_size=tokenizer.vocab_size,
-                                         **config)
+        #chemberta_config = RobertaConfig(vocab_size=tokenizer.vocab_size,**config)
+        
+        #handles both tokenizer types
+        if  hasattr(tokenizer, "vocab_size"):
+            vocab_size = tokenizer.vocab_size
+        else:
+            vocab_size = tokenizer.get_vocab_size()
+        
+        chemberta_config  = RobertaConfig(
+            vocab_size=vocab_size,
+            pad_token_id=tokenizer.pad_token_id,
+            bos_token_id=getattr(tokenizer, "cls_token_id",0),
+            eos_token_id=getattr(tokenizer,"sep_token_id",0),
+            **config
+
+        )
+
+
         if task == 'mlm':
             model = RobertaForMaskedLM(chemberta_config)
         elif task == 'mtr':
@@ -117,7 +176,6 @@ class Chemberta(HuggingFaceModel):
                 chemberta_config.problem_type = 'single_label_classification'
             else:
                 chemberta_config.problem_type = 'multi_label_classification'
-                chemberta_config.num_labels = n_tasks
             model = RobertaForSequenceClassification(chemberta_config)
         else:
             raise ValueError('invalid task specification')
@@ -126,45 +184,3 @@ class Chemberta(HuggingFaceModel):
                                         task=task,
                                         tokenizer=tokenizer,
                                         **kwargs)
-
-    def _prepare_batch(self, batch: Tuple[Any, Any, Any]):
-        """
-        Prepares a batch of data for the model based on the specified task. It overrides the _prepare_batch
-        of parent class for the following condition:-
-
-        - When n_task == 1 and task == 'classification', CrossEntropyLoss is used which takes input in
-        long int format.
-        - When n_task > 1 and task == 'classification', BCEWithLogitsLoss is used which takes input in
-        float format.
-        """
-
-        smiles_batch, y, w = batch
-        tokens = self.tokenizer(smiles_batch[0].tolist(),
-                                padding=True,
-                                return_tensors="pt")
-
-        if self.task == 'mlm':
-            inputs, labels = self.data_collator.torch_mask_tokens(
-                tokens['input_ids'])
-            inputs = {
-                'input_ids': inputs.to(self.device),
-                'labels': labels.to(self.device),
-                'attention_mask': tokens['attention_mask'].to(self.device),
-            }
-            return inputs, None, w
-        elif self.task in ['regression', 'classification', 'mtr']:
-            if y is not None:
-                # y is None during predict
-                y = torch.from_numpy(y[0])
-                if self.task == 'regression' or self.task == 'mtr':
-                    y = y.float().to(self.device)
-                elif self.task == 'classification':
-                    if self.n_tasks == 1:
-                        y = y.long().to(self.device)
-                    else:
-                        y = y.float().to(self.device)
-            for key, value in tokens.items():
-                tokens[key] = value.to(self.device)
-
-            inputs = {**tokens, 'labels': y}
-            return inputs, y, w
