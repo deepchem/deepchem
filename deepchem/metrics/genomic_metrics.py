@@ -97,8 +97,8 @@ def get_pssm_scores(encoded_sequences: np.ndarray,
     """
     encoded_sequences = encoded_sequences.squeeze(axis=3)
     # initialize fwd and reverse scores to -infinity
-    fwd_scores = np.full_like(encoded_sequences, -np.inf, float)
-    rc_scores = np.full_like(encoded_sequences, -np.inf, float)
+    fwd_scores = np.full(encoded_sequences.shape, -np.inf, dtype=float)
+    rc_scores = np.full(encoded_sequences.shape, -np.inf, dtype=float)
     # cross-correlate separately for each base,
     # for both the PSSM and its reverse complement
     for base_indx in range(encoded_sequences.shape[1]):
@@ -140,7 +140,8 @@ def in_silico_mutagenesis(model: Model,
     # Shape (N_sequences, num_tasks)
     wild_type_predictions = model.predict(NumpyDataset(encoded_sequences))
     # check whether wild_type_predictions is np.ndarray or not
-    assert isinstance(wild_type_predictions, np.ndarray)
+    if not isinstance(wild_type_predictions, np.ndarray):
+     raise ValueError("Expected numpy array from model.predict")
     num_tasks = wild_type_predictions.shape[1]
     # Shape (N_sequences, N_letters, sequence_length, 1, num_tasks)
     mutagenesis_scores = np.empty(encoded_sequences.shape + (num_tasks,),
@@ -172,11 +173,17 @@ def in_silico_mutagenesis(model: Model,
                                     sequence.shape[1])
         mutated_sequences[arange, vertical_repeat, horizontal_cycle, :] = 1
         # make mutant predictions
+        # make mutant predictions
         mutated_predictions = model.predict(NumpyDataset(mutated_sequences))
-        # check whether wild_type_predictions is np.ndarray or not
-        assert isinstance(mutated_predictions, np.ndarray)
-        mutated_predictions = mutated_predictions.reshape(sequence.shape +
-                                                          (num_tasks,))
+
+        # validate shape
+        expected_shape = (sequence.shape[0] * sequence.shape[1], num_tasks)
+        if mutated_predictions.shape != expected_shape:
+            raise ValueError(
+        f"Unexpected shape {mutated_predictions.shape}, expected {expected_shape}"
+    )
+            # reshape (ALWAYS runs if no error)
+            mutated_predictions = mutated_predictions.reshape(sequence.shape + (num_tasks,))
         mutagenesis_scores[
             sequence_index] = wild_type_prediction - mutated_predictions
     rolled_scores = np.rollaxis(mutagenesis_scores, -1)
