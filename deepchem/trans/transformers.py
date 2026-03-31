@@ -193,7 +193,8 @@ class Transformer(object):
         if out_dir is not None:
             if not isinstance(dataset, dc.data.DiskDataset):
                 dataset = dc.data.DiskDataset.from_numpy(
-                    dataset.X, dataset.y, dataset.w, dataset.ids)
+                    dataset.X, dataset.y, dataset.w, dataset.ids,
+                    data_dir=out_dir)
         _, y_shape, w_shape, _ = dataset.get_shape()
         if y_shape == tuple() and self.transform_y:
             raise ValueError("Cannot transform y when y_values are not present")
