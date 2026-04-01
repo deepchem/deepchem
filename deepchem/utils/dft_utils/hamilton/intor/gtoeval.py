@@ -5,7 +5,7 @@ from typing import Tuple, Optional
 from deepchem.utils import estimate_ovlp_rcut
 from deepchem.utils.dft_utils.hamilton.intor.molintor import _gather_at_dims
 from deepchem.utils.dft_utils import LibcintWrapper, get_default_kpts, get_default_options, PBCIntOption
-from deepchem.utils.analytical_integrators.integrals import gto_evaluator_py_grid
+from deepchem.utils.analytical_integrators.integrals import evaluate_gto_grid
 
 NDIM = 3
 
@@ -659,7 +659,7 @@ def gto_evaluator(wrapper: LibcintWrapper, shortname: str, rgrid: torch.Tensor,
     in this file only
 
     """
-    out = gto_evaluator_py_grid(wrapper, shortname, rgrid, wrapper.spherical)
+    out = evaluate_gto_grid(wrapper, shortname, rgrid, wrapper.spherical)
 
     if to_transpose:
         out = np.ascontiguousarray(np.moveaxis(out, -1, -2))

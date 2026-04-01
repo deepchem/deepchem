@@ -2,22 +2,22 @@
 Pure Python/NumPy implementations of libcint integral functions.
 
 Replaces the C libcint functions:
-  - int1e_ovlp_sph  (overlap)
-  - int1e_kin_sph   (kinetic energy)
-  - int1e_nuc_sph   (nuclear attraction)
-  - int2e_ar12b_sph (electron repulsion)
+  - compute_overlap_1e_sph  (overlap)
+  - compute_kinetic_1e_sph   (kinetic energy)
+  - compute_nuclear_1e_sph   (nuclear attraction)
+  - compute_eri_2e_sph (electron repulsion)
 
 And the GTO driver functions:
-  - GTOint2c        (2-center integral matrix assembly)
-  - GTOnr2e_fill_s1 / GTOnr2e_fill_drv (4-center integral assembly)
+  - assemble_2center_integrals        (2-center integral matrix assembly)
+  - fill_4center_s1 / fill_4center_driver (4-center integral assembly)
 """
 import math
 import numpy as np
 from deepchem.utils.analytical_integrators.optimizer import (
-    CINTEnvVars, CINTcart_comp, CINTcommon_fac_sp,
-    CINTinit_int1e_EnvVars, CINTg1e_index_xyz,
-    CINTinit_int2e_EnvVars, CINTg2e_index_xyz,
-    CINTinit_int3c2e_EnvVars,
+    CINTEnvVars, cartesian_components, sph_harmonic_norm,
+    init_envvars_1e, compute_g_index_1e,
+    init_envvars_2e, compute_g_index_2e,
+    init_envvars_3c2e,
     ATOM_OF, ANG_OF, NPRIM_OF, NCTR_OF, PTR_EXP, PTR_COEFF,
     PTR_COORD, EXPCUTOFF, MIN_EXPCUTOFF, PTR_EXPCUTOFF,
     BAS_SLOTS, ATM_SLOTS,
@@ -30,10 +30,10 @@ SQRTPI = math.sqrt(math.pi)
 # Cartesian-to-spherical transformation matrices
 # ================================================================
 # Standard real solid harmonic transformation coefficients.
-# For l=0,1: cart and sph are equivalent (CINTcommon_fac_sp handles norm).
+# For l=0,1: cart and sph are equivalent (sph_harmonic_norm handles norm).
 # For l>=2: full transformation matrices needed.
 
-def _cart2sph_matrix(l):
+def _cart_to_sph_matrix(l):
     """
     Return the (2l+1, nf_cart) transformation matrix from Cartesian
     to real solid harmonics for angular momentum l.
@@ -82,14 +82,14 @@ def _cart2sph_matrix(l):
 # Precompute and cache transformation matrices
 _CART2SPH_CACHE = {}
 
-def cart2sph_matrix(l):
+def cart_to_sph_matrix(l):
     """Get cached cart2sph transformation matrix for angular momentum l."""
     if l not in _CART2SPH_CACHE:
-        _CART2SPH_CACHE[l] = _cart2sph_matrix(l)
+        _CART2SPH_CACHE[l] = _cart_to_sph_matrix(l)
     return _CART2SPH_CACHE[l]
 
 
-def c2s_sph_1e(gctr, i_l, j_l, i_ctr, j_ctr, nfi, nfj, nf):
+def cart_to_sph_1e(gctr, i_l, j_l, i_ctr, j_ctr, nfi, nfj, nf):
     """
     Cartesian-to-spherical transformation for 1e integrals.
 
@@ -113,8 +113,8 @@ def c2s_sph_1e(gctr, i_l, j_l, i_ctr, j_ctr, nfi, nfj, nf):
     di = 2 * i_l + 1
     dj = 2 * j_l + 1
 
-    c2s_i = cart2sph_matrix(i_l)  # (di, nfi)
-    c2s_j = cart2sph_matrix(j_l)  # (dj, nfj)
+    c2s_i = cart_to_sph_matrix(i_l)  # (di, nfi)
+    c2s_j = cart_to_sph_matrix(j_l)  # (dj, nfj)
 
     out = np.zeros((di * i_ctr, dj * j_ctr))
 
@@ -133,7 +133,7 @@ def c2s_sph_1e(gctr, i_l, j_l, i_ctr, j_ctr, nfi, nfj, nf):
     return out
 
 
-def c2s_sph_2e1(gctr, i_l, j_l, k_l, l_l, x_ctr, nfi, nfj, nfk, nfl, nf):
+def cart_to_sph_2e(gctr, i_l, j_l, k_l, l_l, x_ctr, nfi, nfj, nfk, nfl, nf):
     """
     Cartesian-to-spherical transformation for 2e integrals.
 
@@ -147,10 +147,10 @@ def c2s_sph_2e1(gctr, i_l, j_l, k_l, l_l, x_ctr, nfi, nfj, nfk, nfl, nf):
     dk = 2 * k_l + 1
     dl = 2 * l_l + 1
 
-    c2s_i = cart2sph_matrix(i_l)
-    c2s_j = cart2sph_matrix(j_l)
-    c2s_k = cart2sph_matrix(k_l)
-    c2s_l = cart2sph_matrix(l_l)
+    c2s_i = cart_to_sph_matrix(i_l)
+    c2s_j = cart_to_sph_matrix(j_l)
+    c2s_k = cart_to_sph_matrix(k_l)
+    c2s_l = cart_to_sph_matrix(l_l)
 
     out = np.zeros((di * i_ctr, dj * j_ctr, dk * k_ctr, dl * l_ctr))
 
@@ -175,7 +175,7 @@ def c2s_sph_2e1(gctr, i_l, j_l, k_l, l_l, x_ctr, nfi, nfj, nfk, nfl, nf):
 # G-value generation (recurrence relations)
 # ================================================================
 
-def _CINTg_vrr_hrr(g, envs, gz0_fac, rir0, cfac, aij):
+def _g_vertical_horizontal_recurrence(g, envs, gz0_fac, rir0, cfac, aij):
     """Unified vertical + horizontal recurrence for 1e g-values.
     gz0_fac: initial gz[0] value.  rir0: shift vector for vertical recurrence.
     cfac: prefactor for vertical coeff (0.5/aij for ovlp, 0.5*(1-t2)/aij for nuc).
@@ -205,24 +205,24 @@ def _CINTg_vrr_hrr(g, envs, gz0_fac, rir0, cfac, aij):
             gz[i] = gz[i + 1 - dj] + rirj[2] * gz[i - dj]
 
 
-def CINTg_ovlp(g, ai, aj, fac, envs):
+def compute_g_overlap(g, ai, aj, fac, envs):
     """Generate g-values for overlap integrals."""
     aij = ai + aj
     rir0 = envs.ri - (ai * envs.ri + aj * envs.rj) / aij
-    _CINTg_vrr_hrr(g, envs, SQRTPI * math.pi * fac, rir0, 0.5 / aij, aij)
+    _g_vertical_horizontal_recurrence(g, envs, SQRTPI * math.pi * fac, rir0, 0.5 / aij, aij)
 
 
-def CINTg_nuc(g, aij, rij, cr, t2, fac, envs):
+def compute_g_nuclear(g, aij, rij, cr, t2, fac, envs):
     """Generate g-values for nuclear attraction integrals."""
     rir0 = envs.ri - (rij + t2 * (cr - rij))
-    _CINTg_vrr_hrr(g, envs, 2.0 * math.pi * fac, rir0, 0.5 * (1.0 - t2) / aij, aij)
+    _g_vertical_horizontal_recurrence(g, envs, 2.0 * math.pi * fac, rir0, 0.5 * (1.0 - t2) / aij, aij)
 
 
 # ================================================================
 # Nabla (derivative) operators for kinetic energy
 # ================================================================
 
-def CINTnabla1j_1e(f, g, li, lj, lk, envs):
+def apply_nabla_j_1e(f, g, li, lj, lk, envs):
     """Compute nabla_j g-values for kinetic energy integrals."""
     dj = envs.g_stride_j
     aj2 = -2.0 * envs.aj
@@ -251,7 +251,7 @@ def CINTnabla1j_1e(f, g, li, lj, lk, envs):
 # Gout extraction functions
 # ================================================================
 
-def gout_1e_ovlp(gout, g, idx, envs):
+def extract_gout_overlap(gout, g, idx, envs):
     """Extract overlap gout using vectorized indexing."""
     ix = idx[0::3]
     iy = idx[1::3]
@@ -259,12 +259,12 @@ def gout_1e_ovlp(gout, g, idx, envs):
     gout[:envs.nf] += g[ix] * g[iy] * g[iz]
 
 
-def gout_1e_nuc(gout, g, idx, envs):
+def extract_gout_nuclear(gout, g, idx, envs):
     """Extract nuclear attraction gout (same as overlap)."""
-    gout_1e_ovlp(gout, g, idx, envs)
+    extract_gout_overlap(gout, g, idx, envs)
 
 
-def gout_1e_kin(gout, g, idx, envs):
+def extract_gout_kinetic(gout, g, idx, envs):
     """Extract kinetic energy gout: <i| -1/2 nabla^2 |j>."""
     g_size = envs.g_size
     g_len = g_size * 3
@@ -273,9 +273,9 @@ def gout_1e_kin(gout, g, idx, envs):
     g2 = g[2 * g_len:3 * g_len]
     g3 = g[3 * g_len:4 * g_len]
 
-    CINTnabla1j_1e(g1, g0, envs.i_l, envs.j_l, 0, envs)
-    CINTnabla1j_1e(g2, g0, envs.i_l, envs.j_l + 1, 0, envs)
-    CINTnabla1j_1e(g3, g2, envs.i_l, envs.j_l, 0, envs)
+    apply_nabla_j_1e(g1, g0, envs.i_l, envs.j_l, 0, envs)
+    apply_nabla_j_1e(g2, g0, envs.i_l, envs.j_l + 1, 0, envs)
+    apply_nabla_j_1e(g3, g2, envs.i_l, envs.j_l, 0, envs)
 
     ix = idx[0::3]
     iy = idx[1::3]
@@ -285,7 +285,7 @@ def gout_1e_kin(gout, g, idx, envs):
                          g0[ix] * g0[iy] * g3[iz])
 
 
-def gout_2e_ar12b(gout, g, idx, envs, gout_empty):
+def extract_gout_2e(gout, g, idx, envs, gout_empty):
     """Extract 2e gout: sum over Rys roots of g[ix]*g[iy]*g[iz]."""
     nroots = envs.nrys_roots
     ix = idx[0::3]
@@ -308,7 +308,7 @@ def gout_2e_ar12b(gout, g, idx, envs, gout_empty):
 # 1e integral loops
 # ================================================================
 
-def CINT1e_loop(envs, atm, bas, env):
+def primitive_loop_1e(envs, atm, bas, env):
     """
     1e overlap/kinetic primitive loop.
     Returns (gctr, has_value) where gctr is the contracted Cartesian integrals.
@@ -327,9 +327,9 @@ def CINT1e_loop(envs, atm, bas, env):
     ci = env[bas[i_sh, PTR_COEFF]:bas[i_sh, PTR_COEFF] + i_prim * i_ctr]
     cj = env[bas[j_sh, PTR_COEFF]:bas[j_sh, PTR_COEFF] + j_prim * j_ctr]
 
-    idx = CINTg1e_index_xyz(envs)
+    idx = compute_g_index_1e(envs)
     rrij = float(np.sum((ri - rj) ** 2))
-    fac = envs.common_factor * CINTcommon_fac_sp(i_l) * CINTcommon_fac_sp(j_l)
+    fac = envs.common_factor * sph_harmonic_norm(i_l) * sph_harmonic_norm(j_l)
     expcutoff = envs.expcutoff
 
     nc = nf * i_ctr * j_ctr
@@ -359,7 +359,7 @@ def CINT1e_loop(envs, atm, bas, env):
             dij = math.exp(-eij) / (aij * math.sqrt(aij)) * fac
 
             g = np.zeros(g_alloc)
-            CINTg_ovlp(g, ai_arr[ip], aj_arr[jp], dij, envs)
+            compute_g_overlap(g, ai_arr[ip], aj_arr[jp], dij, envs)
 
             gout = np.zeros(nf * n_comp)
             envs.f_gout(gout, g, idx, envs)
@@ -386,7 +386,7 @@ def CINT1e_loop(envs, atm, bas, env):
     return gctr, has_value
 
 
-def CINT1e_nuc_loop(envs, atm, bas, env, charge_fac, nuc_id):
+def primitive_loop_1e_nuclear(envs, atm, bas, env, charge_fac, nuc_id):
     """
     1e nuclear attraction primitive loop.
     Returns (gctr, has_value).
@@ -405,7 +405,7 @@ def CINT1e_nuc_loop(envs, atm, bas, env, charge_fac, nuc_id):
     ci = env[bas[i_sh, PTR_COEFF]:bas[i_sh, PTR_COEFF] + i_prim * i_ctr]
     cj = env[bas[j_sh, PTR_COEFF]:bas[j_sh, PTR_COEFF] + j_prim * j_ctr]
 
-    idx = CINTg1e_index_xyz(envs)
+    idx = compute_g_index_1e(envs)
 
     # Nuclear position
     if nuc_id < 0:
@@ -415,7 +415,7 @@ def CINT1e_nuc_loop(envs, atm, bas, env, charge_fac, nuc_id):
         cr = env[atm[nuc_id, PTR_COORD]:atm[nuc_id, PTR_COORD] + 3]
 
     rrij = float(np.sum((ri - rj) ** 2))
-    fac = charge_fac * envs.common_factor * CINTcommon_fac_sp(i_l) * CINTcommon_fac_sp(j_l)
+    fac = charge_fac * envs.common_factor * sph_harmonic_norm(i_l) * sph_harmonic_norm(j_l)
     expcutoff = envs.expcutoff
 
     nc = nf * i_ctr * j_ctr
@@ -448,7 +448,7 @@ def CINT1e_nuc_loop(envs, atm, bas, env, charge_fac, nuc_id):
             for iroot in range(nroots):
                 t2 = u[iroot] / (1.0 + u[iroot]) * tau * tau
                 g = np.zeros(g_alloc)
-                CINTg_nuc(g, aij, rij, cr, t2, dij * w[iroot] * tau, envs)
+                compute_g_nuclear(g, aij, rij, cr, t2, dij * w[iroot] * tau, envs)
                 envs.f_gout(gout, g, idx, envs)
 
             # Contract over i primitives
@@ -482,7 +482,7 @@ INT1E_TYPE_RINV = 1
 INT1E_TYPE_NUC = 2
 
 
-def CINT1e_drv(envs, atm, bas, env, int1e_type):
+def driver_1e(envs, atm, bas, env, int1e_type):
     """
     1e integral driver. Returns contracted spherical integrals as
     ndarray of shape (di*i_ctr, dj*j_ctr).
@@ -496,7 +496,7 @@ def CINT1e_drv(envs, atm, bas, env, int1e_type):
     gctr = np.zeros(nc * n_comp)
 
     if int1e_type == INT1E_TYPE_OVLP:
-        gctr, has_value = CINT1e_loop(envs, atm, bas, env)
+        gctr, has_value = primitive_loop_1e(envs, atm, bas, env)
     elif int1e_type == INT1E_TYPE_NUC:
         # Sum over all nuclei
         natm = envs.natm
@@ -504,27 +504,27 @@ def CINT1e_drv(envs, atm, bas, env, int1e_type):
         for n in range(natm):
             charge = abs(int(atm[n, 0]))  # CHARGE_OF = column 0
             if charge != 0:
-                gc_n, hv = CINT1e_nuc_loop(envs, atm, bas, env, -charge, n)
+                gc_n, hv = primitive_loop_1e_nuclear(envs, atm, bas, env, -charge, n)
                 gctr += gc_n
                 has_value = has_value or hv
     elif int1e_type == INT1E_TYPE_RINV:
-        gctr, has_value = CINT1e_nuc_loop(envs, atm, bas, env, 1.0, -1)
+        gctr, has_value = primitive_loop_1e_nuclear(envs, atm, bas, env, 1.0, -1)
 
     # Cart-to-spherical transform
-    return c2s_sph_1e(gctr, envs.i_l, envs.j_l, i_ctr, j_ctr, nfi, nfj, nf)
+    return cart_to_sph_1e(gctr, envs.i_l, envs.j_l, i_ctr, j_ctr, nfi, nfj, nf)
 
 
 # ================================================================
 # Top-level 1e integral functions
 # ================================================================
 
-def _int1e_sph_common(out, dims, shls, atm, natm, bas, nbas, env, ng, f_gout, int1e_type, fac=1.0):
+def _compute_1e_sph_common(out, dims, shls, atm, natm, bas, nbas, env, ng, f_gout, int1e_type, fac=1.0):
     """Common driver for all 1e spherical integrals."""
     envs = CINTEnvVars()
-    CINTinit_int1e_EnvVars(envs, ng, shls, atm, natm, bas, nbas, env)
+    init_envvars_1e(envs, ng, shls, atm, natm, bas, nbas, env)
     envs.f_gout = f_gout
     envs.common_factor *= fac
-    result = CINT1e_drv(envs, atm, bas, env, int1e_type)
+    result = driver_1e(envs, atm, bas, env, int1e_type)
     di = 2 * envs.i_l + 1
     dj = 2 * envs.j_l + 1
     i_ctr = int(envs.x_ctr[0])
@@ -539,32 +539,32 @@ def _int1e_sph_common(out, dims, shls, atm, natm, bas, nbas, env, ng, f_gout, in
     return 1
 
 
-def int1e_ovlp_sph(out, dims, shls, atm, natm, bas, nbas, env, opt=None, cache=None):
-    """Pure Python int1e_ovlp_sph."""
+def compute_overlap_1e_sph(out, dims, shls, atm, natm, bas, nbas, env, opt=None, cache=None):
+    """Pure Python compute_overlap_1e_sph."""
     ng = np.array([0, 0, 0, 0, 0, 1, 1, 1], dtype=np.int32)
-    return _int1e_sph_common(out, dims, shls, atm, natm, bas, nbas, env,
-                             ng, gout_1e_ovlp, INT1E_TYPE_OVLP)
+    return _compute_1e_sph_common(out, dims, shls, atm, natm, bas, nbas, env,
+                             ng, extract_gout_overlap, INT1E_TYPE_OVLP)
 
 
-def int1e_kin_sph(out, dims, shls, atm, natm, bas, nbas, env, opt=None, cache=None):
-    """Pure Python int1e_kin_sph."""
+def compute_kinetic_1e_sph(out, dims, shls, atm, natm, bas, nbas, env, opt=None, cache=None):
+    """Pure Python compute_kinetic_1e_sph."""
     ng = np.array([0, 2, 0, 0, 2, 1, 1, 1], dtype=np.int32)
-    return _int1e_sph_common(out, dims, shls, atm, natm, bas, nbas, env,
-                             ng, gout_1e_kin, INT1E_TYPE_OVLP, fac=0.5)
+    return _compute_1e_sph_common(out, dims, shls, atm, natm, bas, nbas, env,
+                             ng, extract_gout_kinetic, INT1E_TYPE_OVLP, fac=0.5)
 
 
-def int1e_nuc_sph(out, dims, shls, atm, natm, bas, nbas, env, opt=None, cache=None):
-    """Pure Python int1e_nuc_sph."""
+def compute_nuclear_1e_sph(out, dims, shls, atm, natm, bas, nbas, env, opt=None, cache=None):
+    """Pure Python compute_nuclear_1e_sph."""
     ng = np.array([0, 0, 0, 0, 0, 1, 0, 1], dtype=np.int32)
-    return _int1e_sph_common(out, dims, shls, atm, natm, bas, nbas, env,
-                             ng, gout_1e_nuc, INT1E_TYPE_NUC)
+    return _compute_1e_sph_common(out, dims, shls, atm, natm, bas, nbas, env,
+                             ng, extract_gout_nuclear, INT1E_TYPE_NUC)
 
 
 # ================================================================
 # 2e integral: g-value generation
 # ================================================================
 
-def CINTg0_2e_2d(g, bc, envs):
+def g_rys_2d_recurrence(g, bc, envs):
     """2D Rys polynomial recurrence for 2e integrals."""
     nroots = envs.nrys_roots
     nmax = envs.li_ceil + envs.lj_ceil
@@ -644,7 +644,7 @@ def CINTg0_2e_2d(g, bc, envs):
                     gz[j + dn] = c00[i, 2] * gz[j] + n * b10[i] * gz[j - dn] + m * b00[i] * gz[j - dm]
 
 
-def _CINTg0_hrr_phase(gx, gy, gz, r, l_tgt, n_max, d_tgt, d_src, d_oth, l_oth, stride):
+def _g_hrr_phase(gx, gy, gz, r, l_tgt, n_max, d_tgt, d_src, d_oth, l_oth, stride):
     """One phase of horizontal recurrence for 4D g-values.
     g[a] = r * g[a - d_tgt] + g[a - d_tgt + d_src]
     Loops: a in 1..l_tgt, b in 0..n_max-a, c in 0..l_oth.
@@ -659,18 +659,18 @@ def _CINTg0_hrr_phase(gx, gy, gz, r, l_tgt, n_max, d_tgt, d_src, d_oth, l_oth, s
                     gz[n] = r[2] * gz[n - d_tgt] + gz[n - d_tgt + d_src]
 
 
-def _CINTg0_2d4d(g, envs, ij_args, kl_args):
+def _g_2d_to_4d_recurrence(g, envs, ij_args, kl_args):
     """Unified 4D horizontal recurrence with two phases.
     Each args tuple: (l_tgt, n_max, d_tgt, d_src, d_oth, l_oth, stride, r)
     """
     g_size = envs.g_size
     gx, gy, gz = g[:g_size], g[g_size:2 * g_size], g[2 * g_size:3 * g_size]
     for l_tgt, n_max, d_tgt, d_src, d_oth, l_oth, stride, r in (ij_args, kl_args):
-        _CINTg0_hrr_phase(gx, gy, gz, r, l_tgt, n_max, d_tgt, d_src, d_oth, l_oth, stride)
+        _g_hrr_phase(gx, gy, gz, r, l_tgt, n_max, d_tgt, d_src, d_oth, l_oth, stride)
 
 
 
-def CINTg0_2e(g, fac, envs):
+def compute_g_2e(g, fac, envs):
     """
     Compute 2e g-values: Rys roots/weights, then 2D recurrence, then 4D recurrence.
     Returns True if successful.
@@ -730,7 +730,7 @@ def CINTg0_2e(g, fac, envs):
 
     bc = {'c00': c00, 'c0p': c0p, 'b00': b00, 'b10': b10, 'b01': b01}
 
-    CINTg0_2e_2d(g, bc, envs)
+    g_rys_2d_recurrence(g, bc, envs)
     # 4D recurrence via dict lookup
     nmax = envs.li_ceil + envs.lj_ceil
     mmax = envs.lk_ceil + envs.ll_ceil
@@ -744,7 +744,7 @@ def CINTg0_2e(g, fac, envs):
         'il2d4d': ((lj, nmax, dj, di, dk, mmax, nr, rirj), (lk, mmax, dk, dl, di, li, dk, rkrl)),
     }
     ij_args, kl_args = _4d_args[envs.f_g0_2d4d]
-    _CINTg0_2d4d(g, envs, ij_args, kl_args)
+    _g_2d_to_4d_recurrence(g, envs, ij_args, kl_args)
 
     return True
 
@@ -753,7 +753,7 @@ def CINTg0_2e(g, fac, envs):
 # 2e integral loop
 # ================================================================
 
-def CINT2e_loop_nopt(envs, atm, bas, env):
+def primitive_loop_2e(envs, atm, bas, env):
     """
     2e integral primitive loop (no optimizer).
     Returns (gctr, has_value).
@@ -785,7 +785,7 @@ def CINT2e_loop_nopt(envs, atm, bas, env):
     n_comp = envs.ncomp_e1 * envs.ncomp_e2 * envs.ncomp_tensor
     nc = i_ctr * j_ctr * k_ctr * l_ctr
 
-    idx = CINTg2e_index_xyz(envs)
+    idx = compute_g_index_2e(envs)
 
     expcutoff = envs.expcutoff
     dist_ij = float(np.sum((ri - rj) ** 2))
@@ -839,10 +839,10 @@ def CINT2e_loop_nopt(envs, atm, bas, env):
                         fac1i *= cl[lp]
 
                     g = np.zeros(g_alloc)
-                    if CINTg0_2e(g, fac1i, envs):
+                    if compute_g_2e(g, fac1i, envs):
                         has_value = True
                         gout = np.zeros(nf * n_comp)
-                        gout_2e_ar12b(gout, g, idx, envs, True)
+                        extract_gout_2e(gout, g, idx, envs, True)
 
                         # Contract i
                         if i_ctr == 1:
@@ -886,7 +886,7 @@ def CINT2e_loop_nopt(envs, atm, bas, env):
     return gctr, has_value
 
 
-def CINT2e_spheric_drv(envs, atm, bas, env):
+def driver_2e_sph(envs, atm, bas, env):
     """
     2e integral driver. Returns contracted spherical integrals.
     """
@@ -895,7 +895,7 @@ def CINT2e_spheric_drv(envs, atm, bas, env):
     nf = envs.nf
     n_comp = envs.ncomp_e1 * envs.ncomp_e2 * envs.ncomp_tensor
 
-    gctr, has_value = CINT2e_loop_nopt(envs, atm, bas, env)
+    gctr, has_value = primitive_loop_2e(envs, atm, bas, env)
 
     if not has_value:
         di = (2 * envs.i_l + 1) * i_ctr
@@ -908,18 +908,18 @@ def CINT2e_spheric_drv(envs, atm, bas, env):
     nfj = envs.nfj
     nfk = envs.nfk
     nfl = envs.nfl
-    return c2s_sph_2e1(gctr, envs.i_l, envs.j_l, envs.k_l, envs.l_l,
+    return cart_to_sph_2e(gctr, envs.i_l, envs.j_l, envs.k_l, envs.l_l,
                        [i_ctr, j_ctr, k_ctr, l_ctr],
                        nfi, nfj, nfk, nfl, nf)
 
 
-def int2e_ar12b_sph(out, dims, shls, atm, natm, bas, nbas, env, opt=None, cache=None):
-    """Pure Python int2e_ar12b_sph."""
+def compute_eri_2e_sph(out, dims, shls, atm, natm, bas, nbas, env, opt=None, cache=None):
+    """Pure Python compute_eri_2e_sph."""
     ng = np.array([0, 0, 0, 0, 0, 1, 1, 1], dtype=np.int32)
     envs = CINTEnvVars()
-    CINTinit_int2e_EnvVars(envs, ng, shls, atm, natm, bas, nbas, env)
-    envs.f_gout = gout_2e_ar12b
-    result = CINT2e_spheric_drv(envs, atm, bas, env)
+    init_envvars_2e(envs, ng, shls, atm, natm, bas, nbas, env)
+    envs.f_gout = extract_gout_2e
+    result = driver_2e_sph(envs, atm, bas, env)
     # result shape: (di*i_ctr, dj*j_ctr, dk*k_ctr, dl*l_ctr)
 
     di_total = result.shape[0]
@@ -947,10 +947,10 @@ def int2e_ar12b_sph(out, dims, shls, atm, natm, bas, nbas, env, opt=None, cache=
 # GTO driver functions
 # ================================================================
 
-def GTOint2c(intor, out, comp, hermi, shls_slice, ao_loc,
+def assemble_2center_integrals(intor, out, comp, hermi, shls_slice, ao_loc,
              opt, atm, natm, bas, nbas, env):
     """
-    Pure Python replacement for CGTO().GTOint2c.
+    Pure Python replacement for CGTO().assemble_2center_integrals.
     Loops over shell pairs and assembles the integral matrix.
     """
     ish0, ish1, jsh0, jsh1 = shls_slice[:4]
@@ -976,7 +976,7 @@ def GTOint2c(intor, out, comp, hermi, shls_slice, ao_loc,
                 out_mat[i, j] = out_mat[j, i]
 
 
-def GTOnr2e_fill_s1(intor, eri, comp, ish_rel, jsh_rel, shls_slice,
+def fill_4center_s1(intor, eri, comp, ish_rel, jsh_rel, shls_slice,
                      ao_loc, opt, atm, natm, bas, nbas, env):
     """Fill function for 4-center integrals with s1 symmetry (no symmetry)."""
     ish0 = shls_slice[0]
@@ -1016,10 +1016,10 @@ def GTOnr2e_fill_s1(intor, eri, comp, ish_rel, jsh_rel, shls_slice,
                 buf.reshape(di, dj, dk, dl)
 
 
-def GTOnr2e_fill_drv(intor, fill, eri, comp, shls_slice, ao_loc,
+def fill_4center_driver(intor, fill, eri, comp, shls_slice, ao_loc,
                       opt, atm, natm, bas, nbas, env):
     """
-    Pure Python replacement for CGTO().GTOnr2e_fill_drv.
+    Pure Python replacement for CGTO().fill_4center_driver.
     """
     ish0, ish1, jsh0, jsh1 = shls_slice[:4]
     nish = ish1 - ish0
@@ -1036,10 +1036,10 @@ def GTOnr2e_fill_drv(intor, fill, eri, comp, shls_slice, ao_loc,
 # 3-center 2-electron integrals
 # ================================================================
 
-def CINT3c2e_loop_nopt(envs, atm, bas, env):
+def primitive_loop_3c2e(envs, atm, bas, env):
     """
     3c2e integral primitive loop (no optimizer).
-    Like CINT2e_loop_nopt but with only 3 shells (i,j,k) and no l-shell.
+    Like primitive_loop_2e but with only 3 shells (i,j,k) and no l-shell.
     Returns (gctr, has_value).
     """
     shls = envs.shls
@@ -1063,7 +1063,7 @@ def CINT3c2e_loop_nopt(envs, atm, bas, env):
     n_comp = envs.ncomp_e1 * envs.ncomp_tensor  # note: no ncomp_e2 for 3c
     nc = i_ctr * j_ctr * k_ctr
 
-    idx = CINTg2e_index_xyz(envs)
+    idx = compute_g_index_2e(envs)
 
     expcutoff = envs.expcutoff
     dist_ij = float(np.sum((ri - rj) ** 2))
@@ -1102,10 +1102,10 @@ def CINT3c2e_loop_nopt(envs, atm, bas, env):
                     fac1i *= ck[kp]
 
                 g = np.zeros(g_alloc)
-                if CINTg0_2e(g, fac1i, envs):
+                if compute_g_2e(g, fac1i, envs):
                     has_value = True
                     gout = np.zeros(nf * n_comp)
-                    gout_2e_ar12b(gout, g, idx, envs, True)
+                    extract_gout_2e(gout, g, idx, envs, True)
 
                     # Contract i
                     if i_ctr == 1:
@@ -1140,7 +1140,7 @@ def CINT3c2e_loop_nopt(envs, atm, bas, env):
     return gctr, has_value
 
 
-def c2s_sph_3c2e1(gctr, i_l, j_l, k_l, x_ctr, nfi, nfj, nfk, nf):
+def cart_to_sph_3c2e(gctr, i_l, j_l, k_l, x_ctr, nfi, nfj, nfk, nf):
     """Cart-to-spherical transformation for 3c2e integrals.
     Returns array of shape (di*i_ctr, dj*j_ctr, dk*k_ctr)."""
     i_ctr, j_ctr, k_ctr = x_ctr[0], x_ctr[1], x_ctr[2]
@@ -1148,9 +1148,9 @@ def c2s_sph_3c2e1(gctr, i_l, j_l, k_l, x_ctr, nfi, nfj, nfk, nf):
     dj = 2 * j_l + 1
     dk = 2 * k_l + 1
 
-    c2s_i = cart2sph_matrix(i_l)
-    c2s_j = cart2sph_matrix(j_l)
-    c2s_k = cart2sph_matrix(k_l)
+    c2s_i = cart_to_sph_matrix(i_l)
+    c2s_j = cart_to_sph_matrix(j_l)
+    c2s_k = cart_to_sph_matrix(k_l)
 
     nc = i_ctr * j_ctr * k_ctr
     # gctr layout: (nc, nf) where nf = nfi * nfj * nfk
@@ -1178,14 +1178,14 @@ def c2s_sph_3c2e1(gctr, i_l, j_l, k_l, x_ctr, nfi, nfj, nfk, nf):
     return out
 
 
-def CINT3c2e_spheric_drv(envs, atm, bas, env):
+def driver_3c2e_sph(envs, atm, bas, env):
     """3c2e integral driver. Returns contracted spherical integrals."""
     x_ctr = envs.x_ctr
     i_ctr, j_ctr, k_ctr = int(x_ctr[0]), int(x_ctr[1]), int(x_ctr[2])
     nf = envs.nf
     n_comp = envs.ncomp_e1 * envs.ncomp_tensor
 
-    gctr, has_value = CINT3c2e_loop_nopt(envs, atm, bas, env)
+    gctr, has_value = primitive_loop_3c2e(envs, atm, bas, env)
 
     if not has_value:
         di = (2 * envs.i_l + 1) * i_ctr
@@ -1196,17 +1196,17 @@ def CINT3c2e_spheric_drv(envs, atm, bas, env):
     nfi = envs.nfi
     nfj = envs.nfj
     nfk = envs.nfk
-    return c2s_sph_3c2e1(gctr, envs.i_l, envs.j_l, envs.k_l,
+    return cart_to_sph_3c2e(gctr, envs.i_l, envs.j_l, envs.k_l,
                           [i_ctr, j_ctr, k_ctr], nfi, nfj, nfk, nf)
 
 
-def int3c2e_ar12_sph(out, dims, shls, atm, natm, bas, nbas, env, opt=None, cache=None):
-    """Pure Python int3c2e_ar12_sph."""
+def compute_eri_3c2e_sph(out, dims, shls, atm, natm, bas, nbas, env, opt=None, cache=None):
+    """Pure Python compute_eri_3c2e_sph."""
     ng = np.array([0, 0, 0, 0, 0, 1, 1, 1], dtype=np.int32)
     envs = CINTEnvVars()
-    CINTinit_int3c2e_EnvVars(envs, ng, shls, atm, natm, bas, nbas, env)
-    envs.f_gout = gout_2e_ar12b
-    result = CINT3c2e_spheric_drv(envs, atm, bas, env)
+    init_envvars_3c2e(envs, ng, shls, atm, natm, bas, nbas, env)
+    envs.f_gout = extract_gout_2e
+    result = driver_3c2e_sph(envs, atm, bas, env)
     # result shape: (di*i_ctr, dj*j_ctr, dk*k_ctr)
 
     if dims is None:
@@ -1225,7 +1225,7 @@ def int3c2e_ar12_sph(out, dims, shls, atm, natm, bas, nbas, env, opt=None, cache
     return 1
 
 
-def GTOnr3c_fill_s1(intor, out, buf, comp, jobid, shls_slice, ao_loc,
+def fill_3center_s1(intor, out, buf, comp, jobid, shls_slice, ao_loc,
                      opt, atm, natm, bas, nbas, env):
     """Fill function for 3-center integrals with s1 symmetry."""
     BLKSIZE = 8
@@ -1260,9 +1260,9 @@ def GTOnr3c_fill_s1(intor, out, buf, comp, jobid, shls_slice, ao_loc,
                   atm, natm, bas, nbas, env, opt, None)
 
 
-def GTOnr3c_drv(intor, fill, eri, comp, shls_slice, ao_loc,
+def fill_3center_driver(intor, fill, eri, comp, shls_slice, ao_loc,
                  opt, atm, natm, bas, nbas, env):
-    """Pure Python replacement for CGTO().GTOnr3c_drv."""
+    """Pure Python replacement for CGTO().fill_3center_driver."""
     BLKSIZE = 8
     ish0, ish1 = shls_slice[0], shls_slice[1]
     jsh0, jsh1 = shls_slice[2], shls_slice[3]
@@ -1282,7 +1282,7 @@ def GTOnr3c_drv(intor, fill, eri, comp, shls_slice, ao_loc,
 # Fourier Transform of GTO basis functions
 # ================================================================
 
-def _ft_1d_poly(k, n, a2):
+def _ft_1d_polynomial(k, n, a2):
     """Compute the 1D polynomial P_n(-ik*a2) for FT of x^n * exp(-alpha*x^2).
 
     The recurrence is:
@@ -1318,7 +1318,7 @@ def _ft_1d_poly(k, n, a2):
     return p_curr
 
 
-def gto_ft_evaluator_py(wrapper, gvgrid):
+def evaluate_gto_ft(wrapper, gvgrid):
     """Pure Python FT evaluator for GTO basis functions.
 
     Computes FT(phi_i)(G) = integral phi_i(r) * exp(-iG.r) dr
@@ -1340,7 +1340,7 @@ def gto_ft_evaluator_py(wrapper, gvgrid):
     ndarray, shape (nao, NGv), complex128
     """
     from deepchem.utils.analytical_integrators.optimizer import (
-        CINTcommon_fac_sp, ATOM_OF, ANG_OF, NPRIM_OF, NCTR_OF,
+        sph_harmonic_norm, ATOM_OF, ANG_OF, NPRIM_OF, NCTR_OF,
         PTR_EXP, PTR_COEFF, PTR_COORD,
     )
 
@@ -1371,15 +1371,15 @@ def gto_ft_evaluator_py(wrapper, gvgrid):
         phase = np.exp(-1j * (Gx * R[0] + Gy * R[1] + Gz * R[2]))
 
         # Cartesian component indices
-        i_nx, i_ny, i_nz = CINTcart_comp(l)
+        i_nx, i_ny, i_nz = cartesian_components(l)
 
         # Normalization factor matching C code:
-        # fac1 = sqrt(pi) * pi * CINTcommon_fac_sp(l) * CINTcommon_fac_sp(0)
+        # fac1 = sqrt(pi) * pi * sph_harmonic_norm(l) * sph_harmonic_norm(0)
         # ghost coeff = sqrt(4*pi)
         # dij = 1 / (alpha^(3/2))
         # Total per-primitive = ci * ghost_c * fac1 * dij
         fac_norm = (math.sqrt(math.pi) * math.pi
-                    * CINTcommon_fac_sp(l) * CINTcommon_fac_sp(0)
+                    * sph_harmonic_norm(l) * sph_harmonic_norm(0)
                     * math.sqrt(4.0 * math.pi))
 
         # For each contraction
@@ -1405,9 +1405,9 @@ def gto_ft_evaluator_py(wrapper, gvgrid):
                 py = {}
                 pz = {}
                 for n in range(max_n + 1):
-                    px[n] = _ft_1d_poly(Gx, n, a2)
-                    py[n] = _ft_1d_poly(Gy, n, a2)
-                    pz[n] = _ft_1d_poly(Gz, n, a2)
+                    px[n] = _ft_1d_polynomial(Gx, n, a2)
+                    py[n] = _ft_1d_polynomial(Gy, n, a2)
+                    pz[n] = _ft_1d_polynomial(Gz, n, a2)
 
                 # Compute Cartesian FT components
                 for f in range(nf_cart):
@@ -1415,7 +1415,7 @@ def gto_ft_evaluator_py(wrapper, gvgrid):
                     cart_ft[f] += base * px[a] * py[b] * pz[cc]
 
             # Transform from Cartesian to spherical
-            c2s = cart2sph_matrix(l)  # shape (di, nf_cart)
+            c2s = cart_to_sph_matrix(l)  # shape (di, nf_cart)
             sph_ft = c2s @ cart_ft  # shape (di, NGv)
 
             # Place into output
@@ -1429,7 +1429,7 @@ def gto_ft_evaluator_py(wrapper, gvgrid):
 # GTO grid evaluator (replaces CGTO().GTOval_*_sph/cart)
 # ================================================================
 
-def gto_evaluator_py_grid(wrapper, shortname, rgrid, spherical):
+def evaluate_gto_grid(wrapper, shortname, rgrid, spherical):
     """Pure Python GTO grid evaluator.
 
     Replaces CGTO().GTOval_sph, GTOval_ip_sph, GTOval_lapl_sph,
@@ -1484,7 +1484,7 @@ def gto_evaluator_py_grid(wrapper, shortname, rgrid, spherical):
         alphas_arr = env[bas[ish, PTR_EXP]: bas[ish, PTR_EXP] + nprim]
         coeffs_flat = env[bas[ish, PTR_COEFF]: bas[ish, PTR_COEFF] + nprim * nctr]
 
-        fac = CINTcommon_fac_sp(l)
+        fac = sph_harmonic_norm(l)
 
         # Relative coordinates (r - R)
         rx = coords[:, 0] - R[0]
@@ -1585,7 +1585,7 @@ def gto_evaluator_py_grid(wrapper, shortname, rgrid, spherical):
 
             # Cartesian to spherical transform
             if spherical and l >= 2:
-                c2s = cart2sph_matrix(l)
+                c2s = cart_to_sph_matrix(l)
                 if ncomp > 1:
                     sph = np.empty(comp_shape + (di, ngrid))
                     for idx in np.ndindex(comp_shape):
@@ -1609,9 +1609,9 @@ def gto_evaluator_py_grid(wrapper, shortname, rgrid, spherical):
 # ================================================================
 
 INTEGRAL_REGISTRY = {
-    'int1e_ovlp_sph': int1e_ovlp_sph,
-    'int1e_kin_sph': int1e_kin_sph,
-    'int1e_nuc_sph': int1e_nuc_sph,
-    'int2e_ar12b_sph': int2e_ar12b_sph,
-    'int3c2e_ar12_sph': int3c2e_ar12_sph,
+    'int1e_ovlp_sph': compute_overlap_1e_sph,
+    'int1e_kin_sph': compute_kinetic_1e_sph,
+    'int1e_nuc_sph': compute_nuclear_1e_sph,
+    'int2e_ar12b_sph': compute_eri_2e_sph,
+    'int3c2e_ar12_sph': compute_eri_3c2e_sph,
 }

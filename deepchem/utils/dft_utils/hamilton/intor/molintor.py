@@ -6,16 +6,16 @@ from functools import reduce
 import numpy as np
 import torch
 from deepchem.utils.analytical_integrators.optimizer import (
-    int1e_ovlp_optimizer, int1e_kin_optimizer, int1e_nuc_optimizer,
-    int2e_ar12b_optimizer, int3c2e_ar12_optimizer,
+    build_overlap_optimizer, build_kinetic_optimizer, build_nuclear_optimizer,
+    build_2e_optimizer, build_3c2e_optimizer,
 )
 from deepchem.utils.analytical_integrators.integrals import (
     INTEGRAL_REGISTRY,
-    GTOint2c as py_GTOint2c,
-    GTOnr2e_fill_drv as py_GTOnr2e_fill_drv,
-    GTOnr2e_fill_s1 as py_GTOnr2e_fill_s1,
-    GTOnr3c_drv as py_GTOnr3c_drv,
-    GTOnr3c_fill_s1 as py_GTOnr3c_fill_s1,
+    assemble_2center_integrals as py_GTOint2c,
+    fill_4center_driver as py_GTOnr2e_fill_drv,
+    fill_4center_s1 as py_GTOnr2e_fill_s1,
+    fill_3center_driver as py_GTOnr3c_drv,
+    fill_3center_s1 as py_GTOnr3c_fill_s1,
 )
 from deepchem.utils.dft_utils import LibcintWrapper
 from deepchem.utils.dft_utils.hamilton.intor.namemgr import IntorNameManager
@@ -1532,19 +1532,19 @@ def _get_intgl_optimizer(opname: str, atm: np.ndarray, bas: np.ndarray,
     cintopt = ctypes.POINTER(ctypes.c_void_p)()
     optname = opname.replace("_cart", "").replace("_sph", "") + "_optimizer"
     if optname == "int1e_ovlp_optimizer":
-        copt = int1e_ovlp_optimizer
+        copt = build_overlap_optimizer
         copt(None, atm, atm.shape[0], bas, bas.shape[0], env)
     elif optname == "int1e_kin_optimizer":
-        copt = int1e_kin_optimizer
+        copt = build_kinetic_optimizer
         copt(None, atm, atm.shape[0], bas, bas.shape[0], env)
     elif optname == "int1e_nuc_optimizer":
-        copt = int1e_nuc_optimizer
+        copt = build_nuclear_optimizer
         copt(None, atm, atm.shape[0], bas, bas.shape[0], env)
     elif optname == "int2e_ar12b_optimizer":
-        copt = int2e_ar12b_optimizer
+        copt = build_2e_optimizer
         copt(None, atm, atm.shape[0], bas, bas.shape[0], env)
     elif optname == "int3c2e_ar12_optimizer":
-        copt = int3c2e_ar12_optimizer
+        copt = build_3c2e_optimizer
         copt(None, atm, atm.shape[0], bas, bas.shape[0], env)
     else:
         print("Integral Not available")

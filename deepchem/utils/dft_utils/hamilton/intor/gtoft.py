@@ -3,7 +3,7 @@ import numpy as np
 from typing import Tuple, Optional
 from deepchem.utils import get_complex_dtype
 from deepchem.utils.dft_utils import LibcintWrapper, AtomCGTOBasis, CGTOBasis
-from deepchem.utils.analytical_integrators.integrals import gto_ft_evaluator_py
+from deepchem.utils.analytical_integrators.integrals import evaluate_gto_ft
 
 
 NDIM = 3
@@ -262,6 +262,6 @@ def gto_ft_evaluator(wrapper: LibcintWrapper,
     dtype = wrapper.dtype
     device = wrapper.device
 
-    out = gto_ft_evaluator_py(wrapper, gvgrid)
+    out = evaluate_gto_ft(wrapper, gvgrid)
 
     return torch.as_tensor(out, dtype=get_complex_dtype(dtype), device=device)

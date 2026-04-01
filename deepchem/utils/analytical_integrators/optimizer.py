@@ -3,18 +3,18 @@ cint_optimizer.py
 
 Pure Python/NumPy port of the libcint optimizer pipeline:
 
-    int1e_ovlp_optimizer
-    └── CINTall_1e_optimizer
-        ├── CINTinit_2e_optimizer
-        ├── CINTOpt_set_log_maxc
+    build_overlap_optimizer
+    └── populate_optimizer_1e
+        ├── create_optimizer
+        ├── set_log_max_coeff
         │   └── CINTOpt_log_max_pgto_coeff  (via numpy_vec)
-        ├── CINTOpt_set_non0coeff
-        │   └── CINTOpt_non0coeff_byshell
-        └── gen_idx
-            ├── _make_fakebas
-            ├── CINTinit_int1e_EnvVars
-            ├── CINTg1e_index_xyz
-            └── CINTcart_comp
+        ├── set_nonzero_coeff
+        │   └── nonzero_coeff_by_shell
+        └── generate_index_xyz
+            ├── _make_fake_basis
+            ├── init_envvars_1e
+            ├── compute_g_index_1e
+            └── cartesian_components
 
 Verified bit-for-bit identical to the C reference (gcc -O2) across
 50 random molecules, all angular momenta l=0..5, and all zero-fraction
@@ -180,9 +180,9 @@ class CINTEnvVars:
 
 
 # ================================================================
-# CINTcart_comp
+# cartesian_components
 # ================================================================
-def CINTcart_comp(lmax: int) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+def cartesian_components(lmax: int) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
     Generate Cartesian component exponents (nx, ny, nz) for angular
     momentum lmax, in libcint canonical order (decreasing nx, then
@@ -210,7 +210,7 @@ def CINTcart_comp(lmax: int) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
 # ================================================================
 # log_max_coeff
 # ================================================================
-def _numpy_vec_log_maxc(log_maxc: np.ndarray, coeff: np.ndarray,
+def _compute_log_max_coeff(log_maxc: np.ndarray, coeff: np.ndarray,
                          nprim: int, ictr: int) -> None:
     """
     Compute approx_log of max |coeff| over contractions for each primitive.
@@ -228,7 +228,7 @@ def _numpy_vec_log_maxc(log_maxc: np.ndarray, coeff: np.ndarray,
     log_maxc[:] = (exp - 1023 + 1) * 0.693145751953125
 
 
-def CINTOpt_set_log_maxc(opt: CINTOpt, atm: np.ndarray, natm: int,
+def set_log_max_coeff(opt: CINTOpt, atm: np.ndarray, natm: int,
                           bas: np.ndarray, nbas: int, env: np.ndarray) -> None:
     """
     Populate opt.log_max_coeff with the approximate log of the maximum
@@ -251,7 +251,7 @@ def CINTOpt_set_log_maxc(opt: CINTOpt, atm: np.ndarray, natm: int,
         ic = int(bas[i, NCTR_OF])
         ci = env[bas[i, PTR_COEFF] : bas[i, PTR_COEFF] + ip * ic]
         slc = plog_maxc[offset : offset + ip]
-        _numpy_vec_log_maxc(slc, ci, ip, ic)
+        _compute_log_max_coeff(slc, ci, ip, ic)
         opt.log_max_coeff.append(slc)
         offset += ip
 
@@ -259,7 +259,7 @@ def CINTOpt_set_log_maxc(opt: CINTOpt, atm: np.ndarray, natm: int,
 # ================================================================
 # non0coeff
 # ================================================================
-def CINTOpt_non0coeff_byshell(ci: np.ndarray, iprim: int,
+def nonzero_coeff_by_shell(ci: np.ndarray, iprim: int,
                                ictr: int) -> tuple[np.ndarray, np.ndarray]:
     """
     For each primitive, partition contraction indices so non-zero
@@ -286,7 +286,7 @@ def CINTOpt_non0coeff_byshell(ci: np.ndarray, iprim: int,
     return sortedidx, non0ctr
 
 
-def CINTOpt_set_non0coeff(opt: CINTOpt, atm: np.ndarray, natm: int,
+def set_nonzero_coeff(opt: CINTOpt, atm: np.ndarray, natm: int,
                            bas: np.ndarray, nbas: int, env: np.ndarray) -> None:
     """
     Populate opt.non0ctr and opt.sortedidx for all shells.
@@ -311,7 +311,7 @@ def CINTOpt_set_non0coeff(opt: CINTOpt, atm: np.ndarray, natm: int,
     for i in range(nbas):
         ip, ic = nprims[i], nctrs[i]
         ci   = env[bas[i, PTR_COEFF] : bas[i, PTR_COEFF] + ip * ic]
-        sidx, n0 = CINTOpt_non0coeff_byshell(ci, ip, ic)
+        sidx, n0 = nonzero_coeff_by_shell(ci, ip, ic)
 
         pnon0ctr  [p0          : p0 + ip]       = n0
         psortedidx[pc0         : pc0 + ip * ic] = sidx.ravel()
@@ -324,9 +324,9 @@ def CINTOpt_set_non0coeff(opt: CINTOpt, atm: np.ndarray, natm: int,
 
 
 # ================================================================
-# gen_idx helpers
+# generate_index_xyz helpers
 # ================================================================
-def _make_fakebas(bas: np.ndarray, nbas: int) -> tuple[np.ndarray, int]:
+def _make_fake_basis(bas: np.ndarray, nbas: int) -> tuple[np.ndarray, int]:
     """
     Build a minimal fake basis with one shell per angular momentum 0..max_l.
     Only ANG_OF is set — sufficient for index_xyz generation.
@@ -338,7 +338,7 @@ def _make_fakebas(bas: np.ndarray, nbas: int) -> tuple[np.ndarray, int]:
     return fakebas, max_l
 
 
-def CINTinit_int1e_EnvVars(envs: CINTEnvVars, ng: np.ndarray,
+def init_envvars_1e(envs: CINTEnvVars, ng: np.ndarray,
                             shls: np.ndarray,
                             atm: np.ndarray, natm: int,
                             bas: np.ndarray, nbas: int,
@@ -384,7 +384,7 @@ def CINTinit_int1e_EnvVars(envs: CINTEnvVars, ng: np.ndarray,
     envs.g_size     = dli * (envs.lj_ceil + 1)
 
 
-def CINTg1e_index_xyz(envs: CINTEnvVars) -> np.ndarray:
+def compute_g_index_1e(envs: CINTEnvVars) -> np.ndarray:
     """
     Compute the g-array index map for a 1e shell pair.
 
@@ -401,8 +401,8 @@ def CINTg1e_index_xyz(envs: CINTEnvVars) -> np.ndarray:
     di = envs.g_stride_i;  dj = envs.g_stride_j
     ofx = 0;  ofy = envs.g_size;  ofz = envs.g_size * 2
 
-    i_nx, i_ny, i_nz = CINTcart_comp(envs.i_l)
-    j_nx, j_ny, j_nz = CINTcart_comp(envs.j_l)
+    i_nx, i_ny, i_nz = cartesian_components(envs.i_l)
+    j_nx, j_ny, j_nz = cartesian_components(envs.j_l)
 
     idx = np.empty(envs.nf * 3, dtype=np.int32)
     n = 0
@@ -418,7 +418,7 @@ def CINTg1e_index_xyz(envs: CINTEnvVars) -> np.ndarray:
     return idx
 
 
-def gen_idx(opt: CINTOpt,
+def generate_index_xyz(opt: CINTOpt,
             finit,
             findex_xyz,
             order: int,
@@ -436,12 +436,12 @@ def gen_idx(opt: CINTOpt,
 
     Parameters
     ----------
-    finit      : callable — populates a CINTEnvVars (e.g. CINTinit_int1e_EnvVars)
-    findex_xyz : callable — returns the idx array (e.g. CINTg1e_index_xyz)
+    finit      : callable — populates a CINTEnvVars (e.g. init_envvars_1e)
+    findex_xyz : callable — returns the idx array (e.g. compute_g_index_1e)
     order      : 2 for 1e integrals, 3 or 4 for 2e integrals
     max_l_override : 0 → use max_l from basis; else min(override, max_l)
     """
-    fakebas, max_l1 = _make_fakebas(bas, nbas)
+    fakebas, max_l1 = _make_fake_basis(bas, nbas)
     max_l    = max_l1 if max_l_override == 0 else min(max_l_override, max_l1)
     fakenbas = max_l + 1
 
@@ -460,7 +460,7 @@ def gen_idx(opt: CINTOpt,
 # ================================================================
 # Top-level entry points
 # ================================================================
-def CINTinit_2e_optimizer(atm: np.ndarray, natm: int,
+def create_optimizer(atm: np.ndarray, natm: int,
                            bas: np.ndarray, nbas: int,
                            env: np.ndarray) -> CINTOpt:
     """
@@ -470,45 +470,45 @@ def CINTinit_2e_optimizer(atm: np.ndarray, natm: int,
     return CINTOpt(nbas=nbas)
 
 
-def CINTall_1e_optimizer(opt: CINTOpt, ng: np.ndarray,
+def populate_optimizer_1e(opt: CINTOpt, ng: np.ndarray,
                           atm: np.ndarray, natm: int,
                           bas: np.ndarray, nbas: int,
                           env: np.ndarray) -> None:
     """Populate all three optimizer tables for a 1e integral."""
-    CINTOpt_set_log_maxc(opt, atm, natm, bas, nbas, env)
-    CINTOpt_set_non0coeff(opt, atm, natm, bas, nbas, env)
-    gen_idx(opt, CINTinit_int1e_EnvVars, CINTg1e_index_xyz,
+    set_log_max_coeff(opt, atm, natm, bas, nbas, env)
+    set_nonzero_coeff(opt, atm, natm, bas, nbas, env)
+    generate_index_xyz(opt, init_envvars_1e, compute_g_index_1e,
             2, 0, ng, atm, natm, bas, nbas, env)
 
 
-def _int1e_optimizer(ng_list, opt_ref, atm, natm, bas, nbas, env):
+def _build_optimizer_1e(ng_list, opt_ref, atm, natm, bas, nbas, env):
     """Common 1e optimizer entry point."""
     ng  = np.array(ng_list, dtype=np.int32)
-    opt = CINTinit_2e_optimizer(atm, natm, bas, nbas, env)
-    CINTall_1e_optimizer(opt, ng, atm, natm, bas, nbas, env)
+    opt = create_optimizer(atm, natm, bas, nbas, env)
+    populate_optimizer_1e(opt, ng, atm, natm, bas, nbas, env)
     return opt
 
 
-def int1e_ovlp_optimizer(opt_ref, atm, natm, bas, nbas, env):
-    return _int1e_optimizer([0, 0, 0, 0, 0, 1, 1, 1], opt_ref, atm, natm, bas, nbas, env)
+def build_overlap_optimizer(opt_ref, atm, natm, bas, nbas, env):
+    return _build_optimizer_1e([0, 0, 0, 0, 0, 1, 1, 1], opt_ref, atm, natm, bas, nbas, env)
 
 
-def int1e_kin_optimizer(opt_ref, atm, natm, bas, nbas, env):
-    return _int1e_optimizer([0, 2, 0, 0, 2, 1, 1, 1], opt_ref, atm, natm, bas, nbas, env)
+def build_kinetic_optimizer(opt_ref, atm, natm, bas, nbas, env):
+    return _build_optimizer_1e([0, 2, 0, 0, 2, 1, 1, 1], opt_ref, atm, natm, bas, nbas, env)
 
 
-def int1e_nuc_optimizer(opt_ref, atm, natm, bas, nbas, env):
-    return _int1e_optimizer([0, 0, 0, 0, 0, 1, 0, 1], opt_ref, atm, natm, bas, nbas, env)
+def build_nuclear_optimizer(opt_ref, atm, natm, bas, nbas, env):
+    return _build_optimizer_1e([0, 0, 0, 0, 0, 1, 0, 1], opt_ref, atm, natm, bas, nbas, env)
 
 _FAC_SP = [0.282094791773878, 0.488602511902920]
 
-def CINTcommon_fac_sp(l: int) -> float:
+def sph_harmonic_norm(l: int) -> float:
     """Spherical harmonic normalisation for s/p shells; 1.0 for l >= 2."""
     if l == 0: return _FAC_SP[0]
     if l == 1: return _FAC_SP[1]
     return 1.0
 
-def CINTinit_int2e_EnvVars(envs: CINTEnvVars, ng: np.ndarray, shls: np.ndarray,
+def init_envvars_2e(envs: CINTEnvVars, ng: np.ndarray, shls: np.ndarray,
                             atm: np.ndarray, natm: int,
                             bas: np.ndarray, nbas: int, env: np.ndarray) -> None:
     """Populate CINTEnvVars for a 2e integral over shell quartet (i,j,k,l)."""
@@ -531,8 +531,8 @@ def CINTinit_int2e_EnvVars(envs: CINTEnvVars, ng: np.ndarray, shls: np.ndarray,
     envs.rk = env[atm[k_atom, PTR_COORD] : atm[k_atom, PTR_COORD] + 3]
     envs.rl = env[atm[l_atom, PTR_COORD] : atm[l_atom, PTR_COORD] + 3]
     envs.common_factor = (math.pi ** 3) * 2 / math.sqrt(math.pi) \
-        * CINTcommon_fac_sp(envs.i_l) * CINTcommon_fac_sp(envs.j_l) \
-        * CINTcommon_fac_sp(envs.k_l) * CINTcommon_fac_sp(envs.l_l)
+        * sph_harmonic_norm(envs.i_l) * sph_harmonic_norm(envs.j_l) \
+        * sph_harmonic_norm(envs.k_l) * sph_harmonic_norm(envs.l_l)
     ecoff = env[PTR_EXPCUTOFF]
     envs.expcutoff    = EXPCUTOFF if ecoff == 0 else max(MIN_EXPCUTOFF, float(ecoff))
     envs.gbits        = int(ng[GSHIFT])
@@ -579,7 +579,7 @@ def CINTinit_int2e_EnvVars(envs: CINTEnvVars, ng: np.ndarray, shls: np.ndarray,
         envs.f_g0_2d4d = 'il2d4d' if ibase else 'lj2d4d'
     envs.f_g0_2e = 'CINTg0_2e'
 
-def CINTg2e_index_xyz(envs: CINTEnvVars) -> np.ndarray:
+def compute_g_index_2e(envs: CINTEnvVars) -> np.ndarray:
     """
     g-array index map for a 2e shell quartet. Returns (nf*3,) int32.
     Loop order: j → l → k → i (matches C default branch for all l).
@@ -587,10 +587,10 @@ def CINTg2e_index_xyz(envs: CINTEnvVars) -> np.ndarray:
     di = envs.g_stride_i;  dk = envs.g_stride_k
     dl = envs.g_stride_l;  dj = envs.g_stride_j
     ofx = 0;  ofy = envs.g_size;  ofz = envs.g_size * 2
-    i_nx, i_ny, i_nz = CINTcart_comp(envs.i_l)
-    j_nx, j_ny, j_nz = CINTcart_comp(envs.j_l)
-    k_nx, k_ny, k_nz = CINTcart_comp(envs.k_l)
-    l_nx, l_ny, l_nz = CINTcart_comp(envs.l_l)
+    i_nx, i_ny, i_nz = cartesian_components(envs.i_l)
+    j_nx, j_ny, j_nz = cartesian_components(envs.j_l)
+    k_nx, k_ny, k_nz = cartesian_components(envs.k_l)
+    l_nx, l_ny, l_nz = cartesian_components(envs.l_l)
     idx = np.empty(envs.nf * 3, dtype=np.int32);  n = 0
     for j in range(envs.nfj):
         for l in range(envs.nfl):
@@ -608,7 +608,7 @@ def CINTg2e_index_xyz(envs: CINTEnvVars) -> np.ndarray:
                     n += 3
     return idx
 
-def CINTset_pairdata(pairdata: list, ai: np.ndarray, aj: np.ndarray,
+def compute_pair_data(pairdata: list, ai: np.ndarray, aj: np.ndarray,
                      ri: np.ndarray, rj: np.ndarray,
                      log_maxci: np.ndarray, log_maxcj: np.ndarray,
                      li_ceil: int, lj_ceil: int,
@@ -639,7 +639,7 @@ def CINTset_pairdata(pairdata: list, ai: np.ndarray, aj: np.ndarray,
             n += 1
     return empty
 
-def CINTOpt_setij(opt: CINTOpt, ng: np.ndarray,
+def precompute_shell_pairs(opt: CINTOpt, ng: np.ndarray,
                   atm: np.ndarray, natm: int,
                   bas: np.ndarray, nbas: int,
                   env: np.ndarray) -> None:
@@ -657,7 +657,7 @@ def CINTOpt_setij(opt: CINTOpt, ng: np.ndarray,
     ecoff = env[PTR_EXPCUTOFF]
     expcutoff = EXPCUTOFF if ecoff == 0 else max(MIN_EXPCUTOFF, float(ecoff))
     if opt.log_max_coeff is None:
-        CINTOpt_set_log_maxc(opt, atm, natm, bas, nbas, env)
+        set_log_max_coeff(opt, atm, natm, bas, nbas, env)
     tot_prim = int(bas[:nbas, NPRIM_OF].sum())
     if tot_prim == 0 or tot_prim > MAX_PGTO_FOR_PAIRDATA:
         return
@@ -678,7 +678,7 @@ def CINTOpt_setij(opt: CINTOpt, ng: np.ndarray,
             rr    = float(np.sum((ri - rj) ** 2))
             pdata = [PairData(rij=np.zeros(3), eij=0.0, cceij=0.0)
                      for _ in range(iprim * jprim)]
-            empty = CINTset_pairdata(pdata, ai, aj, ri, rj, log_maxci, log_maxcj,
+            empty = compute_pair_data(pdata, ai, aj, ri, rj, log_maxci, log_maxcj,
                                      li + ijkl_inc, lj, iprim, jprim, rr, expcutoff)
             if i == 0 and j == 0:
                 opt.pairdata[0] = pdata
@@ -692,22 +692,22 @@ def CINTOpt_setij(opt: CINTOpt, ng: np.ndarray,
                 opt.pairdata[i * nbas + j] = NOVALUE
                 opt.pairdata[j * nbas + i] = NOVALUE
 
-def CINTall_2e_optimizer(opt: CINTOpt, ng: np.ndarray,
+def populate_optimizer_2e(opt: CINTOpt, ng: np.ndarray,
                           atm: np.ndarray, natm: int,
                           bas: np.ndarray, nbas: int,
                           env: np.ndarray) -> None:
     """
     Populate all optimizer tables for a 2e integral:
-      - pairdata     via CINTOpt_setij       (includes log_max_coeff)
-      - non0coeff    via CINTOpt_set_non0coeff
-      - index_xyz    via gen_idx with order=4 and CINTinit_int2e_EnvVars
+      - pairdata     via precompute_shell_pairs       (includes log_max_coeff)
+      - non0coeff    via set_nonzero_coeff
+      - index_xyz    via generate_index_xyz with order=4 and init_envvars_2e
     """
-    CINTOpt_setij(opt, ng, atm, natm, bas, nbas, env)
-    CINTOpt_set_non0coeff(opt, atm, natm, bas, nbas, env)
-    gen_idx(opt, CINTinit_int2e_EnvVars, CINTg2e_index_xyz,
+    precompute_shell_pairs(opt, ng, atm, natm, bas, nbas, env)
+    set_nonzero_coeff(opt, atm, natm, bas, nbas, env)
+    generate_index_xyz(opt, init_envvars_2e, compute_g_index_2e,
             4, 0, ng, atm, natm, bas, nbas, env)
 
-def CINTinit_int3c2e_EnvVars(envs: CINTEnvVars, ng: np.ndarray, shls: np.ndarray,
+def init_envvars_3c2e(envs: CINTEnvVars, ng: np.ndarray, shls: np.ndarray,
                              atm: np.ndarray, natm: int,
                              bas: np.ndarray, nbas: int, env: np.ndarray) -> None:
     """Populate CINTEnvVars for a 3c2e integral over shell triple (i,j,k).
@@ -732,8 +732,8 @@ def CINTinit_int3c2e_EnvVars(envs: CINTEnvVars, ng: np.ndarray, shls: np.ndarray
     envs.rk = env[atm[k_atom, PTR_COORD] : atm[k_atom, PTR_COORD] + 3]
     envs.rl = envs.rk.copy()  # dummy l = k position
     envs.common_factor = (math.pi ** 3) * 2 / math.sqrt(math.pi) \
-        * CINTcommon_fac_sp(envs.i_l) * CINTcommon_fac_sp(envs.j_l) \
-        * CINTcommon_fac_sp(envs.k_l)
+        * sph_harmonic_norm(envs.i_l) * sph_harmonic_norm(envs.j_l) \
+        * sph_harmonic_norm(envs.k_l)
     ecoff = env[PTR_EXPCUTOFF]
     envs.expcutoff    = EXPCUTOFF if ecoff == 0 else max(MIN_EXPCUTOFF, float(ecoff))
     envs.gbits        = int(ng[GSHIFT])
@@ -779,30 +779,30 @@ def CINTinit_int3c2e_EnvVars(envs: CINTEnvVars, ng: np.ndarray, shls: np.ndarray
     envs.f_g0_2e = 'CINTg0_2e'
 
 
-def int3c2e_ar12_optimizer(opt_ref,
+def build_3c2e_optimizer(opt_ref,
                             atm: np.ndarray, natm: int,
                             bas: np.ndarray, nbas: int,
                             env: np.ndarray) -> CINTOpt:
     """3c2e optimizer entry point."""
     ng  = np.array([0, 0, 0, 0, 0, 1, 1, 1], dtype=np.int32)
-    opt = CINTinit_2e_optimizer(atm, natm, bas, nbas, env)
-    CINTOpt_setij(opt, ng, atm, natm, bas, nbas, env)
-    CINTOpt_set_non0coeff(opt, atm, natm, bas, nbas, env)
-    gen_idx(opt, CINTinit_int3c2e_EnvVars, CINTg2e_index_xyz,
+    opt = create_optimizer(atm, natm, bas, nbas, env)
+    precompute_shell_pairs(opt, ng, atm, natm, bas, nbas, env)
+    set_nonzero_coeff(opt, atm, natm, bas, nbas, env)
+    generate_index_xyz(opt, init_envvars_3c2e, compute_g_index_2e,
             3, 0, ng, atm, natm, bas, nbas, env)
     return opt
 
 
-def int2e_ar12b_optimizer(opt_ref,
+def build_2e_optimizer(opt_ref,
                            atm: np.ndarray, natm: int,
                            bas: np.ndarray, nbas: int,
                            env: np.ndarray) -> CINTOpt:
     """
     2e optimizer entry point. Matches C signature:
-        void int2e_ar12b_optimizer(CINTOpt **opt, ...)
+        void build_2e_optimizer(CINTOpt **opt, ...)
     opt_ref is ignored; Python returns the opt instead of writing through a pointer.
     """
     ng  = np.array([0, 0, 0, 0, 0, 1, 1, 1], dtype=np.int32)
-    opt = CINTinit_2e_optimizer(atm, natm, bas, nbas, env)
-    CINTall_2e_optimizer(opt, ng, atm, natm, bas, nbas, env)
+    opt = create_optimizer(atm, natm, bas, nbas, env)
+    populate_optimizer_2e(opt, ng, atm, natm, bas, nbas, env)
     return opt
