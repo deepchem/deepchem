@@ -4,11 +4,10 @@ cint_optimizer.py
 Pure Python/NumPy port of the libcint optimizer pipeline:
 
     build_overlap_optimizer
-    └── populate_optimizer_1e
-        ├── create_optimizer
-        ├── set_log_max_coeff
-        │   └── CINTOpt_log_max_pgto_coeff  (via numpy_vec)
-        ├── set_nonzero_coeff
+    └── _build_optimizer_1e
+        ├── compute_log_max_coeffs
+        │   └── _compute_log_max_coeff
+        ├── compute_nonzero_coeffs
         │   └── nonzero_coeff_by_shell
         └── generate_index_xyz
             ├── _make_fake_basis
@@ -228,22 +227,21 @@ def _compute_log_max_coeff(log_maxc: np.ndarray, coeff: np.ndarray,
     log_maxc[:] = (exp - 1023 + 1) * 0.693145751953125
 
 
-def set_log_max_coeff(opt: CINTOpt, atm: np.ndarray, natm: int,
-                          bas: np.ndarray, nbas: int, env: np.ndarray) -> None:
+def compute_log_max_coeffs(bas: np.ndarray, nbas: int,
+                           env: np.ndarray) -> Optional[list]:
     """
-    Populate opt.log_max_coeff with the approximate log of the maximum
-    absolute contraction coefficient for each primitive across all shells.
+    Compute the approximate log of the maximum absolute contraction
+    coefficient for each primitive across all shells.
 
-    A single contiguous buffer is allocated for all primitives; each
-    opt.log_max_coeff[i] is a view into that buffer for shell i.
+    Returns a list of per-shell arrays, or None if no primitives.
     """
     nprims   = bas[:nbas, NPRIM_OF].astype(int)
     tot_prim = int(nprims.sum())
     if tot_prim == 0:
-        return
+        return None
 
     plog_maxc = np.empty(tot_prim)
-    opt.log_max_coeff = []
+    result = []
     offset = 0
 
     for i in range(nbas):
@@ -252,8 +250,10 @@ def set_log_max_coeff(opt: CINTOpt, atm: np.ndarray, natm: int,
         ci = env[bas[i, PTR_COEFF] : bas[i, PTR_COEFF] + ip * ic]
         slc = plog_maxc[offset : offset + ip]
         _compute_log_max_coeff(slc, ci, ip, ic)
-        opt.log_max_coeff.append(slc)
+        result.append(slc)
         offset += ip
+
+    return result
 
 
 # ================================================================
@@ -286,26 +286,26 @@ def nonzero_coeff_by_shell(ci: np.ndarray, iprim: int,
     return sortedidx, non0ctr
 
 
-def set_nonzero_coeff(opt: CINTOpt, atm: np.ndarray, natm: int,
-                           bas: np.ndarray, nbas: int, env: np.ndarray) -> None:
+def compute_nonzero_coeffs(bas: np.ndarray, nbas: int,
+                           env: np.ndarray) -> tuple[Optional[list], Optional[list]]:
     """
-    Populate opt.non0ctr and opt.sortedidx for all shells.
+    Compute non-zero contraction indices and counts for all shells.
 
-    Both are lists of per-shell array views into a single contiguous
-    buffer, mirroring the C malloc + pointer-walk pattern.
+    Returns (non0ctr, sortedidx) — lists of per-shell arrays,
+    or (None, None) if no primitives.
     """
     nprims       = bas[:nbas, NPRIM_OF].astype(int)
     nctrs        = bas[:nbas, NCTR_OF].astype(int)
     tot_prim     = int(nprims.sum())
     tot_prim_ctr = int((nprims * nctrs).sum())
     if tot_prim == 0:
-        return
+        return None, None
 
     pnon0ctr   = np.empty(tot_prim,     dtype=np.int32)
     psortedidx = np.empty(tot_prim_ctr, dtype=np.int32)
 
-    opt.non0ctr   = []
-    opt.sortedidx = []
+    non0ctr_list   = []
+    sortedidx_list = []
     p0 = pc0 = 0
 
     for i in range(nbas):
@@ -316,11 +316,13 @@ def set_nonzero_coeff(opt: CINTOpt, atm: np.ndarray, natm: int,
         pnon0ctr  [p0          : p0 + ip]       = n0
         psortedidx[pc0         : pc0 + ip * ic] = sidx.ravel()
 
-        opt.non0ctr.append(  pnon0ctr  [p0  : p0 + ip])
-        opt.sortedidx.append(psortedidx[pc0 : pc0 + ip * ic].reshape(ip, ic))
+        non0ctr_list.append(  pnon0ctr  [p0  : p0 + ip])
+        sortedidx_list.append(psortedidx[pc0 : pc0 + ip * ic].reshape(ip, ic))
 
         p0  += ip
         pc0 += ip * ic
+
+    return non0ctr_list, sortedidx_list
 
 
 # ================================================================
@@ -418,21 +420,18 @@ def compute_g_index_1e(envs: CINTEnvVars) -> np.ndarray:
     return idx
 
 
-def generate_index_xyz(opt: CINTOpt,
-            finit,
-            findex_xyz,
-            order: int,
-            max_l_override: int,
-            ng: np.ndarray,
-            atm: np.ndarray, natm: int,
-            bas: np.ndarray, nbas: int,
-            env: np.ndarray) -> None:
+def generate_index_xyz(finit, findex_xyz,
+                       order: int, max_l_override: int,
+                       ng: np.ndarray,
+                       atm: np.ndarray, natm: int,
+                       bas: np.ndarray, nbas: int,
+                       env: np.ndarray) -> list:
     """
     Pre-compute g-array index maps for all shell-pair angular momentum
-    combinations and store in opt.index_xyz_array.
+    combinations.
 
-    opt.index_xyz_array[i*LMAX1 + j] holds a (nf*3,) int32 array for
-    the shell pair with angular momenta (l=i, l=j).
+    Returns a list where entry [i*LMAX1 + j] holds a (nf*3,) int32
+    array for the shell pair with angular momenta (l=i, l=j).
 
     Parameters
     ----------
@@ -446,7 +445,7 @@ def generate_index_xyz(opt: CINTOpt,
     fakenbas = max_l + 1
 
     from itertools import product as _prod
-    opt.index_xyz_array = [None] * ((max_l + 1) * (LMAX1 ** (order - 1)))
+    index_xyz_array = [None] * ((max_l + 1) * (LMAX1 ** (order - 1)))
     envs = CINTEnvVars()
     rng = range(max_l + 1)
 
@@ -454,51 +453,42 @@ def generate_index_xyz(opt: CINTOpt,
         shls = np.array(list(combo) + [0] * (4 - order), dtype=np.int32)
         finit(envs, ng, shls, atm, natm, fakebas, fakenbas, env)
         flat_idx = sum(c * LMAX1 ** (order - 1 - p) for p, c in enumerate(combo))
-        opt.index_xyz_array[flat_idx] = findex_xyz(envs)
+        index_xyz_array[flat_idx] = findex_xyz(envs)
+
+    return index_xyz_array
 
 
 # ================================================================
 # Top-level entry points
 # ================================================================
-def create_optimizer(atm: np.ndarray, natm: int,
-                           bas: np.ndarray, nbas: int,
-                           env: np.ndarray) -> CINTOpt:
-    """
-    Allocate a CINTOpt with all fields None (mirrors C malloc + NULL init).
-    Real population is done by the three Set functions called below.
-    """
-    return CINTOpt(nbas=nbas)
 
-
-def populate_optimizer_1e(opt: CINTOpt, ng: np.ndarray,
-                          atm: np.ndarray, natm: int,
-                          bas: np.ndarray, nbas: int,
-                          env: np.ndarray) -> None:
-    """Populate all three optimizer tables for a 1e integral."""
-    set_log_max_coeff(opt, atm, natm, bas, nbas, env)
-    set_nonzero_coeff(opt, atm, natm, bas, nbas, env)
-    generate_index_xyz(opt, init_envvars_1e, compute_g_index_1e,
-            2, 0, ng, atm, natm, bas, nbas, env)
-
-
-def _build_optimizer_1e(ng_list, opt_ref, atm, natm, bas, nbas, env):
-    """Common 1e optimizer entry point."""
-    ng  = np.array(ng_list, dtype=np.int32)
-    opt = create_optimizer(atm, natm, bas, nbas, env)
-    populate_optimizer_1e(opt, ng, atm, natm, bas, nbas, env)
-    return opt
+def _build_optimizer_1e(ng_list, atm, natm, bas, nbas, env):
+    """Common 1e optimizer builder."""
+    ng = np.array(ng_list, dtype=np.int32)
+    log_max_coeff = compute_log_max_coeffs(bas, nbas, env)
+    non0ctr, sortedidx = compute_nonzero_coeffs(bas, nbas, env)
+    index_xyz_array = generate_index_xyz(
+        init_envvars_1e, compute_g_index_1e,
+        2, 0, ng, atm, natm, bas, nbas, env)
+    return CINTOpt(
+        nbas=nbas,
+        log_max_coeff=log_max_coeff,
+        non0ctr=non0ctr,
+        sortedidx=sortedidx,
+        index_xyz_array=index_xyz_array,
+    )
 
 
 def build_overlap_optimizer(opt_ref, atm, natm, bas, nbas, env):
-    return _build_optimizer_1e([0, 0, 0, 0, 0, 1, 1, 1], opt_ref, atm, natm, bas, nbas, env)
+    return _build_optimizer_1e([0, 0, 0, 0, 0, 1, 1, 1], atm, natm, bas, nbas, env)
 
 
 def build_kinetic_optimizer(opt_ref, atm, natm, bas, nbas, env):
-    return _build_optimizer_1e([0, 2, 0, 0, 2, 1, 1, 1], opt_ref, atm, natm, bas, nbas, env)
+    return _build_optimizer_1e([0, 2, 0, 0, 2, 1, 1, 1], atm, natm, bas, nbas, env)
 
 
 def build_nuclear_optimizer(opt_ref, atm, natm, bas, nbas, env):
-    return _build_optimizer_1e([0, 0, 0, 0, 0, 1, 0, 1], opt_ref, atm, natm, bas, nbas, env)
+    return _build_optimizer_1e([0, 0, 0, 0, 0, 1, 0, 1], atm, natm, bas, nbas, env)
 
 _FAC_SP = [0.282094791773878, 0.488602511902920]
 
@@ -608,104 +598,111 @@ def compute_g_index_2e(envs: CINTEnvVars) -> np.ndarray:
                     n += 3
     return idx
 
-def compute_pair_data(pairdata: list, ai: np.ndarray, aj: np.ndarray,
-                     ri: np.ndarray, rj: np.ndarray,
-                     log_maxci: np.ndarray, log_maxcj: np.ndarray,
-                     li_ceil: int, lj_ceil: int,
-                     iprim: int, jprim: int,
-                     rr_ij: float, expcutoff: float) -> bool:
+def compute_pair_data(ai: np.ndarray, aj: np.ndarray,
+                      ri: np.ndarray, rj: np.ndarray,
+                      log_maxci: np.ndarray, log_maxcj: np.ndarray,
+                      li_ceil: int, lj_ceil: int,
+                      iprim: int, jprim: int,
+                      rr_ij: float, expcutoff: float) -> tuple[list, bool]:
     """
-    Precompute shell-pair screening data for all (ip, jp) primitive pairs.
-    Populates pairdata in-place (flat list length iprim*jprim, jp outer).
-    Returns True if ALL pairs are screened out (empty).
-    Uses math.exp to match C libm exactly (avoids numpy SVML 1-ULP difference).
+    Compute shell-pair screening data for all (ip, jp) primitive pairs.
+
+    Returns (pairdata, empty) where pairdata is a flat list of PairData
+    (length iprim*jprim, jp outer) and empty is True if all pairs are
+    screened out.
     """
     log_rr_ij = (li_ceil + lj_ceil + 1) * math.log(rr_ij + 1) / 2
-    empty = True;  n = 0
+    pairdata = []
+    empty = True
     for jp in range(jprim):
         for ip in range(iprim):
             aij   = 1.0 / (ai[ip] + aj[jp])
             eij   = rr_ij * ai[ip] * aj[jp] * aij
             cceij = eij - log_rr_ij - log_maxci[ip] - log_maxcj[jp]
-            pdata = pairdata[n];  pdata.cceij = cceij
             if cceij < expcutoff:
                 empty = False
-                pdata.rij[0] = (ai[ip] * ri[0] + aj[jp] * rj[0]) * aij
-                pdata.rij[1] = (ai[ip] * ri[1] + aj[jp] * rj[1]) * aij
-                pdata.rij[2] = (ai[ip] * ri[2] + aj[jp] * rj[2]) * aij
-                pdata.eij    = math.exp(-eij)
+                rij = np.array([
+                    (ai[ip] * ri[0] + aj[jp] * rj[0]) * aij,
+                    (ai[ip] * ri[1] + aj[jp] * rj[1]) * aij,
+                    (ai[ip] * ri[2] + aj[jp] * rj[2]) * aij,
+                ])
+                pairdata.append(PairData(rij=rij, eij=math.exp(-eij), cceij=cceij))
             else:
-                pdata.rij[:] = 0.0;  pdata.eij = 0.0
-            n += 1
-    return empty
+                pairdata.append(PairData(rij=np.zeros(3), eij=0.0, cceij=cceij))
+    return pairdata, empty
 
-def precompute_shell_pairs(opt: CINTOpt, ng: np.ndarray,
-                  atm: np.ndarray, natm: int,
-                  bas: np.ndarray, nbas: int,
-                  env: np.ndarray) -> None:
+def precompute_shell_pairs(ng: np.ndarray, log_max_coeff: list,
+                           atm: np.ndarray,
+                           bas: np.ndarray, nbas: int,
+                           env: np.ndarray) -> Optional[list]:
     """
-    Precompute shell-pair data for all (i, j) combinations.
+    Compute shell-pair data for all (i, j) combinations.
 
-    opt.pairdata[i*nbas+j] is one of:
+    Returns a list where entry [i*nbas+j] is one of:
       list of PairData  — non-negligible pair
       NOVALUE           — screened out
-      None              — not set (upper triangle, i<j, handled by symmetry)
+      None              — not set (upper triangle, handled by symmetry)
 
-    Upper triangle filled as transpose of lower: pairdata[j*nbas+i][ip*jprim+jp]
-    == pairdata[i*nbas+j][jp*iprim+ip].
+    Returns None if no primitives or too many for pairdata.
     """
     ecoff = env[PTR_EXPCUTOFF]
     expcutoff = EXPCUTOFF if ecoff == 0 else max(MIN_EXPCUTOFF, float(ecoff))
-    if opt.log_max_coeff is None:
-        set_log_max_coeff(opt, atm, natm, bas, nbas, env)
     tot_prim = int(bas[:nbas, NPRIM_OF].sum())
     if tot_prim == 0 or tot_prim > MAX_PGTO_FOR_PAIRDATA:
-        return
+        return None
     ij_inc   = int(ng[IINC]) + int(ng[JINC])
     kl_inc   = int(ng[KINC]) + int(ng[LINC])
     ijkl_inc = ij_inc if ij_inc > kl_inc else kl_inc
-    opt.pairdata = [None] * max(nbas * nbas, 1)
+    pairdata = [None] * max(nbas * nbas, 1)
     for i in range(nbas):
         ri        = env[atm[bas[i, ATOM_OF], PTR_COORD] : atm[bas[i, ATOM_OF], PTR_COORD] + 3]
         ai        = env[bas[i, PTR_EXP] : bas[i, PTR_EXP] + bas[i, NPRIM_OF]]
         iprim     = int(bas[i, NPRIM_OF]);  li = int(bas[i, ANG_OF])
-        log_maxci = opt.log_max_coeff[i]
+        log_maxci = log_max_coeff[i]
         for j in range(i + 1):
             rj        = env[atm[bas[j, ATOM_OF], PTR_COORD] : atm[bas[j, ATOM_OF], PTR_COORD] + 3]
             aj        = env[bas[j, PTR_EXP] : bas[j, PTR_EXP] + bas[j, NPRIM_OF]]
             jprim     = int(bas[j, NPRIM_OF]);  lj = int(bas[j, ANG_OF])
-            log_maxcj = opt.log_max_coeff[j]
+            log_maxcj = log_max_coeff[j]
             rr    = float(np.sum((ri - rj) ** 2))
-            pdata = [PairData(rij=np.zeros(3), eij=0.0, cceij=0.0)
-                     for _ in range(iprim * jprim)]
-            empty = compute_pair_data(pdata, ai, aj, ri, rj, log_maxci, log_maxcj,
-                                     li + ijkl_inc, lj, iprim, jprim, rr, expcutoff)
+            pdata, empty = compute_pair_data(
+                ai, aj, ri, rj, log_maxci, log_maxcj,
+                li + ijkl_inc, lj, iprim, jprim, rr, expcutoff)
             if i == 0 and j == 0:
-                opt.pairdata[0] = pdata
+                pairdata[0] = pdata
             elif not empty:
-                opt.pairdata[i * nbas + j] = pdata
+                pairdata[i * nbas + j] = pdata
                 if i != j:
                     pdata_T = [deepcopy(pdata[jp * iprim + ip])
                                for ip in range(iprim) for jp in range(jprim)]
-                    opt.pairdata[j * nbas + i] = pdata_T
+                    pairdata[j * nbas + i] = pdata_T
             else:
-                opt.pairdata[i * nbas + j] = NOVALUE
-                opt.pairdata[j * nbas + i] = NOVALUE
+                pairdata[i * nbas + j] = NOVALUE
+                pairdata[j * nbas + i] = NOVALUE
+    return pairdata
 
-def populate_optimizer_2e(opt: CINTOpt, ng: np.ndarray,
-                          atm: np.ndarray, natm: int,
-                          bas: np.ndarray, nbas: int,
-                          env: np.ndarray) -> None:
-    """
-    Populate all optimizer tables for a 2e integral:
-      - pairdata     via precompute_shell_pairs       (includes log_max_coeff)
-      - non0coeff    via set_nonzero_coeff
-      - index_xyz    via generate_index_xyz with order=4 and init_envvars_2e
-    """
-    precompute_shell_pairs(opt, ng, atm, natm, bas, nbas, env)
-    set_nonzero_coeff(opt, atm, natm, bas, nbas, env)
-    generate_index_xyz(opt, init_envvars_2e, compute_g_index_2e,
-            4, 0, ng, atm, natm, bas, nbas, env)
+def _build_optimizer_2e(ng: np.ndarray,
+                       atm: np.ndarray, natm: int,
+                       bas: np.ndarray, nbas: int,
+                       env: np.ndarray) -> CINTOpt:
+    """Build a fully populated 2e optimizer."""
+    log_max_coeff = compute_log_max_coeffs(bas, nbas, env)
+    pairdata = None
+    if log_max_coeff is not None:
+        pairdata = precompute_shell_pairs(
+            ng, log_max_coeff, atm, bas, nbas, env)
+    non0ctr, sortedidx = compute_nonzero_coeffs(bas, nbas, env)
+    index_xyz_array = generate_index_xyz(
+        init_envvars_2e, compute_g_index_2e,
+        4, 0, ng, atm, natm, bas, nbas, env)
+    return CINTOpt(
+        nbas=nbas,
+        log_max_coeff=log_max_coeff,
+        pairdata=pairdata,
+        non0ctr=non0ctr,
+        sortedidx=sortedidx,
+        index_xyz_array=index_xyz_array,
+    )
 
 def init_envvars_3c2e(envs: CINTEnvVars, ng: np.ndarray, shls: np.ndarray,
                              atm: np.ndarray, natm: int,
@@ -780,29 +777,34 @@ def init_envvars_3c2e(envs: CINTEnvVars, ng: np.ndarray, shls: np.ndarray,
 
 
 def build_3c2e_optimizer(opt_ref,
-                            atm: np.ndarray, natm: int,
-                            bas: np.ndarray, nbas: int,
-                            env: np.ndarray) -> CINTOpt:
+                         atm: np.ndarray, natm: int,
+                         bas: np.ndarray, nbas: int,
+                         env: np.ndarray) -> CINTOpt:
     """3c2e optimizer entry point."""
-    ng  = np.array([0, 0, 0, 0, 0, 1, 1, 1], dtype=np.int32)
-    opt = create_optimizer(atm, natm, bas, nbas, env)
-    precompute_shell_pairs(opt, ng, atm, natm, bas, nbas, env)
-    set_nonzero_coeff(opt, atm, natm, bas, nbas, env)
-    generate_index_xyz(opt, init_envvars_3c2e, compute_g_index_2e,
-            3, 0, ng, atm, natm, bas, nbas, env)
-    return opt
+    ng = np.array([0, 0, 0, 0, 0, 1, 1, 1], dtype=np.int32)
+    log_max_coeff = compute_log_max_coeffs(bas, nbas, env)
+    pairdata = None
+    if log_max_coeff is not None:
+        pairdata = precompute_shell_pairs(
+            ng, log_max_coeff, atm, bas, nbas, env)
+    non0ctr, sortedidx = compute_nonzero_coeffs(bas, nbas, env)
+    index_xyz_array = generate_index_xyz(
+        init_envvars_3c2e, compute_g_index_2e,
+        3, 0, ng, atm, natm, bas, nbas, env)
+    return CINTOpt(
+        nbas=nbas,
+        log_max_coeff=log_max_coeff,
+        pairdata=pairdata,
+        non0ctr=non0ctr,
+        sortedidx=sortedidx,
+        index_xyz_array=index_xyz_array,
+    )
 
 
 def build_2e_optimizer(opt_ref,
-                           atm: np.ndarray, natm: int,
-                           bas: np.ndarray, nbas: int,
-                           env: np.ndarray) -> CINTOpt:
-    """
-    2e optimizer entry point. Matches C signature:
-        void build_2e_optimizer(CINTOpt **opt, ...)
-    opt_ref is ignored; Python returns the opt instead of writing through a pointer.
-    """
-    ng  = np.array([0, 0, 0, 0, 0, 1, 1, 1], dtype=np.int32)
-    opt = create_optimizer(atm, natm, bas, nbas, env)
-    populate_optimizer_2e(opt, ng, atm, natm, bas, nbas, env)
-    return opt
+                       atm: np.ndarray, natm: int,
+                       bas: np.ndarray, nbas: int,
+                       env: np.ndarray) -> CINTOpt:
+    """2e optimizer entry point. opt_ref is ignored (C-compat signature)."""
+    ng = np.array([0, 0, 0, 0, 0, 1, 1, 1], dtype=np.int32)
+    return _build_optimizer_2e(ng, atm, natm, bas, nbas, env)
