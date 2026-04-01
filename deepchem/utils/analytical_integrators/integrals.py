@@ -19,16 +19,13 @@ from deepchem.utils.analytical_integrators.optimizer import (
     init_envvars_2e, compute_g_index_2e,
     init_envvars_3c2e,
     ATOM_OF, ANG_OF, NPRIM_OF, NCTR_OF, PTR_EXP, PTR_COEFF,
-    PTR_COORD, EXPCUTOFF, MIN_EXPCUTOFF, PTR_EXPCUTOFF,
-    BAS_SLOTS, ATM_SLOTS,
+    PTR_COORD,
 )
 from deepchem.utils.analytical_integrators.spherical import rys_roots
 
 SQRTPI = math.sqrt(math.pi)
 
-# ================================================================
 # Cartesian-to-spherical transformation matrices
-# ================================================================
 # Standard real solid harmonic transformation coefficients.
 # For l=0,1: cart and sph are equivalent (sph_harmonic_norm handles norm).
 # For l>=2: full transformation matrices needed.
@@ -171,9 +168,7 @@ def cart_to_sph_2e(gctr, i_l, j_l, k_l, l_l, x_ctr, nfi, nfj, nfk, nfl, nf):
     return out
 
 
-# ================================================================
 # G-value generation (recurrence relations)
-# ================================================================
 
 def _g_vertical_horizontal_recurrence(g, envs, gz0_fac, rir0, cfac, aij):
     """Unified vertical + horizontal recurrence for 1e g-values.
@@ -218,9 +213,7 @@ def compute_g_nuclear(g, aij, rij, cr, t2, fac, envs):
     _g_vertical_horizontal_recurrence(g, envs, 2.0 * math.pi * fac, rir0, 0.5 * (1.0 - t2) / aij, aij)
 
 
-# ================================================================
 # Nabla (derivative) operators for kinetic energy
-# ================================================================
 
 def apply_nabla_j_1e(f, g, li, lj, lk, envs):
     """Compute nabla_j g-values for kinetic energy integrals."""
@@ -247,9 +240,7 @@ def apply_nabla_j_1e(f, g, li, lj, lk, envs):
                 fz[i] = j * gz[i - dj] + aj2 * gz[i + dj]
 
 
-# ================================================================
 # Gout extraction functions
-# ================================================================
 
 def extract_gout_overlap(gout, g, idx, envs):
     """Extract overlap gout using vectorized indexing."""
@@ -300,13 +291,9 @@ def extract_gout_2e(gout, g, idx, envs, gout_empty):
         gout[:envs.nf] += s
 
 
-# ================================================================
 # Primitive-to-contracted transformation
-# ================================================================
 
-# ================================================================
 # 1e integral loops
-# ================================================================
 
 def primitive_loop_1e(envs, atm, bas, env):
     """
@@ -473,9 +460,7 @@ def primitive_loop_1e_nuclear(envs, atm, bas, env, charge_fac, nuc_id):
     return gctr, has_value
 
 
-# ================================================================
 # 1e integral driver
-# ================================================================
 
 INT1E_TYPE_OVLP = 0
 INT1E_TYPE_RINV = 1
@@ -514,9 +499,7 @@ def driver_1e(envs, atm, bas, env, int1e_type):
     return cart_to_sph_1e(gctr, envs.i_l, envs.j_l, i_ctr, j_ctr, nfi, nfj, nf)
 
 
-# ================================================================
 # Top-level 1e integral functions
-# ================================================================
 
 def _compute_1e_sph_common(out, dims, shls, atm, natm, bas, nbas, env, ng, f_gout, int1e_type, fac=1.0):
     """Common driver for all 1e spherical integrals."""
@@ -560,9 +543,7 @@ def compute_nuclear_1e_sph(out, dims, shls, atm, natm, bas, nbas, env, opt=None,
                              ng, extract_gout_nuclear, INT1E_TYPE_NUC)
 
 
-# ================================================================
 # 2e integral: g-value generation
-# ================================================================
 
 def g_rys_2d_recurrence(g, bc, envs):
     """2D Rys polynomial recurrence for 2e integrals."""
@@ -749,9 +730,7 @@ def compute_g_2e(g, fac, envs):
     return True
 
 
-# ================================================================
 # 2e integral loop
-# ================================================================
 
 def primitive_loop_2e(envs, atm, bas, env):
     """
@@ -943,9 +922,7 @@ def compute_eri_2e_sph(out, dims, shls, atm, natm, bas, nbas, env, opt=None, cac
     return 1
 
 
-# ================================================================
 # GTO driver functions
-# ================================================================
 
 def assemble_2center_integrals(intor, out, comp, hermi, shls_slice, ao_loc,
              opt, atm, natm, bas, nbas, env):
@@ -1032,9 +1009,7 @@ def fill_4center_driver(intor, fill, eri, comp, shls_slice, ao_loc,
              ao_loc, opt, atm, natm, bas, nbas, env)
 
 
-# ================================================================
 # 3-center 2-electron integrals
-# ================================================================
 
 def primitive_loop_3c2e(envs, atm, bas, env):
     """
@@ -1278,9 +1253,7 @@ def fill_3center_driver(intor, fill, eri, comp, shls_slice, ao_loc,
              opt, atm, natm, bas, nbas, env)
 
 
-# ================================================================
 # Fourier Transform of GTO basis functions
-# ================================================================
 
 def _ft_1d_polynomial(k, n, a2):
     """Compute the 1D polynomial P_n(-ik*a2) for FT of x^n * exp(-alpha*x^2).
@@ -1425,9 +1398,7 @@ def evaluate_gto_ft(wrapper, gvgrid):
     return out
 
 
-# ================================================================
 # GTO grid evaluator (replaces CGTO().GTOval_*_sph/cart)
-# ================================================================
 
 def evaluate_gto_grid(wrapper, shortname, rgrid, spherical):
     """Pure Python GTO grid evaluator.
@@ -1604,9 +1575,7 @@ def evaluate_gto_grid(wrapper, shortname, rgrid, spherical):
     return out
 
 
-# ================================================================
 # Integral function registry (maps opname -> Python function)
-# ================================================================
 
 INTEGRAL_REGISTRY = {
     'int1e_ovlp_sph': compute_overlap_1e_sph,

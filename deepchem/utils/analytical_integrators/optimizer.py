@@ -41,9 +41,7 @@ import numpy as np
 from dataclasses import dataclass
 from typing import Optional, Callable
 
-# ================================================================
 # Constants
-# ================================================================
 LMAX1             = 16
 BAS_SLOTS         = 8
 ATM_SLOTS         = 6
@@ -85,9 +83,7 @@ SQRTPI            = math.sqrt(math.pi)
 # sentinel for screened-out shell pairs (mirrors C NOVALUE macro)
 NOVALUE           = object()
 
-# ================================================================
 # Data structures
-# ================================================================
 class PairData:
     """Shell-pair precomputed data (populated separately, not by optimizer)."""
     def __init__(self, rij: np.ndarray, eij: float, cceij: float):
@@ -178,9 +174,7 @@ class CINTEnvVars:
     f_gout:    Optional[Callable]  = None
 
 
-# ================================================================
 # cartesian_components
-# ================================================================
 def cartesian_components(lmax: int) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
     Generate Cartesian component exponents (nx, ny, nz) for angular
@@ -206,9 +200,7 @@ def cartesian_components(lmax: int) -> tuple[np.ndarray, np.ndarray, np.ndarray]
     return nx, ny, nz
 
 
-# ================================================================
 # log_max_coeff
-# ================================================================
 def _compute_log_max_coeff(log_maxc: np.ndarray, coeff: np.ndarray,
                          nprim: int, ictr: int) -> None:
     """
@@ -256,9 +248,7 @@ def compute_log_max_coeffs(bas: np.ndarray, nbas: int,
     return result
 
 
-# ================================================================
 # non0coeff
-# ================================================================
 def nonzero_coeff_by_shell(ci: np.ndarray, iprim: int,
                                ictr: int) -> tuple[np.ndarray, np.ndarray]:
     """
@@ -325,9 +315,7 @@ def compute_nonzero_coeffs(bas: np.ndarray, nbas: int,
     return non0ctr_list, sortedidx_list
 
 
-# ================================================================
 # generate_index_xyz helpers
-# ================================================================
 def _make_fake_basis(bas: np.ndarray, nbas: int) -> tuple[np.ndarray, int]:
     """
     Build a minimal fake basis with one shell per angular momentum 0..max_l.
@@ -458,9 +446,7 @@ def generate_index_xyz(finit, findex_xyz,
     return index_xyz_array
 
 
-# ================================================================
 # Top-level entry points
-# ================================================================
 
 def _build_optimizer_1e(ng_list, atm, natm, bas, nbas, env):
     """Common 1e optimizer builder."""
