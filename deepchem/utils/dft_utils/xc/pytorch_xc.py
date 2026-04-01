@@ -42,6 +42,12 @@ class PyTorchLDA(BaseXC):
     - `getparamnames` method needs to be implemented in all the subclasses of BaseXC.
     - `init` method usage `getattr` builtin function to find the implemented functional.
       so there should be no need to update it in normal situation.
+
+    References
+    ----------
+    .. [1] Dirac, P. a. M. (1930). Note on exchange phenomena in the Thomas
+       Atom. Mathematical Proceedings of the Cambridge Philosophical Society,
+       26(3), 376–385. https://doi.org/10.1017/s0305004100016108
     """
 
     def __init__(self, name: str = "lda_x"):
@@ -103,9 +109,9 @@ class PyTorchLDA(BaseXC):
 
         References
         ----------
-        [1].. Dirac, P. a. M. (1930). Note on exchange phenomena in the Thomas
-              Atom. Mathematical Proceedings of the Cambridge Philosophical Society,
-              26(3), 376–385. https://doi.org/10.1017/s0305004100016108
+        .. [1] Dirac, P. a. M. (1930). Note on exchange phenomena in the Thomas
+           Atom. Mathematical Proceedings of the Cambridge Philosophical Society,
+           26(3), 376–385. https://doi.org/10.1017/s0305004100016108
         """
         C_x = torch.tensor(0.75 * ((3.0 / torch.pi)**(1.0 / 3.0)))
         n_safe = torch.clamp(n, min=1e-12)
@@ -175,9 +181,6 @@ class PyTorchGGA(BaseXC):
     capture the inhomogeneities of real electron densities, giving improved
     accuracy for molecules, surfaces, and systems with rapidly varying densities.
 
-    The PBE (Perdew-Burke-Ernzerhof) exchange functional implemented here
-    matches libxc ``GGA_X_PBE`` (id=101) to machine precision.
-
     Examples
     --------
     >>> from deepchem.utils.dft_utils import Mol, KS
@@ -191,13 +194,7 @@ class PyTorchGGA(BaseXC):
 
     Notes
     -----
-    - Available functionals: ``gga_x_pbe``
-    - ``densinfo.grad`` has shape ``(*BD, ndim, nr)`` — spatial dimensions
-      ``ndim`` come **before** grid points ``nr``, matching DeepChem's
-      internal layout (see ``hcgto.py`` lines 718–753).
-    - sigma is computed as ``torch.einsum("...dr,...dr->...r", grad, grad)``,
-      which contracts over the ``ndim`` axis (``d``) and preserves the
-      autograd graph needed by ``BaseXC.get_vxc``.
+    - Available functionals: `gga_x_pbe`
 
     References
     ----------
@@ -254,6 +251,9 @@ class PyTorchGGA(BaseXC):
         for spin=0 each channel has :math:`\\rho_\\sigma = \\rho/2` and
         :math:`|\\nabla\\rho_\\sigma| = |\\nabla\\rho|/2`, giving
         :math:`x_\\sigma = 2^{1/3}\\sqrt{\\sigma}/\\rho^{4/3}`.
+    
+        The PBE (Perdew-Burke-Ernzerhof) exchange functional implemented here
+        matches libxc `GGA_X_PBE` (id=101) to machine precision.
 
         Parameters
         ----------

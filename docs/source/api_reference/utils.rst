@@ -714,14 +714,17 @@ the correct function in :code:`get_edensityxc` which processes the calculation i
 
 Available XC Functionals:
 1. LDA_X
+101. GGA_X_PBE
 
 Note: In this list the numbers on the left are the codes assigned to them in libxc.
 
-References:
-
-- `Susi Lehtola, Conrad Steigemann, Micael J. T. Oliveira, and Miguel A. L. Marques, Recent developments in Libxc - A comprehensive library of functionals for density functional theory, Software X 7, 1 (2018)`
-
 .. autoclass:: deepchem.utils.dft_utils.xc.pytorch_xc.PyTorchLDA
+  :members:
+
+.. autoclass:: deepchem.utils.dft_utils.xc.pytorch_xc.PyTorchGGA
+  :members:
+
+.. autoclass:: deepchem.utils.dft_utils.xc.pytorch_xc.PyTorchMGGA
   :members:
 
 Attribute Utilities
