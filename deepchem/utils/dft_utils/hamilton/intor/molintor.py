@@ -5,11 +5,11 @@ import operator
 from functools import reduce
 import numpy as np
 import torch
-from deepchem.utils.analytical_integrators.optimizer import (
+from deepchem.utils.analytical_integrators_torch.optimizer import (
     build_overlap_optimizer, build_kinetic_optimizer, build_nuclear_optimizer,
     build_2e_optimizer, build_3c2e_optimizer,
 )
-from deepchem.utils.analytical_integrators.integrals import (
+from deepchem.utils.analytical_integrators_torch.integrals import (
     INTEGRAL_REGISTRY,
     assemble_2center_integrals as py_GTOint2c,
     fill_4center_driver as py_GTOnr2e_fill_drv,
@@ -1372,7 +1372,10 @@ class Intor(object):
         assert len(wrappers) > 0
         wrapper0 = wrappers[0]
         self.int_type = int_nmgr.int_type
-        self.atm, self.bas, self.env = wrapper0.atm_bas_env
+        _atm, _bas, _env = wrapper0.atm_bas_env
+        self.atm = torch.as_tensor(_atm, dtype=torch.int32)
+        self.bas = torch.as_tensor(_bas, dtype=torch.int32)
+        self.env = torch.as_tensor(_env, dtype=torch.float64)
         self.wrapper0 = wrapper0
         self.int_nmgr = int_nmgr
         self.wrapper_uniqueness = _get_uniqueness([id(w) for w in wrappers])
@@ -1421,8 +1424,8 @@ class Intor(object):
             Tensor containing the calculated 2-centre integrals.
         """
         outshape = self.outshape
-        out = np.empty((*outshape[:-2], outshape[-1], outshape[-2]),
-                       dtype=np.float64)
+        out = torch.zeros((*outshape[:-2], outshape[-1], outshape[-2]),
+                          dtype=torch.float64)
 
         # Pure Python driver
         ao_loc = self.wrapper0.full_shell_to_aoloc
@@ -1431,7 +1434,7 @@ class Intor(object):
                     self.optimizer, self.atm, self.atm.shape[0],
                     self.bas, self.bas.shape[0], self.env)
 
-        out = np.swapaxes(out, -2, -1)
+        out = out.swapaxes(-2, -1)
         return self._to_tensor(out)
 
     def _int3c(self) -> torch.Tensor:
@@ -1444,8 +1447,8 @@ class Intor(object):
             Tensor containing the calculated 3-centre integrals.
         """
         outsh = self.outshape
-        out = np.zeros((*outsh[:-3], outsh[-1], outsh[-2], outsh[-3]),
-                       dtype=np.float64)
+        out = torch.zeros((*outsh[:-3], outsh[-1], outsh[-2], outsh[-3]),
+                          dtype=torch.float64)
         ao_loc = self.wrapper0.full_shell_to_aoloc
         py_GTOnr3c_drv(
             self.op, py_GTOnr3c_fill_s1, out.ravel(),
@@ -1453,7 +1456,7 @@ class Intor(object):
             self.optimizer, self.atm, self.atm.shape[0],
             self.bas, self.bas.shape[0], self.env)
 
-        out = np.swapaxes(out, -3, -1)
+        out = out.swapaxes(-3, -1)
         return self._to_tensor(out)
 
     def _int4c(self) -> torch.Tensor:
@@ -1465,13 +1468,7 @@ class Intor(object):
         torch.Tensor
             Tensor containing the calculated 4-centre integrals.
         """
-        symm = self.int_nmgr.get_intgl_symmetry(self.wrapper_uniqueness)
-        outshape = symm.get_reduced_shape(self.outshape)
-
-        out = np.empty(outshape, dtype=np.float64)
-
-        # Pure Python: compute full (unreduced) 4D integrals
-        out = np.zeros(self.outshape, dtype=np.float64)
+        out = torch.zeros(self.outshape, dtype=torch.float64)
         ao_loc = self.wrapper0.full_shell_to_aoloc
         py_GTOnr2e_fill_drv(
             self.op, py_GTOnr2e_fill_s1, out.ravel(),
@@ -1481,27 +1478,12 @@ class Intor(object):
         return self._to_tensor(out)
 
 
-    def _to_tensor(self, out: np.ndarray) -> torch.Tensor:
-        """
-        Convert numpy array to tensor.
-
-        Parameters
-        ----------
-        out : np.ndarray
-            Numpy array to be converted.
-
-        Returns
-        -------
-        torch.Tensor
-            Tensor containing the converted array.
-        """
-        return torch.as_tensor(out,
-                               dtype=self.wrapper0.dtype,
-                               device=self.wrapper0.device)
+    def _to_tensor(self, out: torch.Tensor) -> torch.Tensor:
+        return out.to(dtype=self.wrapper0.dtype, device=self.wrapper0.device)
 
 
-def _get_intgl_optimizer(opname: str, atm: np.ndarray, bas: np.ndarray,
-                         env: np.ndarray) -> ctypes.c_void_p:
+def _get_intgl_optimizer(opname: str, atm: torch.Tensor, bas: torch.Tensor,
+                         env: torch.Tensor) -> ctypes.c_void_p:
     """
     Get the optimizer for the integral.
 

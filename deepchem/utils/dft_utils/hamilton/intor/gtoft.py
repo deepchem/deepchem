@@ -3,7 +3,7 @@ import numpy as np
 from typing import Tuple, Optional
 from deepchem.utils import get_complex_dtype
 from deepchem.utils.dft_utils import LibcintWrapper, AtomCGTOBasis, CGTOBasis
-from deepchem.utils.analytical_integrators.integrals import evaluate_gto_ft
+from deepchem.utils.analytical_integrators_torch.integrals import evaluate_gto_ft
 
 
 NDIM = 3
