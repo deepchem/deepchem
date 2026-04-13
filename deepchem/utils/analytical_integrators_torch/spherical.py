@@ -9,14 +9,14 @@ differentiation on the moment equations in the backward pass.
 import torch
 import mpmath
 
-_DPS = 50  # working precision (decimal digits)
+DPS = 50  # working precision (decimal digits)
 
 
-def _boys(mmax, x):
+def boys(mmax, x):
     """Boys function F_m(x) for m=0..mmax. Taylor series for small x (stable),
     upward recurrence otherwise."""
     x = mpmath.mpf(x)
-    eps = mpmath.power(10, -_DPS - 2)
+    eps = mpmath.power(10, -DPS - 2)
     if x < mpmath.mpf("0.5") * (mmax + 1):
         f = []
         for m in range(mmax + 1):
@@ -36,7 +36,7 @@ def _boys(mmax, x):
     return f
 
 
-def _poly(a, x):
+def poly(a, x):
     """Horner evaluation; a[0]=constant, a[-1]=leading coefficient."""
     p = a[-1]
     for c in reversed(a[:-1]):
@@ -44,7 +44,7 @@ def _poly(a, x):
     return p
 
 
-def _schmidt(f, n):
+def schmidt(f, n):
     """Modified Gram-Schmidt orthogonalization on Boys function moments."""
     cs = [[mpmath.mpf(0)] * n for _ in range(n)]
     cs[0][0] = 1 / mpmath.sqrt(f[0])
@@ -67,14 +67,14 @@ def _schmidt(f, n):
     return cs
 
 
-def _find_roots(coeffs, rt, tol):
+def find_roots(coeffs, rt, tol):
     """Bisection/secant root-finding in brackets defined by rt.
     Missing roots (same sign at both bracket ends) get sentinel value 1."""
     result = []
     x1i, p1i = mpmath.mpf(0), coeffs[0]
     for m in range(len(coeffs) - 1):
         x0, p0, x1i = x1i, p1i, rt[m]
-        p1i = _poly(coeffs, x1i)
+        p1i = poly(coeffs, x1i)
         if p1i == 0:
             result.append(x1i)
             continue
@@ -82,19 +82,19 @@ def _find_roots(coeffs, rt, tol):
             result.append(mpmath.mpf(1))
             continue
         x0, x1 = (x0, x1i) if x0 <= x1i else (x1i, x0)
-        p0, p1 = _poly(coeffs, x0), _poly(coeffs, x1)
+        p0, p1 = poly(coeffs, x0), poly(coeffs, x1)
         xi = x0 + (x0 - x1) / (p1 - p0) * p0
         for _ in range(600):
             if not (x1 > tol + x0 or x0 > x1 + tol):
                 break
-            pi = _poly(coeffs, xi)
+            pi = poly(coeffs, xi)
             if pi == 0:
                 break
             if p0 * pi <= 0:
                 x1, p1, xi = xi, pi, 0.25 * x0 + 0.75 * xi
             else:
                 x0, p0, xi = xi, pi, 0.75 * xi + 0.25 * x1
-            pi = _poly(coeffs, xi)
+            pi = poly(coeffs, xi)
             if pi == 0:
                 break
             if p0 * pi <= 0:
@@ -106,13 +106,13 @@ def _find_roots(coeffs, rt, tol):
     return result
 
 
-def _rys_roots_impl(nroots, x_val):
+def rys_roots_impl(nroots, x_val):
     """Plain-Python Rys roots/weights. Called inside forward()."""
-    with mpmath.workdps(_DPS):
-        tol = mpmath.power(10, -(_DPS - 5))
-        f = _boys(2 * nroots, x_val)
+    with mpmath.workdps(DPS):
+        tol = mpmath.power(10, -(DPS - 5))
+        f = boys(2 * nroots, x_val)
         n = nroots + 1
-        cs = _schmidt(f, n)
+        cs = schmidt(f, n)
 
         if nroots == 1:
             r = f[1] / f[0]
@@ -124,7 +124,7 @@ def _rys_roots_impl(nroots, x_val):
 
         for k in range(2, nroots):
             col = k + 1
-            new = _find_roots([cs[i][col] for i in range(col + 1)], rt[:col], tol)
+            new = find_roots([cs[i][col] for i in range(col + 1)], rt[:col], tol)
             for i, r in enumerate(new):
                 rt[i] = r
 
@@ -134,7 +134,7 @@ def _rys_roots_impl(nroots, x_val):
             if r >= 1:
                 continue
             dum = 1 / f[0] + sum(
-                _poly([cs[i][j] for i in range(j + 1)], r) ** 2
+                poly([cs[i][j] for i in range(j + 1)], r) ** 2
                 for j in range(1, nroots)
             )
             roots[k] = float(r / (1 - r))
@@ -143,7 +143,7 @@ def _rys_roots_impl(nroots, x_val):
     return roots, weights
 
 
-class _RysRootsAutograd(torch.autograd.Function):
+class RysRootsAutograd(torch.autograd.Function):
     """Differentiable Rys quadrature via implicit differentiation.
 
     Moment equations: sum_k w_k * t_k^m = F_m(x), m = 0..2n-1
@@ -154,7 +154,7 @@ class _RysRootsAutograd(torch.autograd.Function):
     @staticmethod
     def forward(ctx, nroots, x):
         x_val = x.detach().item()
-        roots_list, weights_list = _rys_roots_impl(nroots, x_val)
+        roots_list, weights_list = rys_roots_impl(nroots, x_val)
         roots_t = torch.tensor(roots_list, dtype=x.dtype, device=x.device)
         weights_t = torch.tensor(weights_list, dtype=x.dtype, device=x.device)
         ctx.save_for_backward(roots_t, weights_t, x)
@@ -171,7 +171,7 @@ class _RysRootsAutograd(torch.autograd.Function):
         t = roots / (1.0 + roots)
 
         # dF_m/dx = -F_{m+1}(x)
-        f = _boys(2 * nroots, x_val)
+        f = boys(2 * nroots, x_val)
         dF = torch.tensor([-float(f[m + 1]) for m in range(2 * nroots)],
                           dtype=x.dtype, device=x.device)
 
@@ -212,4 +212,4 @@ def rys_roots(nroots, x):
     -------
     roots, weights : torch.Tensor, each shape (nroots,)
     """
-    return _RysRootsAutograd.apply(nroots, x)
+    return RysRootsAutograd.apply(nroots, x)

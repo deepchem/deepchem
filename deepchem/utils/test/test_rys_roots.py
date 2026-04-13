@@ -1,6 +1,6 @@
 """Tests for differentiable Rys quadrature (spherical.py)."""
 import torch
-from deepchem.utils.analytical_integrators_torch.spherical import rys_roots, _boys
+from deepchem.utils.analytical_integrators_torch.spherical import rys_roots, boys
 
 
 def test_moment_equations():
@@ -9,7 +9,7 @@ def test_moment_equations():
     x = torch.tensor(2.5, dtype=torch.float64)
     roots, weights = rys_roots(nroots, x)
     t = roots / (1.0 + roots)
-    f = _boys(2 * nroots - 1, x.item())
+    f = boys(2 * nroots - 1, x.item())
     for m in range(2 * nroots):
         lhs = (weights * t ** m).sum().item()
         assert abs(lhs - float(f[m])) < 1e-12, f"Moment {m} failed"

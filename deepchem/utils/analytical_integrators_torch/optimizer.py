@@ -174,7 +174,7 @@ def cartesian_components(lmax: int) -> tuple[torch.Tensor, torch.Tensor, torch.T
     return nx, ny, nz
 
 
-def _compute_log_max_coeff(log_maxc: torch.Tensor, coeff: torch.Tensor,
+def compute_log_max_coeff(log_maxc: torch.Tensor, coeff: torch.Tensor,
                            nprim: int, ictr: int) -> None:
     """Compute approx_log of max |coeff| over contractions for each primitive."""
     c = coeff.reshape(ictr, nprim)
@@ -199,7 +199,7 @@ def compute_log_max_coeffs(bas: torch.Tensor, nbas: int,
         ic = int(bas[i, NCTR_OF].item())
         ci = env[int(bas[i, PTR_COEFF].item()):int(bas[i, PTR_COEFF].item()) + ip * ic]
         slc = plog_maxc[offset:offset + ip]
-        _compute_log_max_coeff(slc, ci, ip, ic)
+        compute_log_max_coeff(slc, ci, ip, ic)
         result.append(slc)
         offset += ip
 
@@ -251,7 +251,7 @@ def compute_nonzero_coeffs(bas: torch.Tensor, nbas: int,
     return non0ctr_list, sortedidx_list
 
 
-def _make_fake_basis(bas: torch.Tensor, nbas: int) -> tuple[torch.Tensor, int]:
+def make_fake_basis(bas: torch.Tensor, nbas: int) -> tuple[torch.Tensor, int]:
     """Build a minimal fake basis with one shell per angular momentum 0..max_l."""
     max_l = int(bas[:nbas, ANG_OF].max().item())
     fakebas = torch.zeros((max_l + 1, BAS_SLOTS), dtype=torch.int32)
@@ -260,13 +260,13 @@ def _make_fake_basis(bas: torch.Tensor, nbas: int) -> tuple[torch.Tensor, int]:
     return fakebas, max_l
 
 
-_FAC_SP = [0.282094791773878, 0.488602511902920]
+FAC_SP = [0.282094791773878, 0.488602511902920]
 
 
 def sph_harmonic_norm(l: int) -> float:
     """Spherical harmonic normalisation for s/p shells; 1.0 for l >= 2."""
-    if l == 0: return _FAC_SP[0]
-    if l == 1: return _FAC_SP[1]
+    if l == 0: return FAC_SP[0]
+    if l == 1: return FAC_SP[1]
     return 1.0
 
 
@@ -342,7 +342,7 @@ def generate_index_xyz(finit, findex_xyz,
                        bas: torch.Tensor, nbas: int,
                        env: torch.Tensor) -> list:
     """Pre-compute g-array index maps for all shell-pair angular momentum combinations."""
-    fakebas, max_l1 = _make_fake_basis(bas, nbas)
+    fakebas, max_l1 = make_fake_basis(bas, nbas)
     max_l = max_l1 if max_l_override == 0 else min(max_l_override, max_l1)
     fakenbas = max_l + 1
 
@@ -360,7 +360,7 @@ def generate_index_xyz(finit, findex_xyz,
     return index_xyz_array
 
 
-def _build_optimizer_1e(ng_list, atm, natm, bas, nbas, env):
+def build_optimizer_1e(ng_list, atm, natm, bas, nbas, env):
     """Common 1e optimizer builder."""
     ng = torch.tensor(ng_list, dtype=torch.int32)
     log_max_coeff = compute_log_max_coeffs(bas, nbas, env)
@@ -378,15 +378,15 @@ def _build_optimizer_1e(ng_list, atm, natm, bas, nbas, env):
 
 
 def build_overlap_optimizer(opt_ref, atm, natm, bas, nbas, env):
-    return _build_optimizer_1e([0, 0, 0, 0, 0, 1, 1, 1], atm, natm, bas, nbas, env)
+    return build_optimizer_1e([0, 0, 0, 0, 0, 1, 1, 1], atm, natm, bas, nbas, env)
 
 
 def build_kinetic_optimizer(opt_ref, atm, natm, bas, nbas, env):
-    return _build_optimizer_1e([0, 2, 0, 0, 2, 1, 1, 1], atm, natm, bas, nbas, env)
+    return build_optimizer_1e([0, 2, 0, 0, 2, 1, 1, 1], atm, natm, bas, nbas, env)
 
 
 def build_nuclear_optimizer(opt_ref, atm, natm, bas, nbas, env):
-    return _build_optimizer_1e([0, 0, 0, 0, 0, 1, 0, 1], atm, natm, bas, nbas, env)
+    return build_optimizer_1e([0, 0, 0, 0, 0, 1, 0, 1], atm, natm, bas, nbas, env)
 
 
 def init_envvars_2e(envs: CINTEnvVars, ng: torch.Tensor, shls: torch.Tensor,
@@ -563,7 +563,7 @@ def precompute_shell_pairs(ng: torch.Tensor, log_max_coeff: list,
     return pairdata
 
 
-def _build_optimizer_2e(ng: torch.Tensor,
+def build_optimizer_2e(ng: torch.Tensor,
                         atm: torch.Tensor, natm: int,
                         bas: torch.Tensor, nbas: int,
                         env: torch.Tensor) -> CINTOpt:
@@ -688,4 +688,4 @@ def build_2e_optimizer(opt_ref,
                        env: torch.Tensor) -> CINTOpt:
     """2e optimizer entry point."""
     ng = torch.tensor([0, 0, 0, 0, 0, 1, 1, 1], dtype=torch.int32)
-    return _build_optimizer_2e(ng, atm, natm, bas, nbas, env)
+    return build_optimizer_2e(ng, atm, natm, bas, nbas, env)

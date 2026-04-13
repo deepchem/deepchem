@@ -27,20 +27,24 @@ SQRTPI = math.sqrt(math.pi)
 
 # Cartesian-to-spherical transformation matrices
 
-def _cart_to_sph_matrix(l):
-    """Return the (2l+1, nf_cart) transformation matrix from Cartesian
+CART2SPH_CACHE = {}
+
+def cart_to_sph_matrix(l):
+    """Return cached (2l+1, nf_cart) transformation matrix from Cartesian
     to real solid harmonics for angular momentum l."""
+    if l in CART2SPH_CACHE:
+        return CART2SPH_CACHE[l]
     if l == 0:
-        return torch.tensor([[1.0]], dtype=torch.float64)
+        m = torch.tensor([[1.0]], dtype=torch.float64)
     elif l == 1:
-        return torch.tensor([
+        m = torch.tensor([
             [0.0, 1.0, 0.0],
             [0.0, 0.0, 1.0],
             [1.0, 0.0, 0.0],
         ], dtype=torch.float64)
     elif l == 2:
         s3 = math.sqrt(3.0)
-        return torch.tensor([
+        m = torch.tensor([
             [0.0,      s3,       0.0,     0.0,     0.0,     0.0     ],
             [0.0,      0.0,      0.0,     0.0,     s3,      0.0     ],
             [-0.5,     0.0,      0.0,    -0.5,     0.0,     1.0     ],
@@ -49,7 +53,7 @@ def _cart_to_sph_matrix(l):
         ], dtype=torch.float64)
     elif l == 3:
         s = math.sqrt
-        return torch.tensor([
+        m = torch.tensor([
             [0,         s(10)/4, 0,       0,       0,       0,       -s(10)/4*3,0,       0,       0        ],
             [0,         0,       0,       0,       s(15),   0,       0,        0,        0,       0        ],
             [0,         -s(6)/4, 0,       0,       0,       0,       -s(6)/4,  0,        s(6),    0        ],
@@ -60,15 +64,8 @@ def _cart_to_sph_matrix(l):
         ], dtype=torch.float64)
     else:
         raise NotImplementedError(f"cart2sph not implemented for l={l}")
-
-
-_CART2SPH_CACHE = {}
-
-def cart_to_sph_matrix(l):
-    """Get cached cart2sph transformation matrix for angular momentum l."""
-    if l not in _CART2SPH_CACHE:
-        _CART2SPH_CACHE[l] = _cart_to_sph_matrix(l)
-    return _CART2SPH_CACHE[l]
+    CART2SPH_CACHE[l] = m
+    return m
 
 
 def cart_to_sph_1e(gctr, i_l, j_l, i_ctr, j_ctr, nfi, nfj, nf):
@@ -127,7 +124,7 @@ def cart_to_sph_2e(gctr, i_l, j_l, k_l, l_l, x_ctr, nfi, nfj, nfk, nfl, nf):
 
 # G-value generation (recurrence relations)
 
-def _g_vertical_horizontal_recurrence(g, envs, gz0_fac, rir0, cfac, aij):
+def g_vertical_horizontal_recurrence(g, envs, gz0_fac, rir0, cfac, aij):
     """Unified vertical + horizontal recurrence for 1e g-values."""
     nmax = envs.li_ceil + envs.lj_ceil
     lj = envs.lj_ceil
@@ -158,13 +155,13 @@ def compute_g_overlap(g, ai, aj, fac, envs):
     """Generate g-values for overlap integrals."""
     aij = ai + aj
     rir0 = envs.ri - (ai * envs.ri + aj * envs.rj) / aij
-    _g_vertical_horizontal_recurrence(g, envs, SQRTPI * math.pi * fac, rir0, 0.5 / aij, aij)
+    g_vertical_horizontal_recurrence(g, envs, SQRTPI * math.pi * fac, rir0, 0.5 / aij, aij)
 
 
 def compute_g_nuclear(g, aij, rij, cr, t2, fac, envs):
     """Generate g-values for nuclear attraction integrals."""
     rir0 = envs.ri - (rij + t2 * (cr - rij))
-    _g_vertical_horizontal_recurrence(g, envs, 2.0 * math.pi * fac, rir0, 0.5 * (1.0 - t2) / aij, aij)
+    g_vertical_horizontal_recurrence(g, envs, 2.0 * math.pi * fac, rir0, 0.5 * (1.0 - t2) / aij, aij)
 
 
 # Nabla (derivative) operators for kinetic energy
@@ -431,7 +428,7 @@ def driver_1e(envs, atm, bas, env, int1e_type):
 
 # Top-level 1e integral functions
 
-def _compute_1e_sph_common(out, dims, shls, atm, natm, bas, nbas, env, ng, f_gout, int1e_type, fac=1.0):
+def compute_1e_sph_common(out, dims, shls, atm, natm, bas, nbas, env, ng, f_gout, int1e_type, fac=1.0):
     """Common driver for all 1e spherical integrals."""
     envs = CINTEnvVars()
     init_envvars_1e(envs, ng, shls, atm, natm, bas, nbas, env)
@@ -455,21 +452,21 @@ def _compute_1e_sph_common(out, dims, shls, atm, natm, bas, nbas, env, ng, f_gou
 def compute_overlap_1e_sph(out, dims, shls, atm, natm, bas, nbas, env, opt=None, cache=None):
     """Pure PyTorch compute_overlap_1e_sph."""
     ng = torch.tensor([0, 0, 0, 0, 0, 1, 1, 1], dtype=torch.int32)
-    return _compute_1e_sph_common(out, dims, shls, atm, natm, bas, nbas, env,
+    return compute_1e_sph_common(out, dims, shls, atm, natm, bas, nbas, env,
                              ng, extract_gout_overlap, INT1E_TYPE_OVLP)
 
 
 def compute_kinetic_1e_sph(out, dims, shls, atm, natm, bas, nbas, env, opt=None, cache=None):
     """Pure PyTorch compute_kinetic_1e_sph."""
     ng = torch.tensor([0, 2, 0, 0, 2, 1, 1, 1], dtype=torch.int32)
-    return _compute_1e_sph_common(out, dims, shls, atm, natm, bas, nbas, env,
+    return compute_1e_sph_common(out, dims, shls, atm, natm, bas, nbas, env,
                              ng, extract_gout_kinetic, INT1E_TYPE_OVLP, fac=0.5)
 
 
 def compute_nuclear_1e_sph(out, dims, shls, atm, natm, bas, nbas, env, opt=None, cache=None):
     """Pure PyTorch compute_nuclear_1e_sph."""
     ng = torch.tensor([0, 0, 0, 0, 0, 1, 0, 1], dtype=torch.int32)
-    return _compute_1e_sph_common(out, dims, shls, atm, natm, bas, nbas, env,
+    return compute_1e_sph_common(out, dims, shls, atm, natm, bas, nbas, env,
                              ng, extract_gout_nuclear, INT1E_TYPE_NUC)
 
 
@@ -548,7 +545,7 @@ def g_rys_2d_recurrence(g, bc, envs):
                     gz[j + dn] = c00[i, 2] * gz[j] + n * b10[i] * gz[j - dn] + m * b00[i] * gz[j - dm]
 
 
-def _g_hrr_phase(gx, gy, gz, r, l_tgt, n_max, d_tgt, d_src, d_oth, l_oth, stride):
+def g_hrr_phase(gx, gy, gz, r, l_tgt, n_max, d_tgt, d_src, d_oth, l_oth, stride):
     """One phase of horizontal recurrence for 4D g-values."""
     for a in range(1, l_tgt + 1):
         for b in range(n_max - a + 1):
@@ -560,12 +557,12 @@ def _g_hrr_phase(gx, gy, gz, r, l_tgt, n_max, d_tgt, d_src, d_oth, l_oth, stride
                     gz[n] = r[2] * gz[n - d_tgt] + gz[n - d_tgt + d_src]
 
 
-def _g_2d_to_4d_recurrence(g, envs, ij_args, kl_args):
+def g_2d_to_4d_recurrence(g, envs, ij_args, kl_args):
     """Unified 4D horizontal recurrence with two phases."""
     g_size = envs.g_size
     gx, gy, gz = g[:g_size], g[g_size:2 * g_size], g[2 * g_size:3 * g_size]
     for l_tgt, n_max, d_tgt, d_src, d_oth, l_oth, stride, r in (ij_args, kl_args):
-        _g_hrr_phase(gx, gy, gz, r, l_tgt, n_max, d_tgt, d_src, d_oth, l_oth, stride)
+        g_hrr_phase(gx, gy, gz, r, l_tgt, n_max, d_tgt, d_src, d_oth, l_oth, stride)
 
 
 def compute_g_2e(g, fac, envs):
@@ -639,7 +636,7 @@ def compute_g_2e(g, fac, envs):
         'il2d4d': ((lj, nmax, dj, di, dk, mmax, nr, rirj), (lk, mmax, dk, dl, di, li, dk, rkrl)),
     }
     ij_args, kl_args = _4d_args[envs.f_g0_2d4d]
-    _g_2d_to_4d_recurrence(g, envs, ij_args, kl_args)
+    g_2d_to_4d_recurrence(g, envs, ij_args, kl_args)
 
     return True
 
@@ -1132,7 +1129,7 @@ def fill_3center_driver(intor, fill, eri, comp, shls_slice, ao_loc,
 
 # Fourier Transform of GTO basis functions
 
-def _ft_1d_polynomial(k, n, a2):
+def ft_1d_polynomial(k, n, a2):
     """Compute the 1D polynomial P_n(-ik*a2) for FT of x^n * exp(-alpha*x^2)."""
     if n == 0:
         return torch.ones(len(k), dtype=torch.complex128)
@@ -1208,9 +1205,9 @@ def evaluate_gto_ft(wrapper, gvgrid):
                 py = {}
                 pz = {}
                 for n in range(max_n + 1):
-                    px[n] = _ft_1d_polynomial(Gx, n, a2)
-                    py[n] = _ft_1d_polynomial(Gy, n, a2)
-                    pz[n] = _ft_1d_polynomial(Gz, n, a2)
+                    px[n] = ft_1d_polynomial(Gx, n, a2)
+                    py[n] = ft_1d_polynomial(Gy, n, a2)
+                    pz[n] = ft_1d_polynomial(Gz, n, a2)
 
                 for f in range(nf_cart):
                     a, b, cc = int(i_nx[f].item()), int(i_ny[f].item()), int(i_nz[f].item())
