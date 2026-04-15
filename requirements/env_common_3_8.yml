@@ -21,7 +21,7 @@ dependencies:
     - pubchempy
     - pyGPGO
     - pymatgen
-    - setuptools
+    - setuptools<82
     - simdna
     - transformers==4.46.3
     - tokenizers
