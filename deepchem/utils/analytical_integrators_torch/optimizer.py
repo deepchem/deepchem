@@ -1,6 +1,20 @@
 """
 Pure PyTorch port of the libcint optimizer pipeline.
 
+Replicates the shell-pair precomputation, exponential screening, and
+g-array index generation that libcint performs in its C optimizer structs.
+The public API mirrors libcint's ``CINTOpt`` workflow so that the same
+driver logic can be used for 1e, 2e, and 3c2e integrals.
+
+References
+----------
+.. [1] Q. Sun, "Libcint: An efficient general integral library for
+   Gaussian basis functions." Journal of Computational Chemistry,
+   36(22), 1664–1671 (2015).
+.. [2] S. Obara, A. Saika, "Efficient recursive computation of molecular
+   integrals over Cartesian Gaussian functions." Journal of Chemical
+   Physics, 84(7), 3963–3974 (1986).
+
 bas array layout  (BAS_SLOTS = 8 columns):
     col 0  ATOM_OF    — index into atm
     col 1  ANG_OF     — angular momentum l
@@ -24,51 +38,71 @@ from dataclasses import dataclass
 from typing import Optional, Callable
 
 # Constants
-LMAX1             = 16
-BAS_SLOTS         = 8
-ATM_SLOTS         = 6
+LMAX1 = 16
+BAS_SLOTS = 8
+ATM_SLOTS = 6
 
 # bas column indices
-ATOM_OF           = 0
-ANG_OF            = 1
-NPRIM_OF          = 2
-NCTR_OF           = 3
-PTR_EXP           = 5
-PTR_COEFF         = 6
+ATOM_OF = 0
+ANG_OF = 1
+NPRIM_OF = 2
+NCTR_OF = 3
+PTR_EXP = 5
+PTR_COEFF = 6
 
 # atm column indices
-PTR_COORD         = 1
+PTR_COORD = 1
 
 # env index
-PTR_EXPCUTOFF     = 0
+PTR_EXPCUTOFF = 0
 
 # ng (integral type descriptor) indices
-IINC              = 0
-JINC              = 1
-KINC              = 2
-LINC              = 3
-GSHIFT            = 4
-POS_E1            = 5
-POS_E2            = 6
-TENSOR            = 7
+IINC = 0
+JINC = 1
+KINC = 2
+LINC = 3
+GSHIFT = 4
+POS_E1 = 5
+POS_E2 = 6
+TENSOR = 7
 
 # cutoff defaults
-EXPCUTOFF         = 60.0
-MIN_EXPCUTOFF     = 20.0
+EXPCUTOFF = 60.0
+MIN_EXPCUTOFF = 20.0
 
 # pairdata screening limit
 MAX_PGTO_FOR_PAIRDATA = 50000
 
 # math constants
-SQRTPI            = math.sqrt(math.pi)
+SQRTPI = math.sqrt(math.pi)
 
 # sentinel for screened-out shell pairs
-NOVALUE           = object()
+NOVALUE = object()
 
 
 # Data structures
 class PairData:
-    """Shell-pair precomputed data."""
+    """Precomputed data for a single primitive shell pair (ip, jp).
+
+    Stores the weighted center-of-charge position, the exponential
+    screening factor, and the combined exponent cutoff value used by
+    the Schwarz/distance screening in libcint.
+
+    Parameters
+    ----------
+    rij : torch.Tensor, shape (3,)
+        Weighted center-of-charge: (a_i * R_i + a_j * R_j) / (a_i + a_j).
+    eij : torch.Tensor, scalar
+        exp(-a_i * a_j / (a_i + a_j) * |R_i - R_j|^2).
+    cceij : torch.Tensor, scalar
+        Combined exponent cutoff value used for Schwarz screening.
+
+    References
+    ----------
+    .. [1] Q. Sun, "Libcint: An efficient general integral library for
+       Gaussian basis functions." Journal of Computational Chemistry,
+       36(22), 1664–1671 (2015).
+    """
     def __init__(self, rij: torch.Tensor, eij: torch.Tensor, cceij: torch.Tensor):
         self.rij = rij
         self.eij = eij
@@ -77,7 +111,32 @@ class PairData:
 
 @dataclass
 class CINTOpt:
-    """Optimizer struct — holds precomputed tables."""
+    """Optimizer struct that holds all precomputed screening tables.
+
+    Mirrors the libcint ``CINTOpt`` C struct.  Built once per integral type
+    and reused across all shell pairs/quartets in an integral contraction.
+
+    Parameters
+    ----------
+    nbas : int
+        Number of basis shells.
+    index_xyz_array : list, optional
+        Pre-computed g-array index maps for every (l_i, l_j, ...) combo.
+    non0ctr : list, optional
+        Per-shell list of non-zero contraction counts for each primitive.
+    sortedidx : list, optional
+        Per-shell sorted indices placing non-zero contractions first.
+    log_max_coeff : list, optional
+        Per-shell log of maximum absolute contraction coefficient.
+    pairdata : list, optional
+        Flat list of PairData objects, indexed by (i * nbas + j).
+
+    References
+    ----------
+    .. [1] Q. Sun, "Libcint: An efficient general integral library for
+       Gaussian basis functions." Journal of Computational Chemistry,
+       36(22), 1664–1671 (2015).
+    """
     nbas:            int
     index_xyz_array: Optional[list] = None
     non0ctr:         Optional[list] = None
@@ -88,7 +147,78 @@ class CINTOpt:
 
 @dataclass
 class CINTEnvVars:
-    """Environment variables for a single shell-pair/quartet integral."""
+    """Environment variables for a single shell-pair or shell-quartet integral.
+
+    Populated by ``init_envvars_1e``, ``init_envvars_2e``, or
+    ``init_envvars_3c2e`` before the primitive loop begins.  Mirrors the
+    ``CINTEnvVars`` C struct in libcint.
+
+    Parameters
+    ----------
+    atm, bas, env : torch.Tensor
+        Atom, basis, and environment arrays as defined in the libcint
+        data layout.
+    shls : torch.Tensor, shape (4,) int32
+        Shell indices (i, j, k, l) for the current quartet.
+    natm, nbas : int
+        Number of atoms / shells.
+    i_l, j_l, k_l, l_l : int
+        Angular momenta of the four shells.
+    nfi, nfj, nfk, nfl : int
+        Number of Cartesian components for each shell.
+    nf : int
+        Total number of Cartesian components in the shell block.
+    x_ctr : torch.Tensor, shape (4,) int32
+        Contraction lengths for each shell.
+    gbits : int
+        Bit-field controlling g-array layout (GSHIFT).
+    ncomp_e1, ncomp_e2, ncomp_tensor : int
+        Number of components for electron 1, electron 2, and tensor index.
+    li_ceil, lj_ceil, lk_ceil, ll_ceil : int
+        Effective angular momenta including derivative increments.
+    g_stride_i/k/l/j : int
+        Strides through the g-array for each angular index.
+    nrys_roots : int
+        Number of Rys quadrature points required.
+    g_size : int
+        Size of one x/y/z strip of the g-array.
+    g2d_ijmax, g2d_klmax : int
+        2D recurrence strides for ij and kl pairs.
+    common_factor : float
+        Global prefactor for the integral (pi factors, norms).
+    expcutoff : float
+        Exponent screening threshold.
+    rirj, rkrl : torch.Tensor
+        Vectors R_i - R_j and R_k - R_l.
+    ri, rj, rk, rl : torch.Tensor
+        Atom positions for the four shells.
+    rx_in_rijrx, rx_in_rklrx : torch.Tensor
+        Expansion center for ij and kl 2D recurrence.
+    ai, aj, ak, al : float
+        Current primitive exponents.
+    rij, rijrx : torch.Tensor
+        Gaussian product center and its offset from the expansion center.
+    aij : float
+        Sum of ij primitive exponents.
+    rkl, rklrx : torch.Tensor
+        Gaussian product center (kl) and its offset.
+    akl : float
+        Sum of kl primitive exponents.
+    idx : torch.Tensor
+        g-array index map for the current shell block.
+    f_g0_2e : str, optional
+        Tag for the 2e g-value generator variant.
+    f_g0_2d4d : str, optional
+        Tag for the 2D→4D recurrence variant.
+    f_gout : callable, optional
+        Function to extract the contracted integral from the g-array.
+
+    References
+    ----------
+    .. [1] Q. Sun, "Libcint: An efficient general integral library for
+       Gaussian basis functions." Journal of Computational Chemistry,
+       36(22), 1664–1671 (2015).
+    """
     atm:   torch.Tensor = None
     bas:   torch.Tensor = None
     env:   torch.Tensor = None
@@ -152,13 +282,31 @@ class CINTEnvVars:
 
 
 def cartesian_components(lmax: int) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-    """
-    Generate Cartesian component exponents (nx, ny, nz) for angular
-    momentum lmax, in libcint canonical order.
+    """Generate Cartesian component exponents for angular momentum ``lmax``.
+
+    Returns the (nx, ny, nz) triples in libcint canonical order:
+    decreasing lx, then decreasing ly, nz = lmax - lx - ly.
+
+    Parameters
+    ----------
+    lmax : int
+        Angular momentum quantum number (0 = s, 1 = p, 2 = d, ...).
 
     Returns
     -------
-    nx, ny, nz : each shape ((lmax+1)*(lmax+2)//2,) int32
+    nx : torch.Tensor, shape (nf,) int32
+        x-exponents.
+    ny : torch.Tensor, shape (nf,) int32
+        y-exponents.
+    nz : torch.Tensor, shape (nf,) int32
+        z-exponents.
+        nf = (lmax+1)*(lmax+2)//2.
+
+    References
+    ----------
+    .. [1] Q. Sun, "Libcint: An efficient general integral library for
+       Gaussian basis functions." Journal of Computational Chemistry,
+       36(22), 1664–1671 (2015).
     """
     nf = (lmax + 1) * (lmax + 2) // 2
     nx = torch.empty(nf, dtype=torch.int32)
@@ -176,7 +324,30 @@ def cartesian_components(lmax: int) -> tuple[torch.Tensor, torch.Tensor, torch.T
 
 def compute_log_max_coeff(log_maxc: torch.Tensor, coeff: torch.Tensor,
                            nprim: int, ictr: int) -> None:
-    """Compute approx_log of max |coeff| over contractions for each primitive."""
+    """Compute log of the maximum absolute contraction coefficient per primitive.
+
+    For each primitive p, writes log(max_c |C_{c,p}|) + 1 into
+    ``log_maxc[p]``.  The +1 offset matches libcint's convention and
+    ensures a small positive value even when all coefficients are zero.
+    Used for Schwarz exponential screening.
+
+    Parameters
+    ----------
+    log_maxc : torch.Tensor, shape (nprim,) float64
+        Output buffer; modified in-place.
+    coeff : torch.Tensor, shape (ictr * nprim,) float64
+        Flattened contraction coefficients in row-major (nctr, nprim) order.
+    nprim : int
+        Number of primitive Gaussians for this shell.
+    ictr : int
+        Number of contractions for this shell.
+
+    References
+    ----------
+    .. [1] Q. Sun, "Libcint: An efficient general integral library for
+       Gaussian basis functions." Journal of Computational Chemistry,
+       36(22), 1664–1671 (2015).
+    """
     c = coeff.reshape(ictr, nprim)
     maxc = c.abs().amax(dim=0)
     log_maxc[:] = torch.log(maxc + 1e-300) + 1.0
@@ -184,7 +355,34 @@ def compute_log_max_coeff(log_maxc: torch.Tensor, coeff: torch.Tensor,
 
 def compute_log_max_coeffs(bas: torch.Tensor, nbas: int,
                            env: torch.Tensor) -> Optional[list]:
-    """Compute approximate log of max absolute contraction coefficient per primitive."""
+    """Compute log of max absolute contraction coefficient for every shell.
+
+    Calls :func:`compute_log_max_coeff` for each shell and accumulates the
+    results in a shared flat buffer, returning a list of views into that
+    buffer (one per shell).
+
+    Parameters
+    ----------
+    bas : torch.Tensor, shape (nbas, BAS_SLOTS) int32
+        Basis-shell array in libcint layout.
+    nbas : int
+        Number of basis shells.
+    env : torch.Tensor, shape (nenv,) float64
+        Environment array containing exponents and coefficients.
+
+    Returns
+    -------
+    list of torch.Tensor or None
+        List of length ``nbas`` where each element is a 1-D float64 tensor
+        of shape ``(nprim_i,)`` containing the log-max-coeff values.
+        Returns ``None`` if the basis has no primitives.
+
+    References
+    ----------
+    .. [1] Q. Sun, "Libcint: An efficient general integral library for
+       Gaussian basis functions." Journal of Computational Chemistry,
+       36(22), 1664–1671 (2015).
+    """
     nprims = bas[:nbas, NPRIM_OF].to(torch.int64)
     tot_prim = int(nprims.sum().item())
     if tot_prim == 0:
@@ -208,7 +406,35 @@ def compute_log_max_coeffs(bas: torch.Tensor, nbas: int,
 
 def nonzero_coeff_by_shell(ci: torch.Tensor, iprim: int,
                            ictr: int) -> tuple[torch.Tensor, torch.Tensor]:
-    """Partition contraction indices so non-zero coefficients come first."""
+    """Partition primitive indices so non-zero contractions come first.
+
+    Returns a stable sorted index array and a per-primitive count of
+    non-zero contractions.  Putting non-zero coefficients first lets the
+    inner contraction loop skip zero-coefficient primitives.
+
+    Parameters
+    ----------
+    ci : torch.Tensor, shape (ictr * iprim,) float64
+        Flattened contraction coefficients in row-major (ictr, iprim) order.
+    iprim : int
+        Number of primitive Gaussians for this shell.
+    ictr : int
+        Number of contracted Gaussians for this shell.
+
+    Returns
+    -------
+    sortedidx : torch.Tensor, shape (iprim, ictr) int32
+        For each primitive p and contraction c, sortedidx[p, c] is the
+        contraction index reordered so that non-zero entries come first.
+    non0ctr : torch.Tensor, shape (iprim,) int32
+        Number of non-zero contractions for each primitive.
+
+    References
+    ----------
+    .. [1] Q. Sun, "Libcint: An efficient general integral library for
+       Gaussian basis functions." Journal of Computational Chemistry,
+       36(22), 1664–1671 (2015).
+    """
     c = ci.reshape(ictr, iprim)
     mask = (c != 0)
     order = torch.argsort(~mask, dim=0, stable=True)
@@ -219,7 +445,34 @@ def nonzero_coeff_by_shell(ci: torch.Tensor, iprim: int,
 
 def compute_nonzero_coeffs(bas: torch.Tensor, nbas: int,
                            env: torch.Tensor) -> tuple[Optional[list], Optional[list]]:
-    """Compute non-zero contraction indices and counts for all shells."""
+    """Compute non-zero contraction indices and counts for every shell.
+
+    Calls :func:`nonzero_coeff_by_shell` for each shell and packs the
+    results into shared flat buffers, returning list-of-views for both
+    ``non0ctr`` and ``sortedidx``.
+
+    Parameters
+    ----------
+    bas : torch.Tensor, shape (nbas, BAS_SLOTS) int32
+        Basis-shell array in libcint layout.
+    nbas : int
+        Number of basis shells.
+    env : torch.Tensor, shape (nenv,) float64
+        Environment array containing contraction coefficients.
+
+    Returns
+    -------
+    non0ctr_list : list of torch.Tensor or None
+        Per-shell non-zero contraction counts.  ``None`` if no primitives.
+    sortedidx_list : list of torch.Tensor or None
+        Per-shell sorted primitive indices.  ``None`` if no primitives.
+
+    References
+    ----------
+    .. [1] Q. Sun, "Libcint: An efficient general integral library for
+       Gaussian basis functions." Journal of Computational Chemistry,
+       36(22), 1664–1671 (2015).
+    """
     nprims = bas[:nbas, NPRIM_OF].to(torch.int64)
     nctrs = bas[:nbas, NCTR_OF].to(torch.int64)
     tot_prim = int(nprims.sum().item())
@@ -252,7 +505,32 @@ def compute_nonzero_coeffs(bas: torch.Tensor, nbas: int,
 
 
 def make_fake_basis(bas: torch.Tensor, nbas: int) -> tuple[torch.Tensor, int]:
-    """Build a minimal fake basis with one shell per angular momentum 0..max_l."""
+    """Build a minimal fake basis with one shell per angular momentum up to max_l.
+
+    Used by :func:`generate_index_xyz` to pre-compute g-array index maps
+    for every angular-momentum combination without iterating over the full
+    basis.
+
+    Parameters
+    ----------
+    bas : torch.Tensor, shape (nbas, BAS_SLOTS) int32
+        Actual basis-shell array.
+    nbas : int
+        Number of actual basis shells.
+
+    Returns
+    -------
+    fakebas : torch.Tensor, shape (max_l+1, BAS_SLOTS) int32
+        Fake basis with one shell per l = 0 .. max_l.
+    max_l : int
+        Highest angular momentum present in ``bas``.
+
+    References
+    ----------
+    .. [1] Q. Sun, "Libcint: An efficient general integral library for
+       Gaussian basis functions." Journal of Computational Chemistry,
+       36(22), 1664–1671 (2015).
+    """
     max_l = int(bas[:nbas, ANG_OF].max().item())
     fakebas = torch.zeros((max_l + 1, BAS_SLOTS), dtype=torch.int32)
     for i in range(max_l + 1):
@@ -264,7 +542,29 @@ FAC_SP = [0.282094791773878, 0.488602511902920]
 
 
 def sph_harmonic_norm(l: int) -> float:
-    """Spherical harmonic normalisation for s/p shells; 1.0 for l >= 2."""
+    """Return the spherical harmonic normalisation factor for shells l = 0 or 1.
+
+    Returns the prefactor that converts raw Cartesian GTO values to the
+    normalised real solid-harmonic basis used by libcint.  For l >= 2 the
+    normalisation is absorbed into the contraction coefficients and this
+    function returns 1.0.
+
+    Parameters
+    ----------
+    l : int
+        Angular momentum of the shell (0 = s, 1 = p, >= 2 → 1.0).
+
+    Returns
+    -------
+    float
+        1 / sqrt(4*pi) for l=0, sqrt(3 / (4*pi)) for l=1, 1.0 otherwise.
+
+    References
+    ----------
+    .. [1] Q. Sun, "Libcint: An efficient general integral library for
+       Gaussian basis functions." Journal of Computational Chemistry,
+       36(22), 1664–1671 (2015).
+    """
     if l == 0: return FAC_SP[0]
     if l == 1: return FAC_SP[1]
     return 1.0
@@ -275,7 +575,41 @@ def init_envvars_1e(envs: CINTEnvVars, ng: torch.Tensor,
                     atm: torch.Tensor, natm: int,
                     bas: torch.Tensor, nbas: int,
                     env: torch.Tensor) -> None:
-    """Populate CINTEnvVars for a 1e integral over shell pair."""
+    """Populate a CINTEnvVars struct for a one-electron integral over a shell pair.
+
+    Sets angular momenta, contraction counts, atom positions, g-array
+    strides, and the number of Rys roots required for the (i_sh, j_sh)
+    shell pair described by the integral type descriptor ``ng``.
+
+    Parameters
+    ----------
+    envs : CINTEnvVars
+        Output struct populated in-place.
+    ng : torch.Tensor, shape (8,) int32
+        Integral type descriptor [IINC, JINC, KINC, LINC, GSHIFT,
+        POS_E1, POS_E2, TENSOR].
+    shls : torch.Tensor, shape (4,) int32
+        Shell indices; shls[0]=i, shls[1]=j (k and l are unused for 1e).
+    atm : torch.Tensor, shape (natm, ATM_SLOTS) int32
+        Atom array in libcint layout.
+    natm : int
+        Number of atoms.
+    bas : torch.Tensor, shape (nbas, BAS_SLOTS) int32
+        Basis-shell array in libcint layout.
+    nbas : int
+        Number of basis shells.
+    env : torch.Tensor, shape (nenv,) float64
+        Environment array (coordinates, exponents, coefficients).
+
+    References
+    ----------
+    .. [1] Q. Sun, "Libcint: An efficient general integral library for
+       Gaussian basis functions." Journal of Computational Chemistry,
+       36(22), 1664–1671 (2015).
+    .. [2] S. Obara, A. Saika, "Efficient recursive computation of molecular
+       integrals over Cartesian Gaussian functions." Journal of Chemical
+       Physics, 84(7), 3963–3974 (1986).
+    """
     envs.natm = natm;  envs.nbas = nbas
     envs.atm = atm;    envs.bas = bas
     envs.env = env;    envs.shls = shls
@@ -314,7 +648,31 @@ def init_envvars_1e(envs: CINTEnvVars, ng: torch.Tensor,
 
 
 def compute_g_index_1e(envs: CINTEnvVars) -> torch.Tensor:
-    """Compute the g-array index map for a 1e shell pair. Returns (nf*3,) int32."""
+    """Compute the flat g-array index map for a one-electron shell pair.
+
+    For every Cartesian component (i, j) of the shell pair, encodes the
+    three (x, y, z) offsets into the g-array as a triplet, producing a
+    flat index array of length nf * 3 that is used in the ``extract_gout``
+    step.
+
+    Parameters
+    ----------
+    envs : CINTEnvVars
+        Populated environment struct (must have been initialised by
+        :func:`init_envvars_1e`).
+
+    Returns
+    -------
+    torch.Tensor, shape (nf*3,) int32
+        Flat index map; triplet ``[3*n, 3*n+1, 3*n+2]`` gives the x, y, z
+        g-array offsets for the n-th Cartesian component pair.
+
+    References
+    ----------
+    .. [1] Q. Sun, "Libcint: An efficient general integral library for
+       Gaussian basis functions." Journal of Computational Chemistry,
+       36(22), 1664–1671 (2015).
+    """
     di = envs.g_stride_i;  dj = envs.g_stride_j
     ofx = 0;  ofy = envs.g_size;  ofz = envs.g_size * 2
 
@@ -341,7 +699,42 @@ def generate_index_xyz(finit, findex_xyz,
                        atm: torch.Tensor, natm: int,
                        bas: torch.Tensor, nbas: int,
                        env: torch.Tensor) -> list:
-    """Pre-compute g-array index maps for all shell-pair angular momentum combinations."""
+    """Pre-compute g-array index maps for all angular-momentum combinations.
+
+    Iterates over all (l_i, l_j, ...) tuples up to the maximum angular
+    momentum present in ``bas``, creates a fake one-shell-per-l basis,
+    calls ``finit`` + ``findex_xyz`` for each combination, and stores the
+    result in a flat list indexed by the base-LMAX1 encoded tuple.
+
+    Parameters
+    ----------
+    finit : callable
+        Environment initialiser (e.g. :func:`init_envvars_1e`).
+    findex_xyz : callable
+        Index-map builder (e.g. :func:`compute_g_index_1e`).
+    order : int
+        Number of shells in the integral (2 for 1e, 3 for 3c2e, 4 for 2e).
+    max_l_override : int
+        If > 0, caps the maximum l to min(max_l_override, max_l_in_basis).
+    ng : torch.Tensor, shape (8,) int32
+        Integral type descriptor.
+    atm, bas, env : torch.Tensor
+        Molecular arrays in libcint layout.
+    natm, nbas : int
+        Number of atoms and shells.
+
+    Returns
+    -------
+    list
+        Flat list of length ``(max_l+1) * LMAX1^(order-1)`` where each
+        occupied entry is a ``(nf*3,) int32`` index tensor.
+
+    References
+    ----------
+    .. [1] Q. Sun, "Libcint: An efficient general integral library for
+       Gaussian basis functions." Journal of Computational Chemistry,
+       36(22), 1664–1671 (2015).
+    """
     fakebas, max_l1 = make_fake_basis(bas, nbas)
     max_l = max_l1 if max_l_override == 0 else min(max_l_override, max_l1)
     fakenbas = max_l + 1
@@ -361,7 +754,32 @@ def generate_index_xyz(finit, findex_xyz,
 
 
 def build_optimizer_1e(ng_list, atm, natm, bas, nbas, env):
-    """Common 1e optimizer builder."""
+    """Build a CINTOpt for a one-electron integral type from an ng list.
+
+    Computes log-max coefficients, non-zero contraction tables, and
+    g-array index maps for the 1e integral specified by ``ng_list``.
+
+    Parameters
+    ----------
+    ng_list : list of int
+        8-element integral type descriptor [IINC, JINC, KINC, LINC,
+        GSHIFT, POS_E1, POS_E2, TENSOR].
+    atm, bas, env : torch.Tensor
+        Molecular arrays in libcint layout.
+    natm, nbas : int
+        Number of atoms and shells.
+
+    Returns
+    -------
+    CINTOpt
+        Populated optimizer struct.
+
+    References
+    ----------
+    .. [1] Q. Sun, "Libcint: An efficient general integral library for
+       Gaussian basis functions." Journal of Computational Chemistry,
+       36(22), 1664–1671 (2015).
+    """
     ng = torch.tensor(ng_list, dtype=torch.int32)
     log_max_coeff = compute_log_max_coeffs(bas, nbas, env)
     non0ctr, sortedidx = compute_nonzero_coeffs(bas, nbas, env)
@@ -378,21 +796,118 @@ def build_optimizer_1e(ng_list, atm, natm, bas, nbas, env):
 
 
 def build_overlap_optimizer(opt_ref, atm, natm, bas, nbas, env):
+    """Build a CINTOpt for overlap integrals <i|j>.
+
+    Parameters
+    ----------
+    opt_ref : object
+        Unused placeholder (kept for API compatibility with libcint).
+    atm, bas, env : torch.Tensor
+        Molecular arrays in libcint layout.
+    natm, nbas : int
+        Number of atoms and shells.
+
+    Returns
+    -------
+    CINTOpt
+        Optimizer for overlap integral evaluation.
+
+    References
+    ----------
+    .. [1] S. Obara, A. Saika, "Efficient recursive computation of molecular
+       integrals over Cartesian Gaussian functions." Journal of Chemical
+       Physics, 84(7), 3963–3974 (1986).
+    """
     return build_optimizer_1e([0, 0, 0, 0, 0, 1, 1, 1], atm, natm, bas, nbas, env)
 
 
 def build_kinetic_optimizer(opt_ref, atm, natm, bas, nbas, env):
+    """Build a CINTOpt for kinetic energy integrals <i| -1/2 nabla^2 |j>.
+
+    Parameters
+    ----------
+    opt_ref : object
+        Unused placeholder (kept for API compatibility with libcint).
+    atm, bas, env : torch.Tensor
+        Molecular arrays in libcint layout.
+    natm, nbas : int
+        Number of atoms and shells.
+
+    Returns
+    -------
+    CINTOpt
+        Optimizer for kinetic energy integral evaluation.
+
+    References
+    ----------
+    .. [1] M. Head-Gordon, J. A. Pople, "A method for two-electron Gaussian
+       integral and integral derivative evaluation using recurrence relations."
+       Journal of Chemical Physics, 89(9), 5777–5786 (1988).
+    """
     return build_optimizer_1e([0, 2, 0, 0, 2, 1, 1, 1], atm, natm, bas, nbas, env)
 
 
 def build_nuclear_optimizer(opt_ref, atm, natm, bas, nbas, env):
+    """Build a CINTOpt for nuclear attraction integrals <i| sum_A Z_A/r_A |j>.
+
+    Parameters
+    ----------
+    opt_ref : object
+        Unused placeholder (kept for API compatibility with libcint).
+    atm, bas, env : torch.Tensor
+        Molecular arrays in libcint layout.
+    natm, nbas : int
+        Number of atoms and shells.
+
+    Returns
+    -------
+    CINTOpt
+        Optimizer for nuclear attraction integral evaluation.
+
+    References
+    ----------
+    .. [1] S. Obara, A. Saika, "Efficient recursive computation of molecular
+       integrals over Cartesian Gaussian functions." Journal of Chemical
+       Physics, 84(7), 3963–3974 (1986).
+    .. [2] M. Dupuis, J. Rys, H. F. King, "Evaluation of the molecular
+       integrals over Gaussian basis functions." Journal of Chemical Physics,
+       65(1), 111–116 (1976).
+    """
     return build_optimizer_1e([0, 0, 0, 0, 0, 1, 0, 1], atm, natm, bas, nbas, env)
 
 
 def init_envvars_2e(envs: CINTEnvVars, ng: torch.Tensor, shls: torch.Tensor,
                     atm: torch.Tensor, natm: int,
                     bas: torch.Tensor, nbas: int, env: torch.Tensor) -> None:
-    """Populate CINTEnvVars for a 2e integral over shell quartet (i,j,k,l)."""
+    """Populate a CINTEnvVars struct for a two-electron integral over a shell quartet.
+
+    Sets angular momenta, Gaussian product centers, g-array strides, the
+    number of Rys roots, and selects the 2D→4D recurrence variant
+    (ibase/kbase logic) for the (i, j, k, l) shell quartet described by
+    the integral type descriptor ``ng``.
+
+    Parameters
+    ----------
+    envs : CINTEnvVars
+        Output struct populated in-place.
+    ng : torch.Tensor, shape (8,) int32
+        Integral type descriptor.
+    shls : torch.Tensor, shape (4,) int32
+        Shell indices (i, j, k, l).
+    atm, bas, env : torch.Tensor
+        Molecular arrays in libcint layout.
+    natm, nbas : int
+        Number of atoms and shells.
+
+    References
+    ----------
+    .. [1] Q. Sun, "Libcint: An efficient general integral library for
+       Gaussian basis functions." Journal of Computational Chemistry,
+       36(22), 1664–1671 (2015).
+    .. [2] S. Obara, A. Saika, "Efficient recursive computation of molecular
+       integrals over Cartesian Gaussian functions." Journal of Chemical
+       Physics, 84(7), 3963–3974 (1986).
+    """
     envs.natm = natm;  envs.nbas = nbas
     envs.atm = atm;    envs.bas = bas;  envs.env = env;  envs.shls = shls
     i_sh = int(shls[0].item());  j_sh = int(shls[1].item())
@@ -463,7 +978,29 @@ def init_envvars_2e(envs: CINTEnvVars, ng: torch.Tensor, shls: torch.Tensor,
 
 
 def compute_g_index_2e(envs: CINTEnvVars) -> torch.Tensor:
-    """g-array index map for a 2e shell quartet. Returns (nf*3,) int32."""
+    """Compute the flat g-array index map for a two-electron shell quartet.
+
+    Encodes the four Cartesian indices (i, j, k, l) into (x, y, z) g-array
+    offsets, producing a ``(nf*3,) int32`` tensor analogous to
+    :func:`compute_g_index_1e` but for four shells.
+
+    Parameters
+    ----------
+    envs : CINTEnvVars
+        Populated environment struct (must have been initialised by
+        :func:`init_envvars_2e`).
+
+    Returns
+    -------
+    torch.Tensor, shape (nf*3,) int32
+        Flat g-array index map for the current shell quartet.
+
+    References
+    ----------
+    .. [1] Q. Sun, "Libcint: An efficient general integral library for
+       Gaussian basis functions." Journal of Computational Chemistry,
+       36(22), 1664–1671 (2015).
+    """
     di = envs.g_stride_i;  dk = envs.g_stride_k
     dl = envs.g_stride_l;  dj = envs.g_stride_j
     ofx = 0;  ofy = envs.g_size;  ofz = envs.g_size * 2
@@ -495,7 +1032,43 @@ def compute_pair_data(ai: torch.Tensor, aj: torch.Tensor,
                       li_ceil: int, lj_ceil: int,
                       iprim: int, jprim: int,
                       rr_ij: float, expcutoff: float) -> tuple[list, bool]:
-    """Compute shell-pair screening data for all (ip, jp) primitive pairs."""
+    """Compute Schwarz-screened PairData for all primitive pairs in a shell pair.
+
+    For each (ip, jp) primitive pair computes the Gaussian product center
+    ``rij``, the overlap prefactor ``eij = exp(-a_i a_j |R_i-R_j|^2 / a_ij)``,
+    and the screening value ``cceij``.  Pairs with ``cceij >= expcutoff``
+    are stored with zero weight; all others are flagged as significant.
+
+    Parameters
+    ----------
+    ai, aj : torch.Tensor, shape (iprim,) / (jprim,) float64
+        Primitive exponents for shells i and j.
+    ri, rj : torch.Tensor, shape (3,) float64
+        Atom positions for shells i and j.
+    log_maxci, log_maxcj : torch.Tensor, shape (iprim,) / (jprim,) float64
+        Log-max contraction coefficients from :func:`compute_log_max_coeff`.
+    li_ceil, lj_ceil : int
+        Effective angular momenta including derivative increments.
+    iprim, jprim : int
+        Number of primitives in shells i and j.
+    rr_ij : float
+        Squared inter-atomic distance |R_i - R_j|^2.
+    expcutoff : float
+        Screening threshold (default 60.0).
+
+    Returns
+    -------
+    pairdata : list of PairData
+        Length iprim * jprim, in (jp, ip) order.
+    empty : bool
+        True if all pairs were screened out.
+
+    References
+    ----------
+    .. [1] Q. Sun, "Libcint: An efficient general integral library for
+       Gaussian basis functions." Journal of Computational Chemistry,
+       36(22), 1664–1671 (2015).
+    """
     log_rr_ij = (li_ceil + lj_ceil + 1) * math.log(rr_ij + 1) / 2
     pairdata = []
     empty = True
@@ -523,7 +1096,53 @@ def precompute_shell_pairs(ng: torch.Tensor, log_max_coeff: list,
                            atm: torch.Tensor,
                            bas: torch.Tensor, nbas: int,
                            env: torch.Tensor) -> Optional[list]:
-    """Compute shell-pair data for all (i, j) combinations."""
+    """Compute Schwarz-screened shell-pair data for all (i, j) shell combinations.
+
+    Iterates over all lower-triangular shell pairs (i, j) with j <= i and
+    calls :func:`compute_pair_data` for each pair.  The resulting
+    ``PairData`` objects are stored in a flat list indexed by
+    ``i * nbas + j``.  If the primitive count exceeds
+    ``MAX_PGTO_FOR_PAIRDATA``, ``None`` is returned and screening is
+    disabled.  The transpose pair (j, i) is filled by copying and
+    transposing the primitive index order.
+
+    Parameters
+    ----------
+    ng : torch.Tensor
+        1-D integer tensor of shape (8,) containing the libcint ``ng``
+        control vector (angular increment flags, Rys root count hint, etc.).
+    log_max_coeff : list of torch.Tensor
+        Per-shell log-maximum contraction coefficients as returned by
+        :func:`compute_log_max_coeffs`.
+    atm : torch.Tensor
+        Integer atom table of shape (natm, 6) in libcint layout.
+    bas : torch.Tensor
+        Integer basis table of shape (nbas, 8) in libcint layout.
+    nbas : int
+        Number of basis shells.
+    env : torch.Tensor
+        Floating-point environment array holding exponents, coefficients,
+        coordinates, and control parameters.
+
+    Returns
+    -------
+    list or None
+        Flat list of length ``nbas * nbas`` whose entry at ``i * nbas + j``
+        is either a list of :class:`PairData` objects (one per primitive
+        pair), the sentinel ``NOVALUE`` (screened out), or ``None`` (not
+        yet populated).  Returns ``None`` when screening is disabled
+        because the primitive count exceeds ``MAX_PGTO_FOR_PAIRDATA``.
+
+    References
+    ----------
+    .. [1] Q. Sun, "Libcint: An efficient general integral library for
+       Gaussian basis functions." Journal of Computational Chemistry,
+       36(22), 1664–1671 (2015).
+    .. [2] R. Lindh, U. Ryu, B. Liu, "The reduced multiplication scheme
+       of the Rys quadrature and new recurrence relations for auxiliary
+       function based two-electron integral evaluation." Journal of
+       Chemical Physics, 95(8), 5889–5897 (1991).
+    """
     ecoff = env[PTR_EXPCUTOFF].item()
     expcutoff = EXPCUTOFF if ecoff == 0 else max(MIN_EXPCUTOFF, float(ecoff))
     tot_prim = int(bas[:nbas, NPRIM_OF].sum().item())
@@ -567,7 +1186,47 @@ def build_optimizer_2e(ng: torch.Tensor,
                         atm: torch.Tensor, natm: int,
                         bas: torch.Tensor, nbas: int,
                         env: torch.Tensor) -> CINTOpt:
-    """Build a fully populated 2e optimizer."""
+    """Build a fully populated 2-electron integral optimizer.
+
+    Assembles a :class:`CINTOpt` object containing all data structures
+    required for efficient screening and index look-up during
+    4-center 2-electron repulsion integral (ERI) evaluation: per-shell
+    log-maximum coefficients, Schwarz-screened shell-pair data, non-zero
+    contraction coefficients, and the precomputed ``index_xyz`` tables.
+
+    Parameters
+    ----------
+    ng : torch.Tensor
+        1-D integer tensor of shape (8,) containing the libcint ``ng``
+        control vector (IINC, JINC, KINC, LINC, POS_E1, POS_E2, TENSOR,
+        GSHIFT flags).
+    atm : torch.Tensor
+        Integer atom table of shape (natm, 6) in libcint layout.
+    natm : int
+        Number of atoms.
+    bas : torch.Tensor
+        Integer basis table of shape (nbas, 8) in libcint layout.
+    nbas : int
+        Number of basis shells.
+    env : torch.Tensor
+        Floating-point environment array holding exponents, coefficients,
+        coordinates, and control parameters.
+
+    Returns
+    -------
+    CINTOpt
+        Fully populated optimizer ready to be passed to
+        :func:`primitive_loop_2e` / :func:`driver_2e_sph`.
+
+    References
+    ----------
+    .. [1] Q. Sun, "Libcint: An efficient general integral library for
+       Gaussian basis functions." Journal of Computational Chemistry,
+       36(22), 1664–1671 (2015).
+    .. [2] M. Dupuis, J. Rys, H. F. King, "Evaluation of the molecular
+       integrals over Gaussian basis functions." Journal of Chemical
+       Physics, 65(1), 111–116 (1976).
+    """
     log_max_coeff = compute_log_max_coeffs(bas, nbas, env)
     pairdata = None
     if log_max_coeff is not None:
@@ -590,7 +1249,49 @@ def build_optimizer_2e(ng: torch.Tensor,
 def init_envvars_3c2e(envs: CINTEnvVars, ng: torch.Tensor, shls: torch.Tensor,
                       atm: torch.Tensor, natm: int,
                       bas: torch.Tensor, nbas: int, env: torch.Tensor) -> None:
-    """Populate CINTEnvVars for a 3c2e integral over shell triple (i,j,k)."""
+    """Populate a :class:`CINTEnvVars` instance for a 3-center 2-electron integral.
+
+    Fills every field of ``envs`` that is needed by the Rys quadrature
+    engine to evaluate the 3-center 2-electron integral
+    (ij|k) = integral phi_i(r1) phi_j(r1) (1/r12) phi_k(r2) dr1 dr2
+    over a shell triple (i, j, k).  Angular momenta, contraction counts,
+    Cartesian sizes, recurrence strides, and the g-buffer size are all
+    computed here.  The function also resolves the IB/JB base choice
+    (``ibase``) and sets the ``f_g0_2d4d`` tag accordingly.
+
+    Parameters
+    ----------
+    envs : CINTEnvVars
+        Mutable environment struct to populate in-place.
+    ng : torch.Tensor
+        1-D integer tensor of shape (8,) (libcint ``ng`` control vector).
+    shls : torch.Tensor
+        1-D integer tensor ``[i_sh, j_sh, k_sh]`` giving the shell indices.
+    atm : torch.Tensor
+        Integer atom table of shape (natm, 6) in libcint layout.
+    natm : int
+        Number of atoms.
+    bas : torch.Tensor
+        Integer basis table of shape (nbas, 8) in libcint layout.
+    nbas : int
+        Number of basis shells.
+    env : torch.Tensor
+        Floating-point environment array.
+
+    Returns
+    -------
+    None
+        Modifies ``envs`` in place.
+
+    References
+    ----------
+    .. [1] Q. Sun, "Libcint: An efficient general integral library for
+       Gaussian basis functions." Journal of Computational Chemistry,
+       36(22), 1664–1671 (2015).
+    .. [2] S. Obara and A. Saika, "Efficient recursive computation of
+       molecular integrals over Cartesian Gaussian functions." Journal
+       of Chemical Physics, 84(7), 3963–3974 (1986).
+    """
     envs.natm = natm;  envs.nbas = nbas
     envs.atm = atm;    envs.bas = bas;  envs.env = env;  envs.shls = shls
     i_sh = int(shls[0].item());  j_sh = int(shls[1].item());  k_sh = int(shls[2].item())
@@ -661,7 +1362,46 @@ def build_3c2e_optimizer(opt_ref,
                          atm: torch.Tensor, natm: int,
                          bas: torch.Tensor, nbas: int,
                          env: torch.Tensor) -> CINTOpt:
-    """3c2e optimizer entry point."""
+    """Build an optimizer for 3-center 2-electron integrals (ij|k).
+
+    Convenience entry point that constructs a :class:`CINTOpt` for
+    3-center 2-electron integrals.  Uses a fixed ``ng`` vector
+    ``[0,0,0,0,0,1,1,1]`` appropriate for standard ERI-like 3c2e
+    kernels and delegates shell-pair precomputation to
+    :func:`precompute_shell_pairs` and index generation to
+    :func:`generate_index_xyz` via :func:`init_envvars_3c2e`.
+
+    Parameters
+    ----------
+    opt_ref : object
+        Unused reference placeholder kept for API compatibility with
+        libcint's C interface (``CINTOpt **opt``).
+    atm : torch.Tensor
+        Integer atom table of shape (natm, 6) in libcint layout.
+    natm : int
+        Number of atoms.
+    bas : torch.Tensor
+        Integer basis table of shape (nbas, 8) in libcint layout.
+    nbas : int
+        Number of basis shells.
+    env : torch.Tensor
+        Floating-point environment array.
+
+    Returns
+    -------
+    CINTOpt
+        Optimizer containing log-max coefficients, shell-pair data,
+        non-zero contraction info, and ``index_xyz`` tables for 3c2e.
+
+    References
+    ----------
+    .. [1] Q. Sun, "Libcint: An efficient general integral library for
+       Gaussian basis functions." Journal of Computational Chemistry,
+       36(22), 1664–1671 (2015).
+    .. [2] M. Dupuis, J. Rys, H. F. King, "Evaluation of the molecular
+       integrals over Gaussian basis functions." Journal of Chemical
+       Physics, 65(1), 111–116 (1976).
+    """
     ng = torch.tensor([0, 0, 0, 0, 0, 1, 1, 1], dtype=torch.int32)
     log_max_coeff = compute_log_max_coeffs(bas, nbas, env)
     pairdata = None
@@ -686,6 +1426,51 @@ def build_2e_optimizer(opt_ref,
                        atm: torch.Tensor, natm: int,
                        bas: torch.Tensor, nbas: int,
                        env: torch.Tensor) -> CINTOpt:
-    """2e optimizer entry point."""
+    """Build an optimizer for 4-center 2-electron repulsion integrals (ij|kl).
+
+    Convenience entry point that constructs a :class:`CINTOpt` for
+    standard 4-center ERIs.  Uses a fixed ``ng`` vector
+    ``[0,0,0,0,0,1,1,1]`` and delegates to :func:`build_optimizer_2e`.
+
+    Parameters
+    ----------
+    opt_ref : object
+        Unused reference placeholder kept for API compatibility with
+        libcint's C interface (``CINTOpt **opt``).
+    atm : torch.Tensor
+        Integer atom table of shape (natm, 6) in libcint layout.
+    natm : int
+        Number of atoms.
+    bas : torch.Tensor
+        Integer basis table of shape (nbas, 8) in libcint layout.
+    nbas : int
+        Number of basis shells.
+    env : torch.Tensor
+        Floating-point environment array.
+
+    Returns
+    -------
+    CINTOpt
+        Optimizer containing log-max coefficients, shell-pair data,
+        non-zero contraction info, and ``index_xyz`` tables for 4-center
+        2-electron integrals.
+
+    Examples
+    --------
+    >>> import torch
+    >>> from deepchem.utils.analytical_integrators_torch.optimizer import (
+    ...     build_2e_optimizer, make_fake_basis)
+    >>> mol = None  # doctest: +SKIP
+    >>> opt = build_2e_optimizer(None, atm, natm, bas, nbas, env)  # doctest: +SKIP
+
+    References
+    ----------
+    .. [1] Q. Sun, "Libcint: An efficient general integral library for
+       Gaussian basis functions." Journal of Computational Chemistry,
+       36(22), 1664–1671 (2015).
+    .. [2] M. Dupuis, J. Rys, H. F. King, "Evaluation of the molecular
+       integrals over Gaussian basis functions." Journal of Chemical
+       Physics, 65(1), 111–116 (1976).
+    """
     ng = torch.tensor([0, 0, 0, 0, 0, 1, 1, 1], dtype=torch.int32)
     return build_optimizer_2e(ng, atm, natm, bas, nbas, env)

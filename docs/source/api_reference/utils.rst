@@ -277,6 +277,158 @@ like Variational Monte Carlo, etc.
 .. autoclass:: deepchem.utils.electron_sampler.ElectronSampler
   :members:
 
+Analytical Integrators
+----------------------
+
+Pure PyTorch implementations of the libcint integral pipeline, including
+Rys quadrature, shell-pair optimizers, and GTO integral evaluation.
+
+Rys Quadrature (spherical)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. autofunction:: deepchem.utils.analytical_integrators_torch.spherical.boys
+
+.. autofunction:: deepchem.utils.analytical_integrators_torch.spherical.poly
+
+.. autofunction:: deepchem.utils.analytical_integrators_torch.spherical.schmidt
+
+.. autofunction:: deepchem.utils.analytical_integrators_torch.spherical.find_roots
+
+.. autofunction:: deepchem.utils.analytical_integrators_torch.spherical.rys_roots
+
+Optimizer
+^^^^^^^^^
+
+.. autoclass:: deepchem.utils.analytical_integrators_torch.optimizer.PairData
+  :members:
+
+.. autoclass:: deepchem.utils.analytical_integrators_torch.optimizer.CINTOpt
+  :members:
+
+.. autoclass:: deepchem.utils.analytical_integrators_torch.optimizer.CINTEnvVars
+  :members:
+
+.. autofunction:: deepchem.utils.analytical_integrators_torch.optimizer.cartesian_components
+
+.. autofunction:: deepchem.utils.analytical_integrators_torch.optimizer.compute_log_max_coeff
+
+.. autofunction:: deepchem.utils.analytical_integrators_torch.optimizer.compute_log_max_coeffs
+
+.. autofunction:: deepchem.utils.analytical_integrators_torch.optimizer.nonzero_coeff_by_shell
+
+.. autofunction:: deepchem.utils.analytical_integrators_torch.optimizer.compute_nonzero_coeffs
+
+.. autofunction:: deepchem.utils.analytical_integrators_torch.optimizer.make_fake_basis
+
+.. autofunction:: deepchem.utils.analytical_integrators_torch.optimizer.sph_harmonic_norm
+
+.. autofunction:: deepchem.utils.analytical_integrators_torch.optimizer.init_envvars_1e
+
+.. autofunction:: deepchem.utils.analytical_integrators_torch.optimizer.compute_g_index_1e
+
+.. autofunction:: deepchem.utils.analytical_integrators_torch.optimizer.generate_index_xyz
+
+.. autofunction:: deepchem.utils.analytical_integrators_torch.optimizer.build_optimizer_1e
+
+.. autofunction:: deepchem.utils.analytical_integrators_torch.optimizer.build_overlap_optimizer
+
+.. autofunction:: deepchem.utils.analytical_integrators_torch.optimizer.build_kinetic_optimizer
+
+.. autofunction:: deepchem.utils.analytical_integrators_torch.optimizer.build_nuclear_optimizer
+
+.. autofunction:: deepchem.utils.analytical_integrators_torch.optimizer.init_envvars_2e
+
+.. autofunction:: deepchem.utils.analytical_integrators_torch.optimizer.compute_g_index_2e
+
+.. autofunction:: deepchem.utils.analytical_integrators_torch.optimizer.compute_pair_data
+
+.. autofunction:: deepchem.utils.analytical_integrators_torch.optimizer.precompute_shell_pairs
+
+.. autofunction:: deepchem.utils.analytical_integrators_torch.optimizer.build_optimizer_2e
+
+.. autofunction:: deepchem.utils.analytical_integrators_torch.optimizer.init_envvars_3c2e
+
+.. autofunction:: deepchem.utils.analytical_integrators_torch.optimizer.build_3c2e_optimizer
+
+.. autofunction:: deepchem.utils.analytical_integrators_torch.optimizer.build_2e_optimizer
+
+Integrals
+^^^^^^^^^
+
+.. autofunction:: deepchem.utils.analytical_integrators_torch.integrals.cart_to_sph_matrix
+
+.. autofunction:: deepchem.utils.analytical_integrators_torch.integrals.cart_to_sph_1e
+
+.. autofunction:: deepchem.utils.analytical_integrators_torch.integrals.cart_to_sph_2e
+
+.. autofunction:: deepchem.utils.analytical_integrators_torch.integrals.g_vertical_horizontal_recurrence
+
+.. autofunction:: deepchem.utils.analytical_integrators_torch.integrals.compute_g_overlap
+
+.. autofunction:: deepchem.utils.analytical_integrators_torch.integrals.compute_g_nuclear
+
+.. autofunction:: deepchem.utils.analytical_integrators_torch.integrals.apply_nabla_j_1e
+
+.. autofunction:: deepchem.utils.analytical_integrators_torch.integrals.extract_gout_overlap
+
+.. autofunction:: deepchem.utils.analytical_integrators_torch.integrals.extract_gout_nuclear
+
+.. autofunction:: deepchem.utils.analytical_integrators_torch.integrals.extract_gout_kinetic
+
+.. autofunction:: deepchem.utils.analytical_integrators_torch.integrals.extract_gout_2e
+
+.. autofunction:: deepchem.utils.analytical_integrators_torch.integrals.primitive_loop_1e
+
+.. autofunction:: deepchem.utils.analytical_integrators_torch.integrals.primitive_loop_1e_nuclear
+
+.. autofunction:: deepchem.utils.analytical_integrators_torch.integrals.driver_1e
+
+.. autofunction:: deepchem.utils.analytical_integrators_torch.integrals.compute_1e_sph_common
+
+.. autofunction:: deepchem.utils.analytical_integrators_torch.integrals.compute_overlap_1e_sph
+
+.. autofunction:: deepchem.utils.analytical_integrators_torch.integrals.compute_kinetic_1e_sph
+
+.. autofunction:: deepchem.utils.analytical_integrators_torch.integrals.compute_nuclear_1e_sph
+
+.. autofunction:: deepchem.utils.analytical_integrators_torch.integrals.g_rys_2d_recurrence
+
+.. autofunction:: deepchem.utils.analytical_integrators_torch.integrals.g_hrr_phase
+
+.. autofunction:: deepchem.utils.analytical_integrators_torch.integrals.g_2d_to_4d_recurrence
+
+.. autofunction:: deepchem.utils.analytical_integrators_torch.integrals.compute_g_2e
+
+.. autofunction:: deepchem.utils.analytical_integrators_torch.integrals.primitive_loop_2e
+
+.. autofunction:: deepchem.utils.analytical_integrators_torch.integrals.driver_2e_sph
+
+.. autofunction:: deepchem.utils.analytical_integrators_torch.integrals.compute_eri_2e_sph
+
+.. autofunction:: deepchem.utils.analytical_integrators_torch.integrals.assemble_2center_integrals
+
+.. autofunction:: deepchem.utils.analytical_integrators_torch.integrals.fill_4center_s1
+
+.. autofunction:: deepchem.utils.analytical_integrators_torch.integrals.fill_4center_driver
+
+.. autofunction:: deepchem.utils.analytical_integrators_torch.integrals.primitive_loop_3c2e
+
+.. autofunction:: deepchem.utils.analytical_integrators_torch.integrals.cart_to_sph_3c2e
+
+.. autofunction:: deepchem.utils.analytical_integrators_torch.integrals.driver_3c2e_sph
+
+.. autofunction:: deepchem.utils.analytical_integrators_torch.integrals.compute_eri_3c2e_sph
+
+.. autofunction:: deepchem.utils.analytical_integrators_torch.integrals.fill_3center_s1
+
+.. autofunction:: deepchem.utils.analytical_integrators_torch.integrals.fill_3center_driver
+
+.. autofunction:: deepchem.utils.analytical_integrators_torch.integrals.ft_1d_polynomial
+
+.. autofunction:: deepchem.utils.analytical_integrators_torch.integrals.evaluate_gto_ft
+
+.. autofunction:: deepchem.utils.analytical_integrators_torch.integrals.evaluate_gto_grid
+
 Density Functional Theory Utilities
 -----------------------------------
 
