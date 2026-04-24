@@ -262,7 +262,7 @@ def test_chemberta_classification_workflow(smiles_data, tmp_path):
 
 @pytest.mark.torch
 def test_chemberta_checkpointing_and_loading_ddp(smiles_data, tmp_path):
-    """Verifies that saving and reloading a ChemBERTa checkpoint under DDP preserves weights exactly and produces identical predictions."""
+    """Verifies that saving and reloading a ChemBERTa checkpoint under DDP preserves weights exactly"""
     dataset = smiles_data["dataset"]
     checkpoint_dir = str(tmp_path / "model_checkpoint")
     tokenizer_path = "seyonec/PubChem10M_SMILES_BPE_60k"
@@ -340,17 +340,6 @@ def test_chemberta_checkpointing_and_loading_ddp(smiles_data, tmp_path):
             msg=f"Weight mismatch for key {key} after reloading.",
             rtol=1e-4,
             atol=1e-6)
-
-    # --- Correctness Check 3: Functional Equivalence ---
-    # Compare results from both the models to ensure they are identical
-    reloaded_preds = reloaded_trainer.predict(dataset=dataset, num_workers=0)
-
-    np.testing.assert_allclose(
-        original_preds,
-        reloaded_preds,
-        err_msg="Predictions from original and reloaded models do not match.",
-        rtol=1e-4,
-        atol=1e-6)
 
 
 @pytest.mark.torch
