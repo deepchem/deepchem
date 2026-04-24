@@ -463,11 +463,12 @@ def test_chemberta_pretraining_and_finetuning(smiles_data, tmp_path):
                                learning_rate=0.0001)
 
     # Load pretrained checkpoint using LightningTorchModel into finetuned model
+    # Use single GPU to avoid DDP process group conflicts with the first trainer
     reloaded_trainer = LightningTorchModel(model=finetune_model,
                                            batch_size=2,
                                            model_dir=checkpoint_dir,
                                            accelerator="gpu",
-                                           devices=-1,
+                                           devices=1,
                                            logger=False,
                                            enable_progress_bar=False)
 
