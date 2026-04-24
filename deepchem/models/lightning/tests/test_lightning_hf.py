@@ -503,3 +503,9 @@ def test_chemberta_pretraining_and_finetuning(smiles_data):
                 msg=f"Weight mismatch for key {key} after reloading.",
                 rtol=1e-4,
                 atol=1e-6)
+    
+    reloaded_trainer.fit(train_dataset=dataset, checkpoint_interval=0, nb_epoch=1)
+
+    predictions = reloaded_trainer.predict(dataset)
+    assert predictions.all()
+
