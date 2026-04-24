@@ -415,85 +415,91 @@ def test_chemberta_overfit_with_lightning_trainer(smiles_data):
     # If the model overfits the mae score should be significantly lower than before training
     assert eval_before[mae_metric.name] > eval_score[
         mae_metric.name] * 2, "Model did not overfit as expected"
-    
+
 
 @pytest.mark.torch
-def test_chemberta_pretrain_finetune_lightning_trainer(smiles_data):
-    """Pretrains ChemBERTa with MLM, then fine-tunes for regression using the pretrained weights and verifies weight transfer."""
+def test_chemberta_pretraining_and_finetuning(smiles_data):
+    """Pretrains ChemBERTa with MLM, transfers weights to a regression model, fine-tunes it, and verifies predictions are returned."""
     dataset = smiles_data["dataset"]
     tokenizer_path = "seyonec/PubChem10M_SMILES_BPE_60k"
 
-    pretrain_model_dir = 'pretrain'
-    finetune_model_dir = 'finetune'
-
+    # Load Chemberta model for pretraining with masked language modeling
     pretrain_model = Chemberta(task='mlm',
-                            tokenizer_path=tokenizer_path,
-                            device='cpu',
-                            batch_size=2,
-                            learning_rate=0.0001)
+                               tokenizer_path=tokenizer_path,
+                               device='cpu',
+                               batch_size=2,
+                               learning_rate=0.0001)
 
-    # Setup LightningTorchModel for MLM pretraining with FSDP
+    # Setup LightningTorchModel
     trainer = LightningTorchModel(
         model=pretrain_model,
         batch_size=2,
         accelerator="gpu",
-        devices=-1,  # Use all available GPUs
-        strategy="fsdp",
-        logger=False,
-        enable_checkpointing=False,
-        enable_progress_bar=False,
-        fast_dev_run=True,
-    )
-
-    # Test MLM training
-    trainer.fit(train_dataset=dataset, checkpoint_interval=0, nb_epoch=1)
-
-    trainer.save_checkpoint(model_dir=pretrain_model_dir)
-
-
-    state = deepcopy(trainer.lightning_model.pt_model.state_dict())
-
-    training_state = {
-        k: v.detach().cpu()
-        for k, v in state.items()
-    }
-
-    dataset = smiles_data()['dataset']
-    finetune_model = Chemberta(task='regression',
-                            tokenizer_path=tokenizer_path,
-                            model_dir=finetune_model_dir,
-                            device='cpu',
-                            batch_size=2)
-
-    trainer_finetune = LightningTorchModel(
-        model=finetune_model,
-        batch_size=2,
-        model_dir=pretrain_model_dir,
-        strategy='fsdp',
-        accelerator="gpu",
         devices=-1,
+        enable_progress_bar=False,
         logger=False,
         enable_checkpointing=False,
-        enable_progress_bar=False,
-        fast_dev_run=True
     )
 
-    missing, unexpected = trainer_finetune.restore(model_dir=pretrain_model_dir,strict=False)
-    state = deepcopy(trainer_finetune.lightning_model.pt_model.state_dict())
+    # Train the model for one epoch, which will create a checkpoint
+    trainer.fit(train_dataset=dataset, checkpoint_interval=0, nb_epoch=3)
 
-    loading_state = {
-        k: v.detach().cpu()
-        for k, v in state.items()
-    }
+    # Get model state after training
+    state_after_training = trainer.lightning_model.pt_model.state_dict()
 
-    for param in loading_state.keys():
-        train_w = training_state[param]
-        load_w = loading_state[param].flatten()
-        if param not in unexpected:
-            assert np.allclose(train_w,load_w):
+    # save pretrained checkpoint
+    trainer.save_checkpoint(model_dir="model_checkpoint")
 
-    trainer_finetune.fit(train_dataset=dataset, checkpoint_interval=0, nb_epoch=1)
+    # Create a new model instance for finetuning
+    finetune_model = Chemberta(task='regression',
+                               tokenizer_path=tokenizer_path,
+                               device='cpu',
+                               batch_size=2,
+                               learning_rate=0.0001)
 
-    predictions = trainer_finetune.predict(dataset=dataset)
+    # Load pretrained checkpoint using LightningTorchModel into finetuned model
+    reloaded_trainer = LightningTorchModel(model=finetune_model,
+                                           batch_size=2,
+                                           model_dir="model_checkpoint",
+                                           accelerator="gpu",
+                                           devices=-1,
+                                           logger=False,
+                                           enable_progress_bar=False)
 
-    assert predictions
+    reloaded_trainer.restore(strict=False)
+    state_reloaded = reloaded_trainer.lightning_model.pt_model.state_dict()
+
+    # --- Checks ---
+    # To verify that only the lm_head weights are not expected by the finetune_model
+    # and only the classifier weights are missing in the pretrain_model
+
+    keys_after_training = set(state_after_training.keys())
+    keys_reloaded = set(state_reloaded.keys())
+
+    unexpected = keys_after_training - keys_reloaded  # lm_head.
+    missing = keys_reloaded - keys_after_training  # classifier.
+
+    # Only the language modeling head weights are not expected by the finetune model,
+    # but present in the pretrain model
+
+    for key in unexpected:
+        assert 'lm_head.' in key
+
+    # Only the classification/regression head weights are expected by the finetune model,
+    # but missing in the pretrain model
+    for key in missing:
+        assert 'classifier.' in key
+
+    # Verify that the reloaded weights are identical to the saved weights,
+    # except for the weights that are present in the finetune model,
+    # but missing in the pretrained model.
+    # i.e regression/classification head weights like classifier.dense.weight)
+
+    for key in keys_reloaded:
+        if key not in missing:
+            torch.testing.assert_close(
+                state_after_training[key].detach().cpu(),
+                state_reloaded[key].detach().cpu(),
+                msg=f"Weight mismatch for key {key} after reloading.",
+                rtol=1e-4,
+                atol=1e-6)
