@@ -291,7 +291,6 @@ def test_chemberta_checkpointing_and_loading_ddp(smiles_data, tmp_path):
 
     # Train the model for one epoch, which will create a checkpoint
     trainer.fit(train_dataset=dataset, checkpoint_interval=0, nb_epoch=3)
-    original_preds = trainer.predict(dataset=dataset, num_workers=0)
 
     # Get model state after training
     state_after_training = trainer.lightning_model.pt_model.state_dict()
@@ -498,9 +497,10 @@ def test_chemberta_pretraining_and_finetuning_ddp(smiles_data, tmp_path):
                 msg=f"Weight mismatch for key {key} after reloading.",
                 rtol=1e-4,
                 atol=1e-6)
-    
-    reloaded_trainer.fit(train_dataset=dataset, checkpoint_interval=0, nb_epoch=1)
+
+    reloaded_trainer.fit(train_dataset=dataset,
+                         checkpoint_interval=0,
+                         nb_epoch=1)
 
     predictions = reloaded_trainer.predict(dataset)
     assert predictions.all()
-
