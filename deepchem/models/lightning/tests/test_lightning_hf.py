@@ -261,8 +261,8 @@ def test_chemberta_classification_workflow(smiles_data, tmp_path):
 
 
 @pytest.mark.torch
-def test_chemberta_checkpointing_and_loading(smiles_data, tmp_path):
-    """Verifies that saving and reloading a ChemBERTa checkpoint preserves weights exactly and produces identical predictions."""
+def test_chemberta_checkpointing_and_loading_ddp(smiles_data, tmp_path):
+    """Verifies that saving and reloading a ChemBERTa checkpoint under DDP preserves weights exactly and produces identical predictions."""
     dataset = smiles_data["dataset"]
     checkpoint_dir = str(tmp_path / "model_checkpoint")
     tokenizer_path = "seyonec/PubChem10M_SMILES_BPE_60k"
@@ -321,7 +321,7 @@ def test_chemberta_checkpointing_and_loading(smiles_data, tmp_path):
                                            batch_size=2,
                                            model_dir=checkpoint_dir,
                                            accelerator="gpu",
-                                           devices=-1,
+                                           devices=1,
                                            logger=False,
                                            enable_progress_bar=False)
     reloaded_trainer.restore()
@@ -422,8 +422,8 @@ def test_chemberta_overfit_with_lightning_trainer(smiles_data, tmp_path):
 
 
 @pytest.mark.torch
-def test_chemberta_pretraining_and_finetuning(smiles_data, tmp_path):
-    """Pretrains ChemBERTa with MLM, transfers weights to a regression model, fine-tunes it, and verifies predictions are returned."""
+def test_chemberta_pretraining_and_finetuning_ddp(smiles_data, tmp_path):
+    """Pretrains ChemBERTa with MLM under DDP, transfers weights to a regression model, fine-tunes it, and verifies predictions are returned."""
     dataset = smiles_data["dataset"]
     checkpoint_dir = str(tmp_path / "model_checkpoint")
     tokenizer_path = "seyonec/PubChem10M_SMILES_BPE_60k"
