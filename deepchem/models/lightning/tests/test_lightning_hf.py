@@ -291,6 +291,7 @@ def test_chemberta_checkpointing_and_loading_ddp(smiles_data, tmp_path):
 
     # Train the model for one epoch, which will create a checkpoint
     trainer.fit(train_dataset=dataset, checkpoint_interval=0, nb_epoch=3)
+    original_preds = trainer.predict(dataset=dataset, num_workers=0)
 
     # Get model state after training
     state_after_training = trainer.lightning_model.pt_model.state_dict()
@@ -341,8 +342,7 @@ def test_chemberta_checkpointing_and_loading_ddp(smiles_data, tmp_path):
             atol=1e-6)
 
     # --- Correctness Check 3: Functional Equivalence ---
-    # Predict with both models and compare results to ensure they are identical
-    original_preds = trainer.predict(dataset=dataset, num_workers=0)
+    # Compare results from both the models to ensure they are identical
     reloaded_preds = reloaded_trainer.predict(dataset=dataset, num_workers=0)
 
     np.testing.assert_allclose(
