@@ -63,10 +63,11 @@ def smiles_data(tmp_path_factory):
 
 
 @pytest.mark.torch
-def test_chemberta_masked_lm_workflow(smiles_data):
+def test_chemberta_masked_lm_workflow(smiles_data, tmp_path):
     """Trains ChemBERTa for MLM with FSDP, saves a checkpoint, reloads it, and verifies predictions are returned."""
     dataset = smiles_data["dataset"]
     tokenizer_path = "seyonec/PubChem10M_SMILES_BPE_60k"
+    checkpoint_dir = str(tmp_path / "model_checkpoint")
 
     dc_hf_model = Chemberta(task='mlm',
                             tokenizer_path=tokenizer_path,
@@ -90,7 +91,7 @@ def test_chemberta_masked_lm_workflow(smiles_data):
     # Test MLM training
     trainer.fit(train_dataset=dataset, checkpoint_interval=0, nb_epoch=1)
 
-    trainer.save_checkpoint(model_dir="chemberta_mlm_checkpoint")
+    trainer.save_checkpoint(model_dir=checkpoint_dir)
 
     # Create a new model instance for loading
     new_dc_hf_model = Chemberta(task='mlm',
@@ -103,7 +104,7 @@ def test_chemberta_masked_lm_workflow(smiles_data):
     reloaded_trainer = LightningTorchModel(
         model=new_dc_hf_model,
         batch_size=2,
-        model_dir="chemberta_mlm_checkpoint",
+        model_dir=checkpoint_dir,
         accelerator="gpu",
         devices=1,
     )
@@ -123,10 +124,10 @@ def test_chemberta_masked_lm_workflow(smiles_data):
 
 
 @pytest.mark.torch
-def test_chemberta_regression_workflow(smiles_data):
+def test_chemberta_regression_workflow(smiles_data, tmp_path):
     """Trains ChemBERTa for molecular weight regression with FSDP, checkpoints, reloads, and checks prediction shape."""
     dataset = smiles_data["dataset"]
-
+    checkpoint_dir = str(tmp_path / "model_checkpoint")
     tokenizer_path = "seyonec/PubChem10M_SMILES_BPE_60k"
 
     dc_hf_model = Chemberta(task='regression',
@@ -152,7 +153,7 @@ def test_chemberta_regression_workflow(smiles_data):
                 num_workers=4,
                 checkpoint_interval=0,
                 nb_epoch=1)
-    trainer.save_checkpoint(model_dir="chemberta_reg_checkpoint")
+    trainer.save_checkpoint(model_dir=checkpoint_dir)
 
     # Create a new model instance for loading
     new_dc_hf_model = Chemberta(task='regression',
@@ -165,7 +166,7 @@ def test_chemberta_regression_workflow(smiles_data):
     reloaded_trainer = LightningTorchModel(
         model=new_dc_hf_model,
         batch_size=2,
-        model_dir="chemberta_reg_checkpoint",
+        model_dir=checkpoint_dir,
         accelerator="gpu",
         devices=1,
     )
@@ -187,6 +188,7 @@ def test_chemberta_regression_workflow(smiles_data):
 def test_chemberta_classification_workflow(smiles_data, tmp_path):
     """Trains ChemBERTa for binary classification with mixed precision and FSDP, then verifies predicted probability shape."""
     dataset = smiles_data["dataset"]
+    checkpoint_dir = str(tmp_path / "model_checkpoint")
 
     # Convert regression labels to binary classification
     y_binary = (dataset.y > np.median(dataset.y)).astype(int)
@@ -228,7 +230,7 @@ def test_chemberta_classification_workflow(smiles_data, tmp_path):
                 checkpoint_interval=0,
                 nb_epoch=1)
 
-    trainer.save_checkpoint(model_dir="chemberta_classification_checkpoint")
+    trainer.save_checkpoint(model_dir=checkpoint_dir)
 
     # Create a new model instance for loading
     new_dc_hf_model = Chemberta(task='classification',
@@ -241,7 +243,7 @@ def test_chemberta_classification_workflow(smiles_data, tmp_path):
     reloaded_trainer = LightningTorchModel(
         model=new_dc_hf_model,
         batch_size=2,
-        model_dir="chemberta_classification_checkpoint",
+        model_dir=checkpoint_dir,
         accelerator="gpu",
         devices=1,
     )
@@ -259,9 +261,10 @@ def test_chemberta_classification_workflow(smiles_data, tmp_path):
 
 
 @pytest.mark.torch
-def test_chemberta_checkpointing_and_loading(smiles_data):
+def test_chemberta_checkpointing_and_loading(smiles_data, tmp_path):
     """Verifies that saving and reloading a ChemBERTa checkpoint preserves weights exactly and produces identical predictions."""
     dataset = smiles_data["dataset"]
+    checkpoint_dir = str(tmp_path / "model_checkpoint")
     tokenizer_path = "seyonec/PubChem10M_SMILES_BPE_60k"
 
     # Load ChemBERTa model for regression using Chemberta
@@ -304,7 +307,7 @@ def test_chemberta_checkpointing_and_loading(smiles_data):
             break
     assert weight_changed, "Model weights did not change (no training occurred)."
 
-    trainer.save_checkpoint(model_dir="model_checkpoint")
+    trainer.save_checkpoint(model_dir=checkpoint_dir)
 
     # Create a new model instance for loading
     dc_hf_model_new = Chemberta(task='regression',
@@ -316,7 +319,7 @@ def test_chemberta_checkpointing_and_loading(smiles_data):
     # Load the model from the checkpoint using LightningTorchModel
     reloaded_trainer = LightningTorchModel(model=dc_hf_model_new,
                                            batch_size=2,
-                                           model_dir="model_checkpoint",
+                                           model_dir=checkpoint_dir,
                                            accelerator="gpu",
                                            devices=-1,
                                            logger=False,
@@ -351,11 +354,12 @@ def test_chemberta_checkpointing_and_loading(smiles_data):
 
 
 @pytest.mark.torch
-def test_chemberta_overfit_with_lightning_trainer(smiles_data):
+def test_chemberta_overfit_with_lightning_trainer(smiles_data, tmp_path):
     """Confirms ChemBERTa can overfit a small regression dataset by checking that MAE drops significantly after 70 epochs."""
     L.seed_everything(42)
 
     dataset = smiles_data["dataset"]
+    checkpoint_dir = str(tmp_path / "model_checkpoint")
     tokenizer_path = "seyonec/PubChem10M_SMILES_BPE_60k"
     mae_metric = dc.metrics.Metric(dc.metrics.mean_absolute_error)
 
@@ -385,7 +389,7 @@ def test_chemberta_overfit_with_lightning_trainer(smiles_data):
                           nb_epoch=70)
 
     # Save checkpoint after training
-    lightning_trainer.save_checkpoint(model_dir="chemberta_overfit_best")
+    lightning_trainer.save_checkpoint(model_dir=checkpoint_dir)
 
     new_dc_hf_model = Chemberta(
         task='regression',
@@ -401,7 +405,7 @@ def test_chemberta_overfit_with_lightning_trainer(smiles_data):
     reloaded_trainer = LightningTorchModel(
         model=new_dc_hf_model,
         batch_size=1,
-        model_dir="chemberta_overfit_best",
+        model_dir=checkpoint_dir,
         accelerator="gpu",
         devices=1,
         logger=False,
@@ -418,9 +422,10 @@ def test_chemberta_overfit_with_lightning_trainer(smiles_data):
 
 
 @pytest.mark.torch
-def test_chemberta_pretraining_and_finetuning(smiles_data):
+def test_chemberta_pretraining_and_finetuning(smiles_data, tmp_path):
     """Pretrains ChemBERTa with MLM, transfers weights to a regression model, fine-tunes it, and verifies predictions are returned."""
     dataset = smiles_data["dataset"]
+    checkpoint_dir = str(tmp_path / "model_checkpoint")
     tokenizer_path = "seyonec/PubChem10M_SMILES_BPE_60k"
 
     # Load Chemberta model for pretraining with masked language modeling
@@ -448,7 +453,7 @@ def test_chemberta_pretraining_and_finetuning(smiles_data):
     state_after_training = trainer.lightning_model.pt_model.state_dict()
 
     # save pretrained checkpoint
-    trainer.save_checkpoint(model_dir="model_checkpoint")
+    trainer.save_checkpoint(model_dir=checkpoint_dir)
 
     # Create a new model instance for finetuning
     finetune_model = Chemberta(task='regression',
@@ -460,7 +465,7 @@ def test_chemberta_pretraining_and_finetuning(smiles_data):
     # Load pretrained checkpoint using LightningTorchModel into finetuned model
     reloaded_trainer = LightningTorchModel(model=finetune_model,
                                            batch_size=2,
-                                           model_dir="model_checkpoint",
+                                           model_dir=checkpoint_dir,
                                            accelerator="gpu",
                                            devices=-1,
                                            logger=False,
