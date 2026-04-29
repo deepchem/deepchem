@@ -504,3 +504,97 @@ def test_chemberta_pretraining_and_finetuning_ddp(smiles_data, tmp_path):
 
     predictions = reloaded_trainer.predict(dataset)
     assert predictions.all()
+
+
+@pytest.mark.torch
+def test_chemberta_pretraining_and_finetuning_fsdp(smiles_data, tmp_path):
+    """Pretrains ChemBERTa with MLM under FSDP, transfers weights to a regression model, fine-tunes it, and verifies predictions are returned."""
+    dataset = smiles_data["dataset"]
+    checkpoint_dir = str(tmp_path / "model_checkpoint")
+    tokenizer_path = "seyonec/PubChem10M_SMILES_BPE_60k"
+
+    pretrain_model = Chemberta(task='mlm',
+                               tokenizer_path=tokenizer_path,
+                               device='cpu',
+                               batch_size=2,
+                               learning_rate=0.0001)
+
+    trainer = LightningTorchModel(
+        model=pretrain_model,
+        batch_size=2,
+        accelerator="gpu",
+        strategy="fsdp",
+        devices=-1,
+        precision="16-mixed",
+        enable_progress_bar=False,
+        logger=False,
+        enable_checkpointing=False,
+    )
+
+    trainer.fit(train_dataset=dataset, checkpoint_interval=0, nb_epoch=3)
+
+    keys_after_training = set(
+        trainer.lightning_model.pt_model.state_dict().keys())
+
+    trainer.save_checkpoint(model_dir=checkpoint_dir)
+
+    # Load checkpoint into a single-GPU MLM model to get consolidated (non-sharded)
+    # pretrain weights for comparison.
+    pretrain_ref_model = Chemberta(task='mlm',
+                                   tokenizer_path=tokenizer_path,
+                                   device='cpu',
+                                   batch_size=2,
+                                   learning_rate=0.0001)
+    pretrain_ref_trainer = LightningTorchModel(model=pretrain_ref_model,
+                                               batch_size=2,
+                                               model_dir=checkpoint_dir,
+                                               accelerator="gpu",
+                                               devices=1,
+                                               logger=False,
+                                               enable_progress_bar=False)
+    pretrain_ref_trainer.restore()
+    state_pretrain = pretrain_ref_trainer.lightning_model.pt_model.state_dict()
+
+    finetune_model = Chemberta(task='regression',
+                               tokenizer_path=tokenizer_path,
+                               device='cpu',
+                               batch_size=2,
+                               learning_rate=0.0001)
+
+    # Reload on single GPU to avoid FSDP process-group conflicts with the first trainer
+    reloaded_trainer = LightningTorchModel(model=finetune_model,
+                                           batch_size=2,
+                                           model_dir=checkpoint_dir,
+                                           accelerator="gpu",
+                                           devices=1,
+                                           logger=False,
+                                           enable_progress_bar=False)
+
+    reloaded_trainer.restore(strict=False)
+    state_reloaded = reloaded_trainer.lightning_model.pt_model.state_dict()
+    keys_reloaded = set(state_reloaded.keys())
+
+    unexpected = keys_after_training - keys_reloaded  # lm_head.*
+    missing = keys_reloaded - keys_after_training  # classifier.*
+
+    for key in unexpected:
+        assert 'lm_head.' in key
+
+    for key in missing:
+        assert 'classifier.' in key
+
+    for key in keys_reloaded:
+        if key not in missing:
+            torch.testing.assert_close(
+                state_pretrain[key].detach().cpu(),
+                state_reloaded[key].detach().cpu(),
+                msg=f"Weight mismatch for key {key} after reloading.",
+                rtol=1e-4,
+                atol=1e-6)
+
+    reloaded_trainer.fit(train_dataset=dataset,
+                         checkpoint_interval=0,
+                         nb_epoch=1)
+
+    predictions = reloaded_trainer.predict(dataset)
+    assert predictions.all()
