@@ -16,13 +16,16 @@ References
 """
 import os
 import logging
+import time
 import numpy as np
 from typing import List, Optional, Sequence, Tuple, Union
+from urllib.error import HTTPError, URLError
+from urllib.request import urlopen
 
 import deepchem as dc
 from deepchem.molnet.load_function.molnet_loader import (TransformerGenerator,
                                                          _MolnetLoader)
-from deepchem.data import Dataset
+from deepchem.data import Dataset, DiskDataset
 
 logger = logging.getLogger(__name__)
 
@@ -111,10 +114,10 @@ class _CATHLoader(_MolnetLoader):
         for i, f in enumerate(features):
             features_array[i] = f
 
-        # Create dataset
-        dataset = dc.data.NumpyDataset(X=features_array, y=labels, ids=ids)
-
-        return dataset
+        return DiskDataset.from_numpy(X=features_array,
+                                      y=labels,
+                                      ids=ids,
+                                      tasks=self.tasks)
 
     def _get_cath_pdb_list(self) -> List[str]:
         """Get list of representative PDB IDs.
@@ -175,14 +178,12 @@ class _CATHLoader(_MolnetLoader):
             - labels: zero placeholders for API compatibility
             - ids: List of PDB IDs for successfully downloaded files
         """
-        import time
-        import requests
-
         data_folder = os.path.join(self.data_dir, self.name)
         os.makedirs(data_folder, exist_ok=True)
 
         pdb_files = []
         ids = []
+        missing_ids = []
 
         for pdb_id in pdb_ids:
             pdb_code = pdb_id.lower()
@@ -193,16 +194,30 @@ class _CATHLoader(_MolnetLoader):
                 url = f"https://files.rcsb.org/download/{pdb_code}.pdb"
                 for attempt in range(self.max_download_attempts):
                     try:
-                        response = requests.get(url,
-                                                timeout=self.download_timeout)
-                        if response.status_code == 200:
+                        with urlopen(url,
+                                     timeout=self.download_timeout) as response:
+                            status = getattr(response, 'status',
+                                             response.getcode())
+                            if status != 200:
+                                logger.warning(
+                                    "Failed to download %s (HTTP %d)", pdb_id,
+                                    status)
+                                if 400 <= status < 500:
+                                    break
+                                if attempt < self.max_download_attempts - 1:
+                                    time.sleep(2**attempt)
+                                continue
                             with open(pdb_file, 'wb') as f:
-                                f.write(response.content)
+                                f.write(response.read())
                             break
-                        else:
-                            logger.warning("Failed to download %s (HTTP %d)",
-                                           pdb_id, response.status_code)
-                    except (requests.ConnectionError, requests.Timeout) as e:
+                    except HTTPError as e:
+                        logger.warning("Failed to download %s (HTTP %d)",
+                                       pdb_id, e.code)
+                        if 400 <= e.code < 500:
+                            break
+                        if attempt < self.max_download_attempts - 1:
+                            time.sleep(2**attempt)
+                    except (URLError, TimeoutError, OSError) as e:
                         logger.warning(
                             "Download attempt %d/%d for %s failed: %s",
                             attempt + 1, self.max_download_attempts, pdb_id, e)
@@ -216,6 +231,12 @@ class _CATHLoader(_MolnetLoader):
             if os.path.exists(pdb_file):
                 pdb_files.append(pdb_file)
                 ids.append(pdb_id)
+            else:
+                missing_ids.append(pdb_id)
+
+        if missing_ids:
+            raise ValueError("Failed to download PDB IDs: %s" %
+                             ", ".join(missing_ids))
 
         # Create zero placeholder labels for API compatibility.
         labels = np.zeros((len(ids), 1), dtype=np.float32)

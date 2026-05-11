@@ -5,6 +5,7 @@ import os
 import unittest
 import tempfile
 from unittest import mock
+from urllib.error import HTTPError
 
 import deepchem as dc
 
@@ -47,7 +48,9 @@ class TestCATHLoader(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             pdb_ids = ['1AAA', '1AAB', '1AAC']
             self._write_cached_pdbs(tmpdir, pdb_ids)
-            with mock.patch('requests.get') as mock_get:
+            with mock.patch(
+                    'deepchem.molnet.load_function.cath_datasets.urlopen'
+            ) as mock_urlopen:
                 tasks, datasets, transformers = dc.molnet.load_cath(
                     featurizer='ProteinBackbone',
                     splitter='random',
@@ -55,7 +58,7 @@ class TestCATHLoader(unittest.TestCase):
                     save_dir=tmpdir,
                     reload=False,
                     pdb_ids=pdb_ids)
-            mock_get.assert_not_called()
+            mock_urlopen.assert_not_called()
 
             # Check tasks
             assert len(tasks) == 1
@@ -95,7 +98,7 @@ class TestCATHLoader(unittest.TestCase):
             # Should have single dataset
             assert len(datasets) == 1
             dataset = datasets[0]
-            assert isinstance(dataset, dc.data.Dataset)
+            assert isinstance(dataset, dc.data.DiskDataset)
             assert len(dataset) == len(pdb_ids)
             assert list(dataset.ids) == pdb_ids
 
@@ -147,6 +150,7 @@ class TestCATHLoader(unittest.TestCase):
             # Should have same number of samples
             assert len(datasets1[0]) == len(datasets2[0])
             assert tasks1 == tasks2
+            assert isinstance(datasets2[0], dc.data.DiskDataset)
 
     @unittest.skipIf(not has_biopython, "BioPython not installed")
     def test_cath_loader_class(self):
@@ -194,6 +198,29 @@ class TestCATHLoader(unittest.TestCase):
                             data_dir=tmpdir,
                             save_dir=tmpdir,
                             pdb_ids=[])
+
+    @unittest.skipIf(not has_biopython, "BioPython not installed")
+    def test_missing_download_raises(self):
+        """Test missing PDB downloads fail explicitly."""
+        from deepchem.molnet.load_function.cath_datasets import _CATHLoader
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            featurizer = dc.feat.ProteinBackboneFeaturizer()
+            loader = _CATHLoader(featurizer=featurizer,
+                                 splitter=None,
+                                 transformer_generators=[],
+                                 tasks=['structure_placeholder'],
+                                 data_dir=tmpdir,
+                                 save_dir=tmpdir,
+                                 pdb_ids=['1AAA'])
+
+            with mock.patch(
+                    'deepchem.molnet.load_function.cath_datasets.urlopen',
+                    side_effect=HTTPError('http://example.com/1aaa.pdb', 404,
+                                          'Not Found', None, None)):
+                with self.assertRaisesRegex(ValueError,
+                                            'Failed to download PDB IDs: 1AAA'):
+                    loader._download_pdbs(['1AAA'])
 
 
 if __name__ == '__main__':
