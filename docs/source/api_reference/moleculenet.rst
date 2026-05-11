@@ -81,6 +81,11 @@ BBBP stands for Blood-Brain-Barrier Penetration
 CATH Datasets
 -------------
 
+``load_cath()`` currently loads a small representative RCSB/CATH-inspired
+protein structure subset for prototyping. It does not download the full
+CATH S40 release, and its labels are zero placeholders for API
+compatibility rather than curated CATH fold annotations.
+
 .. autofunction:: deepchem.molnet.load_cath
 
 Cell Counting Datasets

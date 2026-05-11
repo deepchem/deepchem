@@ -1,9 +1,13 @@
-"""CATH protein structure dataset loader for MoleculeNet.
+"""Representative protein structure loader for MoleculeNet.
 
-This module provides a MoleculeNet-compatible loader for the CATH
-protein domain structure database. It downloads PDB files from RCSB
-and featurizes backbone coordinates for use with DeepChem models
-such as RFDiffusionModel.
+This module provides a MoleculeNet-compatible loader for a small,
+CATH-inspired set of representative protein structures. It downloads
+PDB files from RCSB and featurizes backbone coordinates for use with
+DeepChem models such as RFDiffusionModel.
+
+The loader does not download the full CATH S40 dataset and does not
+provide CATH hierarchy labels. The label array contains a single zero
+placeholder task for API compatibility with supervised DeepChem datasets.
 
 References
 ----------
@@ -13,7 +17,7 @@ References
 import os
 import logging
 import numpy as np
-from typing import List, Optional, Tuple, Union
+from typing import List, Optional, Sequence, Tuple, Union
 
 import deepchem as dc
 from deepchem.molnet.load_function.molnet_loader import (TransformerGenerator,
@@ -22,28 +26,52 @@ from deepchem.data import Dataset
 
 logger = logging.getLogger(__name__)
 
-CATH_TASKS = ['fold_class']
+CATH_TASKS = ['structure_placeholder']
 
 
 class _CATHLoader(_MolnetLoader):
-    """Loader for CATH protein structure dataset.
+    """Loader for a representative protein structure subset.
 
-    CATH is a hierarchical classification of protein domain structures.
-    This loader provides access to a curated subset of non-redundant
-    protein structures from the CATH database.
+    The default PDB ID list is inspired by the diversity of CATH folds,
+    but it is a small RCSB PDB subset for prototyping and tests. It is
+    not the complete CATH S40 dataset.
     """
 
-    def __init__(self, *args, max_length: int = 512, **kwargs):
+    def __init__(self,
+                 *args,
+                 max_length: int = 512,
+                 pdb_ids: Optional[Sequence[str]] = None,
+                 max_download_attempts: int = 3,
+                 download_timeout: float = 30.0,
+                 **kwargs):
         """Initialize CATH loader.
 
         Parameters
         ----------
         max_length : int, default 512
             Maximum protein length to load. Longer proteins are truncated.
+        pdb_ids : sequence of str, optional
+            PDB IDs to load. If None, a small built-in representative set is
+            used.
+        max_download_attempts : int, default 3
+            Maximum number of download attempts per missing PDB file.
+        download_timeout : float, default 30.0
+            Timeout in seconds for each RCSB download request.
         """
         super(_CATHLoader, self).__init__(*args, **kwargs)
-        self.name = 'cath_s40'
+        if max_length <= 0:
+            raise ValueError("max_length must be positive")
+        if max_download_attempts <= 0:
+            raise ValueError("max_download_attempts must be positive")
+        if download_timeout <= 0:
+            raise ValueError("download_timeout must be positive")
+        if pdb_ids is not None and len(pdb_ids) == 0:
+            raise ValueError("pdb_ids must contain at least one PDB ID")
+        self.name = 'cath_representative_pdb'
         self.max_length = max_length
+        self.pdb_ids = list(pdb_ids) if pdb_ids is not None else None
+        self.max_download_attempts = max_download_attempts
+        self.download_timeout = download_timeout
 
     def create_dataset(self) -> Dataset:
         """Create the CATH dataset.
@@ -89,19 +117,20 @@ class _CATHLoader(_MolnetLoader):
         return dataset
 
     def _get_cath_pdb_list(self) -> List[str]:
-        """Get list of CATH PDB IDs.
+        """Get list of representative PDB IDs.
 
-        Returns a representative set of diverse protein structures
-        for testing and prototyping.
+        Returns a representative set of diverse protein structures for
+        testing and prototyping, or the user-provided ``pdb_ids``.
 
         Returns
         -------
         List[str]
             List of PDB IDs.
         """
-        # Representative set covering different CATH classes
-        # This is a curated list for prototyping
-        # In production, this would download from CATH database
+        if self.pdb_ids is not None:
+            return list(self.pdb_ids)
+
+        # Representative set covering a variety of structural classes.
         representative_set = [
             "1CRN",  # Crambin - small
             "1UBQ",  # Ubiquitin - beta-grasp
@@ -143,7 +172,7 @@ class _CATHLoader(_MolnetLoader):
         Tuple[List[str], np.ndarray, List[str]]
             Tuple of (pdb_files, labels, ids) where:
             - pdb_files: List of paths to downloaded PDB files
-            - labels: Dummy labels (all zeros for unsupervised tasks)
+            - labels: zero placeholders for API compatibility
             - ids: List of PDB IDs for successfully downloaded files
         """
         import time
@@ -162,10 +191,10 @@ class _CATHLoader(_MolnetLoader):
             # Download if not cached
             if not os.path.exists(pdb_file):
                 url = f"https://files.rcsb.org/download/{pdb_code}.pdb"
-                # Retry up to 3 times with exponential backoff
-                for attempt in range(3):
+                for attempt in range(self.max_download_attempts):
                     try:
-                        response = requests.get(url, timeout=30)
+                        response = requests.get(url,
+                                                timeout=self.download_timeout)
                         if response.status_code == 200:
                             with open(pdb_file, 'wb') as f:
                                 f.write(response.content)
@@ -176,8 +205,8 @@ class _CATHLoader(_MolnetLoader):
                     except (requests.ConnectionError, requests.Timeout) as e:
                         logger.warning(
                             "Download attempt %d/%d for %s failed: %s",
-                            attempt + 1, 3, pdb_id, e)
-                        if attempt < 2:
+                            attempt + 1, self.max_download_attempts, pdb_id, e)
+                        if attempt < self.max_download_attempts - 1:
                             time.sleep(2**attempt)
                     except Exception as e:
                         logger.warning("Unexpected error downloading %s: %s",
@@ -188,7 +217,7 @@ class _CATHLoader(_MolnetLoader):
                 pdb_files.append(pdb_file)
                 ids.append(pdb_id)
 
-        # Create dummy labels (all zeros for unsupervised structural task)
+        # Create zero placeholder labels for API compatibility.
         labels = np.zeros((len(ids), 1), dtype=np.float32)
 
         return pdb_files, labels, ids
@@ -197,20 +226,22 @@ class _CATHLoader(_MolnetLoader):
 def load_cath(
     featurizer: Union[dc.feat.Featurizer, str] = 'ProteinBackbone',
     splitter: Union[dc.splits.Splitter, str, None] = 'random',
-    transformers: List[Union[TransformerGenerator, str]] = [],
+    transformers: Optional[List[Union[TransformerGenerator, str]]] = None,
     reload: bool = True,
     data_dir: Optional[str] = None,
     save_dir: Optional[str] = None,
     max_length: int = 512,
+    pdb_ids: Optional[Sequence[str]] = None,
+    max_download_attempts: int = 3,
+    download_timeout: float = 30.0,
     **kwargs
 ) -> Tuple[List[str], Tuple[Dataset, ...], List[dc.trans.Transformer]]:
-    """Load CATH protein structure dataset.
+    """Load a representative protein structure dataset.
 
-    The CATH database is a hierarchical classification of protein domain
-    structures. CATH stands for Class, Architecture, Topology, and Homology.
-    This loader provides access to a representative set of non-redundant
-    protein structures suitable for training protein structure generation
-    models.
+    This loader provides access to a small CATH-inspired representative set
+    of RCSB PDB structures suitable for prototyping protein structure
+    generation models. It does not download the full CATH S40 dataset and
+    does not provide CATH class labels.
 
     This dataset is particularly useful for:
 
@@ -235,7 +266,7 @@ def load_cath(
         and test sets. Alternatively you can pass one of the names from
         dc.molnet.splitters as a shortcut. If this is None, all the data
         will be included in a single dataset.
-    transformers : list of TransformerGenerators or strings
+    transformers : list of TransformerGenerators or strings, optional
         The Transformers to apply to the data. Each one is specified by a
         TransformerGenerator or, as a shortcut, one of the names from
         dc.molnet.transformers.
@@ -249,12 +280,18 @@ def load_cath(
         A directory to save the dataset in.
     max_length : int, default 512
         Maximum protein length. Longer proteins will be truncated.
+    pdb_ids : sequence of str, optional
+        PDB IDs to load. If None, a small built-in representative set is used.
+    max_download_attempts : int, default 3
+        Maximum number of download attempts per missing PDB file.
+    download_timeout : float, default 30.0
+        Timeout in seconds for each RCSB download request.
 
     Returns
     -------
     tasks : list
         Column names corresponding to machine learning target variables.
-        For CATH, this is a dummy task for unsupervised learning.
+        This loader returns one zero placeholder task for API compatibility.
     datasets : tuple
         Train, validation, test splits of data as
         ``deepchem.data.Dataset`` instances.
@@ -284,11 +321,14 @@ def load_cath(
     Notes
     -----
     This loader downloads PDB files from the RCSB Protein Data Bank.
-    An internet connection is required on first use.
+    An internet connection is required on first use unless all requested PDB
+    files already exist in the cache directory.
     """
     # Handle featurizer string shortcut
-    if featurizer == 'ProteinBackbone':
+    if isinstance(featurizer, str) and featurizer.lower() == 'proteinbackbone':
         featurizer = dc.feat.ProteinBackboneFeaturizer(max_length=max_length)
+    if transformers is None:
+        transformers = []
 
     loader = _CATHLoader(featurizer,
                          splitter,
@@ -297,5 +337,8 @@ def load_cath(
                          data_dir,
                          save_dir,
                          max_length=max_length,
+                         pdb_ids=pdb_ids,
+                         max_download_attempts=max_download_attempts,
+                         download_timeout=download_timeout,
                          **kwargs)
     return loader.load_dataset(loader.name, reload)
