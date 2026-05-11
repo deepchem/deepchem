@@ -39,10 +39,10 @@ class TestProteinBackboneFeaturizer(unittest.TestCase):
             "       0.500   4.000   4.000  1.00  0.00           C\n"
             "ATOM      9  C   VAL A   3"
             "       1.000   5.400   4.000  1.00  0.00           C\n"
-            "END\n"
-        )
-        self.pdb_file = tempfile.NamedTemporaryFile(
-            mode='w', suffix='.pdb', delete=False)
+            "END\n")
+        self.pdb_file = tempfile.NamedTemporaryFile(mode='w',
+                                                    suffix='.pdb',
+                                                    delete=False)
         self.pdb_file.write(self.pdb_content)
         self.pdb_file.close()
 
@@ -56,6 +56,12 @@ class TestProteinBackboneFeaturizer(unittest.TestCase):
         """Test featurizer initialization."""
         featurizer = dc.feat.ProteinBackboneFeaturizer(max_length=128)
         assert featurizer.max_length == 128
+
+    @unittest.skipIf(not has_biopython, "BioPython not installed")
+    def test_invalid_max_length(self):
+        """Test invalid max_length fails clearly."""
+        with self.assertRaises(ValueError):
+            dc.feat.ProteinBackboneFeaturizer(max_length=0)
 
     @unittest.skipIf(not has_biopython, "BioPython not installed")
     def test_featurize_single_pdb(self):
@@ -80,12 +86,10 @@ class TestProteinBackboneFeaturizer(unittest.TestCase):
         coords = features[0]  # (L, 3, 3)
 
         # Check first residue N atom coordinates
-        np.testing.assert_array_almost_equal(
-            coords[0, 0], [0.0, 0.0, 0.0])
+        np.testing.assert_array_almost_equal(coords[0, 0], [0.0, 0.0, 0.0])
 
         # Check first residue CA atom coordinates
-        np.testing.assert_array_almost_equal(
-            coords[0, 1], [1.458, 0.0, 0.0])
+        np.testing.assert_array_almost_equal(coords[0, 1], [1.458, 0.0, 0.0])
 
     @unittest.skipIf(not has_biopython, "BioPython not installed")
     def test_truncation(self):
@@ -100,35 +104,74 @@ class TestProteinBackboneFeaturizer(unittest.TestCase):
         for res_i in range(20):
             for atom_name, element in atoms:
                 x = float(res_i) * 3.8
-                line = (
-                    f"ATOM  {serial:5d} {atom_name:^4s}"
-                    f" ALA A{res_i + 1:4d}    "
-                    f"{x:8.3f}{0.0:8.3f}{0.0:8.3f}"
-                    f"  1.00  0.00           {element}\n")
+                line = (f"ATOM  {serial:5d} {atom_name:^4s}"
+                        f" ALA A{res_i + 1:4d}    "
+                        f"{x:8.3f}{0.0:8.3f}{0.0:8.3f}"
+                        f"  1.00  0.00           {element}\n")
                 lines.append(line)
                 serial += 1
         lines.append("END\n")
         long_pdb_content = "".join(lines)
 
-        pdb_file2 = tempfile.NamedTemporaryFile(
-            mode='w', suffix='.pdb', delete=False)
+        pdb_file2 = tempfile.NamedTemporaryFile(mode='w',
+                                                suffix='.pdb',
+                                                delete=False)
         pdb_file2.write(long_pdb_content)
         pdb_file2.close()
 
         try:
             featurizer = dc.feat.ProteinBackboneFeaturizer(max_length=10)
-            features = featurizer.featurize([pdb_file2.name])
+            with self.assertLogs('deepchem.feat.protein_backbone_featurizer',
+                                 level='WARNING'):
+                features = featurizer.featurize([pdb_file2.name])
 
             # Should be truncated to max_length
             assert features[0].shape[0] == 10
+            metadata = featurizer.get_metadata(pdb_file2.name)
+            assert metadata['original_length'] == 20
+            assert metadata['returned_length'] == 10
+            assert metadata['truncated'] is True
+            assert metadata['crop_start'] == 5
         finally:
             os.unlink(pdb_file2.name)
 
     @unittest.skipIf(not has_biopython, "BioPython not installed")
+    def test_missing_backbone_atoms_are_recorded(self):
+        """Test residues missing backbone atoms are skipped and recorded."""
+        pdb_content = ("ATOM      1  N   ALA A   1"
+                       "       0.000   0.000   0.000  1.00  0.00           N\n"
+                       "ATOM      2  CA  ALA A   1"
+                       "       1.458   0.000   0.000  1.00  0.00           C\n"
+                       "ATOM      3  C   ALA A   1"
+                       "       2.009   1.420   0.000  1.00  0.00           C\n"
+                       "ATOM      4  N   GLY A   2"
+                       "       1.500   2.000   1.000  1.00  0.00           N\n"
+                       "ATOM      5  CA  GLY A   2"
+                       "       2.000   3.350   1.000  1.00  0.00           C\n"
+                       "END\n")
+        missing_pdb = tempfile.NamedTemporaryFile(mode='w',
+                                                  suffix='.pdb',
+                                                  delete=False)
+        missing_pdb.write(pdb_content)
+        missing_pdb.close()
+
+        try:
+            featurizer = dc.feat.ProteinBackboneFeaturizer()
+            features = featurizer.featurize([missing_pdb.name])
+            assert features[0].shape == (1, 3, 3)
+            metadata = featurizer.get_metadata(missing_pdb.name)
+            assert metadata['skipped_residues'] == 1
+            assert metadata['chain_ids'] == ['A']
+            assert metadata['model_id'] == 0
+        finally:
+            os.unlink(missing_pdb.name)
+
+    @unittest.skipIf(not has_biopython, "BioPython not installed")
     def test_invalid_pdb(self):
         """Test handling of invalid PDB files."""
-        invalid_pdb = tempfile.NamedTemporaryFile(
-            mode='w', suffix='.pdb', delete=False)
+        invalid_pdb = tempfile.NamedTemporaryFile(mode='w',
+                                                  suffix='.pdb',
+                                                  delete=False)
         invalid_pdb.write("This is not a valid PDB file\n")
         invalid_pdb.close()
 

@@ -570,6 +570,10 @@ BindingPocketFeaturizer
 ProteinBackboneFeaturizer
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
+This featurizer reads only the first model from a multi-model PDB,
+skips standard residues missing any of N, CA, or C, and center-crops
+overlength proteins with a warning when ``max_length`` is set.
+
 .. autoclass:: deepchem.feat.ProteinBackboneFeaturizer
   :members:
   :inherited-members:

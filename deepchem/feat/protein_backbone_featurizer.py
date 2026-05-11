@@ -2,7 +2,7 @@
 Protein Backbone Featurizer for structural diffusion models.
 """
 import logging
-from typing import Iterable
+from typing import Dict, Iterable, Optional
 import numpy as np
 from deepchem.feat.base_classes import Featurizer
 
@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 class ProteinBackboneFeaturizer(Featurizer):
     """Featurizes protein structures by extracting backbone atom coordinates.
 
-    This featurizer extracts the N, CA (Cα), and C backbone atom coordinates
+    This featurizer extracts the N, CA, and C backbone atom coordinates
     from PDB structures. It is designed for use with protein structure generation
     models like RFDiffusion that operate on backbone geometry.
 
@@ -30,14 +30,16 @@ class ProteinBackboneFeaturizer(Featurizer):
 
     Since proteins have variable lengths, calling ``featurize()`` returns
     a numpy object array where each element is an ``(L, 3, 3)`` array.
+    For multi-model PDB files only the first model is featurized. Standard
+    amino-acid residues missing any of N, CA, or C are skipped.
 
     This class requires BioPython to be installed.
 
     Parameters
     ----------
-    max_length : int, default 512
+    max_length : int or None, default 512
         Maximum number of residues to extract. Longer proteins will be
-        truncated from the center.
+        center-cropped with a warning. If None, no length limit is applied.
 
     Examples
     --------
@@ -64,19 +66,39 @@ class ProteinBackboneFeaturizer(Featurizer):
        function with RFdiffusion." Nature 620.7976 (2023): 1089-1100.
     """
 
-    def __init__(self, max_length: int = 512):
+    def __init__(self, max_length: Optional[int] = 512):
         """Initialize the ProteinBackboneFeaturizer.
 
         Parameters
         ----------
-        max_length : int, default 512
+        max_length : int or None, default 512
             Maximum number of residues to extract. Longer proteins will be
-            truncated from the center.
+            center-cropped with a warning. If None, no length limit is applied.
         """
         if not has_biopython:
             raise ImportError("ProteinBackboneFeaturizer requires BioPython. "
                               "Install it with: pip install biopython")
+        if max_length is not None and max_length <= 0:
+            raise ValueError("max_length must be positive or None")
         self.max_length = max_length
+        self._last_metadata: Dict[str, Dict[str, object]] = {}
+
+    def get_metadata(self, datapoint: str) -> Dict[str, object]:
+        """Return metadata recorded during the most recent featurization.
+
+        Parameters
+        ----------
+        datapoint : str
+            Path to a PDB file that was previously featurized.
+
+        Returns
+        -------
+        dict
+            Metadata including original length, skipped residues, chains,
+            model id, and truncation details. Returns an empty dict if the
+            datapoint has not been featurized by this instance.
+        """
+        return dict(self._last_metadata.get(datapoint, {}))
 
     def featurize(self,
                   datapoints: Iterable[str],
@@ -134,8 +156,19 @@ class ProteinBackboneFeaturizer(Featurizer):
         structure = parser.get_structure('protein', datapoint)
 
         coords_list = []
+        metadata: Dict[str, object] = {
+            'model_id': None,
+            'chain_ids': [],
+            'original_length': 0,
+            'returned_length': 0,
+            'skipped_residues': 0,
+            'truncated': False,
+            'crop_start': None,
+        }
         for model in structure:
+            metadata['model_id'] = model.id
             for chain in model:
+                metadata['chain_ids'].append(chain.id)
                 for residue in chain:
                     if not is_aa(residue, standard=True):
                         continue
@@ -149,21 +182,30 @@ class ProteinBackboneFeaturizer(Featurizer):
                                             dtype=np.float32)
                         coords_list.append(backbone)
                     except KeyError:
-                        # Skip residues missing backbone atoms
+                        metadata['skipped_residues'] += 1
                         continue
 
             # Only use first model
             break
 
         if len(coords_list) == 0:
+            self._last_metadata[datapoint] = metadata
             return np.array([])
 
         coords = np.stack(coords_list, axis=0)  # (L, 3, 3)
+        metadata['original_length'] = int(coords.shape[0])
 
         # Center crop if too long
         L = coords.shape[0]
-        if L > self.max_length:
+        if self.max_length is not None and L > self.max_length:
             start = (L - self.max_length) // 2
             coords = coords[start:start + self.max_length]
+            metadata['truncated'] = True
+            metadata['crop_start'] = int(start)
+            logger.warning(
+                "Protein %s has %d residues; center-cropped to max_length=%d",
+                datapoint, L, self.max_length)
 
+        metadata['returned_length'] = int(coords.shape[0])
+        self._last_metadata[datapoint] = metadata
         return coords
