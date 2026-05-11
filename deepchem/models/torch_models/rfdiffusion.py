@@ -1051,6 +1051,15 @@ class RFDiffusionModel(TorchModel):
                                                pad_batches=pad_batches):
                 batch_coords = []
                 batch_size = len(X_b)
+                sample_weights = np.asarray(w_b, dtype=np.float32)
+                if sample_weights.ndim == 0:
+                    sample_weights = np.full((batch_size,),
+                                             float(sample_weights),
+                                             dtype=np.float32)
+                else:
+                    sample_weights = sample_weights.reshape(batch_size, -1)
+                    sample_weights = sample_weights.max(axis=1).astype(
+                        np.float32)
 
                 # Find max length in this batch for padding
                 lengths = []
@@ -1078,6 +1087,8 @@ class RFDiffusionModel(TorchModel):
                 if mode == 'fit':
                     all_raw = []
                     for i in range(batch_size):
+                        if sample_weights[i] <= 0:
+                            continue
                         coords = X_b[i]
                         if isinstance(coords, np.ndarray) and coords.size > 0:
                             flat = coords.reshape(-1, 9) if (coords.ndim
@@ -1129,7 +1140,8 @@ class RFDiffusionModel(TorchModel):
                 noise_np = noise.numpy()
                 t_np = t.astype(np.int64)
 
-                weights = mask_batch[:, :, None].astype(np.float32)
+                weights = (mask_batch[:, :, None].astype(np.float32) *
+                           sample_weights[:, None, None])
 
                 # Self-conditioning: 50% of the time, compute x0 estimate
                 # from a first pass (detached) and pass it as extra input.

@@ -247,6 +247,32 @@ class TestRFDiffusionModel:
         assert np.any(mask == 0.0)
         np.testing.assert_array_equal(weights[0].squeeze(-1), mask)
 
+    def test_default_generator_respects_sample_weights(self):
+        """Test generator preserves dataset sample weights and padded repeats."""
+        proteins = [
+            np.random.randn(10, 3, 3).astype(np.float32) for _ in range(3)
+        ]
+        X = np.empty(3, dtype=object)
+        for i, protein in enumerate(proteins):
+            X[i] = protein
+        y = np.zeros((3, 1), dtype=np.float32)
+        w = np.array([[1.0], [0.5], [1.0]], dtype=np.float32)
+        dataset = dc.data.NumpyDataset(X=X, y=y, w=w)
+
+        model = RFDiffusionModel(embed_dim=64,
+                                 num_layers=2,
+                                 num_heads=4,
+                                 num_diffusion_steps=50,
+                                 batch_size=4)
+
+        _, _, weights = next(
+            model.default_generator(dataset, epochs=1, pad_batches=True))
+        sample_weight_sums = weights[0].sum(axis=(1, 2))
+
+        assert np.any(np.isclose(sample_weight_sums, 0.0))
+        assert np.any(np.isclose(sample_weight_sums, 5.0))
+        assert np.count_nonzero(np.isclose(sample_weight_sums, 10.0)) >= 2
+
     def test_predict_mode_not_supported(self):
         """Test prediction mode fails with a clear error."""
         dataset = self._make_dataset(n_samples=4, seq_len=10)
