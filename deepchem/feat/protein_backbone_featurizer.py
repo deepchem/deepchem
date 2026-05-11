@@ -1,6 +1,7 @@
 """
 Protein Backbone Featurizer for structural diffusion models.
 """
+import copy
 import logging
 from typing import Dict, Iterable, Optional
 import numpy as np
@@ -13,6 +14,11 @@ except ImportError:
     has_biopython = False
 
 logger = logging.getLogger(__name__)
+
+
+def _empty_backbone_coords() -> np.ndarray:
+    """Return an empty backbone tensor with the documented shape."""
+    return np.zeros((0, 3, 3), dtype=np.float32)
 
 
 class ProteinBackboneFeaturizer(Featurizer):
@@ -98,7 +104,7 @@ class ProteinBackboneFeaturizer(Featurizer):
             model id, and truncation details. Returns an empty dict if the
             datapoint has not been featurized by this instance.
         """
-        return dict(self._last_metadata.get(datapoint, {}))
+        return copy.deepcopy(self._last_metadata.get(datapoint, {}))
 
     def featurize(self,
                   datapoints: Iterable[str],
@@ -130,12 +136,17 @@ class ProteinBackboneFeaturizer(Featurizer):
                 logger.info("Featurizing datapoint %i" % i)
             try:
                 features.append(self._featurize(point, **kwargs))
-            except Exception:
-                logger.warning("Failed to featurize datapoint %d. "
-                               "Appending empty array." % i)
-                features.append(np.array([]))
+            except Exception as exc:
+                self._last_metadata.pop(point, None)
+                logger.warning(
+                    "Failed to featurize datapoint %d (%s): %s. Appending empty array.",
+                    i, point, exc)
+                features.append(_empty_backbone_coords())
 
-        return np.asarray(features, dtype=object)
+        out = np.empty(len(features), dtype=object)
+        for i, feature in enumerate(features):
+            out[i] = feature
+        return out
 
     def _featurize(self, datapoint: str, **kwargs) -> np.ndarray:
         """Extract backbone coordinates from a PDB file.
@@ -190,7 +201,7 @@ class ProteinBackboneFeaturizer(Featurizer):
 
         if len(coords_list) == 0:
             self._last_metadata[datapoint] = metadata
-            return np.array([])
+            return _empty_backbone_coords()
 
         coords = np.stack(coords_list, axis=0)  # (L, 3, 3)
         metadata['original_length'] = int(coords.shape[0])
