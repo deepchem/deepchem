@@ -167,6 +167,18 @@ class TestProteinBackboneFeaturizer(unittest.TestCase):
             os.unlink(missing_pdb.name)
 
     @unittest.skipIf(not has_biopython, "BioPython not installed")
+    def test_get_metadata_returns_safe_copy(self):
+        """Test metadata access does not expose internal mutable state."""
+        featurizer = dc.feat.ProteinBackboneFeaturizer()
+        featurizer.featurize([self.pdb_file.name])
+
+        metadata = featurizer.get_metadata(self.pdb_file.name)
+        metadata['chain_ids'].append('B')
+
+        fresh_metadata = featurizer.get_metadata(self.pdb_file.name)
+        assert fresh_metadata['chain_ids'] == ['A']
+
+    @unittest.skipIf(not has_biopython, "BioPython not installed")
     def test_invalid_pdb(self):
         """Test handling of invalid PDB files."""
         invalid_pdb = tempfile.NamedTemporaryFile(mode='w',
@@ -181,8 +193,35 @@ class TestProteinBackboneFeaturizer(unittest.TestCase):
 
             # Should return empty array for failed featurization
             assert features[0].size == 0
+            assert features[0].shape == (0, 3, 3)
+            assert features[0].dtype == np.float32
+            metadata = featurizer.get_metadata(invalid_pdb.name)
+            assert metadata['original_length'] == 0
+            assert metadata['returned_length'] == 0
+            assert metadata['skipped_residues'] == 0
         finally:
             os.unlink(invalid_pdb.name)
+
+    @unittest.skipIf(not has_biopython, "BioPython not installed")
+    def test_exception_clears_stale_metadata(self):
+        """Test exception path clears metadata for the failing datapoint."""
+        missing_path = self.pdb_file.name
+        featurizer = dc.feat.ProteinBackboneFeaturizer()
+        featurizer.featurize([missing_path])
+        assert featurizer.get_metadata(missing_path)['returned_length'] == 3
+
+        os.unlink(missing_path)
+        with self.assertLogs('deepchem.feat.protein_backbone_featurizer',
+                             level='WARNING'):
+            features = featurizer.featurize([missing_path])
+
+        assert features[0].shape == (0, 3, 3)
+        assert featurizer.get_metadata(missing_path) == {}
+        self.pdb_file = tempfile.NamedTemporaryFile(mode='w',
+                                                    suffix='.pdb',
+                                                    delete=False)
+        self.pdb_file.write(self.pdb_content)
+        self.pdb_file.close()
 
     def test_requires_biopython(self):
         """Test that error is raised if BioPython is not installed."""
