@@ -1,8 +1,10 @@
-"""RFDiffusion model and layers for protein backbone generation.
+"""Baseline diffusion layers for protein backbone coordinate generation.
 
 This module implements a denoising diffusion probabilistic model (DDPM)
-for generating protein backbone structures, following the approach
-described in RFDiffusion [1]_. It provides:
+scaffold for protein backbone coordinates. It is inspired by the public
+RFDiffusion architecture, but it is not a full reproduction of RFDiffusion:
+the denoiser here is a coordinate Transformer, not a RoseTTAFold/SE(3)
+equivariant network. It provides:
 
 - Neural network layers (embeddings, Transformer blocks) for the denoiser
 - A cosine variance schedule for the forward/reverse diffusion process
@@ -68,6 +70,8 @@ class SinusoidalTimestepEmbedding(nn.Module):
 
     def __init__(self, dim: int) -> None:
         super().__init__()
+        if dim <= 0:
+            raise ValueError('dim must be positive.')
         self.dim = dim
 
     def forward(self, t: torch.Tensor) -> torch.Tensor:
@@ -84,12 +88,15 @@ class SinusoidalTimestepEmbedding(nn.Module):
             Embeddings of shape ``(batch_size, dim)``.
         """
         device = t.device
-        half_dim = self.dim // 2
-        emb = math.log(10000) / (half_dim - 1)
-        emb = torch.exp(torch.arange(half_dim, device=device) * -emb)
+        half_dim = (self.dim + 1) // 2
+        if half_dim == 1:
+            emb = torch.ones(1, device=device)
+        else:
+            emb = math.log(10000) / (half_dim - 1)
+            emb = torch.exp(torch.arange(half_dim, device=device) * -emb)
         emb = t.float().unsqueeze(1) * emb.unsqueeze(0)
         emb = torch.cat([torch.sin(emb), torch.cos(emb)], dim=-1)
-        return emb
+        return emb[:, :self.dim]
 
 
 class ResidueEmbedding(nn.Module):
@@ -165,13 +172,18 @@ class PositionalEncoding(nn.Module):
 
     def __init__(self, embed_dim: int, max_len: int = 512) -> None:
         super().__init__()
+        if embed_dim <= 0:
+            raise ValueError('embed_dim must be positive.')
+        if max_len <= 0:
+            raise ValueError('max_len must be positive.')
+        self.max_len = max_len
         pe = torch.zeros(max_len, embed_dim)
         position = torch.arange(0, max_len, dtype=torch.float).unsqueeze(1)
         div_term = torch.exp(
             torch.arange(0, embed_dim, 2).float() *
             (-math.log(10000.0) / embed_dim))
         pe[:, 0::2] = torch.sin(position * div_term)
-        pe[:, 1::2] = torch.cos(position * div_term)
+        pe[:, 1::2] = torch.cos(position * div_term[:pe[:, 1::2].shape[1]])
         self.register_buffer('pe', pe.unsqueeze(0))
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -187,6 +199,9 @@ class PositionalEncoding(nn.Module):
         torch.Tensor
             Input with positional encoding added, same shape.
         """
+        if x.size(1) > self.max_len:
+            raise ValueError(
+                f'Sequence length {x.size(1)} exceeds max_len {self.max_len}.')
         return x + self.pe[:, :x.size(1), :]
 
 
@@ -244,7 +259,10 @@ class DiffusionTransformerBlock(nn.Module):
             nn.Linear(embed_dim, embed_dim * 2),
         )
 
-    def forward(self, x: torch.Tensor, t_emb: torch.Tensor) -> torch.Tensor:
+    def forward(self,
+                x: torch.Tensor,
+                t_emb: torch.Tensor,
+                attention_mask: Optional[torch.Tensor] = None) -> torch.Tensor:
         """Forward pass with timestep conditioning.
 
         Parameters
@@ -253,6 +271,9 @@ class DiffusionTransformerBlock(nn.Module):
             Input features of shape ``(batch, seq_len, embed_dim)``.
         t_emb : torch.Tensor
             Timestep embedding of shape ``(batch, embed_dim)``.
+        attention_mask : torch.Tensor, optional
+            Boolean or numeric mask of shape ``(batch, seq_len)`` where true
+            values indicate valid residues.
 
         Returns
         -------
@@ -267,7 +288,10 @@ class DiffusionTransformerBlock(nn.Module):
 
         h = self.norm1(x)
         h = h * (1 + scale) + shift
-        attn_out, _ = self.attn(h, h, h)
+        key_padding_mask = None
+        if attention_mask is not None:
+            key_padding_mask = ~attention_mask.to(dtype=torch.bool)
+        attn_out, _ = self.attn(h, h, h, key_padding_mask=key_padding_mask)
         x = x + attn_out
 
         x = x + self.mlp(self.norm2(x))
@@ -342,8 +366,23 @@ class BackboneDiffusion(nn.Module):
                  dropout: float = 0.1,
                  self_conditioning: bool = False) -> None:
         super().__init__()
+        if coord_dim <= 0:
+            raise ValueError('coord_dim must be positive.')
+        if embed_dim <= 0:
+            raise ValueError('embed_dim must be positive.')
+        if time_dim <= 0:
+            raise ValueError('time_dim must be positive.')
+        if num_layers <= 0:
+            raise ValueError('num_layers must be positive.')
+        if num_heads <= 0:
+            raise ValueError('num_heads must be positive.')
+        if embed_dim % num_heads != 0:
+            raise ValueError('embed_dim must be divisible by num_heads.')
+        if max_seq_len <= 0:
+            raise ValueError('max_seq_len must be positive.')
         self.coord_dim = coord_dim
         self.embed_dim = embed_dim
+        self.max_seq_len = max_seq_len
         self.self_conditioning = self_conditioning
 
         # Timestep embedding
@@ -403,7 +442,48 @@ class BackboneDiffusion(nn.Module):
         torch.Tensor
             Predicted noise of shape ``(batch, num_residues, coord_dim)``.
         """
+        if len(inputs) < 2:
+            raise ValueError(
+                'BackboneDiffusion expects at least coordinates and timesteps.')
+
         x_noisy, t = inputs[0], inputs[1]
+        if x_noisy.dim() != 3:
+            raise ValueError(
+                'Coordinates must have shape (batch, num_residues, coord_dim).')
+        if x_noisy.size(-1) != self.coord_dim:
+            raise ValueError(
+                f'Expected coord_dim {self.coord_dim}, got {x_noisy.size(-1)}.')
+        if x_noisy.size(1) > self.max_seq_len:
+            raise ValueError(
+                f'Sequence length {x_noisy.size(1)} exceeds max_seq_len {self.max_seq_len}.'
+            )
+        if t.dim() != 1 or t.size(0) != x_noisy.size(0):
+            raise ValueError('Timesteps must have shape (batch,).')
+
+        x0_prev = None
+        attention_mask = None
+        for extra in inputs[2:]:
+            if extra is None:
+                continue
+            if extra.dim() == x_noisy.dim() and tuple(extra.shape) == tuple(
+                    x_noisy.shape):
+                if not self.self_conditioning:
+                    raise ValueError(
+                        'Self-conditioning input was provided to a model with self_conditioning=False.'
+                    )
+                x0_prev = extra
+            else:
+                attention_mask = extra
+
+        if attention_mask is not None:
+            if attention_mask.dim() == 3 and attention_mask.size(-1) == 1:
+                attention_mask = attention_mask.squeeze(-1)
+            if attention_mask.dim(
+            ) != 2 or attention_mask.shape != x_noisy.shape[:2]:
+                raise ValueError(
+                    'attention_mask must have shape (batch, num_residues).')
+            attention_mask = attention_mask.to(device=x_noisy.device,
+                                               dtype=torch.bool)
 
         # Ensure t is long for embedding lookup
         t = t.long()
@@ -416,20 +496,25 @@ class BackboneDiffusion(nn.Module):
         h = self.coord_embed(x_noisy)
 
         # Add self-conditioning if provided
-        if self.self_conditioning and len(inputs) > 2:
-            x0_prev = inputs[2]
+        if x0_prev is not None:
             h = h + self.self_cond_proj(x0_prev)
 
         # Add positional encoding
         h = self.pos_encoding(h)
+        if attention_mask is not None:
+            h = h * attention_mask.unsqueeze(-1)
 
         # Apply transformer blocks
         for layer in self.layers:
-            h = layer(h, t_emb)
+            h = layer(h, t_emb, attention_mask=attention_mask)
+            if attention_mask is not None:
+                h = h * attention_mask.unsqueeze(-1)
 
         # Predict noise
         h = self.output_norm(h)
         noise_pred = self.output_proj(h)
+        if attention_mask is not None:
+            noise_pred = noise_pred * attention_mask.unsqueeze(-1)
 
         return noise_pred
 
@@ -464,6 +549,8 @@ class CosineSchedule:
     """
 
     def __init__(self, num_timesteps: int = 1000, s: float = 0.008) -> None:
+        if num_timesteps <= 0:
+            raise ValueError('num_timesteps must be positive.')
         self.num_timesteps = num_timesteps
 
         # Compute cosine schedule
@@ -527,6 +614,10 @@ class CosineSchedule:
         if noise is None:
             noise = torch.randn_like(x0)
 
+        t = t.to(dtype=torch.long)
+        if (t < 0).any() or (t >= self.num_timesteps).any():
+            raise ValueError('Timesteps are out of range for this schedule.')
+
         sqrt_alpha = self.sqrt_alpha_cumprod[t].to(x0.device)
         sqrt_one_minus_alpha = self.sqrt_one_minus_alpha_cumprod[t].to(
             x0.device)
@@ -572,6 +663,7 @@ class CosineSchedule:
             Predicted clean sample (x0) at this step.
         """
         device = x_t.device
+        t = t.to(dtype=torch.long)
         if x0_prev is not None:
             noise_pred = model([x_t, t, x0_prev])
         else:
@@ -639,25 +731,34 @@ class CosineSchedule:
         torch.Tensor
             Generated samples of the given shape.
         """
+        was_training = model.training
         model.eval()
-        x = torch.randn(shape, device=device)
-        x0_pred = None
+        try:
+            x = torch.randn(shape, device=device)
+            x0_pred = None
 
-        for t_val in reversed(range(self.num_timesteps)):
-            t = torch.full((shape[0],), t_val, device=device, dtype=torch.long)
-            x0_cond = x0_pred if self_conditioning else None
-            x, x0_pred = self.p_sample(model, x, t, x0_prev=x0_cond)
+            for t_val in reversed(range(self.num_timesteps)):
+                t = torch.full((shape[0],),
+                               t_val,
+                               device=device,
+                               dtype=torch.long)
+                x0_cond = x0_pred if self_conditioning else None
+                x, x0_pred = self.p_sample(model, x, t, x0_prev=x0_cond)
 
-        return x
+            return x
+        finally:
+            model.train(was_training)
 
 
 class RFDiffusionModel(TorchModel):
     """RFDiffusion model for protein backbone generation using DeepChem.
 
     This model implements a denoising diffusion probabilistic model (DDPM) for
-    generating protein backbone structures. It wraps the BackboneDiffusion
-    neural network in DeepChem's TorchModel interface, enabling standard
-    DeepChem workflows for training, prediction, and model management.
+    protein backbone coordinate generation. It wraps the BackboneDiffusion
+    neural network in DeepChem's TorchModel interface, enabling training and
+    model management through standard DeepChem workflows. Use ``generate`` for
+    sampling; ``predict`` is intentionally unsupported because there is no
+    deterministic target prediction for this generative model.
 
     The model operates on protein backbone coordinates represented as
     flattened arrays of shape ``(num_residues, 9)``, where 9 corresponds
@@ -669,9 +770,10 @@ class RFDiffusionModel(TorchModel):
     ``default_generator`` so that ``model.fit(dataset)`` works directly
     with DeepChem datasets.
 
-    During generation the model applies denormalization so that the
-    output coordinates are in physical Angstrom units with realistic
-    CA-CA distances (~3.8 A).
+    During generation the model applies the coordinate scale observed during
+    training when those statistics are available. This returns coordinates on
+    the training data scale, but it does not by itself guarantee physically
+    valid protein geometry.
 
     Parameters
     ----------
@@ -763,6 +865,19 @@ class RFDiffusionModel(TorchModel):
                  learning_rate: float = 1e-4,
                  device: Optional[torch.device] = None,
                  **kwargs) -> None:
+        if embed_dim <= 0:
+            raise ValueError('embed_dim must be positive.')
+        if time_dim <= 0:
+            raise ValueError('time_dim must be positive.')
+        if num_layers <= 0:
+            raise ValueError('num_layers must be positive.')
+        if num_heads <= 0:
+            raise ValueError('num_heads must be positive.')
+        if num_diffusion_steps <= 0:
+            raise ValueError('num_diffusion_steps must be positive.')
+        if max_seq_len <= 0:
+            raise ValueError('max_seq_len must be positive.')
+
         self.num_diffusion_steps = num_diffusion_steps
         self.max_seq_len = max_seq_len
         self.coord_dim = 9  # N, CA, C backbone atoms * 3 xyz
@@ -801,10 +916,11 @@ class RFDiffusionModel(TorchModel):
             # MSE loss per element
             loss = F.mse_loss(pred_noise, true_noise, reduction='none')
 
-            # Apply weights and average
+            # Apply weights and average over valid coordinate entries.
             if w.dim() < loss.dim():
                 w = w.reshape(w.shape + (1,) * (loss.dim() - w.dim()))
-            loss = (loss * w).mean()
+            denom = torch.clamp(w.expand_as(loss).sum(), min=1.0)
+            loss = (loss * w).sum() / denom
             return loss
 
         super(RFDiffusionModel, self).__init__(model,
@@ -835,6 +951,13 @@ class RFDiffusionModel(TorchModel):
         if coords.ndim == 3 and coords.shape[1] == 3 and coords.shape[2] == 3:
             # Shape (L, 3, 3) -> (L, 9)
             coords = coords.reshape(-1, 9)
+        elif coords.ndim != 2 or coords.shape[1] != self.coord_dim:
+            raise ValueError(
+                'coords must have shape (num_residues, 3, 3) or (num_residues, 9).'
+            )
+
+        if coords.shape[0] == 0:
+            raise ValueError('coords must contain at least one residue.')
 
         # Center around CA centroid (CA is indices 3,4,5 in the flattened rep)
         ca_coords = coords[:, 3:6]
@@ -867,14 +990,12 @@ class RFDiffusionModel(TorchModel):
             Original length before padding.
         """
         orig_len = coords.shape[0]
-        if orig_len >= max_len:
-            # Center crop
-            start = (orig_len - max_len) // 2
-            return coords[start:start + max_len], max_len
-        else:
-            padded = np.zeros((max_len, self.coord_dim), dtype=np.float32)
-            padded[:orig_len] = coords
-            return padded, orig_len
+        if orig_len > max_len:
+            raise ValueError(
+                f'Protein length {orig_len} exceeds target length {max_len}.')
+        padded = np.zeros((max_len, self.coord_dim), dtype=np.float32)
+        padded[:orig_len] = coords
+        return padded, orig_len
 
     def default_generator(
             self,
@@ -892,9 +1013,9 @@ class RFDiffusionModel(TorchModel):
         2. Sample random diffusion timesteps
         3. Add noise according to the cosine schedule
         4. Yield ``(inputs, labels, weights)`` where:
-           - inputs = [noisy_coords, timesteps]
+           - inputs = [noisy_coords, timesteps, residue_mask]
            - labels = [true_noise]
-           - weights = [ones]
+           - weights = [residue_mask]
 
         Training statistics (mean and standard deviation) are accumulated
         so that ``generate`` can denormalize the output.
@@ -916,8 +1037,13 @@ class RFDiffusionModel(TorchModel):
         Yields
         ------
         tuple of (list, list, list)
-            ``([noisy_coords, timesteps], [noise], [weights])``
+            ``([noisy_coords, timesteps, residue_mask], [noise], [weights])``
         """
+        if mode != 'fit':
+            raise NotImplementedError(
+                'RFDiffusionModel does not support predict/uncertainty mode. '
+                'Use generate() to sample protein backbones.')
+
         for epoch in range(epochs):
             for (X_b, y_b, w_b,
                  ids_b) in dataset.iterbatches(batch_size=self.batch_size,
@@ -941,7 +1067,12 @@ class RFDiffusionModel(TorchModel):
                             np.zeros((1, self.coord_dim), dtype=np.float32))
                         lengths.append(1)
 
-                max_len = min(max(lengths), self.max_seq_len)
+                max_len = max(lengths)
+                if max_len > self.max_seq_len:
+                    raise ValueError(
+                        f'Protein length {max_len} exceeds max_seq_len {self.max_seq_len}. '
+                        'Increase max_seq_len or filter/crop the dataset before training.'
+                    )
 
                 # Accumulate training statistics for denormalization
                 if mode == 'fit':
@@ -970,17 +1101,17 @@ class RFDiffusionModel(TorchModel):
                                                alpha * batch_std)
 
                 # Pad all to same length
+                batch_masks = []
                 for c in normalized:
-                    padded, _ = self._pad_coords(c, max_len)
+                    padded, orig_len = self._pad_coords(c, max_len)
                     batch_coords.append(padded)
+                    mask = np.zeros((max_len,), dtype=np.float32)
+                    mask[:orig_len] = 1.0
+                    batch_masks.append(mask)
 
                 # Stack into batch
                 coords_batch = np.stack(batch_coords, axis=0)  # (B, max_len, 9)
-
-                if mode == 'predict':
-                    # For prediction mode, just yield coordinates
-                    yield ([coords_batch], [y_b], [w_b])
-                    continue
+                mask_batch = np.stack(batch_masks, axis=0)  # (B, max_len)
 
                 # Diffusion training: sample timesteps and add noise
                 t = np.random.randint(0,
@@ -996,17 +1127,20 @@ class RFDiffusionModel(TorchModel):
                 # Convert back to numpy for TorchModel pipeline
                 noisy_np = noisy_coords.numpy()
                 noise_np = noise.numpy()
-                t_np = t.astype(np.float32)
+                t_np = t.astype(np.int64)
 
-                weights = np.ones((batch_size, 1), dtype=np.float32)
+                weights = mask_batch[:, :, None].astype(np.float32)
 
                 # Self-conditioning: 50% of the time, compute x0 estimate
                 # from a first pass (detached) and pass it as extra input.
                 if self._self_conditioning and np.random.rand() > 0.5:
                     with torch.no_grad():
+                        mask_tensor = torch.tensor(mask_batch,
+                                                   dtype=torch.float32)
                         noise_est = self.model([
                             noisy_coords.to(self.device),
-                            t_tensor.to(self.device)
+                            t_tensor.to(self.device),
+                            mask_tensor.to(self.device)
                         ])
                         # Predict x0 from noisy coords and estimated noise
                         sc = self.schedule
@@ -1020,9 +1154,10 @@ class RFDiffusionModel(TorchModel):
                             sr.to(self.device) * noisy_coords.to(self.device) -
                             srm.to(self.device) * noise_est)
                         x0_np = x0_est.cpu().numpy()
-                    yield ([noisy_np, t_np, x0_np], [noise_np], [weights])
+                    yield ([noisy_np, t_np, x0_np,
+                            mask_batch], [noise_np], [weights])
                 else:
-                    yield ([noisy_np, t_np], [noise_np], [weights])
+                    yield ([noisy_np, t_np, mask_batch], [noise_np], [weights])
 
     def generate(self,
                  num_samples: int = 1,
@@ -1032,9 +1167,9 @@ class RFDiffusionModel(TorchModel):
 
         Starts from pure Gaussian noise and iteratively denoises for
         ``num_diffusion_steps`` steps using the learned reverse process.
-        The raw output (in normalized space) is then denormalized using
-        training statistics so that the returned coordinates are in
-        physical Angstrom units with realistic CA-CA distances (~3.8 A).
+        The raw output (in normalized space) is then rescaled with training
+        statistics when available. This puts samples on the training coordinate
+        scale, but does not guarantee physically valid protein geometry.
 
         If the model has not been trained (no statistics available), the
         raw samples are returned without denormalization.
@@ -1064,17 +1199,27 @@ class RFDiffusionModel(TorchModel):
         >>> samples.shape
         (2, 30, 9)
         """
+        if num_samples <= 0:
+            raise ValueError('num_samples must be positive.')
+        if seq_length <= 0:
+            raise ValueError('seq_length must be positive.')
+        if seq_length > self.max_seq_len:
+            raise ValueError(
+                f'seq_length {seq_length} exceeds max_seq_len {self.max_seq_len}.'
+            )
         if device is None:
             device = self.device
 
-        self.model.eval()
+        was_training = self.model.training
         shape = (num_samples, seq_length, self.coord_dim)
-        samples = self.schedule.sample(
-            self.model,
-            shape,
-            device,
-            self_conditioning=self._self_conditioning)
-        self.model.train()
+        try:
+            samples = self.schedule.sample(
+                self.model,
+                shape,
+                device,
+                self_conditioning=self._self_conditioning)
+        finally:
+            self.model.train(was_training)
 
         result = samples.cpu().numpy()
 
@@ -1086,3 +1231,37 @@ class RFDiffusionModel(TorchModel):
             result = result + np.tile(self._train_mean, 3)
 
         return result
+
+    def save_checkpoint(self,
+                        max_checkpoints_to_keep: int = 5,
+                        model_dir: Optional[str] = None) -> None:
+        """Save model weights, optimizer state, and training statistics."""
+        super().save_checkpoint(max_checkpoints_to_keep=max_checkpoints_to_keep,
+                                model_dir=model_dir)
+        if max_checkpoints_to_keep == 0:
+            return
+        checkpoint = sorted(self.get_checkpoints(model_dir))[0]
+        data = torch.load(checkpoint, map_location=self.device)
+        data['rf_diffusion_train_mean'] = (None if self._train_mean is None else
+                                           self._train_mean.tolist())
+        data['rf_diffusion_train_std'] = self._train_std
+        torch.save(data, checkpoint)
+
+    def restore(self,
+                checkpoint: Optional[str] = None,
+                model_dir: Optional[str] = None,
+                strict: Optional[bool] = True) -> None:
+        """Restore model weights, optimizer state, and training statistics."""
+        if checkpoint is None:
+            checkpoints = sorted(self.get_checkpoints(model_dir))
+            if len(checkpoints) == 0:
+                raise ValueError('No checkpoint found')
+            checkpoint = checkpoints[0]
+        super().restore(checkpoint=checkpoint,
+                        model_dir=model_dir,
+                        strict=strict)
+        data = torch.load(checkpoint, map_location=self.device)
+        train_mean = data.get('rf_diffusion_train_mean')
+        self._train_mean = (None if train_mean is None else np.asarray(
+            train_mean, dtype=np.float32))
+        self._train_std = data.get('rf_diffusion_train_std')

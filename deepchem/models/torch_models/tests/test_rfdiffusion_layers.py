@@ -50,6 +50,13 @@ class TestSinusoidalTimestepEmbedding:
         output = emb(t)
         assert not torch.allclose(output, torch.zeros_like(output))
 
+    def test_odd_dimension(self):
+        """Test odd embedding dimensions are preserved."""
+        emb = SinusoidalTimestepEmbedding(65)
+        t = torch.tensor([0, 10])
+        output = emb(t)
+        assert output.shape == (2, 65)
+
 
 @pytest.mark.torch
 @pytest.mark.skipif(not has_torch, reason="PyTorch not installed")
@@ -93,6 +100,20 @@ class TestPositionalEncoding:
         output = pe(x)
         assert not torch.allclose(output, x)
 
+    def test_odd_dimension(self):
+        """Test odd embedding dimensions are supported."""
+        pe = PositionalEncoding(65, max_len=100)
+        x = torch.zeros(1, 10, 65)
+        output = pe(x)
+        assert output.shape == (1, 10, 65)
+
+    def test_over_max_len_raises(self):
+        """Test long sequences fail with a clear error."""
+        pe = PositionalEncoding(64, max_len=5)
+        x = torch.zeros(1, 6, 64)
+        with pytest.raises(ValueError, match="exceeds max_len"):
+            pe(x)
+
 
 @pytest.mark.torch
 @pytest.mark.skipif(not has_torch, reason="PyTorch not installed")
@@ -117,6 +138,16 @@ class TestDiffusionTransformerBlock:
         out1 = block(x, t1)
         out2 = block(x, t2)
         assert not torch.allclose(out1, out2)
+
+    def test_attention_mask_shape(self):
+        """Test attention masking preserves output shape."""
+        block = DiffusionTransformerBlock(64, num_heads=4)
+        x = torch.randn(2, 5, 64)
+        t_emb = torch.randn(2, 64)
+        mask = torch.tensor([[1, 1, 1, 0, 0], [1, 1, 1, 1, 1]],
+                            dtype=torch.bool)
+        output = block(x, t_emb, attention_mask=mask)
+        assert output.shape == x.shape
 
 
 @pytest.mark.torch
@@ -194,6 +225,31 @@ class TestBackboneDiffusion:
         loss = output.sum()
         loss.backward()
         assert x.grad is not None
+
+    def test_over_max_seq_len_raises(self):
+        """Test long sequences fail with a clear error."""
+        model = BackboneDiffusion(coord_dim=9,
+                                  embed_dim=64,
+                                  num_layers=2,
+                                  num_heads=4,
+                                  max_seq_len=5)
+        x = torch.randn(1, 6, 9)
+        t = torch.tensor([100])
+        with pytest.raises(ValueError, match="exceeds max_seq_len"):
+            model([x, t])
+
+    def test_masked_positions_zeroed(self):
+        """Test masked residues are zeroed in the output."""
+        model = BackboneDiffusion(coord_dim=9,
+                                  embed_dim=64,
+                                  num_layers=2,
+                                  num_heads=4)
+        nn.init.xavier_uniform_(model.output_proj[-1].weight)
+        x = torch.randn(1, 5, 9)
+        t = torch.tensor([100])
+        mask = torch.tensor([[1, 1, 1, 0, 0]], dtype=torch.float32)
+        output = model([x, t, mask])
+        assert torch.allclose(output[:, 3:], torch.zeros_like(output[:, 3:]))
 
     def test_self_conditioning_output_shape(self):
         """Test output shape when self_conditioning is enabled."""
@@ -286,6 +342,13 @@ class TestCosineSchedule:
         schedule = CosineSchedule(num_timesteps=1000)
         assert (schedule.betas >= 0).all()
         assert (schedule.betas <= 1).all()
+
+    def test_out_of_range_timestep_raises(self):
+        """Test invalid timesteps fail clearly."""
+        schedule = CosineSchedule(num_timesteps=10)
+        x0 = torch.randn(1, 10, 9)
+        with pytest.raises(ValueError, match="out of range"):
+            schedule.q_sample(x0, torch.tensor([10]))
 
     def test_p_sample_returns_tuple(self):
         """Test that p_sample returns (x_prev, x0_pred) tuple."""

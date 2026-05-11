@@ -677,12 +677,16 @@ SE3TransformerModel
   :members:
   
 TFNModel
---------------------
 .. autoclass:: deepchem.models.torch_models.TFNModel
   :members:
 
 BackboneDiffusion
 --------------------
+These classes provide a baseline DDPM scaffold for protein backbone
+coordinates. They do not implement the full SE(3)-equivariant
+RFDiffusion architecture, and generated structures should be treated as
+experimental until geometry-aware evaluation is added.
+
 .. autoclass:: deepchem.models.torch_models.rfdiffusion.BackboneDiffusion
   :members:
 

@@ -163,6 +163,8 @@ class TestRFDiffusionModel:
             np.testing.assert_array_almost_equal(p1.detach().cpu().numpy(),
                                                  p2.detach().cpu().numpy(),
                                                  decimal=5)
+        np.testing.assert_allclose(model2._train_mean, model._train_mean)
+        assert model2._train_std == pytest.approx(model._train_std)
 
     def test_normalize_coords(self):
         """Test coordinate normalization."""
@@ -194,11 +196,10 @@ class TestRFDiffusionModel:
         np.testing.assert_array_equal(padded[:10], coords)
         np.testing.assert_array_equal(padded[10:], 0)
 
-        # Truncate longer
+        # Longer inputs should fail explicitly instead of being silently cropped
         long_coords = np.random.randn(30, 9).astype(np.float32)
-        truncated, orig_len = model._pad_coords(long_coords, 20)
-        assert truncated.shape == (20, 9)
-        assert orig_len == 20
+        with pytest.raises(ValueError, match="exceeds target length"):
+            model._pad_coords(long_coords, 20)
 
     def test_default_generator_yields_correct_format(self):
         """Test that default_generator produces proper batch format."""
@@ -213,18 +214,63 @@ class TestRFDiffusionModel:
         batch = next(gen)
         inputs, labels, weights = batch
 
-        # inputs should be [noisy_coords, timesteps]
-        assert len(inputs) == 2
+        # inputs should be [noisy_coords, timesteps, mask]
+        assert len(inputs) == 3
         assert inputs[0].shape[0] == 4  # batch_size
         assert inputs[0].shape[2] == 9  # coord_dim
         assert inputs[1].shape[0] == 4  # batch_size
+        assert inputs[1].dtype == np.int64
+        assert inputs[2].shape == inputs[0].shape[:2]
 
         # labels should be [noise]
         assert len(labels) == 1
         assert labels[0].shape == inputs[0].shape
 
-        # weights should be [ones]
+        # weights should mask valid residues
         assert len(weights) == 1
+        assert weights[0].shape == inputs[0].shape[:2] + (1,)
+
+    def test_default_generator_masks_padding(self):
+        """Test generator masks padded residues out of the loss."""
+        dataset = self._make_variable_length_dataset(n_samples=4)
+        model = RFDiffusionModel(embed_dim=64,
+                                 num_layers=2,
+                                 num_heads=4,
+                                 num_diffusion_steps=50,
+                                 batch_size=4)
+
+        inputs, labels, weights = next(
+            model.default_generator(dataset, epochs=1))
+        mask = inputs[2]
+        assert mask.shape == inputs[0].shape[:2]
+        assert weights[0].shape == inputs[0].shape[:2] + (1,)
+        assert np.any(mask == 0.0)
+        np.testing.assert_array_equal(weights[0].squeeze(-1), mask)
+
+    def test_predict_mode_not_supported(self):
+        """Test prediction mode fails with a clear error."""
+        dataset = self._make_dataset(n_samples=4, seq_len=10)
+        model = RFDiffusionModel(embed_dim=64,
+                                 num_layers=2,
+                                 num_heads=4,
+                                 num_diffusion_steps=50,
+                                 batch_size=4)
+
+        with pytest.raises(NotImplementedError, match="generate"):
+            next(model.default_generator(dataset, mode='predict'))
+
+    def test_generator_over_max_seq_len_raises(self):
+        """Test overlength training samples fail explicitly."""
+        dataset = self._make_dataset(n_samples=4, seq_len=12)
+        model = RFDiffusionModel(embed_dim=64,
+                                 num_layers=2,
+                                 num_heads=4,
+                                 num_diffusion_steps=50,
+                                 max_seq_len=10,
+                                 batch_size=4)
+
+        with pytest.raises(ValueError, match="exceeds max_seq_len"):
+            next(model.default_generator(dataset, epochs=1))
 
     def test_denormalization_after_training(self):
         """Test that generate applies denormalization after training."""
@@ -261,6 +307,32 @@ class TestRFDiffusionModel:
         samples = model.generate(num_samples=1, seq_length=10)
         assert samples.shape == (1, 10, 9)
         assert np.isfinite(samples).all()
+
+    def test_generate_input_validation(self):
+        """Test invalid generation requests fail clearly."""
+        model = RFDiffusionModel(embed_dim=64,
+                                 num_layers=2,
+                                 num_heads=4,
+                                 num_diffusion_steps=10,
+                                 max_seq_len=10,
+                                 batch_size=2)
+        with pytest.raises(ValueError, match="num_samples"):
+            model.generate(num_samples=0, seq_length=5)
+        with pytest.raises(ValueError, match="seq_length"):
+            model.generate(num_samples=1, seq_length=0)
+        with pytest.raises(ValueError, match="max_seq_len"):
+            model.generate(num_samples=1, seq_length=11)
+
+    def test_generate_preserves_train_state(self):
+        """Test generation restores the previous train/eval state."""
+        model = RFDiffusionModel(embed_dim=64,
+                                 num_layers=2,
+                                 num_heads=4,
+                                 num_diffusion_steps=10,
+                                 batch_size=2)
+        model.model.eval()
+        model.generate(num_samples=1, seq_length=5)
+        assert model.model.training is False
 
     def test_self_conditioning_model_creation(self):
         """Test model creation with self_conditioning enabled."""
@@ -308,16 +380,15 @@ class TestRFDiffusionModel:
                                  num_diffusion_steps=50,
                                  self_conditioning=True,
                                  batch_size=4)
-        # Run many batches to check that at least one has 3 inputs
-        # and at least one has 2 inputs (50/50 split)
+        # Run many batches to check that at least one has self-conditioning
+        # and at least one does not (50/50 split). The mask is always present.
         input_lengths = []
         gen = model.default_generator(dataset, epochs=20)
         for batch in gen:
             inputs, labels, weights = batch
             input_lengths.append(len(inputs))
-        # With 20 epochs, should see both 2 and 3 length inputs
-        assert 2 in input_lengths
         assert 3 in input_lengths
+        assert 4 in input_lengths
 
     def test_self_conditioning_loss_decreases(self):
         """Test that loss decreases when training with self-conditioning.
