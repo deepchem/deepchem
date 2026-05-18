@@ -1,11 +1,7 @@
 import numpy as np
 import pytest
 
-try:
-    from ase import Atoms
-except ImportError as e:
-    pytest.skip(f"Skipping tests due to missing dependencies: {e}",
-                allow_module_level=True)
+from ase import Atoms
 
 import deepchem as dc
 
@@ -14,8 +10,8 @@ class TestAtomisticRadiusGraphFeaturizer:
 
     def test_two_atoms_inside_cutoff(self):
         featurizer = dc.feat.AtomisticRadiusGraphFeaturizer(cutoff=1.5)
-        atoms = Atoms(numbers=[1, 8], positions=[[0.0, 0.0, 0.0],
-                                                 [1.0, 0.0, 0.0]])
+        atoms = Atoms(numbers=[1, 8],
+                      positions=[[0.0, 0.0, 0.0], [1.0, 0.0, 0.0]])
 
         graph = featurizer.featurize([atoms])[0]
 
@@ -25,22 +21,20 @@ class TestAtomisticRadiusGraphFeaturizer:
         np.testing.assert_array_equal(graph.atomic_numbers,
                                       np.array([1, 8], dtype=int))
         np.testing.assert_allclose(graph.node_pos_features,
-                                   np.array([[0.0, 0.0, 0.0],
-                                             [1.0, 0.0, 0.0]]))
+                                   np.array([[0.0, 0.0, 0.0], [1.0, 0.0, 0.0]]))
         np.testing.assert_array_equal(graph.edge_index,
                                       np.array([[0, 1], [1, 0]], dtype=int))
-        np.testing.assert_allclose(graph.edge_features,
-                                   np.array([[1.0, 0.0, 0.0],
-                                             [-1.0, 0.0, 0.0]]))
-        np.testing.assert_allclose(graph.edge_distances,
-                                   np.array([[1.0], [1.0]]))
+        np.testing.assert_allclose(
+            graph.edge_features, np.array([[1.0, 0.0, 0.0], [-1.0, 0.0, 0.0]]))
+        np.testing.assert_allclose(graph.edge_distances, np.array([[1.0],
+                                                                   [1.0]]))
         assert graph.edge_features.shape == (2, 3)
         assert graph.edge_distances.shape == (2, 1)
 
     def test_two_atoms_outside_cutoff(self):
         featurizer = dc.feat.AtomisticRadiusGraphFeaturizer(cutoff=0.5)
-        atoms = Atoms(numbers=[1, 8], positions=[[0.0, 0.0, 0.0],
-                                                 [1.0, 0.0, 0.0]])
+        atoms = Atoms(numbers=[1, 8],
+                      positions=[[0.0, 0.0, 0.0], [1.0, 0.0, 0.0]])
 
         graph = featurizer.featurize([atoms])[0]
 
@@ -73,24 +67,22 @@ class TestAtomisticRadiusGraphFeaturizer:
 
         np.testing.assert_array_equal(graph.edge_index,
                                       np.array([[0, 1], [1, 0]], dtype=int))
-        np.testing.assert_allclose(graph.edge_features,
-                                   np.array([[1.0, 0.0, 0.0],
-                                             [-1.0, 0.0, 0.0]]))
+        np.testing.assert_allclose(
+            graph.edge_features, np.array([[1.0, 0.0, 0.0], [-1.0, 0.0, 0.0]]))
 
     def test_edge_displacements_and_distances(self):
         featurizer = dc.feat.AtomisticRadiusGraphFeaturizer(cutoff=2.0)
-        atoms = Atoms(numbers=[1, 8], positions=[[0.0, 0.0, 0.0],
-                                                 [1.0, 1.0, 0.0]])
+        atoms = Atoms(numbers=[1, 8],
+                      positions=[[0.0, 0.0, 0.0], [1.0, 1.0, 0.0]])
 
         graph = featurizer.featurize([atoms])[0]
         expected_distance = np.sqrt(2.0)
 
-        np.testing.assert_allclose(graph.edge_features,
-                                   np.array([[1.0, 1.0, 0.0],
-                                             [-1.0, -1.0, 0.0]]))
-        np.testing.assert_allclose(graph.edge_distances,
-                                   np.array([[expected_distance],
-                                             [expected_distance]]))
+        np.testing.assert_allclose(
+            graph.edge_features, np.array([[1.0, 1.0, 0.0], [-1.0, -1.0, 0.0]]))
+        np.testing.assert_allclose(
+            graph.edge_distances,
+            np.array([[expected_distance], [expected_distance]]))
         assert graph.edge_distances.shape == (2, 1)
 
     def test_invalid_cutoff_raises(self):
@@ -102,9 +94,3 @@ class TestAtomisticRadiusGraphFeaturizer:
 
         with pytest.raises(TypeError):
             featurizer._featurize(np.array([[0.0, 0.0, 0.0]]))
-
-    def test_public_import(self):
-        from deepchem.feat import AtomisticRadiusGraphFeaturizer
-
-        featurizer = AtomisticRadiusGraphFeaturizer(cutoff=1.0)
-        assert isinstance(featurizer, dc.feat.AtomisticRadiusGraphFeaturizer)

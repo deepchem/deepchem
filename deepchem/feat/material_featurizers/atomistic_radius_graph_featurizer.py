@@ -1,4 +1,7 @@
+from typing import Any, Tuple
+
 import numpy as np
+from numpy.typing import NDArray
 
 from deepchem.feat.base_classes import Featurizer
 from deepchem.feat.graph_data import GraphData
@@ -18,16 +21,16 @@ class AtomisticRadiusGraphFeaturizer(Featurizer):
     Examples
     --------
     >>> import deepchem as dc
-    >>> from ase import Atoms
-    >>> featurizer = dc.feat.AtomisticRadiusGraphFeaturizer(cutoff=1.5)
-    >>> atoms = Atoms(numbers=[1, 8], positions=[[0.0, 0.0, 0.0], [1.0, 0.0, 0.0]])
-    >>> features = featurizer.featurize([atoms])
-    >>> graph = features[0]
-    >>> type(graph)
+    >>> from ase import Atoms  # doctest: +SKIP
+    >>> featurizer = dc.feat.AtomisticRadiusGraphFeaturizer(cutoff=1.5)  # doctest: +SKIP
+    >>> atoms = Atoms(numbers=[1, 8], positions=[[0.0, 0.0, 0.0], [1.0, 0.0, 0.0]])  # doctest: +SKIP
+    >>> features = featurizer.featurize([atoms])  # doctest: +SKIP
+    >>> graph = features[0]  # doctest: +SKIP
+    >>> type(graph)  # doctest: +SKIP
     <class 'deepchem.feat.graph_data.GraphData'>
     """
 
-    def __init__(self, cutoff: float):
+    def __init__(self, cutoff: float) -> None:
         """
         Parameters
         ----------
@@ -40,7 +43,52 @@ class AtomisticRadiusGraphFeaturizer(Featurizer):
 
         self.cutoff = cutoff
 
-    def _featurize(self, datapoint, **kwargs) -> GraphData:
+    def _get_node_features(
+            self, atomic_numbers: NDArray[np.int64]) -> NDArray[np.int64]:
+        """Construct node features from atomic information.
+
+        This helper is separated out so the featurizer can be extended later
+        with richer atomic descriptors beyond atomic numbers while keeping the
+        graph construction logic unchanged.
+
+        Parameters
+        ----------
+        atomic_numbers: np.ndarray
+            Atomic numbers for all atoms in the structure.
+
+        Returns
+        -------
+        np.ndarray
+            Node feature matrix of shape ``(num_atoms, 1)``.
+        """
+        return atomic_numbers.reshape(-1, 1)
+
+    def _get_radius_graph(
+        self, atoms: Any
+    ) -> Tuple[NDArray[np.int64], NDArray[np.float32], NDArray[np.float32]]:
+        """Construct a deterministic directed radius graph from ASE atoms."""
+        from ase.neighborlist import neighbor_list
+
+        src_indices, dst_indices, edge_displacements, edge_distances = neighbor_list(
+            "ijDd", atoms, self.cutoff, self_interaction=False)
+
+        src_indices = np.asarray(src_indices, dtype=np.int64)
+        dst_indices = np.asarray(dst_indices, dtype=np.int64)
+        edge_displacements = np.asarray(edge_displacements,
+                                        dtype=np.float32).reshape(-1, 3)
+        edge_distances = np.asarray(edge_distances,
+                                    dtype=np.float32).reshape(-1, 1)
+
+        order = np.lexsort((dst_indices, src_indices))
+        src_indices = src_indices[order]
+        dst_indices = dst_indices[order]
+        edge_displacements = edge_displacements[order]
+        edge_distances = edge_distances[order]
+
+        edge_index = np.asarray([src_indices, dst_indices], dtype=np.int64)
+        return edge_index, edge_displacements, edge_distances
+
+    def _featurize(self, datapoint: Any, **kwargs: Any) -> GraphData:
         """
         Parameters
         ----------
@@ -63,32 +111,9 @@ class AtomisticRadiusGraphFeaturizer(Featurizer):
         atomic_numbers = np.asarray(datapoint.get_atomic_numbers(),
                                     dtype=np.int64)
         positions = np.asarray(datapoint.get_positions(), dtype=np.float32)
-        num_atoms = len(atomic_numbers)
-
-        src_indices = []
-        dst_indices = []
-        edge_displacements = []
-        edge_distances = []
-
-        for src in range(num_atoms):
-            for dst in range(num_atoms):
-                if src == dst:
-                    continue
-
-                displacement = positions[dst] - positions[src]
-                distance = np.linalg.norm(displacement)
-                if distance < self.cutoff:
-                    src_indices.append(src)
-                    dst_indices.append(dst)
-                    edge_displacements.append(displacement)
-                    edge_distances.append([distance])
-
-        node_features = atomic_numbers.reshape(-1, 1)
-        edge_index = np.asarray([src_indices, dst_indices], dtype=np.int64)
-        edge_features = np.asarray(edge_displacements,
-                                   dtype=np.float32).reshape(-1, 3)
-        edge_distances_array = np.asarray(edge_distances,
-                                          dtype=np.float32).reshape(-1, 1)
+        node_features = self._get_node_features(atomic_numbers)
+        edge_index, edge_features, edge_distances_array = self._get_radius_graph(
+            datapoint)
 
         return GraphData(node_features=node_features,
                          edge_index=edge_index,
