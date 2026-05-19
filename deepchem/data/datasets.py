@@ -1201,7 +1201,7 @@ class DiskDataset(Dataset):
     projects.
     """
 
-    def __init__(self, data_dir: str) -> None:
+    def __init__(self, data_dir: str, memory_cache_size: int = 20 * (1 << 20)) -> None:
         """Load a constructed DiskDataset from disk
 
         Note that this method cannot construct a new disk dataset. Instead use
@@ -1213,6 +1213,10 @@ class DiskDataset(Dataset):
         ----------
         data_dir: str
             Location on disk of an existing `DiskDataset`.
+
+        memory_cache_size: int, optional (default 20 * (1 << 20))
+            Size of the memory cache in bytes. Shards are cached in memory
+            to speed up repeated access. Set to 0 to disable caching.
         """
         self.data_dir = data_dir
 
@@ -1238,7 +1242,7 @@ class DiskDataset(Dataset):
                 "'ids_shape', 'X_shape', 'y_shape', 'w_shape' (or if in legacy metadata format,"
                 "columns 'ids', 'X', 'y', 'w')")
         self._cached_shards: Optional[List] = None
-        self._memory_cache_size = 20 * (1 << 20)  # 20 MB
+        self._memory_cache_size = memory_cache_size  
         self._cache_used = 0
 
     @staticmethod
@@ -2617,7 +2621,7 @@ class DiskDataset(Dataset):
 
     @memory_cache_size.setter
     def memory_cache_size(self, size: int) -> None:
-        """Get the size of the memory cache for this dataset, measured in bytes."""
+        """Set the size of the memory cache for this dataset, measured in bytes."""
         self._memory_cache_size = size
         if self._cache_used > size:
             self._cached_shards = None
