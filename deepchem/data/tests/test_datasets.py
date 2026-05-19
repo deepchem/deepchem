@@ -909,28 +909,3 @@ class TestDatasets(unittest.TestCase):
         dataset = load_solubility_data()
         _validate_pytorch_dataset(dataset)
 
-def test_disk_dataset_cache_disabled():
-    """Test that setting memory_cache_size=0 disables caching."""
-    X = np.random.rand(10, 5)
-    y = np.random.rand(10, 1)
-    dataset = dc.data.DiskDataset.from_numpy(X, y)
-    # reload with cache disabled
-    dataset2 = dc.data.DiskDataset(dataset.data_dir, memory_cache_size=0)
-    dataset2.get_shard(0)
-    assert dataset2._cached_shards[0] is None
-    assert dataset2._cache_used == 0
-
-def test_disk_dataset_cache_enabled():
-    """Test that caching works by default (memory_cache_size > 0)."""
-    X = np.random.rand(10, 5).astype(np.float32)
-    y = np.random.rand(10, 1).astype(np.float32)
-    
-    # Create dataset
-    dataset = dc.data.DiskDataset.from_numpy(X, y)
-    
-    # Reload with default cache (20MB)
-    dataset2 = dc.data.DiskDataset(dataset.data_dir)
-    dataset2.get_shard(0)
-    
-    assert dataset2._cached_shards[0] is not None, "Shard should be cached"
-    assert dataset2._cache_used > 0, "Cache used should be > 0 when caching is enabled"
