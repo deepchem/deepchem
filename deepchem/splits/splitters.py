@@ -90,7 +90,9 @@ class Splitter(object):
             cv_dataset = rem_dataset.select(fold_inds, select_dir=cv_dir)
             cv_datasets.append(cv_dataset)
             # FIXME: Incompatible types in assignment (expression has type "Dataset", variable has type "DiskDataset")
-            rem_dataset = rem_dataset.select(rem_inds)  # type: ignore
+            rem_dataset = rem_dataset.select(rem_inds) # type: ignore
+            if hasattr(self, 'groups'):
+                self.groups = [self.groups[i] for i in rem_inds] 
 
             train_ds_to_merge: Iterator[Dataset] = filter(
                 None, [train_ds_base, rem_dataset])
