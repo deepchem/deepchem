@@ -1242,7 +1242,7 @@ class DiskDataset(Dataset):
                 "'ids_shape', 'X_shape', 'y_shape', 'w_shape' (or if in legacy metadata format,"
                 "columns 'ids', 'X', 'y', 'w')")
         self._cached_shards: Optional[List] = None
-        self._memory_cache_size = memory_cache_size  
+        self._memory_cache_size = memory_cache_size
         self._cache_used = 0
 
     @staticmethod
