@@ -403,7 +403,7 @@ class BackboneDiffusion(nn.Module):
         return noise_pred
 
 
-class CosineSchedule:
+class CosineSchedule(nn.Module):
     """Cosine variance schedule for the diffusion process.
 
     Implements the cosine schedule from Improved DDPM [1]_, which provides
@@ -433,6 +433,7 @@ class CosineSchedule:
     """
 
     def __init__(self, num_timesteps: int = 1000, s: float = 0.008) -> None:
+        super().__init__()
         self.num_timesteps = num_timesteps
 
         # Compute cosine schedule
@@ -447,24 +448,33 @@ class CosineSchedule:
         alpha_cumprod = torch.cumprod(alphas, dim=0)
         alpha_cumprod_prev = F.pad(alpha_cumprod[:-1], (1, 0), value=1.0)
 
-        # Store precomputed values
-        self.betas = betas
-        self.alphas = alphas
-        self.alpha_cumprod = alpha_cumprod
-        self.sqrt_alpha_cumprod = torch.sqrt(alpha_cumprod)
-        self.sqrt_one_minus_alpha_cumprod = torch.sqrt(1.0 - alpha_cumprod)
-        self.sqrt_recip_alpha_cumprod = torch.sqrt(1.0 / alpha_cumprod)
-        self.sqrt_recipm1_alpha_cumprod = torch.sqrt(1.0 / alpha_cumprod - 1)
+        # Store precomputed values as buffers so they are included in
+        # state_dict() and move with the module when .to(device) is called.
+        self.register_buffer('betas', betas)
+        self.register_buffer('alphas', alphas)
+        self.register_buffer('alpha_cumprod', alpha_cumprod)
+        self.register_buffer('sqrt_alpha_cumprod', torch.sqrt(alpha_cumprod))
+        self.register_buffer('sqrt_one_minus_alpha_cumprod',
+                             torch.sqrt(1.0 - alpha_cumprod))
+        self.register_buffer('sqrt_recip_alpha_cumprod',
+                             torch.sqrt(1.0 / alpha_cumprod))
+        self.register_buffer('sqrt_recipm1_alpha_cumprod',
+                             torch.sqrt(1.0 / alpha_cumprod - 1))
 
         # Posterior variance for reverse sampling
-        self.posterior_variance = (betas * (1.0 - alpha_cumprod_prev) /
-                                   (1.0 - alpha_cumprod))
-        self.posterior_log_variance = torch.log(
-            torch.clamp(self.posterior_variance, min=1e-20))
-        self.posterior_mean_coef1 = (betas * torch.sqrt(alpha_cumprod_prev) /
-                                     (1.0 - alpha_cumprod))
-        self.posterior_mean_coef2 = ((1.0 - alpha_cumprod_prev) *
-                                     torch.sqrt(alphas) / (1.0 - alpha_cumprod))
+        posterior_variance = (betas * (1.0 - alpha_cumprod_prev) /
+                              (1.0 - alpha_cumprod))
+        self.register_buffer('posterior_variance', posterior_variance)
+        self.register_buffer(
+            'posterior_log_variance',
+            torch.log(torch.clamp(posterior_variance, min=1e-20)))
+        self.register_buffer(
+            'posterior_mean_coef1',
+            betas * torch.sqrt(alpha_cumprod_prev) / (1.0 - alpha_cumprod))
+        self.register_buffer(
+            'posterior_mean_coef2',
+            (1.0 - alpha_cumprod_prev) * torch.sqrt(alphas) /
+            (1.0 - alpha_cumprod))
 
     def q_sample(
         self,
@@ -496,8 +506,9 @@ class CosineSchedule:
         if noise is None:
             noise = torch.randn_like(x0)
 
-        sqrt_alpha = self.sqrt_alpha_cumprod[t].to(x0.device)
-        sqrt_one_minus_alpha = self.sqrt_one_minus_alpha_cumprod[t].to(
+        t_idx = t.to(self.sqrt_alpha_cumprod.device)
+        sqrt_alpha = self.sqrt_alpha_cumprod[t_idx].to(x0.device)
+        sqrt_one_minus_alpha = self.sqrt_one_minus_alpha_cumprod[t_idx].to(
             x0.device)
 
         # Expand for broadcasting
@@ -532,20 +543,21 @@ class CosineSchedule:
         device = x_t.device
         noise_pred = model([x_t, t])
 
-        # Use CPU indices for schedule tensor indexing (buffers stay on CPU)
-        t_cpu = t.cpu()
+        # Use the buffer device for indexing so this works whether the
+        # schedule is on CPU or GPU (when registered as a submodule).
+        t_idx = t.to(self.betas.device)
 
         # Predict x0
-        sqrt_recip = self.sqrt_recip_alpha_cumprod[t_cpu].to(device)
-        sqrt_recipm1 = self.sqrt_recipm1_alpha_cumprod[t_cpu].to(device)
+        sqrt_recip = self.sqrt_recip_alpha_cumprod[t_idx].to(device)
+        sqrt_recipm1 = self.sqrt_recipm1_alpha_cumprod[t_idx].to(device)
         while sqrt_recip.dim() < x_t.dim():
             sqrt_recip = sqrt_recip.unsqueeze(-1)
             sqrt_recipm1 = sqrt_recipm1.unsqueeze(-1)
         x0_pred = sqrt_recip * x_t - sqrt_recipm1 * noise_pred
 
         # Posterior mean
-        coef1 = self.posterior_mean_coef1[t_cpu].to(device)
-        coef2 = self.posterior_mean_coef2[t_cpu].to(device)
+        coef1 = self.posterior_mean_coef1[t_idx].to(device)
+        coef2 = self.posterior_mean_coef2[t_idx].to(device)
         while coef1.dim() < x_t.dim():
             coef1 = coef1.unsqueeze(-1)
             coef2 = coef2.unsqueeze(-1)
@@ -557,7 +569,7 @@ class CosineSchedule:
         while nonzero_mask.dim() < x_t.dim():
             nonzero_mask = nonzero_mask.unsqueeze(-1)
 
-        var = self.posterior_variance[t_cpu].to(device)
+        var = self.posterior_variance[t_idx].to(device)
         while var.dim() < x_t.dim():
             var = var.unsqueeze(-1)
 
