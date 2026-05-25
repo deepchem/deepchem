@@ -1,6 +1,7 @@
 import deepchem as dc
 from transformers import AutoModelForCausalLM, AutoTokenizer
 import torch
+import pandas as pd
 
 
 def test_huggingface_causal_lm():
@@ -17,7 +18,8 @@ def test_huggingface_causal_lm():
                                                        tokenizer=tokenizer,
                                                        task="causal_lm")
 
-    text_list = ["The mitochondria is ", "Water is a "]
+    df = pd.read_csv("datasets/delaney-processed.csv")
+    text_list = df["smiles"].tolist()[:2]  # Get the first 2 SMILES strings
 
     dataset = dc.data.NumpyDataset(text_list)
 
@@ -42,7 +44,7 @@ def test_huggingface_causal_lm():
     model_cpu = model.to("cpu")
     inputs_cpu = {k: v.to("cpu") for k, v in inputs.items()}
 
-    outputs = model_cpu.generate(**inputs_cpu, max_length=20)
+    outputs = model_cpu.generate(**inputs_cpu, max_new_tokens=10)
     generated = tokenizer.batch_decode(outputs, skip_special_tokens=True)
 
     print("Generated:", generated)

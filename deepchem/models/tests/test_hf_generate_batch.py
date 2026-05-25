@@ -1,5 +1,6 @@
 from transformers import AutoModelForCausalLM, AutoTokenizer
 import deepchem as dc
+import pandas as pd
 def test_huggingface_generate_batch():
     model = AutoModelForCausalLM.from_pretrained("distilgpt2")
     tokenizer = AutoTokenizer.from_pretrained("distilgpt2")
@@ -9,9 +10,9 @@ def test_huggingface_generate_batch():
         tokenizer=tokenizer,
         task="text_generation"
     )
-
-    prompts = ["Water is a", "DeepChem is a"]
-    outputs = hf_model.generate(prompts, batch_size=2, max_length=10)
+    df = pd.read_csv("datasets/delaney-processed.csv")
+    prompts = df["smiles"].tolist()[:2]  # Get the first 2 SMILES strings
+    outputs = hf_model.generate(prompts, max_new_tokens=10)
     assert isinstance(outputs, list)
     assert len(outputs) == 2
 
