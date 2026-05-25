@@ -15,6 +15,7 @@ def test_huggingface_generate_batch():
     outputs = hf_model.generate(prompts, max_new_tokens=10)
     assert isinstance(outputs, list)
     assert len(outputs) == 2
+    print("Generated outputs:", outputs)
 
 if __name__ == "__main__":
     test_huggingface_generate_batch()
