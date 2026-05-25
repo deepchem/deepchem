@@ -3,7 +3,7 @@ Protein Backbone Featurizer for structural diffusion models.
 """
 import copy
 import logging
-from typing import Dict, Iterable, Optional
+from typing import Dict, Optional
 import numpy as np
 from deepchem.feat.base_classes import Featurizer
 
@@ -106,48 +106,6 @@ class ProteinBackboneFeaturizer(Featurizer):
         """
         return copy.deepcopy(self._last_metadata.get(datapoint, {}))
 
-    def featurize(self,
-                  datapoints: Iterable[str],
-                  log_every_n: int = 1000,
-                  **kwargs) -> np.ndarray:
-        """Featurize a list of PDB file paths.
-
-        Overrides base ``Featurizer.featurize()`` to return an object-typed
-        numpy array, since proteins have variable-length backbones and
-        ``np.asarray`` would fail on inhomogeneous shapes.
-
-        Parameters
-        ----------
-        datapoints : Iterable[str]
-            Paths to PDB files to featurize.
-        log_every_n : int, default 1000
-            Log progress every ``log_every_n`` datapoints.
-
-        Returns
-        -------
-        np.ndarray
-            Object array where each element is an ``(L, 3, 3)``
-            float32 array of backbone coordinates.
-        """
-        datapoints = list(datapoints)
-        features = []
-        for i, point in enumerate(datapoints):
-            if i % log_every_n == 0:
-                logger.info("Featurizing datapoint %i" % i)
-            try:
-                features.append(self._featurize(point, **kwargs))
-            except Exception as exc:
-                self._last_metadata.pop(point, None)
-                logger.warning(
-                    "Failed to featurize datapoint %d (%s): %s. Appending empty array.",
-                    i, point, exc)
-                features.append(_empty_backbone_coords())
-
-        out = np.empty(len(features), dtype=object)
-        for i, feature in enumerate(features):
-            out[i] = feature
-        return out
-
     def _featurize(self, datapoint: str, **kwargs) -> np.ndarray:
         """Extract backbone coordinates from a PDB file.
 
@@ -162,6 +120,28 @@ class ProteinBackboneFeaturizer(Featurizer):
             Array of shape ``(L, 3, 3)`` containing backbone atom
             coordinates, where L is the number of residues, or an
             empty array on failure.
+        """
+        try:
+            return self._parse_backbone(datapoint)
+        except Exception as exc:
+            self._last_metadata.pop(datapoint, None)
+            logger.warning(
+                "Failed to featurize datapoint %s: %s. Appending empty array.",
+                datapoint, exc)
+            return _empty_backbone_coords()
+
+    def _parse_backbone(self, datapoint: str) -> np.ndarray:
+        """Parse backbone coordinates from a PDB file.
+
+        Parameters
+        ----------
+        datapoint : str
+            Path to a PDB file.
+
+        Returns
+        -------
+        np.ndarray
+            Array of shape ``(L, 3, 3)`` of backbone atom coordinates.
         """
         parser = PDBParser(QUIET=True)
         structure = parser.get_structure('protein', datapoint)
