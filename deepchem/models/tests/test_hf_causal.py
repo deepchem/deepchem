@@ -37,15 +37,9 @@ def test_huggingface_causal_lm():
 
     print("Decoded reconstruction:", decoded)
 
-    # CPU switch to avoid MPS bug
-    inputs = tokenizer(text_list, return_tensors="pt", padding=True)
-
-    # Move model + inputs to CPU for generation
-    model_cpu = model.to("cpu")
-    inputs_cpu = {k: v.to("cpu") for k, v in inputs.items()}
-
-    outputs = model_cpu.generate(**inputs_cpu, max_new_tokens=10)
-    generated = tokenizer.batch_decode(outputs, skip_special_tokens=True)
+    generated = hf_model.generate(text_list, max_new_tokens=10)
+    assert len(generated) == len(text_list)
+    assert all(isinstance(x, str) for x in generated)
 
     print("Generated:", generated)
 
