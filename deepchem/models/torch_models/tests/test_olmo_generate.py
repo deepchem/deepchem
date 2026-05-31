@@ -36,4 +36,5 @@ def test_olmo_generate():
     outputs = hf_model.generate(SMILES, max_new_tokens=10)
     assert isinstance(outputs, list)
     assert len(outputs) == len(SMILES)
-    assert all(isinstance(x, str) for x in outputs)
+    for i in outputs:
+        assert isinstance(i, str)
