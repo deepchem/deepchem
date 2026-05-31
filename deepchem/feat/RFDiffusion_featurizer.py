@@ -6,7 +6,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 from deepchem.feat.base_classes import Featurizer
-from deepchem.utils.pytorch_utils import get_sinusoid
+from deepchem.utils.RFDiffusion_utils import get_sinusoid
 
 try:
     from Bio.PDB import PDBParser, is_aa
@@ -49,6 +49,20 @@ class RFDiffusionFeaturizer(Featurizer):
            capture the pairwise distances and orientations between the backbone atoms.
 
         shape: [batch_size, num_residues, num_residues, d_pair]
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> from deepchem.feat.RFDiffusion_featurizer import RFDiffusionFeaturizer
+    >>> features = RFDiffusionFeaturizer()
+    >>> datapoint = "101M.pdb"
+    >>> _1d_features, _2d_features, frame = features._featurize(datapoint)
+    >>> logger.info(_1d_features.shape)
+    >>> logger.info(_2d_features.shape)
+    >>> logger.info(frame.shape)
+
+    The computed features will further be used as inputs to the RFDiffusion model, to compute the features for the 1D, 2D and 3D tracks.
+    shape: [batch_size, [N, d_model], [N, N, d_pair], [R, t]]
     """
 
     def __init__(self, max_length: int = 512):
@@ -107,6 +121,13 @@ class RFDiffusionFeaturizer(Featurizer):
         """
         Featurize a protein file into the RFDiffusion features.
 
+        This calls the following functions to compute the features:
+
+        1. get_backbone_coords: to extract the N, Ca, C backbone atom coordinates from the protein file.
+        2. get_frames: to compute the frames for the backbone coordinates.
+        3. get_1d_features: to compute the 1D features for the residue sequence.
+        4. get_2d_features: to compute the 2D features for the pairwise distances and orientations between the backbone atoms.
+
         Parameters
         ----------
         datapoint: str
@@ -131,12 +152,10 @@ class RFDiffusionFeaturizer(Featurizer):
         >>> features = RFDiffusionFeaturizer()
         >>> datapoint = "101M.pdb"
         >>> _1d_features, _2d_features, frame = features._featurize(datapoint)
-        >>> print(_1d_features.shape)
-        >>> print(_2d_features.shape)
-        >>> print(frame.shape)
-        (101, 64)
-        (101, 101, 64)
-        (2)
+        >>> logger.info(_1d_features.shape)
+        >>> logger.info(_2d_features.shape)
+        >>> logger.info(frame.shape)
+        shape: [batch_size, [N, d_model], [N, N, d_pair], [R, t]]
         """
         backbone_coords = self.get_backbone_coords(datapoint)
 
@@ -151,6 +170,10 @@ class RFDiffusionFeaturizer(Featurizer):
     def get_backbone_coords(self, datapoint: str) -> np.ndarray:
         """
         It extracts the N, Ca, C backbone atom coordinates from the protein file.
+        These are absolute coordinates which are necessary to compute the frames for the backbone coordinates.
+
+        These will also be used to compute the 1D features for the residue sequence.
+        And the 2D features for the pairwise distances and orientations between the backbone atoms.
 
         Parameters
         ----------
@@ -164,6 +187,15 @@ class RFDiffusionFeaturizer(Featurizer):
             N: Number of residues in the protein.
             3: Number of atoms per residue (N, Ca, C).
             3: Number of coordinates per atom (x, y, z).
+
+        Examples
+        --------
+        >>> import numpy as np
+        >>> from deepchem.feat.RFDiffusion_featurizer import RFDiffusionFeaturizer
+        >>> features = RFDiffusionFeaturizer()
+        >>> datapoint = "101M.pdb"
+        >>> backbone_coords = features.get_backbone_coords(datapoint)
+        >>> logger.info(backbone_coords.shape)
         """
         parser = PDBParser(QUIET=True)
         structure = parser.get_structure("protein", datapoint)
@@ -209,6 +241,11 @@ class RFDiffusionFeaturizer(Featurizer):
         """
         It computes the 1D features for the residue sequence.
 
+        The 1D features represent the sequence of the protein along with their positions in the sequence
+        and the timestep. These are used as inputs to the 1D track of the RFDiffusion model.
+
+        This is done by using a learnable mask token embedding and sinusoidal embeddings for the residue sequence and the timestep.
+
         Parameters
         ----------
         backbone_coords: np.ndarray
@@ -221,6 +258,7 @@ class RFDiffusionFeaturizer(Featurizer):
         _1d_features: np.ndarray
             Array of shape ``N, d_model``  along with sinusoidal embeddings for the residue sequence,
             which represents the 1D features for the residue sequence.
+
         """
         N = backbone_coords.shape[0]
         device = backbone_coords.device
