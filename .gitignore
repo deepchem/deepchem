@@ -7,10 +7,6 @@ model-dir/
 .DS_Store
 **/.DS_Store
 
-#DeepChem Checkpoints
-checkpoints_classification/
-checkpoints_regression/
-olmo_checkpoints/
 
 # C extensions
 *.so

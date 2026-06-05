@@ -709,11 +709,7 @@ class HuggingFaceModel(TorchModel):
             self.tokenizer.padding_side = "left"
         device = self.device
 
-        if device.type == 'cuda' and not torch.cuda.is_available():
-            logger.warning(
-                "CUDA is not available. Moving model and inputs to CPU for generation."
-            )
-            device = torch.device('cpu')
+        original_device = next(self.model.parameters()).device
         if device.type == 'mps':
             # HuggingFace's generate method does not currently support MPS. Move model and inputs to CPU.
             logger.warning(
@@ -737,4 +733,6 @@ class HuggingFaceModel(TorchModel):
             decoded_outputs = self.tokenizer.batch_decode(
                 outputs, skip_special_tokens=True)
             all_outputs.extend(decoded_outputs)
+            if next(self.model.parameters()).device != original_device:
+                self.model.to(original_device)
         return all_outputs
