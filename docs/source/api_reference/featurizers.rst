@@ -369,7 +369,7 @@ SAMFeaturizer
 
 .. autoclass:: deepchem.feat.SAMFeaturizer
   :members:
-  :inherited-members: 
+  :inherited-members:
 
 BAMFeaturizer
 ^^^^^^^^^^^^^
@@ -534,6 +534,13 @@ This takes in a list of multisequence alignments and returns a list of position 
 
 .. autoclass:: deepchem.feat.sequence_featurizers.PFMFeaturizer
   :members:
+
+RFDiffusionFeaturizer
+^^^^^^^^^^^^^^^^^^^^^
+
+.. autoclass:: deepchem.feat.RFDiffusion_featurizer.RFDiffusionFeaturizer
+  :members:
+  :inherited-members:
 
 
 Other Featurizers
