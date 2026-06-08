@@ -2,7 +2,7 @@ import logging
 import time
 from collections.abc import Sequence as SequenceCollection
 from typing import (TYPE_CHECKING, Any, Callable, Iterable, List, Optional,
-                    Tuple, Union, Dict)
+                    Tuple, Union, Dict, TypedDict)
 
 import numpy as np
 import torch
@@ -563,9 +563,12 @@ class HuggingFaceModel(TorchModel):
         else:
             return np.array(final_results)
 
-    def fill_mask(self,
-                  inputs: Union[str, List[str]],
-                  top_k: int = 5) -> Union[List[Dict], List[List[Dict]]]:
+    class FillMaskOutput(TypedDict):
+        sequence: str
+        score: float
+        token: int
+        token_str: str
+    def fill_mask(self, inputs: Union[str, List[str]], top_k: int = 5) -> Union[List[FillMaskOutput], List[List[FillMaskOutput]]]:
         """Implements the HuggingFace 'fill_mask' pipeline from HuggingFace.
         https://huggingface.co/docs/transformers/main_classes/pipelines
 
@@ -607,8 +610,11 @@ class HuggingFaceModel(TorchModel):
             mask_token_index = torch.where(
                 encoded_input["input_ids"] == self.tokenizer.mask_token_id)[1]
             # Ensure that the masked token index appears EXACTLY once.
-            assert mask_token_index.numel(
-            ) == 1, f"Sequence has masked indices at: {list(mask_token_index)}. Please ensure that only one position is masked in the sequence."
+            if mask_token_index.numel() != 1:
+                raise ValueError(
+                    f"Sequence has masked indices at: {list(mask_token_index)}."
+                    "Please ensure that only one position is masked in the sequence."
+                )
 
             with torch.no_grad():
                 output = self.model(**encoded_input)
