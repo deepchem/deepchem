@@ -35,7 +35,7 @@ class RobertaFeaturizer(RobertaTokenizerFast, Featurizer):
     -----
     This class requires transformers to be installed.
     RobertaFeaturizer uses dual inheritance with RobertaTokenizerFast in Huggingface for rapid tokenization,
-    as well as DeepChem's Featurizrer class.
+    as well as DeepChem's Featurizer class.
     """
 
     def __init__(self, **kwargs):
