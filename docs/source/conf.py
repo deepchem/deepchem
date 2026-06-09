@@ -44,6 +44,11 @@ extensions = [
     'sphinx_copybutton',
 ]
 
+#Custom Javascript files
+html_js_files = [
+    'https://code.jquery.com/jquery-3.7.1.min.js'
+]
+
 # Options for autodoc directives
 autodoc_default_options = {
     'member-order':
