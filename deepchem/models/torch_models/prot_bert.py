@@ -118,7 +118,7 @@ class ProtBERT(HuggingFaceModel):
         protbert_config: PretrainedConfig = BertConfig.from_pretrained(
             pretrained_model_name_or_path=model_path,
             vocab_size=tokenizer.vocab_size)
-        self.config = protbert_config
+        self.config = protbert_config.to_dict()
         model: PreTrainedModel
         if task == "mlm":
             model = BertForMaskedLM.from_pretrained(model_path)
