@@ -41,7 +41,7 @@ def test_hf_causal():
     for i in decoded:
         assert isinstance(i, str)
 
-    generated = hf_model.generate(SMILES, max_new_tokens=10)
+    generated = hf_model.generate(dataset, max_new_tokens=10)
     assert len(generated) == len(SMILES)
     for j in generated:
         assert isinstance(j, str)

@@ -1,4 +1,5 @@
 import pytest
+import deepchem as dc
 
 try:
     import torch
@@ -33,7 +34,8 @@ def test_olmo_generate():
                                 tokenizer=tokenizer,
                                 task="causal_lm")
 
-    outputs = hf_model.generate(SMILES, max_new_tokens=10)
+    dataset = dc.data.NumpyDataset(SMILES)
+    outputs = hf_model.generate(dataset, max_new_tokens=10)
     assert isinstance(outputs, list)
     assert len(outputs) == len(SMILES)
     for i in outputs:

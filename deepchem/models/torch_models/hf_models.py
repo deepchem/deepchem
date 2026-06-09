@@ -7,6 +7,7 @@ from typing import (TYPE_CHECKING, Any, Callable, Iterable, List, Optional,
 import numpy as np
 import torch
 from deepchem.models.optimizers import LearningRateSchedule
+from deepchem.data import Dataset
 from deepchem.models.torch_models import TorchModel
 from deepchem.trans import Transformer, undo_transforms
 from deepchem.utils.typing import LossFn, OneOrMany
@@ -668,38 +669,30 @@ f        from hf_checkpoint, if any keys in `config` match configuration attribu
 
         return results[0] if len(results) == 1 else results
 
-    def generate(self,
-                 inputs: Union[str, List[str]],
-                 batch_size: int = 10,
-                 **kwargs) -> List[str]:
+    def generate(self, dataset: Dataset, **kwargs) -> List[str]:
         """Generate text using HuggingFace's text generation pipeline.
+
         Parameters
         ----------
-        inputs : Union[str, List[str]]
-            One or several input sequences (or one list of input sequences) to condition the generation on.
-        batch_size : int, optional
-            The batch size to use for generation. Default is 10.
+        dataset : Dataset
+            A dataset in DeepChem format whose X field contains input sequences to
+            condition generation on.
         **kwargs:
-            Additional keyword arguments to pass to HuggingFace's `generate` method. This can include
-            Returns
-            -------
-            List[str]
-                A list of generated text sequences corresponding to each input sequence."""
+            Additional keyword arguments to pass to HuggingFace's generate
+            method.
+
+        Returns
+        -------
+        List[str]
+            A list of generated text sequences corresponding to each input
+            sequence.
+        """
         self._ensure_built()
         self.model.eval()
 
         if not hasattr(self.model, 'generate'):
             raise ValueError(
                 "This HuggingFace model doesn't support text generation.")
-
-        if isinstance(inputs, str):
-            inputs = [inputs]
-
-        elif not isinstance(inputs, list):
-            raise ValueError("Inputs should be a string or a list of strings.")
-
-        if len(inputs) == 0:
-            return []
 
         if self.tokenizer.pad_token is None:
             self.tokenizer.pad_token = self.tokenizer.eos_token
@@ -720,13 +713,13 @@ f        from hf_checkpoint, if any keys in `config` match configuration attribu
             self.model.to(device)
 
         all_outputs = []
-        length = len(inputs)
-        for i in range(0, length, batch_size):
-            batch_inputs = inputs[i:i + batch_size]
-            encoded = self.tokenizer(batch_inputs,
-                                     return_tensors='pt',
+        for (X_batch, _, _,
+             _) in dataset.iterbatches(batch_size=self.batch_size,
+                                       deterministic=True,
+                                       pad_batches=False):
+            encoded = self.tokenizer(X_batch.tolist(),
                                      padding=True,
-                                     truncation=True)
+                                     return_tensors="pt")
             encoded = {k: v.to(device) for k, v in encoded.items()}
             with torch.no_grad():
                 outputs = self.model.generate(**encoded, **kwargs)
