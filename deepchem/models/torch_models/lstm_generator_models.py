@@ -114,7 +114,8 @@ class LSTMGenerator(TorchModel):
             learning_rate: Union[float] = 0.001,
             optimizer: Optional[Optimizer] = None,
             model_dir: str = "lstm_generator_model",
-            device: Optional[torch.device] = None) -> None:
+            device: Optional[torch.device] = None,
+            allow_custom_init_texts: bool = False) -> None:
         """
         Initializes the LSTMGenerator model.
 
@@ -140,6 +141,8 @@ class LSTMGenerator(TorchModel):
             Directory to save the model files.
         device: torch.device, default None
             Device to use for training the model.
+        allow_custom_init_texts: bool, default False
+            Whether to allow the generator to generate with initial text tokens.
         """
 
         self.tokenizer = BertTokenizer.from_pretrained(
@@ -157,6 +160,7 @@ class LSTMGenerator(TorchModel):
             device = torch.device(
                 'cuda' if torch.cuda.is_available() else 'cpu')
         model = model.to(device)
+        self.allow_custom_init_texts = allow_custom_init_texts
         super(LSTMGenerator, self).__init__(model=model,
                                             loss=loss,
                                             batch_size=batch_size,
@@ -397,7 +401,8 @@ class LSTMGenerator(TorchModel):
 
     def _single_sample(self,
                        max_len: int = 600,
-                       temperature: float = 1.0) -> str:
+                       temperature: float = 1.0,
+                       init_texts: str | None = None) -> str:
         """
         Generate a sequence by single sampling.
 
@@ -407,6 +412,8 @@ class LSTMGenerator(TorchModel):
             Maximum length of the generated sequence.
         temperature: float, default 1.0
             Temperature to use for sampling.
+        init_texts: str, optional
+            Initial text to start the generation with. If None, starts with the CLS token.
 
         Returns
         -------
@@ -414,8 +421,15 @@ class LSTMGenerator(TorchModel):
             Detokenized Generated sequence as str.
         """
         generated_sequence: list = [self.tokenizer.cls_token_id]
+        if init_texts:
+            assert self.allow_custom_init_texts is True, "You need to allow the generator to generate with initial text tokens while initializing the class"
+            tokens = self.tokenizer.encode(list(init_texts),
+                                           add_special_tokens=False)
+            generated_sequence.extend(tokens)
+        # print("Generated sequence: ", generated_sequence)
         for _ in range(max_len):
             input_tensor = torch.tensor(generated_sequence).unsqueeze(0)
+            # print("input_tensor: ", input_tensor)
             dataset = NumpyDataset(input_tensor)
             output_tensors: list = []
 
@@ -427,6 +441,7 @@ class LSTMGenerator(TorchModel):
             output_tensor = self._predict(get_generator(),
                                           temperature=temperature)
             generated_sequence.append(output_tensor)
+            # print("output_tensor: ", output_tensor)
             if len(output_tensors) > 0:
                 if output_tensors[0] == self.tokenizer.sep_token_id:
                     break
@@ -438,7 +453,8 @@ class LSTMGenerator(TorchModel):
     def sample(self,
                num_gen: int = 100,
                max_len: int = 600,
-               temperature: float = 1.0) -> List[str]:
+               temperature: float = 1.0,
+               init_texts: str | None = None) -> List[str]:
         """
         Generate sequences by repeated sampling.
         Parameters
@@ -449,6 +465,8 @@ class LSTMGenerator(TorchModel):
             Maximum length of the generated sequence.
         temperature: float, default 1.0
             Temperature to use for sampling.
+        init_texts: str | None, optional
+            Initial text to start the generation with. If None, starts with the CLS token.
         Returns
         -------
         List[str]
@@ -458,6 +476,7 @@ class LSTMGenerator(TorchModel):
         results = []
         for i in range(num_gen):
             generated_sequence = self._single_sample(max_len=max_len,
-                                                     temperature=temperature)
+                                                     temperature=temperature,
+                                                     init_texts=init_texts)
             results.append(generated_sequence)
         return results
