@@ -83,13 +83,15 @@ class GAN(KerasModel):
         self.data_input_layers = []
         for shape in self.get_data_input_shapes():
             self.data_input_layers.append(Input(shape=shape))
-        self.data_inputs = [i.ref() for i in self.data_input_layers]
+        self.data_inputs = [
+            i.ref() if hasattr(i, "ref") else i for i in self.data_input_layers
+              ]
         self.conditional_input_layers = []
         for shape in self.get_conditional_input_shapes():
             self.conditional_input_layers.append(Input(shape=shape))
         self.conditional_inputs = [
-            i.ref() for i in self.conditional_input_layers
-        ]
+            i.ref() if hasattr(i, "ref") else i for i in self.conditional_input_layers
+              ]
 
         # Create the generators.
 
