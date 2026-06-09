@@ -1,6 +1,7 @@
 """
 Contains wrapper class for datasets.
 """
+
 import json
 import os
 import csv
@@ -134,13 +135,18 @@ def pad_features(batch_size: int, X_b: np.ndarray) -> np.ndarray:
                 increment = num_left
             else:
                 increment = num_samples
-            X_out[start:start + increment] = X_b[:increment]
+            X_out[start : start + increment] = X_b[:increment]
             start += increment
         return X_out
 
 
-def pad_batch(batch_size: int, X_b: np.ndarray, y_b: np.ndarray,
-              w_b: np.ndarray, ids_b: np.ndarray) -> Batch:
+def pad_batch(
+    batch_size: int,
+    X_b: np.ndarray,
+    y_b: np.ndarray,
+    w_b: np.ndarray,
+    ids_b: np.ndarray,
+) -> Batch:
     """Pads batch to have size precisely batch_size elements.
 
     Given arrays of features `X_b`, labels `y_b`, weights `w_b`, and
@@ -199,7 +205,7 @@ def pad_batch(batch_size: int, X_b: np.ndarray, y_b: np.ndarray,
     start = 0
     # Only the first set of copy will be counted in training loss
     if w_out is not None:
-        w_out[start:start + num_samples] = w_b[:]
+        w_out[start : start + num_samples] = w_b[:]
 
     while start < batch_size:
         num_left = batch_size - start
@@ -207,12 +213,12 @@ def pad_batch(batch_size: int, X_b: np.ndarray, y_b: np.ndarray,
             increment = num_left
         else:
             increment = num_samples
-        X_out[start:start + increment] = X_b[:increment]
+        X_out[start : start + increment] = X_b[:increment]
 
         if y_out is not None:
-            y_out[start:start + increment] = y_b[:increment]
+            y_out[start : start + increment] = y_b[:increment]
 
-        ids_out[start:start + increment] = ids_b[:increment]
+        ids_out[start : start + increment] = ids_b[:increment]
         start += increment
 
     return (X_out, y_out, w_out, ids_out)
@@ -342,28 +348,41 @@ class Dataset(object):
     def __repr__(self) -> str:
         """Convert self to REPL print representation."""
         threshold = dc.utils.get_print_threshold()
-        task_str = np.array2string(np.array(self.get_task_names()),
-                                   threshold=threshold)
+        task_str = np.array2string(np.array(self.get_task_names()), threshold=threshold)
         X_shape, y_shape, w_shape, _ = self.get_shape()
         if self.__len__() < dc.utils.get_max_print_size():
             id_str = np.array2string(self.ids, threshold=threshold)
-            return "<%s X.shape: %s, y.shape: %s, w.shape: %s, ids: %s, task_names: %s>" % (
-                self.__class__.__name__, str(X_shape), str(y_shape),
-                str(w_shape), id_str, task_str)
+            return (
+                "<%s X.shape: %s, y.shape: %s, w.shape: %s, ids: %s, task_names: %s>"
+                % (
+                    self.__class__.__name__,
+                    str(X_shape),
+                    str(y_shape),
+                    str(w_shape),
+                    id_str,
+                    task_str,
+                )
+            )
         else:
             return "<%s X.shape: %s, y.shape: %s, w.shape: %s, task_names: %s>" % (
-                self.__class__.__name__, str(X_shape), str(y_shape),
-                str(w_shape), task_str)
+                self.__class__.__name__,
+                str(X_shape),
+                str(y_shape),
+                str(w_shape),
+                task_str,
+            )
 
     def __str__(self) -> str:
         """Convert self to str representation."""
         return self.__repr__()
 
-    def iterbatches(self,
-                    batch_size: Optional[int] = None,
-                    epochs: int = 1,
-                    deterministic: bool = False,
-                    pad_batches: bool = False) -> Iterator[Batch]:
+    def iterbatches(
+        self,
+        batch_size: Optional[int] = None,
+        epochs: int = 1,
+        deterministic: bool = False,
+        pad_batches: bool = False,
+    ) -> Iterator[Batch]:
         """Get an object that iterates over minibatches from the dataset.
 
         Each minibatch is returned as a tuple of four numpy arrays:
@@ -400,8 +419,7 @@ class Dataset(object):
         """
         raise NotImplementedError()
 
-    def transform(self, transformer: "dc.trans.Transformer",
-                  **args) -> "Dataset":
+    def transform(self, transformer: "dc.trans.Transformer", **args) -> "Dataset":
         """Construct a new dataset by applying a transformation to every sample in this dataset.
 
         The argument is a function that can be called as follows:
@@ -423,9 +441,11 @@ class Dataset(object):
         """
         raise NotImplementedError()
 
-    def select(self,
-               indices: Union[Sequence[int], np.ndarray],
-               select_dir: Optional[str] = None) -> "Dataset":
+    def select(
+        self,
+        indices: Union[Sequence[int], np.ndarray],
+        select_dir: Optional[str] = None,
+    ) -> "Dataset":
         """Creates a new dataset from a selection of indices from self.
 
         Parameters
@@ -437,9 +457,9 @@ class Dataset(object):
         """
         raise NotImplementedError()
 
-    def get_statistics(self,
-                       X_stats: bool = True,
-                       y_stats: bool = True) -> Tuple[np.ndarray, ...]:
+    def get_statistics(
+        self, X_stats: bool = True, y_stats: bool = True
+    ) -> Tuple[np.ndarray, ...]:
         """Compute and return statistics of this dataset.
 
         Uses `self.itersamples()` to compute means and standard deviations
@@ -491,11 +511,13 @@ class Dataset(object):
         else:
             return tuple()
 
-    def make_tf_dataset(self,
-                        batch_size: int = 100,
-                        epochs: int = 1,
-                        deterministic: bool = False,
-                        pad_batches: bool = False):
+    def make_tf_dataset(
+        self,
+        batch_size: int = 100,
+        epochs: int = 1,
+        deterministic: bool = False,
+        pad_batches: bool = False,
+    ):
         """Create a tf.data.Dataset that iterates over the data in this Dataset.
 
         Each value returned by the Dataset's iterator is a tuple of (X, y,
@@ -526,30 +548,32 @@ class Dataset(object):
         try:
             import tensorflow as tf
         except:
-            raise ImportError(
-                "This method requires TensorFlow to be installed.")
+            raise ImportError("This method requires TensorFlow to be installed.")
 
         # Retrieve the first sample so we can determine the dtypes.
         X, y, w, ids = next(self.itersamples())
-        dtypes = (tf.as_dtype(X.dtype), tf.as_dtype(y.dtype),
-                  tf.as_dtype(w.dtype))
+        dtypes = (tf.as_dtype(X.dtype), tf.as_dtype(y.dtype), tf.as_dtype(w.dtype))
         shapes = (
             tf.TensorShape([None] + list(X.shape)),  # type: ignore
             tf.TensorShape([None] + list(y.shape)),  # type: ignore
-            tf.TensorShape([None] + list(w.shape)))  # type: ignore
+            tf.TensorShape([None] + list(w.shape)),
+        )  # type: ignore
 
         # Create a Tensorflow Dataset.
         def gen_data():
-            for X, y, w, ids in self.iterbatches(batch_size, epochs,
-                                                 deterministic, pad_batches):
+            for X, y, w, ids in self.iterbatches(
+                batch_size, epochs, deterministic, pad_batches
+            ):
                 yield (X, y, w)
 
         return tf.data.Dataset.from_generator(gen_data, dtypes, shapes)
 
-    def make_pytorch_dataset(self,
-                             epochs: int = 1,
-                             deterministic: bool = False,
-                             batch_size: Optional[int] = None):
+    def make_pytorch_dataset(
+        self,
+        epochs: int = 1,
+        deterministic: bool = False,
+        batch_size: Optional[int] = None,
+    ):
         """Create a torch.utils.data.IterableDataset that iterates over the data in this Dataset.
 
         Each value returned by the Dataset's iterator is a tuple of (X, y, w, id)
@@ -597,29 +621,31 @@ class Dataset(object):
         w = self.w
         ids = self.ids
         if len(X.shape) == 1 or X.shape[1] == 1:
-            columns = ['X']
+            columns = ["X"]
         else:
-            columns = [f'X{i+1}' for i in range(X.shape[1])]
+            columns = [f"X{i + 1}" for i in range(X.shape[1])]
         X_df = pd.DataFrame(X, columns=columns)
         if len(y.shape) == 1 or y.shape[1] == 1:
-            columns = ['y']
+            columns = ["y"]
         else:
-            columns = [f'y{i+1}' for i in range(y.shape[1])]
+            columns = [f"y{i + 1}" for i in range(y.shape[1])]
         y_df = pd.DataFrame(y, columns=columns)
         if len(w.shape) == 1 or w.shape[1] == 1:
-            columns = ['w']
+            columns = ["w"]
         else:
-            columns = [f'w{i+1}' for i in range(w.shape[1])]
+            columns = [f"w{i + 1}" for i in range(w.shape[1])]
         w_df = pd.DataFrame(w, columns=columns)
-        ids_df = pd.DataFrame(ids, columns=['ids'])
+        ids_df = pd.DataFrame(ids, columns=["ids"])
         return pd.concat([X_df, y_df, w_df, ids_df], axis=1, sort=False)
 
     @staticmethod
-    def from_dataframe(df: pd.DataFrame,
-                       X: Optional[OneOrMany[str]] = None,
-                       y: Optional[OneOrMany[str]] = None,
-                       w: Optional[OneOrMany[str]] = None,
-                       ids: Optional[str] = None):
+    def from_dataframe(
+        df: pd.DataFrame,
+        X: Optional[OneOrMany[str]] = None,
+        y: Optional[OneOrMany[str]] = None,
+        w: Optional[OneOrMany[str]] = None,
+        ids: Optional[str] = None,
+    ):
         """Construct a Dataset from the contents of a pandas DataFrame.
 
         Parameters
@@ -646,13 +672,13 @@ class Dataset(object):
         # Find the X values.
         if X is not None:
             X_val = df[X]
-        elif 'X' in df.columns:
-            X_val = df['X']
+        elif "X" in df.columns:
+            X_val = df["X"]
         else:
             columns = []
             i = 1
-            while f'X{i}' in df.columns:
-                columns.append(f'X{i}')
+            while f"X{i}" in df.columns:
+                columns.append(f"X{i}")
                 i += 1
             X_val = df[columns]
         if len(X_val.shape) == 1:
@@ -661,13 +687,13 @@ class Dataset(object):
         # Find the y values.
         if y is not None:
             y_val = df[y]
-        elif 'y' in df.columns:
-            y_val = df['y']
+        elif "y" in df.columns:
+            y_val = df["y"]
         else:
             columns = []
             i = 1
-            while f'y{i}' in df.columns:
-                columns.append(f'y{i}')
+            while f"y{i}" in df.columns:
+                columns.append(f"y{i}")
                 i += 1
             y_val = df[columns]
         if len(y_val.shape) == 1:
@@ -676,13 +702,13 @@ class Dataset(object):
         # Find the w values.
         if w is not None:
             w_val = df[w]
-        elif 'w' in df.columns:
-            w_val = df['w']
+        elif "w" in df.columns:
+            w_val = df["w"]
         else:
             columns = []
             i = 1
-            while f'w{i}' in df.columns:
-                columns.append(f'w{i}')
+            while f"w{i}" in df.columns:
+                columns.append(f"w{i}")
                 i += 1
             w_val = df[columns]
         if len(w_val.shape) == 1:
@@ -691,8 +717,8 @@ class Dataset(object):
         # Find the ids.
         if ids is not None:
             ids_val = df[ids]
-        elif 'ids' in df.columns:
-            ids_val = df['ids']
+        elif "ids" in df.columns:
+            ids_val = df["ids"]
         else:
             ids_val = None
         return NumpyDataset(X_val, y_val, w_val, ids_val)
@@ -718,27 +744,25 @@ class Dataset(object):
         """
         columns = []
         X_shape, y_shape, w_shape, id_shape = self.get_shape()
-        assert len(
-            X_shape) == 2, "dataset's X values should be scalar or 1-D arrays"
-        assert len(
-            y_shape) == 2, "dataset's y values should be scalar or 1-D arrays"
+        assert len(X_shape) == 2, "dataset's X values should be scalar or 1-D arrays"
+        assert len(y_shape) == 2, "dataset's y values should be scalar or 1-D arrays"
         if X_shape[1] == 1:
-            columns.append('X')
+            columns.append("X")
         else:
-            columns.extend([f'X{i+1}' for i in range(X_shape[1])])
+            columns.extend([f"X{i + 1}" for i in range(X_shape[1])])
         if y_shape[1] == 1:
-            columns.append('y')
+            columns.append("y")
         else:
-            columns.extend([f'y{i+1}' for i in range(y_shape[1])])
+            columns.extend([f"y{i + 1}" for i in range(y_shape[1])])
         if w_shape[1] == 1:
-            columns.append('w')
+            columns.append("w")
         else:
-            columns.extend([f'w{i+1}' for i in range(w_shape[1])])
-        columns.append('ids')
-        with open(path, 'w', newline='') as csvfile:
+            columns.extend([f"w{i + 1}" for i in range(w_shape[1])])
+        columns.append("ids")
+        with open(path, "w", newline="") as csvfile:
             writer = csv.writer(csvfile)
             writer.writerow(columns)
-            for (x, y, w, ids) in self.itersamples():
+            for x, y, w, ids in self.itersamples():
                 writer.writerow(list(x) + list(y) + list(w) + [ids])
         return None
 
@@ -756,12 +780,14 @@ class NumpyDataset(Dataset):
     >>> dataset = NumpyDataset(X=np.random.rand(5, 3), y=np.random.rand(5,), ids=np.arange(5))
     """
 
-    def __init__(self,
-                 X: ArrayLike,
-                 y: Optional[ArrayLike] = None,
-                 w: Optional[ArrayLike] = None,
-                 ids: Optional[ArrayLike] = None,
-                 n_tasks: int = 1) -> None:
+    def __init__(
+        self,
+        X: ArrayLike,
+        y: Optional[ArrayLike] = None,
+        w: Optional[ArrayLike] = None,
+        ids: Optional[ArrayLike] = None,
+        n_tasks: int = 1,
+    ) -> None:
         """Initialize this object.
 
         Parameters
@@ -788,9 +814,9 @@ class NumpyDataset(Dataset):
         if ids is None:
             ids = np.arange(n_samples)
         if not isinstance(X, np.ndarray):
-            X = np.array(X)
+            X = np.asarray(X)
         if not isinstance(y, np.ndarray):
-            y = np.array(y)
+            y = np.asarray(y)
         if w is None:
             if len(y.shape) == 1:
                 w = np.ones(y.shape[0], np.float32)
@@ -840,11 +866,13 @@ class NumpyDataset(Dataset):
         """Get the weight vector for this dataset as a single numpy array."""
         return self._w
 
-    def iterbatches(self,
-                    batch_size: Optional[int] = None,
-                    epochs: int = 1,
-                    deterministic: bool = False,
-                    pad_batches: bool = False) -> Iterator[Batch]:
+    def iterbatches(
+        self,
+        batch_size: Optional[int] = None,
+        epochs: int = 1,
+        deterministic: bool = False,
+        pad_batches: bool = False,
+    ) -> Iterator[Batch]:
         """Get an object that iterates over minibatches from the dataset.
 
         Each minibatch is returned as a tuple of four numpy arrays:
@@ -867,8 +895,13 @@ class NumpyDataset(Dataset):
             Generator which yields tuples of four numpy arrays `(X, y, w, ids)`.
         """
 
-        def iterate(dataset: NumpyDataset, batch_size: Optional[int],
-                    epochs: int, deterministic: bool, pad_batches: bool):
+        def iterate(
+            dataset: NumpyDataset,
+            batch_size: Optional[int],
+            epochs: int,
+            deterministic: bool,
+            pad_batches: bool,
+        ):
             n_samples = dataset._X.shape[0]
             if deterministic:
                 sample_perm = np.arange(n_samples)
@@ -889,9 +922,9 @@ class NumpyDataset(Dataset):
                     w_batch = dataset._w[perm_indices]
                     ids_batch = dataset._ids[perm_indices]
                     if pad_batches:
-                        (X_batch, y_batch, w_batch,
-                         ids_batch) = pad_batch(batch_size, X_batch, y_batch,
-                                                w_batch, ids_batch)
+                        (X_batch, y_batch, w_batch, ids_batch) = pad_batch(
+                            batch_size, X_batch, y_batch, w_batch, ids_batch
+                        )
                     batch_idx += 1
                     yield (X_batch, y_batch, w_batch, ids_batch)
 
@@ -914,11 +947,11 @@ class NumpyDataset(Dataset):
         [1.0, 1.0] [0.0] [0.0] 1
         """
         n_samples = self._X.shape[0]
-        return ((self._X[i], self._y[i], self._w[i], self._ids[i])
-                for i in range(n_samples))
+        return (
+            (self._X[i], self._y[i], self._w[i], self._ids[i]) for i in range(n_samples)
+        )
 
-    def transform(self, transformer: "dc.trans.Transformer",
-                  **args) -> "NumpyDataset":
+    def transform(self, transformer: "dc.trans.Transformer", **args) -> "NumpyDataset":
         """Construct a new dataset by applying a transformation to every sample in this dataset.
 
         The argument is a function that can be called as follows:
@@ -939,12 +972,15 @@ class NumpyDataset(Dataset):
             A newly constructed NumpyDataset object
         """
         newx, newy, neww, newids = transformer.transform_array(
-            self._X, self._y, self._w, self._ids)
+            self._X, self._y, self._w, self._ids
+        )
         return NumpyDataset(newx, newy, neww, newids)
 
-    def select(self,
-               indices: Union[Sequence[int], np.ndarray],
-               select_dir: Optional[str] = None) -> "NumpyDataset":
+    def select(
+        self,
+        indices: Union[Sequence[int], np.ndarray],
+        select_dir: Optional[str] = None,
+    ) -> "NumpyDataset":
         """Creates a new dataset from a selection of indices from self.
 
         Parameters
@@ -966,10 +1002,12 @@ class NumpyDataset(Dataset):
         ids = self.ids[indices]
         return NumpyDataset(X, y, w, ids)
 
-    def make_pytorch_dataset(self,
-                             epochs: int = 1,
-                             deterministic: bool = False,
-                             batch_size: Optional[int] = None):
+    def make_pytorch_dataset(
+        self,
+        epochs: int = 1,
+        deterministic: bool = False,
+        batch_size: Optional[int] = None,
+    ):
         """Create a torch.utils.data.IterableDataset that iterates over the data in this Dataset.
 
         Each value returned by the Dataset's iterator is a tuple of (X, y, w, id)
@@ -1001,10 +1039,12 @@ class NumpyDataset(Dataset):
         except:
             raise ImportError("This method requires PyTorch to be installed.")
 
-        pytorch_ds = _TorchNumpyDataset(numpy_dataset=self,
-                                        epochs=epochs,
-                                        deterministic=deterministic,
-                                        batch_size=batch_size)
+        pytorch_ds = _TorchNumpyDataset(
+            numpy_dataset=self,
+            epochs=epochs,
+            deterministic=deterministic,
+            batch_size=batch_size,
+        )
         return pytorch_ds
 
     @staticmethod
@@ -1032,12 +1072,12 @@ class NumpyDataset(Dataset):
             The name of the json file.
         """
         d = {
-            'X': self.X.tolist(),
-            'y': self.y.tolist(),
-            'w': self.w.tolist(),
-            'ids': self.ids.tolist()
+            "X": self.X.tolist(),
+            "y": self.y.tolist(),
+            "w": self.w.tolist(),
+            "ids": self.ids.tolist(),
         }
-        with open(fname, 'w') as fout:
+        with open(fname, "w") as fout:
             json.dump(d, fout)
 
     @staticmethod
@@ -1056,7 +1096,7 @@ class NumpyDataset(Dataset):
         """
         with open(fname) as fin:
             d = json.load(fin)
-            return NumpyDataset(d['X'], d['y'], d['w'], d['ids'])
+            return NumpyDataset(d["X"], d["y"], d["w"], d["ids"])
 
     @staticmethod
     def merge(datasets: Sequence[Dataset]) -> "NumpyDataset":
@@ -1083,8 +1123,7 @@ class NumpyDataset(Dataset):
         True
 
         """
-        X, y, w, ids = datasets[0].X, datasets[0].y, datasets[0].w, datasets[
-            0].ids
+        X, y, w, ids = datasets[0].X, datasets[0].y, datasets[0].w, datasets[0].ids
         for dataset in datasets[1:]:
             X = np.concatenate([X, dataset.X], axis=0)
             y = np.concatenate([y, dataset.y], axis=0)
@@ -1099,7 +1138,6 @@ class NumpyDataset(Dataset):
 
 
 class _Shard(object):
-
     def __init__(self, X, y, w, ids):
         self.X = X
         self.y = y
@@ -1219,32 +1257,45 @@ class DiskDataset(Dataset):
         logger.info("Loading dataset from disk.")
         tasks, self.metadata_df = self.load_metadata()
         self.tasks = np.array(tasks)
-        if len(self.metadata_df.columns) == 4 and list(
-                self.metadata_df.columns) == ['ids', 'X', 'y', 'w']:
+        if len(self.metadata_df.columns) == 4 and list(self.metadata_df.columns) == [
+            "ids",
+            "X",
+            "y",
+            "w",
+        ]:
             logger.info(
                 "Detected legacy metatadata on disk. You can upgrade from legacy metadata "
                 "to the more efficient current metadata by resharding this dataset "
-                "by calling the reshard() method of this object.")
+                "by calling the reshard() method of this object."
+            )
             self.legacy_metadata = True
-        elif len(self.metadata_df.columns) == 8 and list(
-                self.metadata_df.columns) == [
-                    'ids', 'X', 'y', 'w', 'ids_shape', 'X_shape', 'y_shape',
-                    'w_shape'
-                ]:  # noqa
+        elif len(self.metadata_df.columns) == 8 and list(self.metadata_df.columns) == [
+            "ids",
+            "X",
+            "y",
+            "w",
+            "ids_shape",
+            "X_shape",
+            "y_shape",
+            "w_shape",
+        ]:  # noqa
             self.legacy_metadata = False
         else:
             raise ValueError(
                 "Malformed metadata on disk. Metadata must have columns 'ids', 'X', 'y', 'w', "
                 "'ids_shape', 'X_shape', 'y_shape', 'w_shape' (or if in legacy metadata format,"
-                "columns 'ids', 'X', 'y', 'w')")
+                "columns 'ids', 'X', 'y', 'w')"
+            )
         self._cached_shards: Optional[List] = None
         self._memory_cache_size = 20 * (1 << 20)  # 20 MB
         self._cache_used = 0
 
     @staticmethod
-    def create_dataset(shard_generator: Iterable[Batch],
-                       data_dir: Optional[str] = None,
-                       tasks: Optional[ArrayLike] = None) -> "DiskDataset":
+    def create_dataset(
+        shard_generator: Iterable[Batch],
+        data_dir: Optional[str] = None,
+        tasks: Optional[ArrayLike] = None,
+    ) -> "DiskDataset":
         """Creates a new DiskDataset
 
         Parameters
@@ -1273,17 +1324,15 @@ class DiskDataset(Dataset):
             if shard_num == 0:
                 if tasks is None and y is not None:
                     # The line here assumes that y generated by shard_generator is a numpy array
-                    tasks = np.array([0]) if y.ndim < 2 else np.arange(
-                        y.shape[1])
+                    tasks = np.array([0]) if y.ndim < 2 else np.arange(y.shape[1])
             basename = "shard-%d" % shard_num
             metadata_rows.append(
-                DiskDataset.write_data_to_disk(data_dir, basename, X, y, w,
-                                               ids))
+                DiskDataset.write_data_to_disk(data_dir, basename, X, y, w, ids)
+            )
         metadata_df = DiskDataset._construct_metadata(metadata_rows)
         DiskDataset._save_metadata(metadata_df, data_dir, tasks)
         time2 = time.time()
-        logger.info("TIMING: dataset construction took %0.3f s" %
-                    (time2 - time1))
+        logger.info("TIMING: dataset construction took %0.3f s" % (time2 - time1))
         return DiskDataset(data_dir)
 
     def load_metadata(self) -> Tuple[List[str], pd.DataFrame]:
@@ -1292,9 +1341,9 @@ class DiskDataset(Dataset):
             tasks_filename, metadata_filename = self._get_metadata_filename()
             with open(tasks_filename) as fin:
                 tasks = json.load(fin)
-            metadata_df = pd.read_csv(metadata_filename,
-                                      compression='gzip',
-                                      dtype=object)
+            metadata_df = pd.read_csv(
+                metadata_filename, compression="gzip", dtype=object
+            )
             metadata_df = metadata_df.where((pd.notnull(metadata_df)), None)
             return tasks, metadata_df
         except Exception:
@@ -1304,15 +1353,16 @@ class DiskDataset(Dataset):
         metadata_filename = os.path.join(self.data_dir, "metadata.joblib")
         if os.path.exists(metadata_filename):
             tasks, metadata_df = load_from_disk(metadata_filename)
-            del metadata_df['task_names']
-            del metadata_df['basename']
+            del metadata_df["task_names"]
+            del metadata_df["basename"]
             DiskDataset._save_metadata(metadata_df, self.data_dir, tasks)
             return tasks, metadata_df
         raise ValueError(f"No Metadata found in the path {self.data_dir}")
 
     @staticmethod
-    def _save_metadata(metadata_df: pd.DataFrame, data_dir: str,
-                       tasks: Optional[ArrayLike]) -> None:
+    def _save_metadata(
+        metadata_df: pd.DataFrame, data_dir: str, tasks: Optional[ArrayLike]
+    ) -> None:
         """Saves the metadata for a DiskDataset
 
         Parameters
@@ -1331,9 +1381,9 @@ class DiskDataset(Dataset):
             tasks = tasks.tolist()
         metadata_filename = os.path.join(data_dir, "metadata.csv.gzip")
         tasks_filename = os.path.join(data_dir, "tasks.json")
-        with open(tasks_filename, 'w') as fout:
+        with open(tasks_filename, "w") as fout:
             json.dump(tasks, fout)
-        metadata_df.to_csv(metadata_filename, index=False, compression='gzip')
+        metadata_df.to_csv(metadata_filename, index=False, compression="gzip")
 
     @staticmethod
     def _construct_metadata(metadata_entries: List) -> pd.DataFrame:
@@ -1350,18 +1400,19 @@ class DiskDataset(Dataset):
         pd.DataFrame
             A Pandas Dataframe object contains metadata.
         """
-        columns = ('ids', 'X', 'y', 'w', 'ids_shape', 'X_shape', 'y_shape',
-                   'w_shape')
+        columns = ("ids", "X", "y", "w", "ids_shape", "X_shape", "y_shape", "w_shape")
         metadata_df = pd.DataFrame(metadata_entries, columns=columns)
         return metadata_df
 
     @staticmethod
-    def write_data_to_disk(data_dir: str,
-                           basename: str,
-                           X: Optional[np.ndarray] = None,
-                           y: Optional[np.ndarray] = None,
-                           w: Optional[np.ndarray] = None,
-                           ids: Optional[np.ndarray] = None) -> List[Any]:
+    def write_data_to_disk(
+        data_dir: str,
+        basename: str,
+        X: Optional[np.ndarray] = None,
+        y: Optional[np.ndarray] = None,
+        w: Optional[np.ndarray] = None,
+        ids: Optional[np.ndarray] = None,
+    ) -> List[Any]:
         """Static helper method to write data to disk.
 
         This helper method is used to write a shard of data to disk.
@@ -1422,8 +1473,14 @@ class DiskDataset(Dataset):
 
         # note that this corresponds to the _construct_metadata column order
         return [
-            out_ids, out_X, out_y, out_w, out_ids_shape, out_X_shape,
-            out_y_shape, out_w_shape
+            out_ids,
+            out_X,
+            out_y,
+            out_w,
+            out_ids_shape,
+            out_X_shape,
+            out_y_shape,
+            out_w_shape,
         ]
 
     def save_to_disk(self) -> None:
@@ -1431,9 +1488,7 @@ class DiskDataset(Dataset):
         DiskDataset._save_metadata(self.metadata_df, self.data_dir, self.tasks)
         self._cached_shards = None
 
-    def move(self,
-             new_data_dir: str,
-             delete_if_exists: Optional[bool] = True) -> None:
+    def move(self, new_data_dir: str, delete_if_exists: Optional[bool] = True) -> None:
         """Moves dataset to new directory.
 
         Parameters
@@ -1458,8 +1513,7 @@ class DiskDataset(Dataset):
         if delete_if_exists:
             self.data_dir = new_data_dir
         else:
-            self.data_dir = os.path.join(new_data_dir,
-                                         os.path.basename(self.data_dir))
+            self.data_dir = os.path.join(new_data_dir, os.path.basename(self.data_dir))
 
     def copy(self, new_data_dir: str) -> "DiskDataset":
         """Copies dataset to new directory.
@@ -1530,8 +1584,7 @@ class DiskDataset(Dataset):
             w_next = np.zeros((0,) + w_shape[1:])
             ids_next = np.zeros((0,), dtype=object)
             for shard_num, (X, y, w, ids) in enumerate(self.itershards()):
-                logger.info("Resharding shard %d/%d" %
-                            (shard_num + 1, n_shards))
+                logger.info("Resharding shard %d/%d" % (shard_num + 1, n_shards))
                 # Handle shapes
                 X = np.reshape(X, (len(X),) + self.get_data_shape())
                 # Note that this means that DiskDataset resharding currently doesn't
@@ -1550,15 +1603,14 @@ class DiskDataset(Dataset):
                     X_batch, X_next = X_next[:shard_size], X_next[shard_size:]
                     y_batch, y_next = y_next[:shard_size], y_next[shard_size:]
                     w_batch, w_next = w_next[:shard_size], w_next[shard_size:]
-                    ids_batch, ids_next = ids_next[:shard_size], ids_next[
-                        shard_size:]
+                    ids_batch, ids_next = ids_next[:shard_size], ids_next[shard_size:]
                     yield (X_batch, y_batch, w_batch, ids_batch)
             # Handle spillover from last shard
             yield (X_next, y_next, w_next, ids_next)
 
-        resharded_dataset = DiskDataset.create_dataset(generator(),
-                                                       data_dir=reshard_dir,
-                                                       tasks=self.tasks)
+        resharded_dataset = DiskDataset.create_dataset(
+            generator(), data_dir=reshard_dir, tasks=self.tasks
+        )
         shutil.rmtree(self.data_dir)
         shutil.move(reshard_dir, self.data_dir)
         # Should have updated to non-legacy metadata
@@ -1573,8 +1625,8 @@ class DiskDataset(Dataset):
             raise ValueError("No data in dataset.")
         if self.legacy_metadata:
             sample_X = load_from_disk(
-                os.path.join(self.data_dir,
-                             next(self.metadata_df.iterrows())[1]['X']))
+                os.path.join(self.data_dir, next(self.metadata_df.iterrows())[1]["X"])
+            )
             return np.shape(sample_X)[1:]
         else:
             X_shape, _, _, _ = self.get_shape()
@@ -1585,8 +1637,8 @@ class DiskDataset(Dataset):
         if not len(self.metadata_df):
             raise ValueError("No data in dataset.")
         sample_ids = load_from_disk(
-            os.path.join(self.data_dir,
-                         next(self.metadata_df.iterrows())[1]['ids']))
+            os.path.join(self.data_dir, next(self.metadata_df.iterrows())[1]["ids"])
+        )
         return len(sample_ids)
 
     def _get_metadata_filename(self) -> Tuple[str, str]:
@@ -1613,12 +1665,14 @@ class DiskDataset(Dataset):
         """
         return (self.get_shard(i) for i in range(self.get_number_shards()))
 
-    def iterbatches(self,
-                    batch_size: Optional[int] = None,
-                    epochs: int = 1,
-                    deterministic: bool = False,
-                    pad_batches: bool = False) -> Iterator[Batch]:
-        """ Get an object that iterates over minibatches from the dataset.
+    def iterbatches(
+        self,
+        batch_size: Optional[int] = None,
+        epochs: int = 1,
+        deterministic: bool = False,
+        pad_batches: bool = False,
+    ) -> Iterator[Batch]:
+        """Get an object that iterates over minibatches from the dataset.
 
         It is guaranteed that the number of batches returned is
         `math.ceil(len(dataset)/batch_size)`. Each minibatch is returned as
@@ -1645,19 +1699,21 @@ class DiskDataset(Dataset):
             Generator which yields tuples of four numpy arrays `(X, y, w, ids)`.
         """
         shard_indices = list(range(self.get_number_shards()))
-        return self._iterbatches_from_shards(shard_indices, batch_size, epochs,
-                                             deterministic, pad_batches)
+        return self._iterbatches_from_shards(
+            shard_indices, batch_size, epochs, deterministic, pad_batches
+        )
 
-    def _iterbatches_from_shards(self,
-                                 shard_indices: Sequence[int],
-                                 batch_size: Optional[int] = None,
-                                 epochs: int = 1,
-                                 deterministic: bool = False,
-                                 pad_batches: bool = False) -> Iterator[Batch]:
+    def _iterbatches_from_shards(
+        self,
+        shard_indices: Sequence[int],
+        batch_size: Optional[int] = None,
+        epochs: int = 1,
+        deterministic: bool = False,
+        pad_batches: bool = False,
+    ) -> Iterator[Batch]:
         """Get an object that iterates over batches from a restricted set of shards."""
 
-        def iterate(dataset: DiskDataset, batch_size: Optional[int],
-                    epochs: int):
+        def iterate(dataset: DiskDataset, batch_size: Optional[int], epochs: int):
             num_shards = len(shard_indices)
             if deterministic:
                 shard_perm = np.arange(num_shards)
@@ -1672,25 +1728,25 @@ class DiskDataset(Dataset):
             if batch_size is None:
                 num_global_batches = num_shards
             else:
-                num_global_batches = math.ceil(dataset.get_shape()[0][0] /
-                                               batch_size)
+                num_global_batches = math.ceil(dataset.get_shape()[0][0] / batch_size)
 
             for epoch in range(epochs):
                 if not deterministic:
                     shard_perm = np.random.permutation(num_shards)
-                next_shard = pool.apply_async(dataset.get_shard,
-                                              (shard_indices[shard_perm[0]],))
+                next_shard = pool.apply_async(
+                    dataset.get_shard, (shard_indices[shard_perm[0]],)
+                )
                 cur_global_batch = 0
                 cur_shard = 0
                 carry = None
 
                 while cur_global_batch < num_global_batches:
-
                     X, y, w, ids = next_shard.get()
                     if cur_shard < num_shards - 1:
                         next_shard = pool.apply_async(
                             dataset.get_shard,
-                            (shard_indices[shard_perm[cur_shard + 1]],))
+                            (shard_indices[shard_perm[cur_shard + 1]],),
+                        )
                     elif epoch == epochs - 1:
                         pool.close()
 
@@ -1716,8 +1772,7 @@ class DiskDataset(Dataset):
                             cur_global_batch += 1
                         continue
 
-                    num_local_batches = math.ceil(n_shard_samples /
-                                                  shard_batch_size)
+                    num_local_batches = math.ceil(n_shard_samples / shard_batch_size)
                     if not deterministic:
                         sample_perm = np.random.permutation(n_shard_samples)
                     else:
@@ -1725,8 +1780,9 @@ class DiskDataset(Dataset):
 
                     while cur_local_batch < num_local_batches:
                         start = cur_local_batch * shard_batch_size
-                        end = min(n_shard_samples,
-                                  (cur_local_batch + 1) * shard_batch_size)
+                        end = min(
+                            n_shard_samples, (cur_local_batch + 1) * shard_batch_size
+                        )
 
                         indices = range(start, end)
                         perm_indices = sample_perm[indices]
@@ -1745,18 +1801,15 @@ class DiskDataset(Dataset):
                         ids_b = ids[perm_indices]
 
                         assert len(X_b) <= shard_batch_size
-                        if len(
-                                X_b
-                        ) < shard_batch_size and cur_shard != num_shards - 1:
+                        if len(X_b) < shard_batch_size and cur_shard != num_shards - 1:
                             assert carry is None
                             carry = [X_b, y_b, w_b, ids_b]
                         else:
-
                             # (ytz): this skips everything except possibly the last shard
                             if pad_batches:
-                                (X_b, y_b, w_b,
-                                 ids_b) = pad_batch(shard_batch_size, X_b, y_b,
-                                                    w_b, ids_b)
+                                (X_b, y_b, w_b, ids_b) = pad_batch(
+                                    shard_batch_size, X_b, y_b, w_b, ids_b
+                                )
 
                             yield X_b, y_b, w_b, ids_b
                             cur_global_batch += 1
@@ -1783,7 +1836,7 @@ class DiskDataset(Dataset):
         """
 
         def iterate(dataset):
-            for (X_shard, y_shard, w_shard, ids_shard) in dataset.itershards():
+            for X_shard, y_shard, w_shard, ids_shard in dataset.itershards():
                 n_samples = X_shard.shape[0]
                 for i in range(n_samples):
 
@@ -1797,11 +1850,13 @@ class DiskDataset(Dataset):
 
         return iterate(self)
 
-    def transform(self,
-                  transformer: "dc.trans.Transformer",
-                  parallel: bool = False,
-                  out_dir: Optional[str] = None,
-                  **args) -> "DiskDataset":
+    def transform(
+        self,
+        transformer: "dc.trans.Transformer",
+        parallel: bool = False,
+        out_dir: Optional[str] = None,
+        **args,
+    ) -> "DiskDataset":
         """Construct a new dataset by applying a transformation to every sample in this dataset.
 
         The argument is a function that can be called as follows:
@@ -1837,22 +1892,31 @@ class DiskDataset(Dataset):
             pool = multiprocessing.Pool()
             for i in range(self.get_number_shards()):
                 row = self.metadata_df.iloc[i]
-                X_file = os.path.join(self.data_dir, row['X'])
-                if row['y'] is not None:
-                    y_file: Optional[str] = os.path.join(
-                        self.data_dir, row['y'])
+                X_file = os.path.join(self.data_dir, row["X"])
+                if row["y"] is not None:
+                    y_file: Optional[str] = os.path.join(self.data_dir, row["y"])
                 else:
                     y_file = None
-                if row['w'] is not None:
-                    w_file: Optional[str] = os.path.join(
-                        self.data_dir, row['w'])
+                if row["w"] is not None:
+                    w_file: Optional[str] = os.path.join(self.data_dir, row["w"])
                 else:
                     w_file = None
-                ids_file = os.path.join(self.data_dir, row['ids'])
+                ids_file = os.path.join(self.data_dir, row["ids"])
                 results.append(
-                    pool.apply_async(DiskDataset._transform_shard,
-                                     (transformer, i, X_file, y_file, w_file,
-                                      ids_file, out_dir, tasks)))
+                    pool.apply_async(
+                        DiskDataset._transform_shard,
+                        (
+                            transformer,
+                            i,
+                            X_file,
+                            y_file,
+                            w_file,
+                            ids_file,
+                            out_dir,
+                            tasks,
+                        ),
+                    )
+                )
             pool.close()
             metadata_rows = [r.get() for r in results]
             metadata_df = DiskDataset._construct_metadata(metadata_rows)
@@ -1862,25 +1926,29 @@ class DiskDataset(Dataset):
 
             def generator():
                 for shard_num, row in self.metadata_df.iterrows():
-                    logger.info("Transforming shard %d/%d" %
-                                (shard_num, n_shards))
+                    logger.info("Transforming shard %d/%d" % (shard_num, n_shards))
                     X, y, w, ids = self.get_shard(shard_num)
-                    newx, newy, neww, newids = transformer.transform_array(
-                        X, y, w, ids)
+                    newx, newy, neww, newids = transformer.transform_array(X, y, w, ids)
                     yield (newx, newy, neww, newids)
 
-            dataset = DiskDataset.create_dataset(generator(),
-                                                 data_dir=out_dir,
-                                                 tasks=tasks)
+            dataset = DiskDataset.create_dataset(
+                generator(), data_dir=out_dir, tasks=tasks
+            )
         time2 = time.time()
         logger.info("TIMING: transforming took %0.3f s" % (time2 - time1))
         return dataset
 
     @staticmethod
-    def _transform_shard(transformer: "dc.trans.Transformer", shard_num: int,
-                         X_file: str, y_file: str, w_file: str, ids_file: str,
-                         out_dir: str,
-                         tasks: np.ndarray) -> List[Optional[str]]:
+    def _transform_shard(
+        transformer: "dc.trans.Transformer",
+        shard_num: int,
+        X_file: str,
+        y_file: str,
+        w_file: str,
+        ids_file: str,
+        out_dir: str,
+        tasks: np.ndarray,
+    ) -> List[Optional[str]]:
         """This is called by transform() to transform a single shard."""
         X = None if X_file is None else np.array(load_from_disk(X_file))
         y = None if y_file is None else np.array(load_from_disk(y_file))
@@ -1890,10 +1958,12 @@ class DiskDataset(Dataset):
         basename = "shard-%d" % shard_num
         return DiskDataset.write_data_to_disk(out_dir, basename, X, y, w, ids)
 
-    def make_pytorch_dataset(self,
-                             epochs: int = 1,
-                             deterministic: bool = False,
-                             batch_size: Optional[int] = None):
+    def make_pytorch_dataset(
+        self,
+        epochs: int = 1,
+        deterministic: bool = False,
+        batch_size: Optional[int] = None,
+    ):
         """Create a torch.utils.data.IterableDataset that iterates over the data in this Dataset.
 
         Each value returned by the Dataset's iterator is a tuple of (X, y, w, id)
@@ -1925,19 +1995,23 @@ class DiskDataset(Dataset):
         except:
             raise ImportError("This method requires PyTorch to be installed.")
 
-        pytorch_ds = _TorchDiskDataset(disk_dataset=self,
-                                       epochs=epochs,
-                                       deterministic=deterministic,
-                                       batch_size=batch_size)
+        pytorch_ds = _TorchDiskDataset(
+            disk_dataset=self,
+            epochs=epochs,
+            deterministic=deterministic,
+            batch_size=batch_size,
+        )
         return pytorch_ds
 
     @staticmethod
-    def from_numpy(X: ArrayLike,
-                   y: Optional[ArrayLike] = None,
-                   w: Optional[ArrayLike] = None,
-                   ids: Optional[ArrayLike] = None,
-                   tasks: Optional[ArrayLike] = None,
-                   data_dir: Optional[str] = None) -> "DiskDataset":
+    def from_numpy(
+        X: ArrayLike,
+        y: Optional[ArrayLike] = None,
+        w: Optional[ArrayLike] = None,
+        ids: Optional[ArrayLike] = None,
+        tasks: Optional[ArrayLike] = None,
+        data_dir: Optional[str] = None,
+    ) -> "DiskDataset":
         """Creates a DiskDataset object from specified Numpy arrays.
 
         Parameters
@@ -1971,11 +2045,13 @@ class DiskDataset(Dataset):
         return DiskDataset.create_dataset(
             [(dataset.X, dataset.y, dataset.w, dataset.ids)],
             data_dir=data_dir,
-            tasks=tasks)
+            tasks=tasks,
+        )
 
     @staticmethod
-    def merge(datasets: Iterable["Dataset"],
-              merge_dir: Optional[str] = None) -> "DiskDataset":
+    def merge(
+        datasets: Iterable["Dataset"], merge_dir: Optional[str] = None
+    ) -> "DiskDataset":
         """Merges provided datasets into a merged dataset.
 
         Parameters
@@ -2010,7 +2086,8 @@ class DiskDataset(Dataset):
             task_tuples = [tuple(task_list) for task_list in tasks]
             if len(tasks) < len(datasets) or len(set(task_tuples)) > 1:
                 raise ValueError(
-                    'Cannot merge datasets with different task specifications')
+                    "Cannot merge datasets with different task specifications"
+                )
             merge_tasks = tasks[0]
         else:
             merge_tasks = []
@@ -2018,7 +2095,7 @@ class DiskDataset(Dataset):
         # determine the shard sizes of the datasets to merge
         shard_sizes = []
         for dataset in datasets:
-            if hasattr(dataset, 'get_shard_size'):
+            if hasattr(dataset, "get_shard_size"):
                 shard_sizes.append(dataset.get_shard_size())  # type: ignore
             # otherwise the entire dataset is the "shard size"
             else:
@@ -2027,15 +2104,15 @@ class DiskDataset(Dataset):
         def generator():
             for ind, dataset in enumerate(datasets):
                 logger.info("Merging in dataset %d/%d" % (ind, len(datasets)))
-                if hasattr(dataset, 'itershards'):
-                    for (X, y, w, ids) in dataset.itershards():
+                if hasattr(dataset, "itershards"):
+                    for X, y, w, ids in dataset.itershards():
                         yield (X, y, w, ids)
                 else:
                     yield (dataset.X, dataset.y, dataset.w, dataset.ids)
 
-        merged_dataset = DiskDataset.create_dataset(generator(),
-                                                    data_dir=merge_dir,
-                                                    tasks=merge_tasks)
+        merged_dataset = DiskDataset.create_dataset(
+            generator(), data_dir=merge_dir, tasks=merge_tasks
+        )
 
         # we must reshard the dataset to have a uniform size
         # choose the smallest shard size
@@ -2044,9 +2121,9 @@ class DiskDataset(Dataset):
 
         return merged_dataset
 
-    def subset(self,
-               shard_nums: Sequence[int],
-               subset_dir: Optional[str] = None) -> "DiskDataset":
+    def subset(
+        self, shard_nums: Sequence[int], subset_dir: Optional[str] = None
+    ) -> "DiskDataset":
         """Creates a subset of the original dataset on disk.
 
         Parameters
@@ -2075,9 +2152,7 @@ class DiskDataset(Dataset):
                 X, y, w, ids = self.get_shard(shard_num)
                 yield (X, y, w, ids)
 
-        return DiskDataset.create_dataset(generator(),
-                                          data_dir=subset_dir,
-                                          tasks=tasks)
+        return DiskDataset.create_dataset(generator(), data_dir=subset_dir, tasks=tasks)
 
     def sparse_shuffle(self) -> None:
         """Shuffling that exploits data sparsity to shuffle large datasets.
@@ -2110,23 +2185,37 @@ class DiskDataset(Dataset):
                 num_features = X_s.shape[1]
             X_sparse = sparsify_features(X_s)
             X_sparse_list, y_list, w_list, ids_list = (
-                X_sparse_list + [X_sparse], y_list + [y_s], w_list + [w_s],
-                ids_list + [np.atleast_1d(np.squeeze(ids_s))])
+                X_sparse_list + [X_sparse],
+                y_list + [y_s],
+                w_list + [w_s],
+                ids_list + [np.atleast_1d(np.squeeze(ids_s))],
+            )
         # Get full dataset in memory
-        (X_sparse, y, w, ids) = (np.vstack(X_sparse_list), np.vstack(y_list),
-                                 np.vstack(w_list), np.concatenate(ids_list))
+        (X_sparse, y, w, ids) = (
+            np.vstack(X_sparse_list),
+            np.vstack(y_list),
+            np.vstack(w_list),
+            np.concatenate(ids_list),
+        )
         # Shuffle in memory
         num_samples = len(X_sparse)
         permutation = np.random.permutation(num_samples)
-        X_sparse, y, w, ids = (X_sparse[permutation], y[permutation],
-                               w[permutation], ids[permutation])
+        X_sparse, y, w, ids = (
+            X_sparse[permutation],
+            y[permutation],
+            w[permutation],
+            ids[permutation],
+        )
         # Write shuffled shards out to disk
         for i in range(num_shards):
             logger.info("Sparse shuffling shard %d/%d" % (i, num_shards))
             start, stop = i * shard_size, (i + 1) * shard_size
-            (X_sparse_s, y_s, w_s,
-             ids_s) = (X_sparse[start:stop], y[start:stop], w[start:stop],
-                       ids[start:stop])
+            (X_sparse_s, y_s, w_s, ids_s) = (
+                X_sparse[start:stop],
+                y[start:stop],
+                w[start:stop],
+                ids[start:stop],
+            )
             X_s = densify_features(X_sparse_s, num_features)
             self.set_shard(i, X_s, y_s, w_s, ids_s)
         time2 = time.time()
@@ -2161,8 +2250,7 @@ class DiskDataset(Dataset):
         shard_size = self.get_shard_size()
         return self.select(perm, data_dir, shard_size)
 
-    def shuffle_each_shard(self,
-                           shard_basenames: Optional[List[str]] = None) -> None:
+    def shuffle_each_shard(self, shard_basenames: Optional[List[str]] = None) -> None:
         """Shuffles elements within each shard of the dataset.
 
         Parameters
@@ -2179,18 +2267,19 @@ class DiskDataset(Dataset):
                     "shard_basenames must provide a basename for each shard in this DiskDataset."
                 )
         else:
-            shard_basenames = [
-                "shard-%d" % shard_num for shard_num in range(n_rows)
-            ]
+            shard_basenames = ["shard-%d" % shard_num for shard_num in range(n_rows)]
         for i, basename in zip(range(n_rows), shard_basenames):
             logger.info("Shuffling shard %d/%d" % (i, n_rows))
             X, y, w, ids = self.get_shard(i)
             n = X.shape[0]
             permutation = np.random.permutation(n)
-            X, y, w, ids = (X[permutation], y[permutation], w[permutation],
-                            ids[permutation])
-            DiskDataset.write_data_to_disk(self.data_dir, basename, X, y, w,
-                                           ids)
+            X, y, w, ids = (
+                X[permutation],
+                y[permutation],
+                w[permutation],
+                ids[permutation],
+            )
+            DiskDataset.write_data_to_disk(self.data_dir, basename, X, y, w, ids)
         # Reset cache
         self._cached_shards = None
 
@@ -2225,17 +2314,18 @@ class DiskDataset(Dataset):
 
         # We don't, so load it from disk.
         row = self.metadata_df.iloc[i]
-        X = np.array(load_from_disk(os.path.join(self.data_dir, row['X'])))
+        X = np.array(load_from_disk(os.path.join(self.data_dir, row["X"])))
 
-        if row['y'] is not None:
+        if row["y"] is not None:
             y: Optional[np.ndarray] = np.array(
-                load_from_disk(os.path.join(self.data_dir, row['y'])))
+                load_from_disk(os.path.join(self.data_dir, row["y"]))
+            )
         else:
             y = None
 
-        if row['w'] is not None:
+        if row["w"] is not None:
             # TODO (ytz): Under what condition does this exist but the file itself doesn't?
-            w_filename = os.path.join(self.data_dir, row['w'])
+            w_filename = os.path.join(self.data_dir, row["w"])
             if os.path.exists(w_filename):
                 w: Optional[np.ndarray] = np.array(load_from_disk(w_filename))
             elif y is not None:
@@ -2248,8 +2338,9 @@ class DiskDataset(Dataset):
         else:
             w = None
 
-        ids = np.array(load_from_disk(os.path.join(self.data_dir, row['ids'])),
-                       dtype=object)
+        ids = np.array(
+            load_from_disk(os.path.join(self.data_dir, row["ids"])), dtype=object
+        )
 
         # Try to cache this shard for later use.  Since the normal usage pattern is
         # a series of passes through the whole dataset, there's no point doing
@@ -2283,12 +2374,12 @@ class DiskDataset(Dataset):
             A numpy array of ids for i-th shard.
         """
 
-        if self._cached_shards is not None and self._cached_shards[
-                i] is not None:
+        if self._cached_shards is not None and self._cached_shards[i] is not None:
             return self._cached_shards[i].ids
         row = self.metadata_df.iloc[i]
-        return np.array(load_from_disk(os.path.join(self.data_dir, row['ids'])),
-                        dtype=object)
+        return np.array(
+            load_from_disk(os.path.join(self.data_dir, row["ids"])), dtype=object
+        )
 
     def get_shard_y(self, i: int) -> np.ndarray:
         """Retrieves the labels for the i-th shard from disk.
@@ -2304,11 +2395,10 @@ class DiskDataset(Dataset):
             A numpy array of labels for i-th shard.
         """
 
-        if self._cached_shards is not None and self._cached_shards[
-                i] is not None:
+        if self._cached_shards is not None and self._cached_shards[i] is not None:
             return self._cached_shards[i].y
         row = self.metadata_df.iloc[i]
-        return np.array(load_from_disk(os.path.join(self.data_dir, row['y'])))
+        return np.array(load_from_disk(os.path.join(self.data_dir, row["y"])))
 
     def get_shard_w(self, i: int) -> np.ndarray:
         """Retrieves the weights for the i-th shard from disk.
@@ -2324,17 +2414,18 @@ class DiskDataset(Dataset):
             A numpy array of weights for i-th shard.
         """
 
-        if self._cached_shards is not None and self._cached_shards[
-                i] is not None:
+        if self._cached_shards is not None and self._cached_shards[i] is not None:
             return self._cached_shards[i].w
         row = self.metadata_df.iloc[i]
-        return np.array(load_from_disk(os.path.join(self.data_dir, row['w'])))
+        return np.array(load_from_disk(os.path.join(self.data_dir, row["w"])))
 
-    def add_shard(self,
-                  X: np.ndarray,
-                  y: Optional[np.ndarray] = None,
-                  w: Optional[np.ndarray] = None,
-                  ids: Optional[np.ndarray] = None) -> None:
+    def add_shard(
+        self,
+        X: np.ndarray,
+        y: Optional[np.ndarray] = None,
+        w: Optional[np.ndarray] = None,
+        ids: Optional[np.ndarray] = None,
+    ) -> None:
         """Adds a data shard.
 
         Parameters
@@ -2352,17 +2443,19 @@ class DiskDataset(Dataset):
         shard_num = len(metadata_rows)
         basename = "shard-%d" % shard_num
         metadata_rows.append(
-            DiskDataset.write_data_to_disk(self.data_dir, basename, X, y, w,
-                                           ids))
+            DiskDataset.write_data_to_disk(self.data_dir, basename, X, y, w, ids)
+        )
         self.metadata_df = DiskDataset._construct_metadata(metadata_rows)
         self.save_to_disk()
 
-    def set_shard(self,
-                  shard_num: int,
-                  X: np.ndarray,
-                  y: Optional[np.ndarray] = None,
-                  w: Optional[np.ndarray] = None,
-                  ids: Optional[np.ndarray] = None) -> None:
+    def set_shard(
+        self,
+        shard_num: int,
+        X: np.ndarray,
+        y: Optional[np.ndarray] = None,
+        w: Optional[np.ndarray] = None,
+        ids: Optional[np.ndarray] = None,
+    ) -> None:
         """Writes data shard to disk.
 
         Parameters
@@ -2383,11 +2476,13 @@ class DiskDataset(Dataset):
         self._cached_shards = None
         self.legacy_metadata = True
 
-    def select(self,
-               indices: Union[Sequence[int], np.ndarray],
-               select_dir: Optional[str] = None,
-               select_shard_size: Optional[int] = None,
-               output_numpy_dataset: Optional[bool] = False) -> Dataset:
+    def select(
+        self,
+        indices: Union[Sequence[int], np.ndarray],
+        select_dir: Optional[str] = None,
+        select_shard_size: Optional[int] = None,
+        output_numpy_dataset: Optional[bool] = False,
+    ) -> Dataset:
         """Creates a new dataset from a selection of indices from self.
 
         Examples
@@ -2420,8 +2515,9 @@ class DiskDataset(Dataset):
             A dataset containing the selected samples. The default dataset is `DiskDataset`.
             If `output_numpy_dataset` is True, the dataset is `NumpyDataset`.
         """
-        if output_numpy_dataset and (select_dir is not None or
-                                     select_shard_size is not None):
+        if output_numpy_dataset and (
+            select_dir is not None or select_shard_size is not None
+        ):
             raise ValueError(
                 "If output_numpy_dataset is set, then select_dir and select_shard_size must both be None"
             )
@@ -2443,12 +2539,11 @@ class DiskDataset(Dataset):
         # Handle edge case with empty indices
         if not N:
             if not output_numpy_dataset:
-                return DiskDataset.create_dataset([],
-                                                  data_dir=select_dir,
-                                                  tasks=tasks)
+                return DiskDataset.create_dataset([], data_dir=select_dir, tasks=tasks)
             else:
-                return NumpyDataset(np.array([]), np.array([]), np.array([]),
-                                    np.array([]))
+                return NumpyDataset(
+                    np.array([]), np.array([]), np.array([]), np.array([])
+                )
 
         # We use two loops here. The outer while loop walks over selection shards
         # (the chunks of the indices to select that should go into separate
@@ -2458,36 +2553,37 @@ class DiskDataset(Dataset):
             start = 0
             select_shard_num = 0
             while start < N:
-                logger.info("Constructing selection output shard %d" %
-                            (select_shard_num + 1))
+                logger.info(
+                    "Constructing selection output shard %d" % (select_shard_num + 1)
+                )
                 end = min(start + select_shard_size, N)
                 select_shard_indices = indices[start:end]
-                sorted_indices = np.array(
-                    sorted(select_shard_indices)).astype(int)
+                sorted_indices = np.array(sorted(select_shard_indices)).astype(int)
 
                 Xs, ys, ws, ids_s = [], [], [], []
                 count, indices_count = 0, 0
                 for shard_num in range(self.get_number_shards()):
                     logger.info(
                         "Selecting from input shard %d/%d for selection output shard %d"
-                        % (shard_num + 1, n_shards, select_shard_num + 1))
+                        % (shard_num + 1, n_shards, select_shard_num + 1)
+                    )
                     if self.legacy_metadata:
                         ids = self.get_shard_ids(shard_num)
                         shard_len = len(ids)
                     else:
-                        shard_X_shape, _, _, _ = self._get_shard_shape(
-                            shard_num)
+                        shard_X_shape, _, _, _ = self._get_shard_shape(shard_num)
                         if len(shard_X_shape) > 0:
                             shard_len = shard_X_shape[0]
                         else:
                             shard_len = 0
                     # Find indices which rest in this shard
                     num_shard_elts = 0
-                    while sorted_indices[indices_count +
-                                         num_shard_elts] < count + shard_len:
+                    while (
+                        sorted_indices[indices_count + num_shard_elts]
+                        < count + shard_len
+                    ):
                         num_shard_elts += 1
-                        if (indices_count +
-                                num_shard_elts) >= len(sorted_indices):
+                        if (indices_count + num_shard_elts) >= len(sorted_indices):
                             break
                     if num_shard_elts == 0:
                         count += shard_len
@@ -2495,8 +2591,10 @@ class DiskDataset(Dataset):
                     else:
                         X, y, w, ids = self.get_shard(shard_num)
                     # Need to offset indices to fit within shard_size
-                    shard_inds = sorted_indices[indices_count:indices_count +
-                                                num_shard_elts] - count
+                    shard_inds = (
+                        sorted_indices[indices_count : indices_count + num_shard_elts]
+                        - count
+                    )
                     # Handle empty case where no data from this shard needed
                     X_sel = X[shard_inds]
                     # Handle the case of datasets with y/w missing
@@ -2532,7 +2630,8 @@ class DiskDataset(Dataset):
                     [
                         np.where(sorted_indices == orig_index)[0][0]
                         for orig_index in select_shard_indices
-                    ])
+                    ]
+                )
                 if y.size == 0:
                     tup_y = y
                 else:
@@ -2547,9 +2646,9 @@ class DiskDataset(Dataset):
                 select_shard_num += 1
 
         if not output_numpy_dataset:
-            return DiskDataset.create_dataset(generator(),
-                                              data_dir=select_dir,
-                                              tasks=tasks)
+            return DiskDataset.create_dataset(
+                generator(), data_dir=select_dir, tasks=tasks
+            )
         else:
             X, y, w, ids = next(generator())
             return NumpyDataset(X, y, w, ids)
@@ -2569,7 +2668,7 @@ class DiskDataset(Dataset):
         """Get the X vector for this dataset as a single numpy array."""
         Xs = []
         one_dimensional = False
-        for (X_b, _, _, _) in self.itershards():
+        for X_b, _, _, _ in self.itershards():
             Xs.append(X_b)
             if len(X_b.shape) == 1:
                 one_dimensional = True
@@ -2626,12 +2725,11 @@ class DiskDataset(Dataset):
         """Finds number of elements in dataset."""
         total = 0
         for _, row in self.metadata_df.iterrows():
-            y = load_from_disk(os.path.join(self.data_dir, row['ids']))
+            y = load_from_disk(os.path.join(self.data_dir, row["ids"]))
             total += len(y)
         return total
 
-    def _get_shard_shape(self,
-                         shard_num: int) -> Tuple[Shape, Shape, Shape, Shape]:
+    def _get_shard_shape(self, shard_num: int) -> Tuple[Shape, Shape, Shape, Shape]:
         """Finds the shape of the specified shard."""
         if self.legacy_metadata:
             raise ValueError(
@@ -2639,29 +2737,32 @@ class DiskDataset(Dataset):
             )
         n_tasks = len(self.get_task_names())
         row = self.metadata_df.iloc[shard_num]
-        if row['X_shape'] is not None:
-            shard_X_shape = make_tuple(str(row['X_shape']))
+        if row["X_shape"] is not None:
+            shard_X_shape = make_tuple(str(row["X_shape"]))
         else:
             shard_X_shape = tuple()
         if n_tasks > 0:
-            if row['y_shape'] is not None:
-                shard_y_shape = make_tuple(str(row['y_shape']))
+            if row["y_shape"] is not None:
+                shard_y_shape = make_tuple(str(row["y_shape"]))
             else:
                 shard_y_shape = tuple()
-            if row['w_shape'] is not None:
-                shard_w_shape = make_tuple(str(row['w_shape']))
+            if row["w_shape"] is not None:
+                shard_w_shape = make_tuple(str(row["w_shape"]))
             else:
                 shard_w_shape = tuple()
         else:
             shard_y_shape = tuple()
             shard_w_shape = tuple()
-        if row['ids_shape'] is not None:
-            shard_ids_shape = make_tuple(str(row['ids_shape']))
+        if row["ids_shape"] is not None:
+            shard_ids_shape = make_tuple(str(row["ids_shape"]))
         else:
             shard_ids_shape = tuple()
-        X_shape, y_shape, w_shape, ids_shape = tuple(
-            np.array(shard_X_shape)), tuple(np.array(shard_y_shape)), tuple(
-                np.array(shard_w_shape)), tuple(np.array(shard_ids_shape))
+        X_shape, y_shape, w_shape, ids_shape = (
+            tuple(np.array(shard_X_shape)),
+            tuple(np.array(shard_y_shape)),
+            tuple(np.array(shard_w_shape)),
+            tuple(np.array(shard_ids_shape)),
+        )
         return X_shape, y_shape, w_shape, ids_shape
 
     def get_shape(self) -> Tuple[Shape, Shape, Shape, Shape]:
@@ -2675,20 +2776,23 @@ class DiskDataset(Dataset):
         # metadata
         if not self.legacy_metadata:
             for shard_num in range(n_rows):
-                shard_X_shape, shard_y_shape, shard_w_shape, shard_ids_shape = self._get_shard_shape(
-                    shard_num)
+                shard_X_shape, shard_y_shape, shard_w_shape, shard_ids_shape = (
+                    self._get_shard_shape(shard_num)
+                )
                 if shard_num == 0:
-                    X_shape, y_shape, w_shape, ids_shape = np.array(
-                        shard_X_shape), np.array(shard_y_shape), np.array(
-                            shard_w_shape), np.array(shard_ids_shape)
+                    X_shape, y_shape, w_shape, ids_shape = (
+                        np.array(shard_X_shape),
+                        np.array(shard_y_shape),
+                        np.array(shard_w_shape),
+                        np.array(shard_ids_shape),
+                    )
                 else:
                     X_shape[0] += shard_X_shape[0]
                     if n_tasks > 0:
                         y_shape[0] += shard_y_shape[0]
                         w_shape[0] += shard_w_shape[0]
                     ids_shape[0] += shard_ids_shape[0]
-            return tuple(X_shape), tuple(y_shape), tuple(w_shape), tuple(
-                ids_shape)
+            return tuple(X_shape), tuple(y_shape), tuple(w_shape), tuple(ids_shape)
         # In absense of shape metadata, fall back to loading data from disk to
         # find shape.
         else:
@@ -2708,8 +2812,7 @@ class DiskDataset(Dataset):
                         y_shape[0] += np.array(y.shape)[0]
                         w_shape[0] += np.array(w.shape)[0]
                     ids_shape[0] += np.array(ids.shape)[0]
-            return tuple(X_shape), tuple(y_shape), tuple(w_shape), tuple(
-                ids_shape)
+            return tuple(X_shape), tuple(y_shape), tuple(w_shape), tuple(ids_shape)
 
     def get_label_means(self) -> pd.DataFrame:
         """Return pandas series of label means."""
@@ -2723,11 +2826,13 @@ class DiskDataset(Dataset):
 class ImageDataset(Dataset):
     """A Dataset that loads data from image files on disk."""
 
-    def __init__(self,
-                 X: Union[np.ndarray, List[str]],
-                 y: Optional[Union[np.ndarray, List[str]]],
-                 w: Optional[ArrayLike] = None,
-                 ids: Optional[ArrayLike] = None) -> None:
+    def __init__(
+        self,
+        X: Union[np.ndarray, List[str]],
+        y: Optional[Union[np.ndarray, List[str]]],
+        w: Optional[ArrayLike] = None,
+        ids: Optional[ArrayLike] = None,
+    ) -> None:
         """Create a dataset whose X and/or y array is defined by image files on disk.
 
         Parameters
@@ -2820,11 +2925,13 @@ class ImageDataset(Dataset):
         """Get the weight vector for this dataset as a single numpy array."""
         return self._w
 
-    def iterbatches(self,
-                    batch_size: Optional[int] = None,
-                    epochs: int = 1,
-                    deterministic: bool = False,
-                    pad_batches: bool = False) -> Iterator[Batch]:
+    def iterbatches(
+        self,
+        batch_size: Optional[int] = None,
+        epochs: int = 1,
+        deterministic: bool = False,
+        pad_batches: bool = False,
+    ) -> Iterator[Batch]:
         """Get an object that iterates over minibatches from the dataset.
 
         Each minibatch is returned as a tuple of four numpy arrays:
@@ -2867,25 +2974,28 @@ class ImageDataset(Dataset):
                         X_batch = dataset._X[perm_indices]
                     else:
                         X_batch = load_image_files(
-                            [dataset._X[i] for i in perm_indices])
+                            [dataset._X[i] for i in perm_indices]
+                        )
                     if isinstance(dataset._y, np.ndarray):
                         y_batch = dataset._y[perm_indices]
                     else:
                         y_batch = load_image_files(
-                            [dataset._y[i] for i in perm_indices])
+                            [dataset._y[i] for i in perm_indices]
+                        )
                     w_batch = dataset._w[perm_indices]
                     ids_batch = dataset._ids[perm_indices]
                     if pad_batches:
-                        (X_batch, y_batch, w_batch,
-                         ids_batch) = pad_batch(batch_size, X_batch, y_batch,
-                                                w_batch, ids_batch)
+                        (X_batch, y_batch, w_batch, ids_batch) = pad_batch(
+                            batch_size, X_batch, y_batch, w_batch, ids_batch
+                        )
                     batch_idx += 1
                     yield (X_batch, y_batch, w_batch, ids_batch)
 
         return iterate(self, batch_size, epochs, deterministic, pad_batches)
 
-    def _get_image(self, array: Union[np.ndarray, List[str]],
-                   indices: Union[int, np.ndarray]) -> np.ndarray:
+    def _get_image(
+        self, array: Union[np.ndarray, List[str]], indices: Union[int, np.ndarray]
+    ) -> np.ndarray:
         """Method for loading an image
 
         Parameters
@@ -2915,8 +3025,15 @@ class ImageDataset(Dataset):
             Iterator which yields tuples of four numpy arrays `(X, y, w, ids)`.
         """
         n_samples = self._X_shape[0]
-        return ((self._get_image(self._X, i), self._get_image(self._y, i),
-                 self._w[i], self._ids[i]) for i in range(n_samples))
+        return (
+            (
+                self._get_image(self._X, i),
+                self._get_image(self._y, i),
+                self._w[i],
+                self._ids[i],
+            )
+            for i in range(n_samples)
+        )
 
     def transform(
         self,
@@ -2944,12 +3061,15 @@ class ImageDataset(Dataset):
             A newly constructed NumpyDataset object
         """
         newx, newy, neww, newids = transformer.transform_array(
-            self.X, self.y, self.w, self.ids)
+            self.X, self.y, self.w, self.ids
+        )
         return NumpyDataset(newx, newy, neww, newids)
 
-    def select(self,
-               indices: Union[Sequence[int], np.ndarray],
-               select_dir: Optional[str] = None) -> "ImageDataset":
+    def select(
+        self,
+        indices: Union[Sequence[int], np.ndarray],
+        select_dir: Optional[str] = None,
+    ) -> "ImageDataset":
         """Creates a new dataset from a selection of indices from self.
 
         Parameters
@@ -2979,10 +3099,12 @@ class ImageDataset(Dataset):
         ids = self._ids[indices]
         return ImageDataset(X, y, w, ids)
 
-    def make_pytorch_dataset(self,
-                             epochs: int = 1,
-                             deterministic: bool = False,
-                             batch_size: Optional[int] = None):
+    def make_pytorch_dataset(
+        self,
+        epochs: int = 1,
+        deterministic: bool = False,
+        batch_size: Optional[int] = None,
+    ):
         """Create a torch.utils.data.IterableDataset that iterates over the data in this Dataset.
 
         Each value returned by the Dataset's iterator is a tuple of (X, y, w, id)
@@ -3014,10 +3136,12 @@ class ImageDataset(Dataset):
         except:
             raise ValueError("This method requires PyTorch to be installed.")
 
-        pytorch_ds = _TorchImageDataset(image_dataset=self,
-                                        epochs=epochs,
-                                        deterministic=deterministic,
-                                        batch_size=batch_size)
+        pytorch_ds = _TorchImageDataset(
+            image_dataset=self,
+            epochs=epochs,
+            deterministic=deterministic,
+            batch_size=batch_size,
+        )
         return pytorch_ds
 
 
@@ -3089,15 +3213,13 @@ class Databag(object):
         """
         key_order = [x for x in self.datasets.keys()]
         if "epochs" in kwargs:
-            epochs = kwargs['epochs']
-            del kwargs['epochs']
+            epochs = kwargs["epochs"]
+            del kwargs["epochs"]
         else:
             epochs = 1
-        kwargs['deterministic'] = True
+        kwargs["deterministic"] = True
         for epoch in range(epochs):
-            iterators = [
-                self.datasets[x].iterbatches(**kwargs) for x in key_order
-            ]
+            iterators = [self.datasets[x].iterbatches(**kwargs) for x in key_order]
             for tup in zip(*iterators):
                 m_d = {key_order[i]: tup[i][0] for i in range(len(key_order))}
                 yield m_d

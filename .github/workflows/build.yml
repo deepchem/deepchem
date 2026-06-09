@@ -22,7 +22,7 @@ jobs:
       matrix:
         # macos-latest is for apple silicon
         os: [ubuntu-latest, macos-latest]
-        python-version: ['3.9', '3.11']
+        python-version: ['3.9', '3.11', '3.12']
     steps:
     - name: Maximize build space
       if: runner.os == 'ubuntu-latest'
@@ -58,6 +58,7 @@ jobs:
         miniconda-version: "latest"
         auto-update-conda: true
         python-version: ${{ matrix.python-version }}
+        use-mamba: true
     - name: Install libomp with Homebrew
       if: ${{ runner.os == 'macOS' && runner.arch == 'ARM64' }}
       run: |
@@ -79,7 +80,6 @@ jobs:
         python -c 'import deepchem; print("DeepChem version %s" % deepchem.__version__)'
         python -c 'import rdkit; print("RDKIT version %s" % rdkit.__version__)'
         python -c 'import torch; print("Torch version %s" % torch.__version__)'
-        python -c 'import tensorflow; print("Tensorflow version %s" % tensorflow.__version__)'
         python -c 'import jax; print ("Jax version %s" % jax.__version__)'
 
   powershell-build:
@@ -87,7 +87,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ['3.9', '3.11']
+        python-version: ['3.9', '3.11', '3.12']
     steps:
     - uses: actions/checkout@v4
     - name: Cache pip packages for Windows
@@ -101,6 +101,7 @@ jobs:
         miniconda-version: "latest"
         auto-update-conda: true
         python-version: ${{ matrix.python-version }}
+        use-mamba: true
     - name: Install dependencies (failure check)
       continue-on-error: true
       shell: pwsh
