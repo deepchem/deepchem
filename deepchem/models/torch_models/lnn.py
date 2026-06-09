@@ -202,6 +202,7 @@ class LNNModel(TorchModel):
     for training and evaluation using conservative dynamics. The LNNModel computes
     the time evolution of a dynamical system by learning the euler-lagrangian and using
     its gradients to derive time derivatives of the phase space variables.
+
     Parameters
     ----------
     n_dof : int
@@ -213,6 +214,7 @@ class LNNModel(TorchModel):
     activation_fn : str, default 'softplus'
         Activation function to use in the hidden layers. Softplus is preferred
         for Lagrangian learning as it ensures smooth derivatives.
+
     Examples
     --------
     >>> import deepchem as dc
@@ -248,6 +250,7 @@ class LNNModel(TorchModel):
 
     def predict_lagrangian(self, z: torch.Tensor) -> torch.Tensor:
         """Compute lagrangian forward pass with input z as (q, q_dot)
+
         Parameters
         ----------
         z : torch.Tensor
@@ -266,6 +269,7 @@ class LNNModel(TorchModel):
 
     def calculate_dynamics(self, z: torch.Tensor) -> torch.Tensor:
         """Compute accelerations using Euler-Lagrange equations from learned Lagrangian.
+
         Parameters
         ----------
         z : torch.Tensor
