@@ -689,6 +689,9 @@ f        from hf_checkpoint, if any keys in `config` match configuration attribu
         """
         self._ensure_built()
         self.model.eval()
+        original_padding_side = getattr(self.tokenizer, "padding_side", None)
+        original_pad_token = getattr(self.tokenizer, "pad_token", None)
+        original_pad_token_id = getattr(self.model.config, "pad_token_id", None)
 
         if not hasattr(self.model, 'generate'):
             raise ValueError(
@@ -726,6 +729,10 @@ f        from hf_checkpoint, if any keys in `config` match configuration attribu
             decoded_outputs = self.tokenizer.batch_decode(
                 outputs, skip_special_tokens=True)
             all_outputs.extend(decoded_outputs)
-            if next(self.model.parameters()).device != original_device:
-                self.model.to(original_device)
+        if next(self.model.parameters()).device != original_device:
+            self.model.to(original_device)
+        if original_padding_side is not None:
+            self.tokenizer.padding_side = original_padding_side
+        self.tokenizer.pad_token = original_pad_token
+        self.model.config.pad_token_id = original_pad_token_id
         return all_outputs
