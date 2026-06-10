@@ -24,6 +24,21 @@ class Model(object):
     Abstract base class for DeepChem models.
     """
 
+    def __new__(cls, *args, **kwargs):
+        """Intercepts model initialization arguments to save a configuration dictionary."""
+        instance = super(Model, cls).__new__(cls)
+        try:
+            import inspect
+            sig = inspect.signature(cls.__init__)
+            bound = sig.bind(instance, *args, **kwargs)
+            bound.apply_defaults()
+            if 'self' in bound.arguments:
+                del bound.arguments['self']
+            instance._model_config = dict(bound.arguments)
+        except Exception:
+            instance._model_config = {}
+        return instance
+
     def __init__(self,
                  model=None,
                  model_dir: Optional[str] = None,
@@ -108,6 +123,32 @@ class Model(object):
         Given model directory, obtain filename for the model itself.
         """
         return os.path.join(model_dir, "model_params.joblib")
+
+    def save_config(self, config_file: str) -> None:
+        """Saves the model configuration to a JSON file.
+
+        Parameters
+        ----------
+        config_file: str
+            Path to the JSON file to save the configuration to.
+        """
+        import json
+        with open(config_file, 'w') as f:
+            json.dump(self._model_config, f, default=lambda x: str(x), indent=4)
+
+    @classmethod
+    def load_from_config(cls, config_file: str):
+        """Loads a model from a saved JSON configuration file.
+
+        Parameters
+        ----------
+        config_file: str
+            Path to the JSON file to load the configuration from.
+        """
+        import json
+        with open(config_file, 'r') as f:
+            config = json.load(f)
+        return cls(**config)
 
     def save(self) -> None:
         """Dispatcher function for saving.
