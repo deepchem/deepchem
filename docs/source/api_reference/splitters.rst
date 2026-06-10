@@ -78,6 +78,14 @@ TaskSplitter
 Molecule Splitters
 ------------------
 
+TimeSplitter
+^^^^^^^^^^^^
+
+.. autoclass:: deepchem.splits.TimeSplitter
+  :members:
+  :inherited-members:
+  :exclude-members: __init__
+
 ScaffoldSplitter
 ^^^^^^^^^^^^^^^^
 
