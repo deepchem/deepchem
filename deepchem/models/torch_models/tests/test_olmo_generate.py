@@ -25,7 +25,6 @@ def test_olmo_generate():
     model = AutoModelForCausalLM.from_pretrained(
         MODEL_NAME,
         trust_remote_code=True,
-        device_map="auto",
         torch_dtype=torch.float16
         if torch.cuda.is_available() else torch.float32,
     )
