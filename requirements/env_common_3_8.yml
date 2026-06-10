@@ -18,7 +18,6 @@ dependencies:
     - mordred
     - networkx
     - pillow
-    - pubchempy
     - pyGPGO
     - pymatgen
     - simdna
