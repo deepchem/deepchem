@@ -45,7 +45,11 @@ class ProteinBackboneFeaturizer(Featurizer):
     ----------
     max_length : int or None, default 512
         Maximum number of residues to extract. Longer proteins will be
-        center-cropped with a warning. If None, no length limit is applied.
+        center-cropped with a warning, which means the middle
+        ``max_length`` residues are kept and residues from both ends are
+        dropped. This is useful for RFDiffusion-style models that need a
+        fixed upper bound on sequence length while still keeping the
+        central part of the fold.
 
     Examples
     --------
@@ -79,7 +83,11 @@ class ProteinBackboneFeaturizer(Featurizer):
         ----------
         max_length : int or None, default 512
             Maximum number of residues to extract. Longer proteins will be
-            center-cropped with a warning. If None, no length limit is applied.
+            center-cropped with a warning, which means the middle
+            ``max_length`` residues are kept and residues from both ends are
+            dropped. This keeps a consistent maximum size for diffusion
+            training without always biasing the crop toward the N-terminus
+            or C-terminus. If None, no length limit is applied.
         """
         if not has_biopython:
             raise ImportError("ProteinBackboneFeaturizer requires BioPython. "
@@ -103,6 +111,25 @@ class ProteinBackboneFeaturizer(Featurizer):
             Metadata including original length, skipped residues, chains,
             model id, and truncation details. Returns an empty dict if the
             datapoint has not been featurized by this instance.
+
+        Examples
+        --------
+        >>> import deepchem as dc
+        >>> import tempfile
+        >>> import os
+        >>> pdb_content = '''ATOM      1  N   ALA A   1       0.000   0.000   0.000  1.00  0.00           N
+        ... ATOM      2  CA  ALA A   1       1.458   0.000   0.000  1.00  0.00           C
+        ... ATOM      3  C   ALA A   1       2.009   1.420   0.000  1.00  0.00           C
+        ... END'''
+        >>> with tempfile.NamedTemporaryFile(mode='w', suffix='.pdb', delete=False) as f:
+        ...     _ = f.write(pdb_content)
+        ...     pdb_file = f.name
+        >>> featurizer = dc.feat.ProteinBackboneFeaturizer()
+        >>> _ = featurizer.featurize([pdb_file])
+        >>> meta = featurizer.get_metadata(pdb_file)
+        >>> meta['returned_length']
+        1
+        >>> os.unlink(pdb_file)
         """
         return copy.deepcopy(self._last_metadata.get(datapoint, {}))
 
