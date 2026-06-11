@@ -24,7 +24,7 @@ class HuggingFaceModel(TorchModel):
     r"""Wrapper class that wraps HuggingFace models as DeepChem models
 
     The class provides a wrapper for wrapping models from HuggingFace
-    ecosystem in DeepChem and training it via DeepChem's api. The reason
+    ecosystem in DeepChem and training it via DeepChem's API. The reason
     for this might be that you might want to do an apples-to-apples comparison
     between HuggingFace from the transformers library and DeepChem library.
 
@@ -62,7 +62,7 @@ class HuggingFaceModel(TorchModel):
         `AutoModel` classes via `**kwargs` when loading from the hf_checkpoint. These parameters
         are typically used to customize the behavior and architecture of the underlying transformer
         model (e.g., number of layers, hidden size, dropout rates, etc.). When loading from pretrained
-        from hf_checkpoint, If any keys in `config` match configuration attributes supported by
+        from hf_checkpoint, if any keys in `config` match configuration attributes supported by
         the specific Hugging Face `AutoModel` being used, they will override the default settings
         for that model.
 
