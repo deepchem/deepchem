@@ -8,10 +8,11 @@ import numpy as np
 import torch
 from deepchem.models.optimizers import LearningRateSchedule
 from deepchem.models.torch_models import TorchModel
+from deepchem.data import Dataset
 from deepchem.trans import Transformer, undo_transforms
 from deepchem.utils.typing import LossFn, OneOrMany
 from transformers.data.data_collator import DataCollatorForLanguageModeling
-from transformers.models.auto import AutoModel, AutoModelForSequenceClassification, AutoModelForMaskedLM, AutoModelForUniversalSegmentation
+from transformers.models.auto import AutoModel, AutoModelForSequenceClassification, AutoModelForMaskedLM, AutoModelForUniversalSegmentation, AutoModelForCausalLM
 
 logger = logging.getLogger(__name__)
 
@@ -238,6 +239,10 @@ class HuggingFaceModel(TorchModel):
             elif self.task == "universal_segmentation":
                 self.model = AutoModelForUniversalSegmentation.from_pretrained(
                     model_dir, trust_remote_code=True, **self.config)
+            elif self.task == 'causal_lm':
+                self.model = AutoModelForCausalLM.from_pretrained(
+                    model_dir, trust_remote_code=True,
+                    **self.config).to(self.device)
             else:
                 self.model = AutoModel.from_pretrained(model_dir,
                                                        trust_remote_code=True,
@@ -277,6 +282,10 @@ class HuggingFaceModel(TorchModel):
 
     def _prepare_batch(self, batch: Tuple[Any, Any, Any]):
         smiles_batch, y, w = batch
+        if self.tokenizer.pad_token is None:
+            self.tokenizer.pad_token = self.tokenizer.eos_token
+            if hasattr(self.model, "config"):
+                self.model.config.pad_token_id = self.model.config.eos_token_id
         tokens = self.tokenizer(smiles_batch[0].tolist(),
                                 padding=True,
                                 return_tensors="pt")
@@ -288,6 +297,15 @@ class HuggingFaceModel(TorchModel):
                 'input_ids': inputs.to(self.device),
                 'labels': labels.to(self.device),
                 'attention_mask': tokens['attention_mask'].to(self.device),
+            }
+            return inputs, None, w
+        elif self.task == 'causal_lm':
+            input_ids = tokens['input_ids'].to(self.device)
+            attention_mask = tokens['attention_mask'].to(self.device)
+            inputs = {
+                'input_ids': input_ids,
+                'attention_mask': attention_mask,
+                'labels': input_ids.clone()
             }
             return inputs, None, w
         elif self.task in ['regression', 'classification', 'mtr']:
@@ -636,3 +654,71 @@ class HuggingFaceModel(TorchModel):
             results.append(text_results)
 
         return results[0] if len(results) == 1 else results
+
+    def generate(self, dataset: Dataset, **kwargs) -> List[str]:
+        """Generate text using HuggingFace's text generation pipeline.
+
+        Parameters
+        ----------
+        dataset : Dataset
+            A dataset in DeepChem format whose X field contains input sequences to
+            condition generation on.
+        **kwargs:
+            Additional keyword arguments to pass to HuggingFace's generate
+            method.
+
+        Returns
+        -------
+        List[str]
+            A list of generated text sequences corresponding to each input
+            sequence.
+        """
+        self._ensure_built()
+        self.model.eval()
+        original_padding_side = getattr(self.tokenizer, "padding_side", None)
+        original_pad_token = getattr(self.tokenizer, "pad_token", None)
+        original_pad_token_id = getattr(self.model.config, "pad_token_id", None)
+
+        if not hasattr(self.model, 'generate'):
+            raise ValueError(
+                "This HuggingFace model doesn't support text generation.")
+
+        if self.tokenizer.pad_token is None:
+            self.tokenizer.pad_token = self.tokenizer.eos_token
+            self.model.config.pad_token_id = self.model.config.eos_token_id
+
+        if hasattr(self.tokenizer, "padding_side"):
+            self.tokenizer.padding_side = "left"
+        device = self.device
+
+        original_device = next(self.model.parameters()).device
+        if device.type == 'mps':
+            # HuggingFace's generate method does not currently support MPS. Move model and inputs to CPU.
+            logger.warning(
+                "HuggingFace's generate method does not currently support MPS. Moving model and inputs to CPU for generation."
+            )
+            device = torch.device('cpu')
+        if next(self.model.parameters()).device != device:
+            self.model.to(device)
+
+        all_outputs = []
+        for (X_batch, _, _,
+             _) in dataset.iterbatches(batch_size=self.batch_size,
+                                       deterministic=True,
+                                       pad_batches=False):
+            encoded = self.tokenizer(X_batch.tolist(),
+                                     padding=True,
+                                     return_tensors="pt")
+            encoded = {k: v.to(device) for k, v in encoded.items()}
+            with torch.no_grad():
+                outputs = self.model.generate(**encoded, **kwargs)
+            decoded_outputs = self.tokenizer.batch_decode(
+                outputs, skip_special_tokens=True)
+            all_outputs.extend(decoded_outputs)
+        if next(self.model.parameters()).device != original_device:
+            self.model.to(original_device)
+        if original_padding_side is not None:
+            self.tokenizer.padding_side = original_padding_side
+        self.tokenizer.pad_token = original_pad_token
+        self.model.config.pad_token_id = original_pad_token_id
+        return all_outputs
