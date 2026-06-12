@@ -37,7 +37,7 @@ def _random_rotation(device=None, dtype=torch.float32, generator=None):
 def _make_backbone(batch_size=2, seq_len=5, dtype=torch.float32, seed=0):
     generator = torch.Generator().manual_seed(seed)
     base = torch.tensor([[-1.2, 1.1, 0.0], [0.0, 0.0, 0.0], [1.5, 0.0, 0.0]],
-                         dtype=dtype)
+                        dtype=dtype)
     offsets = torch.randn(batch_size,
                           seq_len,
                           1,
@@ -69,7 +69,7 @@ class TestRigidFrameUtilities:
 
     def test_frames_match_canonical_residue(self):
         backbone = torch.tensor([[[-1.0, 1.0, 0.0], [0.0, 0.0, 0.0],
-                                   [1.0, 0.0, 0.0]]])
+                                  [1.0, 0.0, 0.0]]])
         rotations, translations = build_backbone_frames(backbone)
         assert torch.allclose(rotations, torch.eye(3).unsqueeze(0), atol=1e-6)
         assert torch.allclose(translations, torch.zeros(1, 3), atol=0.0)
@@ -94,7 +94,7 @@ class TestRigidFrameUtilities:
 
     def test_frames_handle_small_n_ca_c_angle(self):
         backbone = torch.tensor([[[1.0, 1e-3, 0.0], [0.0, 0.0, 0.0],
-                                   [1.0, 0.0, 0.0]]])
+                                  [1.0, 0.0, 0.0]]])
         rotations, _ = build_backbone_frames(backbone)
         gram = rotations.transpose(-1, -2) @ rotations
         assert torch.isfinite(rotations).all()
