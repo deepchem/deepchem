@@ -246,13 +246,21 @@ class ProteinMPNNFeaturizer(Featurizer):
 
     Examples
     --------
-    >>> import numpy as np
+    >>> import os
+    >>> import tempfile
     >>> from deepchem.feat.ProteinMPNN_featurizer import ProteinMPNNFeaturizer
+    >>> # Create a temporary mock PDB file with 1 residue (Alanine)
+    >>> temp_dir = tempfile.mkdtemp()
+    >>> mock_pdb_path = os.path.join(temp_dir, 'mock.pdb')
+    >>> with open(mock_pdb_path, 'w') as f:
+    ...     _ = f.write("ATOM      1  N   ALA A   1       0.000   0.000   0.000  1.00  0.00           N  \\n")
+    ...     _ = f.write("ATOM      2  CA  ALA A   1       1.458   0.000   0.000  1.00  0.00           C  \\n")
+    ...     _ = f.write("ATOM      3  C   ALA A   1       2.009   1.424   0.000  1.00  0.00           C  \\n")
+    ...     _ = f.write("ATOM      4  O   ALA A   1       1.319   2.441   0.000  1.00  0.00           O  \\n")
     >>> featurizer = ProteinMPNNFeaturizer()
-    >>> data = ['1abc.pdb', '2xyz.pdb', '3lmn.pdb', '4opq.pdb', '5rst.pdb']
-    >>> features = featurizer._featurize(data)
-    >>> features.shape
-    (5, 6)
+    >>> features = featurizer.featurize([mock_pdb_path])
+    >>> len(features)
+    1
 
     References
     ----------
