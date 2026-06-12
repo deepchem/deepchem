@@ -3,7 +3,7 @@ Protein Backbone Featurizer for structural diffusion models.
 """
 import copy
 import logging
-from typing import Dict, Optional
+from typing import Dict, List, Optional, Any
 import numpy as np
 from deepchem.feat.base_classes import Featurizer
 
@@ -95,9 +95,9 @@ class ProteinBackboneFeaturizer(Featurizer):
         if max_length is not None and max_length <= 0:
             raise ValueError("max_length must be positive or None")
         self.max_length = max_length
-        self._last_metadata: Dict[str, Dict[str, object]] = {}
+        self._last_metadata: Dict[str, Dict[str, Any]] = {}
 
-    def get_metadata(self, datapoint: str) -> Dict[str, object]:
+    def get_metadata(self, datapoint: str) -> Dict[str, Any]:
         """Return metadata recorded during the most recent featurization.
 
         Parameters
@@ -173,8 +173,8 @@ class ProteinBackboneFeaturizer(Featurizer):
         parser = PDBParser(QUIET=True)
         structure = parser.get_structure('protein', datapoint)
 
-        coords_list = []
-        metadata: Dict[str, object] = {
+        coords_list: List[np.ndarray] = []
+        metadata: Dict[str, Any] = {
             'model_id': None,
             'chain_ids': [],
             'original_length': 0,
