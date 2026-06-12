@@ -78,6 +78,8 @@ from deepchem.feat.atomic_conformation import AtomicConformationFeaturizer
 
 from deepchem.feat.huggingface_featurizer import HuggingFaceFeaturizer
 
+from deepchem.feat.protein_backbone_featurizer import ProteinBackboneFeaturizer
+
 # biological sequence featurizers
 try:
     from deepchem.feat.bio_seq_featurizer import SAMFeaturizer
