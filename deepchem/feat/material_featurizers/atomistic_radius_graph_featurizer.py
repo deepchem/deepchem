@@ -11,7 +11,7 @@ class AtomisticRadiusGraphFeaturizer(Featurizer):
     """Featurize ``ase.Atoms`` objects as radius graphs.
 
     This featurizer constructs a non-periodic directed radius graph from
-    Cartesian coordinates using pure NumPy. Node features are atomic numbers,
+    Cartesian coordinates. Node features are atomic numbers,
     node position features are Cartesian coordinates, edge features are
     displacement vectors, and edge distances are stored as an additional
     ``GraphData`` attribute. For edge ``src -> dst``, ``edge_features`` stores
@@ -43,8 +43,7 @@ class AtomisticRadiusGraphFeaturizer(Featurizer):
 
         self.cutoff = cutoff
 
-    def _get_node_features(
-            self, atomic_numbers: NDArray[np.int64]) -> NDArray[np.int64]:
+    def _get_node_features(self, atoms: Any) -> NDArray[np.int64]:
         """Construct node features from atomic information.
 
         This helper is separated out so the featurizer can be extended later
@@ -53,14 +52,15 @@ class AtomisticRadiusGraphFeaturizer(Featurizer):
 
         Parameters
         ----------
-        atomic_numbers: np.ndarray
-            Atomic numbers for all atoms in the structure.
+        atoms: ase.Atoms
+            Atomic structure represented as an ASE ``Atoms`` object.
 
         Returns
         -------
         np.ndarray
             Node feature matrix of shape ``(num_atoms, 1)``.
         """
+        atomic_numbers = np.asarray(atoms.get_atomic_numbers(), dtype=np.int64)
         return atomic_numbers.reshape(-1, 1)
 
     def _get_radius_graph(
@@ -111,7 +111,7 @@ class AtomisticRadiusGraphFeaturizer(Featurizer):
         atomic_numbers = np.asarray(datapoint.get_atomic_numbers(),
                                     dtype=np.int64)
         positions = np.asarray(datapoint.get_positions(), dtype=np.float32)
-        node_features = self._get_node_features(atomic_numbers)
+        node_features = self._get_node_features(datapoint)
         edge_index, edge_features, edge_distances_array = self._get_radius_graph(
             datapoint)
 
