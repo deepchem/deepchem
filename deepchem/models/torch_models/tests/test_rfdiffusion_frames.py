@@ -36,10 +36,8 @@ def _random_rotation(device=None, dtype=torch.float32, generator=None):
 
 def _make_backbone(batch_size=2, seq_len=5, dtype=torch.float32, seed=0):
     generator = torch.Generator().manual_seed(seed)
-    base = torch.tensor([[-1.2, 1.1, 0.0],
-                         [0.0, 0.0, 0.0],
-                         [1.5, 0.0, 0.0]],
-                        dtype=dtype)
+    base = torch.tensor([[-1.2, 1.1, 0.0], [0.0, 0.0, 0.0], [1.5, 0.0, 0.0]],
+                         dtype=dtype)
     offsets = torch.randn(batch_size,
                           seq_len,
                           1,
@@ -70,17 +68,16 @@ class TestRigidFrameUtilities:
         assert torch.allclose(translations, backbone[..., 1, :], atol=0.0)
 
     def test_frames_match_canonical_residue(self):
-        backbone = torch.tensor([[[-1.0, 1.0, 0.0],
-                                  [0.0, 0.0, 0.0],
-                                  [1.0, 0.0, 0.0]]])
+        backbone = torch.tensor([[[-1.0, 1.0, 0.0], [0.0, 0.0, 0.0],
+                                   [1.0, 0.0, 0.0]]])
         rotations, translations = build_backbone_frames(backbone)
         assert torch.allclose(rotations, torch.eye(3).unsqueeze(0), atol=1e-6)
         assert torch.allclose(translations, torch.zeros(1, 3), atol=0.0)
 
     def test_frames_match_upstream_epsilon_normalization(self):
-        backbone = torch.tensor([[[[-1.1, 0.9, 0.2],
-                                   [0.2, -0.3, 0.4],
-                                   [1.4, 0.1, -0.2]]]], dtype=torch.float64)
+        backbone = torch.tensor(
+            [[[[-1.1, 0.9, 0.2], [0.2, -0.3, 0.4], [1.4, 0.1, -0.2]]]],
+            dtype=torch.float64)
         rotations, translations = build_backbone_frames(backbone, eps=1e-8)
         n_atom = backbone[..., 0, :]
         ca_atom = backbone[..., 1, :]
@@ -96,9 +93,8 @@ class TestRigidFrameUtilities:
         assert torch.allclose(translations, ca_atom, atol=0.0, rtol=0.0)
 
     def test_frames_handle_small_n_ca_c_angle(self):
-        backbone = torch.tensor([[[1.0, 1e-3, 0.0],
-                                  [0.0, 0.0, 0.0],
-                                  [1.0, 0.0, 0.0]]])
+        backbone = torch.tensor([[[1.0, 1e-3, 0.0], [0.0, 0.0, 0.0],
+                                   [1.0, 0.0, 0.0]]])
         rotations, _ = build_backbone_frames(backbone)
         gram = rotations.transpose(-1, -2) @ rotations
         assert torch.isfinite(rotations).all()
@@ -179,8 +175,7 @@ class TestRigidFrameUtilities:
     def test_invert_rigid_is_left_and_right_inverse(self):
         backbone = _make_backbone()
         rotations, translations = build_backbone_frames(backbone)
-        inv_rotations, inv_translations = invert_rigid(rotations,
-                                                       translations)
+        inv_rotations, inv_translations = invert_rigid(rotations, translations)
         left_r, left_t = compose_rigids(inv_rotations, inv_translations,
                                         rotations, translations)
         right_r, right_t = compose_rigids(rotations, translations,
@@ -201,14 +196,11 @@ class TestRigidFrameUtilities:
         translations_b = torch.randn(2, 3, 3)
         points = torch.randn(2, 3, 7, 3)
 
-        sequential = apply_rigid(rotations_a, translations_a,
-                                 apply_rigid(rotations_b,
-                                             translations_b,
-                                             points))
-        rotations, translations = compose_rigids(rotations_a,
-                                                 translations_a,
-                                                 rotations_b,
-                                                 translations_b)
+        sequential = apply_rigid(
+            rotations_a, translations_a,
+            apply_rigid(rotations_b, translations_b, points))
+        rotations, translations = compose_rigids(rotations_a, translations_a,
+                                                 rotations_b, translations_b)
         composed = apply_rigid(rotations, translations, points)
         assert torch.allclose(composed, sequential, atol=1e-5)
 
@@ -218,15 +210,12 @@ class TestRigidFrameUtilities:
         rotation_a, rotation_b, rotation_c = rotations
         translation_a, translation_b, translation_c = translations
         left_r, left_t = compose_rigids(
-            *compose_rigids(rotation_a, translation_a,
-                            rotation_b, translation_b),
-            rotation_c,
-            translation_c)
+            *compose_rigids(rotation_a, translation_a, rotation_b,
+                            translation_b), rotation_c, translation_c)
         right_r, right_t = compose_rigids(
-            rotation_a,
-            translation_a,
-            *compose_rigids(rotation_b, translation_b,
-                            rotation_c, translation_c))
+            rotation_a, translation_a,
+            *compose_rigids(rotation_b, translation_b, rotation_c,
+                            translation_c))
         assert torch.allclose(left_r, right_r, atol=1e-5)
         assert torch.allclose(left_t, right_t, atol=1e-5)
 
@@ -247,8 +236,8 @@ class TestSO3Maps:
         tangent = torch.randn(32, 3) * 0.5
         rotations = so3_exp_map(tangent)
         det = torch.det(rotations)
-        ortho_err = (rotations @ rotations.transpose(-1, -2)
-                     - torch.eye(3)).abs().max()
+        ortho_err = (rotations @ rotations.transpose(-1, -2) -
+                     torch.eye(3)).abs().max()
         assert torch.allclose(det, torch.ones_like(det), atol=1e-5)
         assert ortho_err < 1e-5
 

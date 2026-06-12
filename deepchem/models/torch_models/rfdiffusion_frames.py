@@ -82,8 +82,8 @@ def build_backbone_frames(
 
     x_axis = _normalize(c_atom - ca_atom, eps)
     n_direction = n_atom - ca_atom
-    y_axis = n_direction - (n_direction * x_axis).sum(
-        dim=-1, keepdim=True) * x_axis
+    y_axis = n_direction - (n_direction * x_axis).sum(dim=-1,
+                                                      keepdim=True) * x_axis
     y_axis = _normalize(y_axis, eps)
     z_axis = torch.linalg.cross(x_axis, y_axis, dim=-1)
 
@@ -153,18 +153,18 @@ def apply_rigid(rotations: torch.Tensor, translations: torch.Tensor,
     torch.Tensor
         Transformed points.
     """
-    rotations, translations = _expand_rigid_to_points(
-        rotations, translations, points)
-    rotated = torch.matmul(
-        points.unsqueeze(-2), rotations.transpose(-1, -2)).squeeze(-2)
+    rotations, translations = _expand_rigid_to_points(rotations, translations,
+                                                      points)
+    rotated = torch.matmul(points.unsqueeze(-2),
+                           rotations.transpose(-1, -2)).squeeze(-2)
     return rotated + translations
 
 
 def apply_inverse_rigid(rotations: torch.Tensor, translations: torch.Tensor,
                         points: torch.Tensor) -> torch.Tensor:
     """Apply inverse rigid transforms `y -> (y - t) @ R`."""
-    rotations, translations = _expand_rigid_to_points(
-        rotations, translations, points)
+    rotations, translations = _expand_rigid_to_points(rotations, translations,
+                                                      points)
     centered = points - translations
     return torch.matmul(centered.unsqueeze(-2), rotations).squeeze(-2)
 
@@ -189,8 +189,8 @@ def invert_rigid(
         Inverse translations.
     """
     inv_rotations = rotations.transpose(-1, -2)
-    inv_translations = -torch.matmul(
-        translations.unsqueeze(-2), rotations).squeeze(-2)
+    inv_translations = -torch.matmul(translations.unsqueeze(-2),
+                                     rotations).squeeze(-2)
     return inv_rotations, inv_translations
 
 
@@ -255,7 +255,8 @@ def so3_exp_map(tangent: torch.Tensor) -> torch.Tensor:
         torch.stack([zeros, -tz, ty], dim=-1),
         torch.stack([tz, zeros, -tx], dim=-1),
         torch.stack([-ty, tx, zeros], dim=-1),
-    ], dim=-2)
+    ],
+                       dim=-2)
     eye = torch.eye(3, dtype=tangent.dtype, device=tangent.device)
     sin_coeff = _safe_sin_div_x(omega).unsqueeze(-1)
     cos_coeff = _safe_one_minus_cos_div_x_sq(omega).unsqueeze(-1)
@@ -284,7 +285,8 @@ def so3_log_map(rotations: torch.Tensor) -> torch.Tensor:
         skew[..., 2, 1],
         skew[..., 0, 2],
         skew[..., 1, 0],
-    ], dim=-1)
+    ],
+                      dim=-1)
     sin_omega = torch.sin(omega)
     small = omega < _SMALL_OMEGA
     near_pi = (math.pi - omega) < 1e-3
