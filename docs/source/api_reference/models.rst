@@ -681,6 +681,11 @@ BackboneDiffusion
 .. autoclass:: deepchem.models.torch_models.rfdiffusion.BackboneDiffusion
   :members:
 
+RFDiffusionModel
+--------------------
+.. autoclass:: deepchem.models.torch_models.rfdiffusion.RFDiffusionModel
+  :members:
+
 SE3TransformerModel
 --------------------
 .. autoclass:: deepchem.models.torch_models.SE3TransformerModel
