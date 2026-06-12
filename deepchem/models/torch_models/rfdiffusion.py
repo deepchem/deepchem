@@ -1,17 +1,22 @@
-"""Input embedding layers for the RFDiffusion protein backbone model.
+"""Neural network layers and noise schedule for RFDiffusion.
 
-This module adds three building-block layers that turn raw backbone
-coordinates and diffusion timesteps into feature vectors before the
-denoiser transformer sees them:
+This module implements the building blocks for a protein backbone diffusion
+model: input embeddings, the cosine noise schedule, and the Transformer
+denoiser that predicts the noise at each diffusion step.
 
-- ``SinusoidalTimestepEmbedding`` — turns an integer timestep into a
-  sinusoidal vector so the network can tell how noisy the current input is.
-- ``ResidueEmbedding`` — projects the 9 raw backbone coordinates (N, CA, C
-  each with x, y, z) into a higher-dimensional space.
-- ``PositionalEncoding`` — adds sinusoidal position information so the
-  network knows where each residue sits in the chain.
-- ``CosineSchedule`` — implements the improved cosine variance schedule
-  for the forward (noise-adding) and reverse (denoising) diffusion steps.
+Classes
+-------
+- ``SinusoidalTimestepEmbedding`` — maps a diffusion timestep integer to a
+  sinusoidal vector.
+- ``ResidueEmbedding`` — projects the 9 backbone coordinates per residue into
+  a feature space.
+- ``PositionalEncoding`` — adds chain-position information to residue features.
+- ``CosineSchedule`` — implements the improved cosine variance schedule for the
+  forward and reverse diffusion steps.
+- ``DiffusionTransformerBlock`` — a single Transformer block with adaptive
+  timestep conditioning via scale-and-shift.
+- ``BackboneDiffusion`` — the full denoiser network that stacks transformer
+  blocks and predicts noise from noisy backbone coordinates.
 
 References
 ----------
@@ -29,7 +34,7 @@ This module requires PyTorch to be installed.
 """
 
 import math
-from typing import Optional, Tuple
+from typing import List, Optional, Tuple
 
 try:
     import torch
@@ -379,3 +384,190 @@ class CosineSchedule(nn.Module):
             x = self.p_sample(model, x, t)
 
         return x
+
+
+class DiffusionTransformerBlock(nn.Module):
+    """Single Transformer block with diffusion timestep conditioning.
+
+    A standard multi-head self-attention + MLP block, augmented with
+    adaptive layer norm: the timestep embedding is projected into scale and
+    shift parameters that modulate the intermediate features. This lets the
+    denoiser behave differently at different noise levels without needing
+    separate weights per timestep.
+
+    Parameters
+    ----------
+    embed_dim : int
+        Hidden dimension size.
+    num_heads : int, default 8
+        Number of attention heads.
+    mlp_ratio : float, default 4.0
+        Expansion ratio for the feedforward network.
+    dropout : float, default 0.1
+        Dropout probability applied in the attention and MLP sub-layers.
+
+    Examples
+    --------
+    >>> import torch
+    >>> block = DiffusionTransformerBlock(128, num_heads=4)
+    >>> x = torch.randn(2, 50, 128)
+    >>> t_emb = torch.randn(2, 128)
+    >>> output = block(x, t_emb)
+    >>> output.shape
+    torch.Size([2, 50, 128])
+    """
+
+    def __init__(self,
+                 embed_dim: int,
+                 num_heads: int = 8,
+                 mlp_ratio: float = 4.0,
+                 dropout: float = 0.1) -> None:
+        super().__init__()
+        self.norm1 = nn.LayerNorm(embed_dim)
+        self.attn = nn.MultiheadAttention(embed_dim,
+                                          num_heads,
+                                          dropout=dropout,
+                                          batch_first=True)
+        self.norm2 = nn.LayerNorm(embed_dim)
+        self.mlp = nn.Sequential(
+            nn.Linear(embed_dim, int(embed_dim * mlp_ratio)),
+            nn.GELU(),
+            nn.Dropout(dropout),
+            nn.Linear(int(embed_dim * mlp_ratio), embed_dim),
+            nn.Dropout(dropout),
+        )
+        self.time_mlp = nn.Sequential(
+            nn.SiLU(),
+            nn.Linear(embed_dim, embed_dim * 2),
+        )
+
+    def forward(self, x: torch.Tensor, t_emb: torch.Tensor) -> torch.Tensor:
+        """Run the block with timestep conditioning.
+
+        Parameters
+        ----------
+        x : torch.Tensor
+            Input features of shape ``(batch, seq_len, embed_dim)``.
+        t_emb : torch.Tensor
+            Timestep embedding of shape ``(batch, embed_dim)``.
+
+        Returns
+        -------
+        torch.Tensor
+            Output features, same shape as input.
+        """
+        time_cond = self.time_mlp(t_emb)
+        scale, shift = time_cond.chunk(2, dim=-1)
+        scale = scale.unsqueeze(1)
+        shift = shift.unsqueeze(1)
+
+        h = self.norm1(x)
+        h = h * (1 + scale) + shift
+        attn_out, _ = self.attn(h, h, h)
+        x = x + attn_out
+        x = x + self.mlp(self.norm2(x))
+        return x
+
+
+class BackboneDiffusion(nn.Module):
+    """Transformer denoiser for protein backbone diffusion.
+
+    This is the core denoiser. It takes noisy backbone coordinates
+    ``(batch, num_residues, 9)`` and a timestep vector ``(batch,)`` as
+    input and outputs a noise prediction of the same shape. During training
+    the model learns to predict the noise that was added to clean
+    coordinates; during sampling the predicted noise is used to step
+    backwards through the diffusion process.
+
+    The output projection is zero-initialized so training starts in a stable
+    state where the model initially predicts no noise.
+
+    Parameters
+    ----------
+    coord_dim : int, default 9
+        Input coordinate dimension (3 atoms × 3 xyz = 9).
+    embed_dim : int, default 256
+        Hidden dimension for the Transformer.
+    time_dim : int, default 128
+        Dimension of the timestep embedding.
+    num_layers : int, default 8
+        Number of ``DiffusionTransformerBlock`` layers.
+    num_heads : int, default 8
+        Number of attention heads per block.
+    max_seq_len : int, default 512
+        Maximum supported protein length in residues.
+    dropout : float, default 0.1
+        Dropout probability.
+
+    References
+    ----------
+    .. [1] Ho, J., Jain, A., & Abbeel, P. "Denoising diffusion probabilistic
+       models." NeurIPS 2020.
+
+    Examples
+    --------
+    >>> import torch
+    >>> model = BackboneDiffusion(coord_dim=9, embed_dim=128, num_layers=4)
+    >>> noisy_coords = torch.randn(4, 50, 9)
+    >>> timesteps = torch.randint(0, 1000, (4,))
+    >>> noise_pred = model([noisy_coords, timesteps])
+    >>> noise_pred.shape
+    torch.Size([4, 50, 9])
+    """
+
+    def __init__(self,
+                 coord_dim: int = 9,
+                 embed_dim: int = 256,
+                 time_dim: int = 128,
+                 num_layers: int = 8,
+                 num_heads: int = 8,
+                 max_seq_len: int = 512,
+                 dropout: float = 0.1) -> None:
+        super().__init__()
+        self.coord_dim = coord_dim
+        self.embed_dim = embed_dim
+
+        self.time_embedding = SinusoidalTimestepEmbedding(time_dim)
+        self.time_mlp = nn.Sequential(
+            nn.Linear(time_dim, embed_dim),
+            nn.SiLU(),
+            nn.Linear(embed_dim, embed_dim),
+        )
+        self.coord_embed = ResidueEmbedding(coord_dim, embed_dim)
+        self.pos_encoding = PositionalEncoding(embed_dim, max_seq_len)
+        self.layers = nn.ModuleList([
+            DiffusionTransformerBlock(embed_dim, num_heads, dropout=dropout)
+            for _ in range(num_layers)
+        ])
+        self.output_norm = nn.LayerNorm(embed_dim)
+        self.output_proj = nn.Sequential(
+            nn.Linear(embed_dim, embed_dim),
+            nn.GELU(),
+            nn.Linear(embed_dim, coord_dim),
+        )
+        # Zero-init so training starts from a stable baseline
+        nn.init.zeros_(self.output_proj[-1].weight)
+        nn.init.zeros_(self.output_proj[-1].bias)
+
+    def forward(self, inputs: List[torch.Tensor]) -> torch.Tensor:
+        """Predict noise from noisy backbone coordinates and timesteps.
+
+        Parameters
+        ----------
+        inputs : list of torch.Tensor
+            ``[noisy_coords, timesteps]`` where ``noisy_coords`` has shape
+            ``(batch, num_residues, coord_dim)`` and ``timesteps`` has
+            shape ``(batch,)``.
+
+        Returns
+        -------
+        torch.Tensor
+            Predicted noise of shape ``(batch, num_residues, coord_dim)``.
+        """
+        x_noisy, t = inputs[0], inputs[1]
+        t = t.long()
+        t_emb = self.time_mlp(self.time_embedding(t))
+        h = self.pos_encoding(self.coord_embed(x_noisy))
+        for layer in self.layers:
+            h = layer(h, t_emb)
+        return self.output_proj(self.output_norm(h))
