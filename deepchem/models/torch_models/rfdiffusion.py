@@ -33,8 +33,11 @@ Notes
 This module requires PyTorch to be installed.
 """
 
+import logging
 import math
-from typing import List, Optional, Tuple
+
+import numpy as np
+from typing import Iterable, List, Optional, Tuple
 
 try:
     import torch
@@ -42,6 +45,11 @@ try:
     import torch.nn.functional as F
 except ModuleNotFoundError:
     raise ImportError('These classes require PyTorch to be installed.')
+
+from deepchem.data import Dataset
+from deepchem.models.torch_models.torch_model import TorchModel
+
+logger = logging.getLogger(__name__)
 
 
 class SinusoidalTimestepEmbedding(nn.Module):
@@ -309,26 +317,38 @@ class CosineSchedule(nn.Module):
         return noisy_x, noise
 
     @torch.no_grad()
-    def p_sample(self, model: nn.Module, x_t: torch.Tensor,
-                 t: torch.Tensor) -> torch.Tensor:
+    def p_sample(self,
+                 model: nn.Module,
+                 x_t: torch.Tensor,
+                 t: torch.Tensor,
+                 x0_prev: Optional[torch.Tensor] = None
+                 ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Reverse diffusion: denoise x_t by one step using the model.
 
         Parameters
         ----------
         model : nn.Module
-            The denoiser network. Called as ``model([x_t, t])``.
+            The denoiser network. Called as ``model([x_t, t])`` or
+            ``model([x_t, t, x0_prev])`` when self-conditioning.
         x_t : torch.Tensor
             Noisy data of shape ``(batch, num_residues, coord_dim)``.
         t : torch.Tensor
             Current timestep of shape ``(batch,)``.
+        x0_prev : torch.Tensor or None, optional
+            Previous step's x0 estimate for self-conditioning.
 
         Returns
         -------
-        torch.Tensor
+        x_prev : torch.Tensor
             Denoised data at timestep t-1, same shape as x_t.
+        x0_pred : torch.Tensor
+            Predicted clean sample at this step (used for self-conditioning).
         """
         device = x_t.device
-        noise_pred = model([x_t, t])
+        if x0_prev is not None:
+            noise_pred = model([x_t, t, x0_prev])
+        else:
+            noise_pred = model([x_t, t])
 
         t_idx = t.to(self.betas.device)
 
@@ -355,11 +375,15 @@ class CosineSchedule(nn.Module):
         while var.dim() < x_t.dim():
             var = var.unsqueeze(-1)
 
-        return posterior_mean + nonzero_mask * torch.sqrt(var) * noise
+        x_prev = posterior_mean + nonzero_mask * torch.sqrt(var) * noise
+        return x_prev, x0_pred
 
     @torch.no_grad()
-    def sample(self, model: nn.Module, shape: Tuple[int, ...],
-               device: torch.device) -> torch.Tensor:
+    def sample(self,
+               model: nn.Module,
+               shape: Tuple[int, ...],
+               device: torch.device,
+               self_conditioning: bool = False) -> torch.Tensor:
         """Generate samples by running the full reverse diffusion loop.
 
         Parameters
@@ -370,20 +394,32 @@ class CosineSchedule(nn.Module):
             Shape of samples to produce: ``(batch, num_residues, coord_dim)``.
         device : torch.device
             Device to generate on.
+        self_conditioning : bool, default False
+            If True, feed the predicted x0 from each step back into the
+            model as an extra conditioning input for the next step.
 
         Returns
         -------
         torch.Tensor
             Generated samples of the given shape.
         """
+        was_training = model.training
         model.eval()
-        x = torch.randn(shape, device=device)
+        try:
+            x = torch.randn(shape, device=device)
+            x0_pred = None
 
-        for t_val in reversed(range(self.num_timesteps)):
-            t = torch.full((shape[0],), t_val, device=device, dtype=torch.long)
-            x = self.p_sample(model, x, t)
+            for t_val in reversed(range(self.num_timesteps)):
+                t = torch.full((shape[0],),
+                               t_val,
+                               device=device,
+                               dtype=torch.long)
+                x0_cond = x0_pred if self_conditioning else None
+                x, x0_pred = self.p_sample(model, x, t, x0_prev=x0_cond)
 
-        return x
+            return x
+        finally:
+            model.train(was_training)
 
 
 class DiffusionTransformerBlock(nn.Module):
@@ -571,3 +607,407 @@ class BackboneDiffusion(nn.Module):
         for layer in self.layers:
             h = layer(h, t_emb)
         return self.output_proj(self.output_norm(h))
+
+
+class RFDiffusionModel(TorchModel):
+    """TorchModel wrapper for the RFDiffusion protein backbone model.
+
+    Wraps ``BackboneDiffusion`` in DeepChem's ``TorchModel`` interface so
+    you can train with ``model.fit(dataset)`` and generate with
+    ``model.generate()``. Uses the standard DDPM noise-prediction objective:
+    at each training step a random timestep is sampled, noise is added to
+    the clean coordinates, and the model learns to predict the noise.
+
+    Parameters
+    ----------
+    embed_dim : int, default 256
+        Hidden dimension for the Transformer backbone.
+    time_dim : int, default 128
+        Timestep embedding dimension.
+    num_layers : int, default 8
+        Number of Transformer blocks.
+    num_heads : int, default 8
+        Number of attention heads per block.
+    num_diffusion_steps : int, default 1000
+        Number of diffusion timesteps.
+    max_seq_len : int, default 512
+        Maximum supported protein length in residues.
+    dropout : float, default 0.1
+        Dropout probability.
+    self_conditioning : bool, default False
+        If True, the model conditions on its own previous x0 prediction
+        during training (50% of the time) and sampling. This is the
+        self-conditioning trick from the RFDiffusion paper [1]_.
+    batch_size : int, default 4
+        Training batch size.
+    learning_rate : float, default 1e-4
+        Learning rate for the Adam optimizer.
+    device : torch.device, optional
+        Device to use. Defaults to GPU if available.
+    **kwargs
+        Passed through to ``TorchModel``.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> import deepchem as dc
+    >>> proteins = [np.random.randn(20, 9).astype(np.float32) for _ in range(6)]
+    >>> X = np.empty(6, dtype=object)
+    >>> for i, p in enumerate(proteins):
+    ...     X[i] = p
+    >>> dataset = dc.data.NumpyDataset(X=X, y=np.zeros((6, 1), dtype=np.float32))
+    >>> model = dc.models.RFDiffusionModel(
+    ...     embed_dim=64, num_layers=2, num_heads=4,
+    ...     num_diffusion_steps=50, batch_size=2)
+    >>> loss = model.fit(dataset, nb_epoch=1)
+    >>> samples = model.generate(num_samples=2, seq_length=20)
+    >>> samples.shape
+    (2, 20, 9)
+
+    References
+    ----------
+    .. [1] Watson, J. L., et al. "De novo design of protein structure and
+       function with RFdiffusion." Nature 620.7976 (2023): 1089-1100.
+    """
+
+    def __init__(self,
+                 embed_dim: int = 256,
+                 time_dim: int = 128,
+                 num_layers: int = 8,
+                 num_heads: int = 8,
+                 num_diffusion_steps: int = 1000,
+                 max_seq_len: int = 512,
+                 dropout: float = 0.1,
+                 self_conditioning: bool = False,
+                 batch_size: int = 4,
+                 learning_rate: float = 1e-4,
+                 device: Optional[torch.device] = None,
+                 **kwargs) -> None:
+        if embed_dim <= 0:
+            raise ValueError('embed_dim must be positive.')
+        if time_dim <= 0:
+            raise ValueError('time_dim must be positive.')
+        if num_layers <= 0:
+            raise ValueError('num_layers must be positive.')
+        if num_heads <= 0:
+            raise ValueError('num_heads must be positive.')
+        if num_diffusion_steps <= 0:
+            raise ValueError('num_diffusion_steps must be positive.')
+        if max_seq_len <= 0:
+            raise ValueError('max_seq_len must be positive.')
+
+        self.num_diffusion_steps = num_diffusion_steps
+        self.max_seq_len = max_seq_len
+        self.coord_dim = 9
+        self._self_conditioning = self_conditioning
+        self._train_mean: Optional[np.ndarray] = None
+        self._train_std: Optional[float] = None
+
+        self.schedule = CosineSchedule(num_timesteps=num_diffusion_steps)
+        model = BackboneDiffusion(
+            coord_dim=self.coord_dim,
+            embed_dim=embed_dim,
+            time_dim=time_dim,
+            num_layers=num_layers,
+            num_heads=num_heads,
+            max_seq_len=max_seq_len,
+            dropout=dropout,
+        )
+        # Attach schedule so it moves with model.to(device)
+        model.schedule = self.schedule
+
+        def diffusion_loss(outputs: List, labels: List,
+                           weights: List) -> torch.Tensor:
+            pred_noise = outputs[0]
+            true_noise = labels[0]
+            w = weights[0]
+            loss = F.mse_loss(pred_noise, true_noise, reduction='none')
+            if w.dim() < loss.dim():
+                w = w.reshape(w.shape + (1,) * (loss.dim() - w.dim()))
+            denom = torch.clamp(w.expand_as(loss).sum(), min=1.0)
+            return (loss * w).sum() / denom
+
+        super(RFDiffusionModel, self).__init__(model,
+                                               loss=diffusion_loss,
+                                               batch_size=batch_size,
+                                               learning_rate=learning_rate,
+                                               device=device,
+                                               **kwargs)
+
+    def _normalize_coords(self, coords: np.ndarray) -> np.ndarray:
+        """Center and scale backbone coordinates for diffusion training.
+
+        Parameters
+        ----------
+        coords : np.ndarray
+            Shape ``(L, 3, 3)`` or ``(L, 9)``.
+
+        Returns
+        -------
+        np.ndarray
+            Normalized coordinates of shape ``(L, 9)``.
+        """
+        if coords.ndim == 3 and coords.shape[1] == 3 and coords.shape[2] == 3:
+            coords = coords.reshape(-1, 9)
+        elif coords.ndim != 2 or coords.shape[1] != self.coord_dim:
+            raise ValueError(
+                'coords must have shape (L, 3, 3) or (L, 9).')
+        if coords.shape[0] == 0:
+            raise ValueError('coords must have at least one residue.')
+        ca_coords = coords[:, 3:6]
+        centroid = ca_coords.mean(axis=0, keepdims=True)
+        coords = coords - np.tile(centroid, 3)
+        std = coords.std()
+        if std > 1e-6:
+            coords = coords / std
+        return coords.astype(np.float32)
+
+    def _pad_coords(self, coords: np.ndarray,
+                    max_len: int) -> Tuple[np.ndarray, int]:
+        """Pad coordinate array to ``max_len`` with zeros.
+
+        Parameters
+        ----------
+        coords : np.ndarray
+            Shape ``(L, 9)``.
+        max_len : int
+            Target padded length.
+
+        Returns
+        -------
+        padded : np.ndarray
+            Shape ``(max_len, 9)``.
+        orig_len : int
+            Unpadded length.
+        """
+        orig_len = coords.shape[0]
+        if orig_len > max_len:
+            raise ValueError(
+                f'Protein length {orig_len} exceeds target {max_len}.')
+        padded = np.zeros((max_len, self.coord_dim), dtype=np.float32)
+        padded[:orig_len] = coords
+        return padded, orig_len
+
+    def default_generator(
+            self,
+            dataset: Dataset,
+            epochs: int = 1,
+            mode: str = 'fit',
+            deterministic: bool = True,
+            pad_batches: bool = True) -> Iterable[Tuple[List, List, List]]:
+        """Yield diffusion training batches from a DeepChem dataset.
+
+        For each batch the generator normalizes coordinates, pads them to
+        a common length, samples random diffusion timesteps, adds noise
+        using ``CosineSchedule.q_sample``, and yields
+        ``([noisy_coords, timesteps, mask], [noise], [weights])``.
+
+        Parameters
+        ----------
+        dataset : Dataset
+            DeepChem dataset whose ``X`` entries are backbone coordinate arrays.
+        epochs : int, default 1
+        mode : str, default 'fit'
+            Only 'fit' is supported; use ``generate()`` for sampling.
+        deterministic : bool, default True
+        pad_batches : bool, default True
+
+        Yields
+        ------
+        tuple
+            ``([noisy_coords, timesteps, mask], [noise], [weights])``.
+        """
+        if mode != 'fit':
+            raise NotImplementedError(
+                'RFDiffusionModel does not support predict/uncertainty mode. '
+                'Use generate() instead.')
+
+        for _epoch in range(epochs):
+            for (X_b, _y_b, w_b,
+                 _ids_b) in dataset.iterbatches(batch_size=self.batch_size,
+                                                deterministic=deterministic,
+                                                pad_batches=pad_batches):
+                batch_size = len(X_b)
+                sample_weights = np.asarray(w_b, dtype=np.float32)
+                if sample_weights.ndim == 0:
+                    sample_weights = np.full((batch_size,),
+                                             float(sample_weights),
+                                             dtype=np.float32)
+                else:
+                    sample_weights = sample_weights.reshape(
+                        batch_size, -1).max(axis=1).astype(np.float32)
+
+                normalized = []
+                lengths = []
+                for i in range(batch_size):
+                    coords = X_b[i]
+                    if isinstance(coords, np.ndarray) and coords.size > 0:
+                        c = self._normalize_coords(coords)
+                        normalized.append(c)
+                        lengths.append(c.shape[0])
+                    else:
+                        normalized.append(
+                            np.zeros((1, self.coord_dim), dtype=np.float32))
+                        lengths.append(1)
+
+                max_len = max(lengths)
+                if max_len > self.max_seq_len:
+                    raise ValueError(
+                        f'Protein length {max_len} exceeds max_seq_len '
+                        f'{self.max_seq_len}. Increase max_seq_len or crop.')
+
+                # Update running training statistics for denormalization
+                all_raw = [
+                    X_b[i].reshape(-1, 9) if X_b[i].ndim == 3 else X_b[i]
+                    for i in range(batch_size)
+                    if (sample_weights[i] > 0 and isinstance(X_b[i], np.ndarray)
+                        and X_b[i].size > 0)
+                ]
+                if all_raw:
+                    raw = np.concatenate(all_raw, axis=0)
+                    centroid = raw[:, 3:6].mean(axis=0, keepdims=True)
+                    centered = raw - np.tile(centroid, 3)
+                    batch_std = float(centered.std())
+                    if self._train_std is None:
+                        self._train_mean = centroid[0]
+                        self._train_std = batch_std
+                    else:
+                        alpha = 0.1
+                        self._train_mean = ((1 - alpha) * self._train_mean +
+                                            alpha * centroid[0])
+                        self._train_std = ((1 - alpha) * self._train_std +
+                                           alpha * batch_std)
+
+                batch_coords = []
+                batch_masks = []
+                for c in normalized:
+                    padded, orig_len = self._pad_coords(c, max_len)
+                    batch_coords.append(padded)
+                    mask = np.zeros((max_len,), dtype=np.float32)
+                    mask[:orig_len] = 1.0
+                    batch_masks.append(mask)
+
+                coords_batch = np.stack(batch_coords, axis=0)
+                mask_batch = np.stack(batch_masks, axis=0)
+                t = np.random.randint(0,
+                                      self.num_diffusion_steps,
+                                      size=(batch_size,))
+                coords_tensor = torch.tensor(coords_batch, dtype=torch.float32)
+                t_tensor = torch.tensor(t, dtype=torch.long)
+                noisy_coords, noise = self.schedule.q_sample(
+                    coords_tensor, t_tensor)
+
+                noisy_np = noisy_coords.numpy()
+                noise_np = noise.numpy()
+                t_np = t.astype(np.int64)
+                weights = (mask_batch[:, :, None].astype(np.float32) *
+                           sample_weights[:, None, None])
+
+                if self._self_conditioning and np.random.rand() > 0.5:
+                    with torch.no_grad():
+                        mask_tensor = torch.tensor(mask_batch,
+                                                   dtype=torch.float32)
+                        noise_est = self.model([
+                            noisy_coords.to(self.device),
+                            t_tensor.to(self.device),
+                            mask_tensor.to(self.device)
+                        ])
+                        sc = self.schedule
+                        t_idx = t_tensor.to(sc.betas.device)
+                        sr = sc.sqrt_recip_alpha_cumprod[t_idx]
+                        srm = sc.sqrt_recipm1_alpha_cumprod[t_idx]
+                        while sr.dim() < noisy_coords.dim():
+                            sr = sr.unsqueeze(-1)
+                            srm = srm.unsqueeze(-1)
+                        x0_est = (sr.to(self.device) *
+                                  noisy_coords.to(self.device) -
+                                  srm.to(self.device) * noise_est)
+                        x0_np = x0_est.cpu().numpy()
+                    yield ([noisy_np, t_np, x0_np, mask_batch], [noise_np],
+                           [weights])
+                else:
+                    yield ([noisy_np, t_np, mask_batch], [noise_np], [weights])
+
+    def generate(self,
+                 num_samples: int = 1,
+                 seq_length: int = 50,
+                 device: Optional[torch.device] = None) -> np.ndarray:
+        """Generate new protein backbone structures.
+
+        Parameters
+        ----------
+        num_samples : int, default 1
+            Number of structures to generate.
+        seq_length : int, default 50
+            Number of residues per structure.
+        device : torch.device, optional
+            Device to generate on. Defaults to the model's device.
+
+        Returns
+        -------
+        np.ndarray
+            Generated coordinates of shape
+            ``(num_samples, seq_length, 9)``.
+        """
+        if num_samples <= 0:
+            raise ValueError('num_samples must be positive.')
+        if seq_length <= 0:
+            raise ValueError('seq_length must be positive.')
+        if seq_length > self.max_seq_len:
+            raise ValueError(
+                f'seq_length {seq_length} exceeds max_seq_len {self.max_seq_len}.'
+            )
+        if device is None:
+            device = self.device
+
+        was_training = self.model.training
+        shape = (num_samples, seq_length, self.coord_dim)
+        try:
+            samples = self.schedule.sample(
+                self.model,
+                shape,
+                device,
+                self_conditioning=self._self_conditioning)
+        finally:
+            self.model.train(was_training)
+
+        result = samples.cpu().numpy()
+        if self._train_std is not None and self._train_std > 1e-6:
+            result = result * self._train_std
+        if self._train_mean is not None:
+            result = result + np.tile(self._train_mean, 3)
+        return result
+
+    def save_checkpoint(self,
+                        max_checkpoints_to_keep: int = 5,
+                        model_dir: Optional[str] = None) -> None:
+        """Save model weights plus training normalization statistics."""
+        super().save_checkpoint(max_checkpoints_to_keep=max_checkpoints_to_keep,
+                                model_dir=model_dir)
+        if max_checkpoints_to_keep == 0:
+            return
+        checkpoint = sorted(self.get_checkpoints(model_dir))[0]
+        data = torch.load(checkpoint, map_location=self.device)
+        data['rf_diffusion_train_mean'] = (None if self._train_mean is None else
+                                           self._train_mean.tolist())
+        data['rf_diffusion_train_std'] = self._train_std
+        torch.save(data, checkpoint)
+
+    def restore(self,
+                checkpoint: Optional[str] = None,
+                model_dir: Optional[str] = None,
+                strict: Optional[bool] = True) -> None:
+        """Restore model weights and training normalization statistics."""
+        if checkpoint is None:
+            checkpoints = sorted(self.get_checkpoints(model_dir))
+            if not checkpoints:
+                raise ValueError('No checkpoint found.')
+            checkpoint = checkpoints[0]
+        super().restore(checkpoint=checkpoint,
+                        model_dir=model_dir,
+                        strict=strict)
+        data = torch.load(checkpoint, map_location=self.device)
+        train_mean = data.get('rf_diffusion_train_mean')
+        self._train_mean = (None if train_mean is None else
+                            np.asarray(train_mean, dtype=np.float32))
+        self._train_std = data.get('rf_diffusion_train_std')

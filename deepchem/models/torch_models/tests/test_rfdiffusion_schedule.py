@@ -77,8 +77,9 @@ class TestCosineSchedule:
         schedule = CosineSchedule(num_timesteps=10)
         x_t = torch.randn(2, 5, 9)
         t = torch.tensor([5, 5])
-        x_prev = schedule.p_sample(ZeroModel(), x_t, t)
+        x_prev, x0_pred = schedule.p_sample(ZeroModel(), x_t, t)
         assert x_prev.shape == x_t.shape
+        assert x0_pred.shape == x_t.shape
 
     def test_schedule_produces_finite_values(self):
         schedule = CosineSchedule(num_timesteps=1000)

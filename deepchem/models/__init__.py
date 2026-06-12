@@ -49,6 +49,7 @@ try:
     from deepchem.models.torch_models import CNN
     from deepchem.models.torch_models import CosineSchedule
     from deepchem.models.torch_models import BackboneDiffusion
+    from deepchem.models.torch_models import RFDiffusionModel
     from deepchem.models.torch_models import ScaledDotProductAttention, SelfAttention
     from deepchem.models.torch_models import GroverReadout
     from deepchem.models.torch_models import WeaveModel, DTNNModel
