@@ -39,4 +39,3 @@ def test_olmo_generate():
     assert len(outputs) == len(SMILES)
     for i in outputs:
         assert isinstance(i, str)
-        

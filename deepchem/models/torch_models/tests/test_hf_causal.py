@@ -45,4 +45,5 @@ def test_hf_causal():
     assert len(generated) == len(SMILES)
     for j in generated:
         assert isinstance(j, str)
+
         
