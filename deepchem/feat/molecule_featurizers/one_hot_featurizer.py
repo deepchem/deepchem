@@ -74,6 +74,7 @@ class OneHotFeaturizer(Featurizer):
     def featurize(self,
                   datapoints: Iterable[Any],
                   log_every_n: int = 1000,
+                  n_jobs: int = 1,
                   **kwargs) -> np.ndarray:
         """Featurize strings or mols.
 
