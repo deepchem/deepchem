@@ -872,6 +872,7 @@ class RFDiffusionModel(TorchModel):
                         self._train_std = batch_std
                     else:
                         alpha = 0.1
+                        assert self._train_mean is not None
                         self._train_mean = ((1 - alpha) * self._train_mean +
                                             alpha * centroid[0])
                         self._train_std = ((1 - alpha) * self._train_std +

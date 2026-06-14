@@ -17,9 +17,7 @@ requires_dc = pytest.mark.skipif(not has_dc,
 
 def _make_dataset(n=6, length=20):
     """Build a tiny backbone coordinate dataset for testing."""
-    proteins = [
-        np.random.randn(length, 9).astype(np.float32) for _ in range(n)
-    ]
+    proteins = [np.random.randn(length, 9).astype(np.float32) for _ in range(n)]
     X = np.empty(n, dtype=object)
     for i, p in enumerate(proteins):
         X[i] = p
@@ -66,8 +64,10 @@ class TestRFDiffusionModel:
 
     def test_fit_variable_length(self):
         model = _small_model()
-        proteins = [np.random.randn(np.random.randint(5, 15), 9).astype(np.float32)
-                    for _ in range(4)]
+        proteins = [
+            np.random.randn(np.random.randint(5, 15), 9).astype(np.float32)
+            for _ in range(4)
+        ]
         X = np.empty(4, dtype=object)
         for i, p in enumerate(proteins):
             X[i] = p
