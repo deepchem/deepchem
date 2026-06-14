@@ -15,7 +15,7 @@ try:
     import torch
     import torch.nn as nn
     has_pytorch = True
-except:
+except Exception:
     has_pytorch = False
 
 
@@ -625,7 +625,7 @@ class _Worker(object):
                 self.ppo._value_index].detach().numpy()[0]
             try:
                 final_value = final_value.tolist()[0]
-            except:
+            except Exception:
                 pass
         else:
             final_value = 0.0

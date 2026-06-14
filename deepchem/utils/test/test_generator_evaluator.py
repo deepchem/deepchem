@@ -5,7 +5,7 @@ try:
     import tensorflow as tf
     from tensorflow.keras import layers
     has_tensorflow = True
-except:
+except Exception:
     has_tensorflow = False
 
 import deepchem as dc

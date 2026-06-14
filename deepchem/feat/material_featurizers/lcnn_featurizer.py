@@ -148,7 +148,7 @@ class LCNNFeaturizer(MaterialStructureFeaturizer):
         """
         try:
             from pymatgen.core import Structure
-        except:
+        except Exception:
             raise ImportError("This class requires pymatgen to be installed.")
 
         if type(structure) is not Structure:
@@ -240,7 +240,7 @@ class _SiteEnvironment(object):
         """
         try:
             import networkx.algorithms.isomorphism as iso
-        except:
+        except Exception:
             raise ImportError("This class requires networkx to be installed.")
         self.pos = pos
         self.sitetypes = sitetypes
@@ -306,7 +306,7 @@ class _SiteEnvironment(object):
         """
         try:
             import networkx as nx
-        except:
+        except Exception:
             raise ImportError("This class requires networkx to be installed.")
 
         # construct graph
@@ -355,7 +355,7 @@ class _SiteEnvironment(object):
         """
         try:
             import networkx.algorithms.isomorphism as iso
-        except:
+        except Exception:
             raise ImportError("This class requires networkx to be installed.")
         # construct graph
 
@@ -645,7 +645,7 @@ def _get_SiteEnvironments(struct: PymatgenStructure,
     try:
         from pymatgen.core import Molecule
         from pymatgen.symmetry.analyzer import PointGroupAnalyzer
-    except:
+    except Exception:
         raise ImportError("This class requires pymatgen to be installed.")
 
     pbc = np.array(PBC)

@@ -65,5 +65,5 @@ try:
     from deepchem.utils.differentiation_utils.optimize.rootfinder import rootfinder
     from deepchem.utils.differentiation_utils.optimize.rootfinder import equilibrium
     from deepchem.utils.differentiation_utils.optimize.rootfinder import minimize
-except:
+except Exception:
     pass

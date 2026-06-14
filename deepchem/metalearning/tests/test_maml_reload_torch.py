@@ -58,7 +58,7 @@ try:
                     yield value
 
     has_pytorch = True
-except:
+except Exception:
     has_pytorch = False
 
 
