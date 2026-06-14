@@ -80,8 +80,7 @@ class SinusoidalTimestepEmbedding(nn.Module):
         device = t.device
         half_dim = self.dim // 2
         log_scale: float = math.log(10000) / (half_dim - 1)
-        freq = torch.exp(
-            torch.arange(half_dim, device=device) * -log_scale)
+        freq = torch.exp(torch.arange(half_dim, device=device) * -log_scale)
         emb = t.float().unsqueeze(1) * freq.unsqueeze(0)
         emb = torch.cat([torch.sin(emb), torch.cos(emb)], dim=-1)
         return emb
