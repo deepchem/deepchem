@@ -265,7 +265,7 @@ class ProteinMPNNFeaturizer(Featurizer):
     References
     ----------
     - ProteinMPNN: Message Passing Neural Network for Protein Sequence Design.
-    - https://github.com/aqlaboratory/proteinmpnn
+    - https://github.com/dauparas/ProteinMPNN
     - https://github.com/RosettaCommons/RFantibody/blob/main/src/rfantibody/proteinmpnn/model/protein_mpnn_utils.py
     """
 
