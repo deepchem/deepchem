@@ -2,15 +2,11 @@ import pytest
 import deepchem as dc
 import numpy as np
 
-try:
-    import torch
-except ModuleNotFoundError:
-    pass
-
 SMILES = [
     "CCN(CCSC)C(=O)N[C@@](C)(CC)C(F)(F)F",
     "CC1(C)CN(C(=O)Nc2cc3ccccc3nn2)C[C@@]2(CCOC2)O1",
 ]
+
 
 @pytest.mark.hf
 def test_olmo_classification():
