@@ -1,40 +1,48 @@
 from deepchem.feat import Featurizer
 from typing import Dict, List
 try:
-    from transformers import RobertaTokenizerFast
+    from transformers import PreTrainedTokenizerFast
 except ModuleNotFoundError:
     raise ImportError(
-        'Transformers must be installed for RobertaFeaturizer to be used!')
+        'Transformers must be installed for DNABertFeaturizer to be used!')
     pass
 
 
 class DNABertFeaturizer(PreTrainedTokenizerFast, Featurizer):
-    """Roberta Featurizer.
+    """DNABERT-2 Featurizer.
 
-    The Roberta Featurizer is a wrapper class of the Roberta Tokenizer,
-    which is used by Huggingface's transformers library for tokenizing large corpuses for Roberta Models.
-    Please confirm the details in [1]_.
+    The DNABertFeaturizer is a wrapper class of the PreTrainedTokenizerFast,
+    which is used by Huggingface's transformers library for tokenizing DNA sequences for DNABERT-2 Models.
 
     Please see https://github.com/huggingface/transformers
-    and https://github.com/seyonechithrananda/bert-loves-chemistry for more details.
+    and https://github.com/Zhihan1996/DNABERT_2 for more details.
 
     Examples
     --------
-    >>> from deepchem.feat import RobertaFeaturizer
-    >>> smiles = ["Cn1c(=O)c2c(ncn2C)n(C)c1=O", "CC(=O)N1CN(C(C)=O)C(O)C1O"]
-    >>> featurizer = RobertaFeaturizer.from_pretrained("seyonec/SMILES_tokenized_PubChem_shard00_160k")
-    >>> out = featurizer(smiles, add_special_tokens=True, truncation=True)
+    DNABertFeaturizer can be used directly as a HuggingFace tokenizer via `__call__`,
+    returning a `BatchEncoding` dictionary with `input_ids` and `attention_mask`.
 
-    References
-    ----------
-    .. [1] Chithrananda, Seyone, Grand, Gabriel, and Ramsundar, Bharath (2020): "Chemberta: Large-scale self-supervised
-        pretraining for molecular property prediction." arXiv. preprint. arXiv:2010.09885.
+    >>> from deepchem.feat.dnabert_tokenizer import DNABertFeaturizer
+    >>> sequences = ["ACGTACGT", "GGGTTTCCC"]
+    >>> featurizer = DNABertFeaturizer.from_pretrained("zhihan1996/DNABERT-2-117M", trust_remote_code=True)
+    >>> out = featurizer(sequences, add_special_tokens=True, truncation=True)
+    >>> list(out.keys())
+    ['input_ids', 'attention_mask']
 
+    It can also be used as a DeepChem featurizer via the `.featurize()` method,
+    which returns a numpy array of shape `(n_sequences, 2, max_length)`.
+
+    >>> from deepchem.feat.dnabert_tokenizer import DNABertFeaturizer
+    >>> sequences = ["ACGTACGT", "GGGTTTCCC"]
+    >>> featurizer = DNABertFeaturizer.from_pretrained("zhihan1996/DNABERT-2-117M", trust_remote_code=True)
+    >>> feats = featurizer.featurize(sequences, add_special_tokens=True, truncation=True, padding='max_length', max_length=100)
+    >>> feats.shape
+    (2, 2, 100)
 
     Note
     -----
     This class requires transformers to be installed.
-    RobertaFeaturizer uses dual inheritance with RobertaTokenizerFast in Huggingface for rapid tokenization,
+    DNABertFeaturizer uses dual inheritance with PreTrainedTokenizerFast in Huggingface for rapid tokenization,
     as well as DeepChem's Featurizer class.
     """
 
@@ -43,20 +51,20 @@ class DNABertFeaturizer(PreTrainedTokenizerFast, Featurizer):
         return
 
     def _featurize(self, datapoint: str, **kwargs) -> List[List[int]]:
-        """Calculate encoding using HuggingFace's RobertaTokenizerFast
+        """Calculate encoding using HuggingFace's PreTrainedTokenizerFast
 
         Parameters
         ----------
-        sequence: str
-            Arbitrary string sequence to be tokenized.
+        datapoint: str
+            DNA sequence string to be tokenized.
 
         Returns
         -------
-        datapoint: List
+        encoding: List
             List containing two lists; the `input_ids` and the `attention_mask`
         """
 
-        # the encoding is natively a dictionary with keys 'input_ids' and 'attention_mask'
+        
         encoding = list(self(datapoint, **kwargs).values())
         return encoding
 
