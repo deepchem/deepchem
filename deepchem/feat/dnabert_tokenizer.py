@@ -64,7 +64,6 @@ class DNABertFeaturizer(PreTrainedTokenizerFast, Featurizer):
             List containing two lists; the `input_ids` and the `attention_mask`
         """
 
-        
         encoding = list(self(datapoint, **kwargs).values())
         return encoding
 
