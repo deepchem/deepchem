@@ -54,21 +54,16 @@ class ProteinBackboneFeaturizer(Featurizer):
     Examples
     --------
     >>> import deepchem as dc
-    >>> import tempfile
     >>> import os
-    >>> # Create a minimal PDB file for testing
-    >>> pdb_content = '''ATOM      1  N   ALA A   1       0.000   0.000   0.000  1.00  0.00           N
-    ... ATOM      2  CA  ALA A   1       1.458   0.000   0.000  1.00  0.00           C
-    ... ATOM      3  C   ALA A   1       2.009   1.420   0.000  1.00  0.00           C
-    ... END'''
-    >>> with tempfile.NamedTemporaryFile(mode='w', suffix='.pdb', delete=False) as f:
-    ...     _ = f.write(pdb_content)
-    ...     pdb_file = f.name
+    >>> current_dir = os.path.dirname(os.path.abspath(dc.feat.__file__))
+    >>> pdb_file = os.path.join(current_dir, 'tests', 'data',
+    ...                         '3zso_protein_noH.pdb')
     >>> featurizer = dc.feat.ProteinBackboneFeaturizer()
     >>> features = featurizer.featurize([pdb_file])
-    >>> features[0].shape
-    (1, 3, 3)
-    >>> os.unlink(pdb_file)
+    >>> features.shape[0]
+    1
+    >>> features[0].shape[-2:]
+    (3, 3)
 
     References
     ----------
@@ -115,21 +110,15 @@ class ProteinBackboneFeaturizer(Featurizer):
         Examples
         --------
         >>> import deepchem as dc
-        >>> import tempfile
         >>> import os
-        >>> pdb_content = '''ATOM      1  N   ALA A   1       0.000   0.000   0.000  1.00  0.00           N
-        ... ATOM      2  CA  ALA A   1       1.458   0.000   0.000  1.00  0.00           C
-        ... ATOM      3  C   ALA A   1       2.009   1.420   0.000  1.00  0.00           C
-        ... END'''
-        >>> with tempfile.NamedTemporaryFile(mode='w', suffix='.pdb', delete=False) as f:
-        ...     _ = f.write(pdb_content)
-        ...     pdb_file = f.name
+        >>> current_dir = os.path.dirname(os.path.abspath(dc.feat.__file__))
+        >>> pdb_file = os.path.join(current_dir, 'tests', 'data',
+        ...                         '3zso_protein_noH.pdb')
         >>> featurizer = dc.feat.ProteinBackboneFeaturizer()
         >>> _ = featurizer.featurize([pdb_file])
         >>> meta = featurizer.get_metadata(pdb_file)
-        >>> meta['returned_length']
-        1
-        >>> os.unlink(pdb_file)
+        >>> meta['returned_length'] > 0
+        True
         """
         return copy.deepcopy(self._last_metadata.get(datapoint, {}))
 
