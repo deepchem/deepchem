@@ -19,6 +19,7 @@ def test_genomic_call():
         assert 'input_ids' in emb.keys() and 'attention_mask' in emb.keys()
         assert len(emb['input_ids']) == 2 and len(emb['attention_mask']) == 2
 
+
 @pytest.mark.torch
 def test_genomic_featurize():
     """Test the .featurize method, which will convert the dictionary output to an array
