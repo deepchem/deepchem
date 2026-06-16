@@ -16,13 +16,10 @@ def test_genomic_call():
                                 add_special_tokens=True,
                                 truncation=True)
     for emb in [embedding, embedding_long]:
-        print(list(emb.keys()))
-        print(f"The length of input ids is {len(emb['input_ids'])}")
-        print(f"The length of input ids is {len(emb['attention_mask'])}")
-        print(emb.keys())
-        print("\n")
+        assert 'input_ids' in emb.keys() and 'attention_mask' in emb.keys()
+        assert len(emb['input_ids']) == 2 and len(emb['attention_mask']) == 2
 
-
+@pytest.mark.torch
 def test_genomic_featurize():
     """Test the .featurize method, which will convert the dictionary output to an array
 
@@ -44,22 +41,11 @@ def test_genomic_featurize():
         'max_length': max_length
     }
     feats = featurizer.featurize(sequences, **feat_kwargs)
-    print(f"The length of the features are {len(feats)}")
-    print([len(f) for f in feats])
-    print([len(f[0]) for f in feats])
-    print(f"\n The Inputs ids for the first sequence are: \n {feats[0][0]}")
-    print(
-        f"\n The Attention Masks for the first sequence are: \n {feats[0][1]}")
-    print(f"\n The Inputs ids for the second sequence are: \n {feats[1][0]}")
-    print(
-        f"\n The Attention Masks for the second sequence are: \n {feats[1][1]}")
+    assert len(feats) == 2
+    assert all([len(f) == 2 for f in feats])
+    assert all([len(f[0]) == max_length for f in feats])
 
     long_feat = featurizer.featurize(long_sequence, **feat_kwargs)
-
-    print(f"\n The length of long sequence are {len(long_feat)}")
-    print([len(f) for f in long_feat])
-    print([len(f[0]) for f in long_feat])
-    print(f"\n The Inputs ids for the first sequence are: \n {long_feat[0][0]}")
-    print(
-        f"\n The Attention Masks for the first sequence are: \n {long_feat[0][1]}"
-    )
+    assert len(long_feat) == 1
+    assert len(long_feat[0]) == 2  # the tokens and attention mask
+    assert len(long_feat[0][0]) == 100  # number of tokens for each DNA sequence
