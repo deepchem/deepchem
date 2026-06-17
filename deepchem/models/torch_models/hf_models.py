@@ -1,5 +1,6 @@
 import logging
 import time
+import platform
 from collections.abc import Sequence as SequenceCollection
 from typing import (TYPE_CHECKING, Any, Callable, Iterable, List, Optional,
                     Tuple, Union, Dict)
@@ -241,8 +242,7 @@ class HuggingFaceModel(TorchModel):
                     model_dir, trust_remote_code=True, **self.config)
             elif self.task == 'causal_lm':
                 self.model = AutoModelForCausalLM.from_pretrained(
-                    model_dir, trust_remote_code=True,
-                    **self.config).to(self.device)
+                    model_dir, trust_remote_code=True, **self.config)
             else:
                 self.model = AutoModel.from_pretrained(model_dir,
                                                        trust_remote_code=True,
@@ -282,10 +282,6 @@ class HuggingFaceModel(TorchModel):
 
     def _prepare_batch(self, batch: Tuple[Any, Any, Any]):
         smiles_batch, y, w = batch
-        if self.tokenizer.pad_token is None:
-            self.tokenizer.pad_token = self.tokenizer.eos_token
-            if hasattr(self.model, "config"):
-                self.model.config.pad_token_id = self.model.config.eos_token_id
         tokens = self.tokenizer(smiles_batch[0].tolist(),
                                 padding=True,
                                 return_tensors="pt")
@@ -300,6 +296,10 @@ class HuggingFaceModel(TorchModel):
             }
             return inputs, None, w
         elif self.task == 'causal_lm':
+            if self.tokenizer.pad_token is None:
+                self.tokenizer.pad_token = self.tokenizer.eos_token
+                if hasattr(self.model, "config"):
+                    self.model.config.pad_token_id = self.model.config.eos_token_id
             input_ids = tokens['input_ids'].to(self.device)
             attention_mask = tokens['attention_mask'].to(self.device)
             inputs = {
@@ -665,7 +665,11 @@ class HuggingFaceModel(TorchModel):
             condition generation on.
         **kwargs:
             Additional keyword arguments to pass to HuggingFace's generate
-            method.
+            method. Some examples include:
+            - max_length: To control the maximum length of a generated sequence
+            - max_new_tokens: The maximum number of new tokens to generate
+            - min_new_tokens: The minimum number of new tokens to generate.
+            More information about keyword arguments is in this link: https://huggingface.co/docs/transformers/main_classes/text_generation
 
         Returns
         -------
@@ -693,11 +697,16 @@ class HuggingFaceModel(TorchModel):
 
         original_device = next(self.model.parameters()).device
         if device.type == 'mps':
-            # HuggingFace's generate method does not currently support MPS. Move model and inputs to CPU.
-            logger.warning(
-                "HuggingFace's generate method does not currently support MPS. Moving model and inputs to CPU for generation."
-            )
-            device = torch.device('cpu')
+            mac_version = int(platform.mac_ver()[0].split('.')[0])
+            if mac_version < 14:
+                # HuggingFace's generate method does not currently support MPS versions less than 14. Move model and inputs to CPU.
+                logger.warning(
+                    "HuggingFace's generate method does not currently support MPS versions less than 14. Moving model and inputs to CPU for generation."
+                )
+                device = torch.device('cpu')
+            else:
+                device = torch.device('mps')
+
         if next(self.model.parameters()).device != device:
             self.model.to(device)
 
