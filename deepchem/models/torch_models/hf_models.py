@@ -159,6 +159,11 @@ class HuggingFaceModel(TorchModel):
             self.data_collator = None  # type: ignore
         # Ignoring type. For TorchModel, loss is a required argument but HuggingFace computes
         # loss during the forward iteration, removing the need for a loss function.
+        if self.task == 'causal_lm' and self.tokenizer.pad_token is None:
+            self.tokenizer.pad_token = self.tokenizer.eos_token
+            if hasattr(model, "config") and hasattr(model.config,
+                                                    "eos_token_id"):
+                model.config.pad_token_id = model.config.eos_token_id
         if config:
             self.config = config
         else:
@@ -296,16 +301,14 @@ class HuggingFaceModel(TorchModel):
             }
             return inputs, None, w
         elif self.task == 'causal_lm':
-            if self.tokenizer.pad_token is None:
-                self.tokenizer.pad_token = self.tokenizer.eos_token
-                if hasattr(self.model, "config"):
-                    self.model.config.pad_token_id = self.model.config.eos_token_id
             input_ids = tokens['input_ids'].to(self.device)
             attention_mask = tokens['attention_mask'].to(self.device)
+            labels = input_ids.clone()
+            labels[labels == self.tokenizer.pad_token_id] = -100
             inputs = {
                 'input_ids': input_ids,
                 'attention_mask': attention_mask,
-                'labels': input_ids.clone()
+                'labels': labels
             }
             return inputs, None, w
         elif self.task in ['regression', 'classification', 'mtr']:
