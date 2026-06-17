@@ -364,3 +364,45 @@ def test_load_molformer_model_from_hf_checkpoint(tmpdir):
                                         from_hf_checkpoint=True)
     assert finetune_model.model.config.problem_type == 'regression'
     assert finetune_model.model.config.num_labels == 1
+
+
+@pytest.mark.hf
+def test_clm_pretraining(hf_tokenizer, smiles_regression_dataset):
+    """Test causal language modeling pretraining with HuggingFaceModel."""
+    from transformers.models.gpt2 import GPT2Config, GPT2LMHeadModel
+
+    config = GPT2Config(vocab_size=hf_tokenizer.vocab_size)
+    model = GPT2LMHeadModel(config)
+
+    hf_model = HuggingFaceModel(model=model,
+                                tokenizer=hf_tokenizer,
+                                task='clm',
+                                device=torch.device('cpu'))
+    loss = hf_model.fit(smiles_regression_dataset, nb_epoch=1)
+
+    assert loss
+
+
+@pytest.mark.hf
+def test_load_from_hf_checkpoint_clm(hf_tokenizer):
+    """Test loading a causal language model from a HuggingFace checkpoint."""
+    from transformers.models.gpt2 import GPT2Config, GPT2LMHeadModel
+
+    config = GPT2Config()
+    model = GPT2LMHeadModel(config)
+
+    hf_model = HuggingFaceModel(model=model,
+                                tokenizer=hf_tokenizer,
+                                task='clm',
+                                device=torch.device('cpu'))
+
+    old_state_dict = hf_model.model.state_dict()
+    hf_model.load_from_pretrained('gpt2', from_hf_checkpoint=True)
+    new_state_dict = hf_model.model.state_dict()
+
+    # weights should change after loading pretrained checkpoint
+    not_matches = [
+        not torch.allclose(old_state_dict[key], new_state_dict[key])
+        for key in old_state_dict.keys()
+    ]
+    assert any(not_matches)

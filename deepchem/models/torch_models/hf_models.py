@@ -11,7 +11,7 @@ from deepchem.models.torch_models import TorchModel
 from deepchem.trans import Transformer, undo_transforms
 from deepchem.utils.typing import LossFn, OneOrMany
 from transformers.data.data_collator import DataCollatorForLanguageModeling
-from transformers.models.auto import AutoModel, AutoModelForSequenceClassification, AutoModelForMaskedLM, AutoModelForUniversalSegmentation
+from transformers.models.auto import AutoModel, AutoModelForSequenceClassification, AutoModelForMaskedLM, AutoModelForUniversalSegmentation, AutoModelForCausalLM
 
 logger = logging.getLogger(__name__)
 
@@ -232,6 +232,9 @@ class HuggingFaceModel(TorchModel):
             if self.task == 'mlm':
                 self.model = AutoModelForMaskedLM.from_pretrained(
                     model_dir, trust_remote_code=True, **self.config)
+            elif self.task == 'clm':  # добавляем это
+                self.model = AutoModelForCausalLM.from_pretrained(
+                    model_dir, trust_remote_code=True, **self.config)
             elif self.task in ['mtr', 'regression', 'classification']:
                 self.model = AutoModelForSequenceClassification.from_pretrained(
                     model_dir, trust_remote_code=True, **self.config)
@@ -288,6 +291,14 @@ class HuggingFaceModel(TorchModel):
                 'input_ids': inputs.to(self.device),
                 'labels': labels.to(self.device),
                 'attention_mask': tokens['attention_mask'].to(self.device),
+            }
+            return inputs, None, w
+        elif self.task == 'clm':
+            input_ids = tokens['input_ids'].to(self.device)
+            inputs = {
+                'input_ids': input_ids,
+                'attention_mask': tokens['attention_mask'].to(self.device),
+                'labels': input_ids.clone(),
             }
             return inputs, None, w
         elif self.task in ['regression', 'classification', 'mtr']:
