@@ -2,6 +2,8 @@
 __pycache__/
 *.py[cod]
 *$py.class
+.mypy_cache/
+model-dir/
 
 # C extensions
 *.so
