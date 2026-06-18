@@ -7,7 +7,7 @@ import zipfile
 import time
 import logging
 import warnings
-from typing import List, Optional, Tuple, Any, Sequence, Union, Iterator
+from typing import List, Optional, Tuple, Any, Sequence, Union, Iterator, Dict
 
 import pandas as pd
 import numpy as np
@@ -1805,6 +1805,278 @@ class InMemoryLoader(DataLoader):
             ids.append(entry_id)
         X = np.concatenate(features, axis=0)
         return X, np.array(labels), np.array(weights), np.array(ids)
+
+
+class ASEAtomsLoader(DataLoader):
+    """Creates ``Dataset`` objects from ASE-readable atomistic files.
+
+    This loader streams ``ase.Atoms`` frames from one or more ASE-readable
+    files, featurizes each frame, and stores the results in a ``DiskDataset``.
+    Each frame becomes one datapoint in the output dataset.
+
+    Examples
+    --------
+    >>> import deepchem as dc
+    >>> featurizer = dc.feat.AtomisticRadiusGraphFeaturizer(cutoff=2.5)  # doctest: +SKIP
+    >>> loader = dc.data.ASEAtomsLoader(tasks=["energy"], featurizer=featurizer)  # doctest: +SKIP
+    >>> dataset = loader.create_dataset("molecule.extxyz")  # doctest: +SKIP
+
+    Notes
+    -----
+    This loader requires ASE to be installed. Requested labels are extracted
+    only from ``atoms.info``, ``atoms.arrays``, or already-loaded serialized
+    calculator results in ``atoms.calc.results``.
+    
+    Parameters
+    ----------
+    tasks: List[str]
+        List of task names to extract. Supported values are ``"energy"``,
+        ``"forces"``, and ``"stress"``.
+    featurizer: Featurizer
+        Featurizer to use for each ``ase.Atoms`` frame.
+    energy_key: str, default "energy"
+        Key to read from ``atoms.info`` for energy labels.
+    forces_key: str, default "forces"
+        Key to read from ``atoms.arrays`` for force labels.
+    stress_key: str, default "stress"
+        Key to read from ``atoms.info`` for stress labels.
+    log_every_n: int, default 1000
+        Writes a logging statement this often.
+    """
+
+    _ALLOWED_TASKS: Tuple[str, str, str] = ("energy", "forces", "stress")
+
+    def __init__(self,
+                 tasks: List[str],
+                 featurizer: Featurizer,
+                 energy_key: str = "energy",
+                 forces_key: str = "forces",
+                 stress_key: str = "stress",
+                 log_every_n: int = 1000) -> None:
+        """Initializes ASEAtomsLoader.
+
+        Parameters
+        ----------
+        tasks: List[str]
+            List of task names to extract. Supported values are ``"energy"``,
+            ``"forces"``, and ``"stress"``.
+        featurizer: Featurizer
+            Featurizer to use to process each ``ase.Atoms`` frame.
+        energy_key: str, optional (default "energy")
+            Key to read from ``atoms.info`` or ``atoms.calc.results`` for
+            energy labels.
+        forces_key: str, optional (default "forces")
+            Key to read from ``atoms.arrays`` or ``atoms.calc.results`` for
+            force labels.
+        stress_key: str, optional (default "stress")
+            Key to read from ``atoms.info`` or ``atoms.calc.results`` for
+            stress labels.
+        log_every_n: int, optional (default 1000)
+            Writes a logging statement this often.
+        """
+        self._validate_tasks(tasks)
+        super().__init__(tasks=tasks,
+                         featurizer=featurizer,
+                         id_field=None,
+                         log_every_n=log_every_n)
+        self.energy_key = energy_key
+        self.forces_key = forces_key
+        self.stress_key = stress_key
+
+    def _validate_tasks(self, tasks: List[str]) -> None:
+        invalid_tasks = [
+            task for task in tasks if task not in self._ALLOWED_TASKS
+        ]
+        if invalid_tasks:
+            raise ValueError("Unsupported tasks: %s. Supported tasks are %s." %
+                             (invalid_tasks, list(self._ALLOWED_TASKS)))
+
+    def _normalize_inputs(self, inputs: OneOrMany[str]) -> List[str]:
+        if isinstance(inputs, str):
+            return [inputs]
+        if isinstance(inputs, tuple):
+            inputs = list(inputs)
+        elif not isinstance(inputs, list):
+            try:
+                inputs = list(inputs)
+            except TypeError:
+                raise ValueError(
+                    "inputs must be a path string or a list/tuple of path strings."
+                )
+        if not all(isinstance(path, str) for path in inputs):
+            raise ValueError(
+                "inputs must contain only path strings for ASEAtomsLoader.")
+        return inputs
+
+    def _make_frame_id(self, input_path: str, frame_index: int) -> str:
+        return f"{input_path}:{frame_index}"
+
+    def _get_calc_results(self, atoms: Any) -> Dict[str, Any]:
+        calc = getattr(atoms, "calc", None)
+        if calc is None:
+            return {}
+        results = getattr(calc, "results", None)
+        if isinstance(results, dict):
+            return results
+        return {}
+
+    def _extract_energy(self, atoms: Any, input_path: str,
+                        frame_index: int) -> Any:
+        if self.energy_key in atoms.info:
+            return atoms.info[self.energy_key]
+        calc_results = self._get_calc_results(atoms)
+        if self.energy_key in calc_results:
+            return calc_results[self.energy_key]
+        raise ValueError(
+            "Missing requested label for task 'energy' with key '%s' in file '%s' frame %d."
+            % (self.energy_key, input_path, frame_index))
+
+    def _extract_forces(self, atoms: Any, input_path: str,
+                        frame_index: int) -> np.ndarray:
+        if self.forces_key in atoms.arrays:
+            forces = np.asarray(atoms.arrays[self.forces_key], dtype=np.float32)
+        else:
+            calc_results = self._get_calc_results(atoms)
+            if self.forces_key not in calc_results:
+                raise ValueError(
+                    "Missing requested label for task 'forces' with key '%s' in file '%s' frame %d."
+                    % (self.forces_key, input_path, frame_index))
+            forces = np.asarray(calc_results[self.forces_key], dtype=np.float32)
+        if forces.shape != (len(atoms), 3):
+            raise ValueError(
+                "Invalid forces shape %s for key '%s' in file '%s' frame %d. Expected (%d, 3)."
+                % (forces.shape, self.forces_key, input_path, frame_index,
+                   len(atoms)))
+        return forces
+
+    def _extract_stress(self, atoms: Any, input_path: str,
+                        frame_index: int) -> np.ndarray:
+        if self.stress_key in atoms.info:
+            stress = np.asarray(atoms.info[self.stress_key], dtype=np.float32)
+        else:
+            calc_results = self._get_calc_results(atoms)
+            if self.stress_key not in calc_results:
+                raise ValueError(
+                    "Missing requested label for task 'stress' with key '%s' in file '%s' frame %d."
+                    % (self.stress_key, input_path, frame_index))
+            stress = np.asarray(calc_results[self.stress_key], dtype=np.float32)
+        if stress.shape not in ((6,), (3, 3)):
+            raise ValueError(
+                "Invalid stress shape %s for key '%s' in file '%s' frame %d. Expected (6,) or (3, 3)."
+                % (stress.shape, self.stress_key, input_path, frame_index))
+        return stress
+
+    def _extract_labels(self, atoms: Any, input_path: str,
+                        frame_index: int) -> np.ndarray:
+        labels = np.empty((len(self.tasks),), dtype=object)
+        for task_index, task in enumerate(self.tasks):
+            if task == "energy":
+                labels[task_index] = self._extract_energy(
+                    atoms, input_path, frame_index)
+            elif task == "forces":
+                labels[task_index] = self._extract_forces(
+                    atoms, input_path, frame_index)
+            else:
+                labels[task_index] = self._extract_stress(
+                    atoms, input_path, frame_index)
+        return labels
+
+    def _featurize_frame(self, atoms: Any, input_path: str,
+                         frame_index: int) -> Any:
+        features = self.featurizer.featurize([atoms],
+                                             log_every_n=self.log_every_n)
+        if len(features) != 1:
+            raise ValueError(
+                "Featurizer returned %d outputs for file '%s' frame %d. Expected exactly 1."
+                % (len(features), input_path, frame_index))
+        feature = features[0]
+        if isinstance(feature, np.ndarray) and feature.size == 0:
+            raise ValueError("Failed to featurize file '%s' frame %d." %
+                             (input_path, frame_index))
+        return feature
+
+    def _finalize_shard(
+        self, features: List[Any], labels: Optional[List[np.ndarray]],
+        ids: List[str]
+    ) -> Tuple[np.ndarray, Optional[np.ndarray], Optional[np.ndarray],
+               np.ndarray]:
+        X = np.asarray(features, dtype=object)
+        ids_array = np.asarray(ids, dtype=object)
+        if len(self.tasks) == 0:
+            return X, None, None, ids_array
+
+        assert labels is not None
+        y = np.empty((len(labels), len(self.tasks)), dtype=object)
+        for sample_index, sample_labels in enumerate(labels):
+            y[sample_index, :] = sample_labels
+        w = np.ones((len(labels), len(self.tasks)), dtype=np.float32)
+        return X, y, w, ids_array
+
+    def create_dataset(self,
+                       inputs: OneOrMany[str],
+                       data_dir: Optional[str] = None,
+                       shard_size: Optional[int] = 8192) -> DiskDataset:
+        """Creates a ``Dataset`` from ASE-readable input files.
+
+        Parameters
+        ----------
+        inputs: OneOrMany[str]
+            One filename or a list/tuple of filenames understood by ASE.
+            Each ``ase.Atoms`` frame becomes one datapoint in the output
+            dataset.
+        data_dir: str, optional (default None)
+            Directory to store featurized dataset.
+        shard_size: int, optional (default 8192)
+            Number of examples stored in each shard.
+
+        Returns
+        -------
+        DiskDataset
+            A ``DiskDataset`` object containing the featurized atomic frames
+            from ``inputs``.
+        """
+        try:
+            from ase.io import iread
+        except ImportError:
+            raise ImportError("This class requires ASE to be installed.")
+
+        input_files = self._normalize_inputs(inputs)
+        logger.info("Loading raw samples now.")
+        logger.info("shard_size: %s" % str(shard_size))
+
+        def shard_generator():
+            features: List[Any] = []
+            labels: Optional[List[np.ndarray]] = [] if len(
+                self.tasks) > 0 else None
+            ids: List[str] = []
+
+            for input_path in input_files:
+                for frame_index, atoms in enumerate(iread(input_path,
+                                                          index=":")):
+                    if len(ids) % self.log_every_n == 0:
+                        logger.info("Featurizing frame %d from %s", frame_index,
+                                    input_path)
+                    feature = self._featurize_frame(atoms, input_path,
+                                                    frame_index)
+                    features.append(feature)
+                    ids.append(self._make_frame_id(input_path, frame_index))
+                    if labels is not None:
+                        labels.append(
+                            self._extract_labels(atoms, input_path,
+                                                 frame_index))
+
+                    if shard_size is not None and len(features) >= shard_size:
+                        yield self._finalize_shard(features, labels, ids)
+                        features = []
+                        labels = [] if len(self.tasks) > 0 else None
+                        ids = []
+
+            if features:
+                yield self._finalize_shard(features, labels, ids)
+
+        return DiskDataset.create_dataset(shard_generator(),
+                                          data_dir=data_dir,
+                                          tasks=self.tasks)
 
 
 class DFTYamlLoader(DataLoader):
