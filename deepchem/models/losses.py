@@ -98,7 +98,11 @@ class HingeLoss(Loss):
     """The hinge loss function.
 
     The 'output' argument should contain logits, and all elements of 'labels'
-    should equal 0 or 1.
+    should equal 0 or 1.  Internally, labels are remapped from {0, 1} to
+    {-1, 1} so that the standard hinge loss formula
+    ``max(0, 1 - y_true * y_pred)`` is computed correctly.  Passing labels
+    of 0 to the raw formula would produce a constant loss of 1 and a
+    zero gradient for negative examples, preventing the model from learning.
     """
 
     def _compute_tf_loss(self, output, labels):
@@ -111,6 +115,11 @@ class HingeLoss(Loss):
 
         def loss(output, labels):
             output, labels = _make_pytorch_shapes_consistent(output, labels)
+            # Hinge loss requires labels in {-1, 1}.  The public API accepts
+            # the more intuitive {0, 1} convention; remap here so that the
+            # formula `max(0, 1 - y_true * y_pred)` is mathematically correct
+            # and negative examples (label=0) contribute a non-zero gradient.
+            labels = 2 * labels - 1
             return torch.mean(torch.clamp(1 - labels * output, min=0), dim=-1)
 
         return loss
