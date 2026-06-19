@@ -3,6 +3,7 @@ from typing import DefaultDict, Optional
 
 from deepchem.utils.typing import PymatgenComposition
 from deepchem.feat import MaterialCompositionFeaturizer
+import warnings
 
 elements_tl = [
     'H', 'Li', 'Be', 'B', 'C', 'N', 'O', 'F', 'Na', 'Mg', 'Al', 'Si', 'P', 'S',
@@ -86,9 +87,7 @@ class ElemNetFeaturizer(MaterialCompositionFeaturizer):
         """
         if 'composition' in kwargs and datapoint is None:
             datapoint = kwargs.get("composition")
-            raise DeprecationWarning(
-                'Composition is being phased out as a parameter, please pass "datapoint" instead.'
-            )
+            warnings.warn('Composition is being phased out as a parameter, please pass "datapoint" instead.', DeprecationWarning, stacklevel=2)
 
         fractions = datapoint.fractional_composition.get_el_amt_dict()
         return self.get_vector(fractions)
