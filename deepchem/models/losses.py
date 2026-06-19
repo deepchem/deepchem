@@ -97,12 +97,19 @@ class L2Loss(Loss):
 class HingeLoss(Loss):
     """The hinge loss function.
 
-    The 'output' argument should contain logits, and all elements of 'labels'
-    should equal 0 or 1.  Internally, labels are remapped from {0, 1} to
-    {-1, 1} so that the standard hinge loss formula
-    ``max(0, 1 - y_true * y_pred)`` is computed correctly.  Passing labels
-    of 0 to the raw formula would produce a constant loss of 1 and a
-    zero gradient for negative examples, preventing the model from learning.
+    Mathematically, hinge loss is defined as:
+        L(y, f(x)) = max(0, 1 - y * f(x))
+    where y must be in {-1, +1}.
+
+    For convenience, the 'labels' argument may contain values in either
+    {-1, 1} or {0, 1}. If labels contain only 0 and 1, they are
+    automatically remapped to {-1, +1} internally before computing the
+    loss. The 'output' argument should contain raw logits (unnormalized
+    scores).
+
+    Note: Passing labels of 0 without this remapping would produce a
+    constant loss of 1.0 regardless of the model output, yielding zero
+    gradients and preventing the model from learning from negative samples.
     """
 
     def _compute_tf_loss(self, output, labels):
@@ -115,11 +122,11 @@ class HingeLoss(Loss):
 
         def loss(output, labels):
             output, labels = _make_pytorch_shapes_consistent(output, labels)
-            # Hinge loss requires labels in {-1, 1}.  The public API accepts
-            # the more intuitive {0, 1} convention; remap here so that the
-            # formula `max(0, 1 - y_true * y_pred)` is mathematically correct
-            # and negative examples (label=0) contribute a non-zero gradient.
-            labels = 2 * labels - 1
+            # Remap {0, 1} labels to {-1, +1} expected by hinge loss.
+            # If labels are already in {-1, 1} this operation is a no-op
+            # for the +1 class, and correctly converts 0 -> -1.
+            if labels.min() >= 0:
+                labels = 2.0 * labels - 1.0
             return torch.mean(torch.clamp(1 - labels * output, min=0), dim=-1)
 
         return loss
