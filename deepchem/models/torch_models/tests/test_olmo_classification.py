@@ -12,11 +12,11 @@ SMILES = [
 def test_olmo_classification():
     from deepchem.models.torch_models.olmo_class import OlmoClass
 
-    model = OlmoClass()
+    model = OlmoForClassificationAndRegressionTasks(model="allenai/OLMo-1B-hf", tokenizer=None, task_type="classification", n_tasks=1)
 
     dataset = dc.data.NumpyDataset(SMILES, np.array([[1.0], [0.0]]))
 
-    loss = model.classification(dataset, n_tasks=1, nb_epoch=1)
+    loss = model.fit(dataset, nb_epoch=1)
     assert loss is not None
 
     predictions = model.predict(dataset)

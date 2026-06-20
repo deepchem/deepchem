@@ -5,6 +5,7 @@ from deepchem.models.torch_models.hf_models import HuggingFaceModel
 from deepchem.data import Dataset
 
 
+
 class OlmoClass(HuggingFaceModel):
     MODEL_NAME = "allenai/OLMo-1B-hf"
 

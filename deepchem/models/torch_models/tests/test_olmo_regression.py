@@ -10,13 +10,13 @@ SMILES = [
 
 @pytest.mark.hf
 def test_olmo_regression():
-    from deepchem.models.torch_models.olmo_class import OlmoClass
+    from deepchem.models.torch_models.olmo_class import OlmoForClassificationAndRegressionTasks
 
-    model = OlmoClass()
+    model = OlmoForClassificationAndRegressionTasks(model="allenai/OLMo-1B-hf", tokenizer=None, task_type="regression", n_tasks=1)
 
     dataset = dc.data.NumpyDataset(SMILES, np.array([[1.0], [0.0]]))
 
-    loss = model.regression(dataset, n_tasks=1, nb_epoch=1)
+    loss = model.fit(dataset, nb_epoch=1)
     assert loss is not None
 
     predictions = model.predict(dataset)
