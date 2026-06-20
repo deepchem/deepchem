@@ -2,6 +2,15 @@
 __pycache__/
 *.py[cod]
 *$py.class
+.mypy_cache/
+model-dir/
+.DS_Store
+**/.DS_Store
+
+#DeepChem Checkpoints
+checkpoints_classification/
+checkpoints_regression/
+olmo_checkpoints/
 
 # C extensions
 *.so
