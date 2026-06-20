@@ -12,7 +12,10 @@ SMILES = [
 def test_olmo_regression():
     from deepchem.models.torch_models.olmo_class import OlmoForClassificationAndRegressionTasks
 
-    model = OlmoForClassificationAndRegressionTasks(model="allenai/OLMo-1B-hf", tokenizer=None, task_type="regression", n_tasks=1)
+    model = OlmoForClassificationAndRegressionTasks(model="allenai/OLMo-1B-hf",
+                                                    tokenizer=None,
+                                                    task_type="regression",
+                                                    n_tasks=1)
 
     dataset = dc.data.NumpyDataset(SMILES, np.array([[1.0], [0.0]]))
 

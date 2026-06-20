@@ -1,83 +1,66 @@
-from transformers import AutoTokenizer, AutoModelForCausalLM
 import torch
 import torch.nn as nn
+from transformers import AutoTokenizer, OlmoForCausalLM
 from deepchem.models.torch_models.hf_models import HuggingFaceModel
-from deepchem.data import Dataset
 
 
+class OlmoForClassificationAndRegressionTasks(HuggingFaceModel):
 
-class OlmoClass(HuggingFaceModel):
-    MODEL_NAME = "allenai/OLMo-1B-hf"
+    def __init__(self,
+                 model,
+                 tokenizer,
+                 task_type: str = "classification",
+                 n_tasks: int = 1,
+                 **kwargs):
+        if task_type not in ("classification", "regression"):
+            raise ValueError(
+                f"task_type must be 'classification' or 'regression', "
+                f"got '{task_type}'")
 
-    def __init__(self, model_dir=None, **kwargs):
-        tokenizer = AutoTokenizer.from_pretrained(self.MODEL_NAME,
-                                                  trust_remote_code=True)
-        tokenizer.padding_side = "left"
+        if isinstance(model, str):
+            model_path = model
+            model = OlmoForCausalLM.from_pretrained(model_path,
+                                                    torch_dtype=torch.bfloat16)
+            model.gradient_checkpointing_enable()
+            if tokenizer is None:
+                tokenizer = AutoTokenizer.from_pretrained(model_path)
 
-        model = AutoModelForCausalLM.from_pretrained(
-            self.MODEL_NAME,
-            trust_remote_code=True,
-            torch_dtype=torch.float16
-            if torch.cuda.is_available() else torch.float32,
-        )
+        model_dtype = next(model.parameters()).dtype
+        model.score = nn.Linear(model.config.hidden_size,
+                                n_tasks).to(dtype=model_dtype)
 
-        super(OlmoClass, self).__init__(model=model,
-                                        tokenizer=tokenizer,
-                                        task="causal_lm",
-                                        model_dir=model_dir,
-                                        **kwargs)
+        original_forward = model.forward
 
-    def regression(self, dataset: Dataset, n_tasks: int = 1, **kwargs):
-        if not hasattr(self.model, 'original_forward'):
-            self.model.original_forward = self.model.forward
-        model_dtype = next(self.model.parameters()).dtype
-        self.model.score = nn.Linear(self.model.config.hidden_size,
-                                     n_tasks).to(device=self.device,
-                                                 dtype=model_dtype)
-        self.score = self.model.score
-        original_forward = self.model.original_forward
+        if task_type == "classification":
 
-        def forward(*args, **kwargs):
-            labels = kwargs.pop("labels", None)
-            outputs = original_forward(*args,
-                                       output_hidden_states=True,
-                                       **kwargs)
-            hidden = outputs.hidden_states[-1]
-            pooled = hidden[:, -1, :]
-            logits = self.score(pooled)
-            loss = None
-            if labels is not None:
-                loss = nn.functional.mse_loss(logits.float(), labels.float())
-            return {"loss": loss, "logits": logits}
+            def forward(*args, **fwd_kwargs):
+                labels = fwd_kwargs.pop("labels", None)
+                outputs = original_forward(*args,
+                                           output_hidden_states=True,
+                                           **fwd_kwargs)
+                pooled = outputs.hidden_states[-1][:, -1, :]
+                logits = model.score(pooled).float()
+                loss = None
+                if labels is not None:
+                    loss = nn.functional.cross_entropy(logits, labels.float())
+                return {"loss": loss, "logits": logits}
+        else:
 
-        self.model.forward = forward
-        self.task = 'regression'
-        return self.fit(dataset, **kwargs)
+            def forward(*args, **fwd_kwargs):
+                labels = fwd_kwargs.pop("labels", None)
+                outputs = original_forward(*args,
+                                           output_hidden_states=True,
+                                           **fwd_kwargs)
+                pooled = outputs.hidden_states[-1][:, -1, :]
+                logits = model.score(pooled).float()
+                loss = None
+                if labels is not None:
+                    loss = nn.functional.mse_loss(logits, labels.float())
+                return {"loss": loss, "logits": logits}
 
-    def classification(self, dataset: Dataset, n_tasks: int = 2, **kwargs):
-        if not hasattr(self.model, 'original_forward'):
-            self.model.original_forward = self.model.forward
-        model_dtype = next(self.model.parameters()).dtype
-        self.model.score = nn.Linear(self.model.config.hidden_size,
-                                     n_tasks).to(device=self.device,
-                                                 dtype=model_dtype)
-        self.score = self.model.score
-        original_forward = self.model.original_forward
+        model.forward = forward
 
-        def forward(*args, **kwargs):
-            labels = kwargs.pop("labels", None)
-            outputs = original_forward(*args,
-                                       output_hidden_states=True,
-                                       **kwargs)
-            hidden = outputs.hidden_states[-1]
-            pooled = hidden[:, -1, :]
-            logits = self.score(pooled)
-            loss = None
-            if labels is not None:
-                loss = nn.functional.cross_entropy(logits.float(),
-                                                   labels.float())
-            return {"loss": loss, "logits": logits}
-
-        self.model.forward = forward
-        self.task = 'classification'
-        return self.fit(dataset, **kwargs)
+        super().__init__(model=model,
+                         tokenizer=tokenizer,
+                         task=task_type,
+                         **kwargs)
