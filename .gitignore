@@ -2,6 +2,10 @@
 __pycache__/
 *.py[cod]
 *$py.class
+.mypy_cache/
+model-dir/
+.DS_Store
+**/.DS_Store
 
 # C extensions
 *.so
