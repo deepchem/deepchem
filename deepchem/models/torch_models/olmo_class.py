@@ -2,7 +2,7 @@ import torch.nn as nn
 from transformers import AutoTokenizer, OlmoForCausalLM
 from deepchem.models.torch_models.hf_models import HuggingFaceModel
 try:
-    import torch  
+    import torch
 except ModuleNotFoundError:
     pass
 
@@ -30,6 +30,7 @@ class Olmo(HuggingFaceModel):
      >>> loss = model.fit(dataset, nb_epoch=1)
      >>> predictions = model.predict(dataset)
     """
+
     def __init__(self,
                  model,
                  tokenizer,
