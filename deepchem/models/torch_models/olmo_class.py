@@ -67,7 +67,8 @@ class Olmo(HuggingFaceModel):
                 logits = model.score(pooled).float()
                 loss = None
                 if labels is not None:
-                    loss = nn.functional.cross_entropy(logits, labels.float())
+                    loss = nn.functional.binary_cross_entropy_with_logits(
+                        logits, labels.float())
                 return {"loss": loss, "logits": logits}
         else:
 

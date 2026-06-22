@@ -9,13 +9,13 @@ SMILES = [
 
 
 @pytest.mark.hf
-def test_olmo_classification():
+def test_olmo_single_label_classification():
     from deepchem.models.torch_models.olmo_class import Olmo
 
     model = Olmo(model="allenai/OLMo-1B-hf",
-                       tokenizer=None,
-                       task_type="classification",
-                       n_tasks=1)
+                 tokenizer=None,
+                 task_type="classification",
+                 n_tasks=1)
 
     dataset = dc.data.NumpyDataset(SMILES, np.array([[1.0], [0.0]]))
 
@@ -24,3 +24,21 @@ def test_olmo_classification():
 
     predictions = model.predict(dataset)
     assert predictions.shape == (len(SMILES), 1)
+
+
+@pytest.mark.hf
+def test_olmo_multi_label_classification():
+    from deepchem.models.torch_models.olmo_class import Olmo
+
+    model = Olmo(model="allenai/OLMo-1B-hf",
+                 tokenizer=None,
+                 task_type="classification",
+                 n_tasks=2)
+
+    dataset = dc.data.NumpyDataset(SMILES, np.array([[1.0, 0.0], [0.0, 1.0]]))
+
+    loss = model.fit(dataset, nb_epoch=1)
+    assert loss is not None
+
+    predictions = model.predict(dataset)
+    assert predictions.shape == (len(SMILES), 2)
