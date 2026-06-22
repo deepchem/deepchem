@@ -259,10 +259,9 @@ class CosineSchedule(nn.Module):
         self.register_buffer(
             'posterior_mean_coef1',
             betas * torch.sqrt(alpha_cumprod_prev) / (1.0 - alpha_cumprod))
-        self.register_buffer(
-            'posterior_mean_coef2',
-            (1.0 - alpha_cumprod_prev) * torch.sqrt(alphas) /
-            (1.0 - alpha_cumprod))
+        self.register_buffer('posterior_mean_coef2',
+                             (1.0 - alpha_cumprod_prev) * torch.sqrt(alphas) /
+                             (1.0 - alpha_cumprod))
 
     def q_sample(
         self,
