@@ -20,24 +20,24 @@ class DNABertFeaturizer(PreTrainedTokenizerFast, Featurizer):
     Examples
     --------
     DNABertFeaturizer can be used directly as a HuggingFace tokenizer via `__call__`,
-    returning a `BatchEncoding` dictionary with `input_ids` and `attention_mask`.
+    returning a `BatchEncoding` dictionary with `input_ids`, `token_type_ids` and `attention_mask`.
 
     >>> from deepchem.feat.dnabert_tokenizer import DNABertFeaturizer
     >>> sequences = ["ACGTACGT", "GGGTTTCCC"]
     >>> featurizer = DNABertFeaturizer.from_pretrained("zhihan1996/DNABERT-2-117M", trust_remote_code=True)
     >>> out = featurizer(sequences, add_special_tokens=True, truncation=True)
     >>> list(out.keys())
-    ['input_ids', 'attention_mask']
+    ['input_ids', 'token_type_ids', 'attention_mask']
 
     It can also be used as a DeepChem featurizer via the `.featurize()` method,
-    which returns a numpy array of shape `(n_sequences, 2, max_length)`.
+    which returns a numpy array of shape `(n_sequences, 3, max_length)`.
 
     >>> from deepchem.feat.dnabert_tokenizer import DNABertFeaturizer
     >>> sequences = ["ACGTACGT", "GGGTTTCCC"]
     >>> featurizer = DNABertFeaturizer.from_pretrained("zhihan1996/DNABERT-2-117M", trust_remote_code=True)
     >>> feats = featurizer.featurize(sequences, add_special_tokens=True, truncation=True, padding='max_length', max_length=100)
     >>> feats.shape
-    (2, 2, 100)
+    (2, 3, 100)
 
     Note
     -----
@@ -61,7 +61,7 @@ class DNABertFeaturizer(PreTrainedTokenizerFast, Featurizer):
         Returns
         -------
         encoding: List
-            List containing two lists; the `input_ids` and the `attention_mask`
+            List containing three lists; the `input_ids`, `token_type_ids` and the `attention_mask`
         """
 
         encoding = list(self(datapoint, **kwargs).values())
