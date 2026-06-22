@@ -8,9 +8,9 @@ from deepchem.feat.base_classes import Featurizer
 try:
     from Bio.PDB import PDBParser
     from Bio.Data.IUPACData import protein_letters_3to1
+    has_biopython = True
 except ImportError:
-    raise ImportError(
-        "biopython library must be installed to run this featurizer.")
+    has_biopython = False
 
 logger = logging.getLogger(__name__)
 
