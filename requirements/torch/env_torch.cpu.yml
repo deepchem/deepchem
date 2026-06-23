@@ -1,4 +1,5 @@
 dependencies:
+  - pylibxc
   - pip:
     - -f https://download.pytorch.org/whl/cpu/torch_stable.html
     - -f https://data.dgl.ai/wheels/torch-2.2/repo.html
@@ -11,7 +12,6 @@ dependencies:
     - -f https://data.pyg.org/whl/torch-2.2.1+cpu.html
     - torch-cluster
     - git+https://github.com/diffqc/dqclibs.git
-    - git+https://gitlab.com/libxc/libxc.git
     - basis-set-exchange
     - h5py
     - pyscf
