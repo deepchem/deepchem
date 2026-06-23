@@ -23,6 +23,22 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Tupl
 from deepchem.utils.typing import LossFn, OneOrMany
 from deepchem.models.wandblogger import WandbLogger
 
+
+def is_npu_available():
+    """
+    Checks if a Huawei Ascend NPU is available and the torch_npu library is installed.
+
+    Returns
+    -------
+    bool
+        True if NPU is available, False otherwise, without causing error if torch_npu is not installed.
+    """
+    try:
+        import torch_npu
+        return torch.npu.is_available()
+    except (ImportError, AttributeError):
+        return False
+
 try:
     import wandb
     wandb.ensure_configured()
@@ -195,6 +211,8 @@ class TorchModel(Model):
         if device is None:
             if torch.cuda.is_available():
                 device = torch.device('cuda')
+            elif is_npu_available():
+                device = torch.device('npu')
             elif torch.backends.mps.is_available():
                 device = torch.device('mps')
             else:
