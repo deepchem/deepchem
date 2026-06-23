@@ -142,6 +142,29 @@ class HuggingFaceModel(TorchModel):
     >>> if os.path.exists(tempdir):
     ...     shutil.rmtree(tempdir)
     """
+    
+    """
+    Example
+    -------
+    To get started with HuggingFace models in DeepChem, you can import a model
+    and tokenizer from the Transformers library and pass them to the
+    HuggingFaceModel class.
+
+    >>> import deepchem as dc
+    >>> from transformers import AutoModelForSequenceClassification, AutoTokenizer
+    >>> # Using a small model for a fast demonstration
+    >>> model_name = "prajjwal1/bert-tiny"
+    >>> tokenizer = AutoTokenizer.from_pretrained(model_name)
+    >>> model = AutoModelForSequenceClassification.from_pretrained(model_name)
+    >>>
+    >>> # Create the DeepChem wrapper
+    >>> dc_model = dc.models.HuggingFaceModel(
+    ...     model=model,
+    ...     tokenizer=tokenizer,
+    ...     task='classification'
+    ... )
+    >>> # Now you can use dc_model.fit(), dc_model.predict(), etc.
+    """
 
     def __init__(
             self,
