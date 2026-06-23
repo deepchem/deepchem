@@ -1,5 +1,6 @@
 import itertools
 import tempfile
+from unittest import mock
 
 import numpy as np
 
@@ -174,6 +175,40 @@ def test_transform_to_directory():
                                np.zeros_like(w_task[w_orig_task == 0]))
     # Check that sum of 0s equals sum of 1s in transformed for each task
     assert np.isclose(np.sum(w_task[y_task == 0]), np.sum(w_task[y_task == 1]))
+
+
+def test_transform_to_directory_keeps_temporary_source_separate():
+    """Test that non-DiskDataset inputs do not reuse out_dir as the temp source."""
+    n_samples = 6
+    n_features = 3
+    n_classes = 2
+    np.random.seed(123)
+    X = np.random.rand(n_samples, n_features)
+    y = np.random.randint(n_classes, size=(n_samples,))
+    w = np.ones((n_samples,))
+    dataset = dc.data.NumpyDataset(X, y, w)
+
+    balancing_transformer = dc.trans.BalancingTransformer(dataset=dataset)
+    temp_source = mock.MagicMock()
+    temp_source.get_shape.return_value = (
+        dataset.X.shape,
+        dataset.y.shape,
+        dataset.w.shape,
+        dataset.ids.shape,
+    )
+    temp_source.transform.return_value = "transformed"
+
+    with tempfile.TemporaryDirectory() as tmpdirname:
+        with mock.patch.object(dc.data.DiskDataset, "from_numpy", return_value=temp_source) as from_numpy:
+            result = balancing_transformer.transform(dataset, out_dir=tmpdirname)
+
+    assert result == "transformed"
+    from_numpy.assert_called_once_with(dataset.X, dataset.y, dataset.w, dataset.ids)
+    temp_source.transform.assert_called_once_with(
+        balancing_transformer,
+        out_dir=tmpdirname,
+        parallel=False,
+    )
 
 
 def test_array_shapes():
