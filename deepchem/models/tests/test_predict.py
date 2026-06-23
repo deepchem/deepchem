@@ -14,7 +14,7 @@ try:
     from sklearn.ensemble import RandomForestClassifier  # noqa: F401
     from sklearn.ensemble import RandomForestRegressor  # noqa: F401
     has_tensorflow = True
-except:
+except Exception:
     has_tensorflow = False
 
 

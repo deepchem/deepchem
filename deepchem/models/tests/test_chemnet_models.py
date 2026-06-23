@@ -11,7 +11,7 @@ from deepchem.molnet.load_function.chembl25_datasets import CHEMBL25_TASKS
 try:
     from deepchem.models import Smiles2Vec, ChemCeption
     has_tensorflow = True
-except:
+except Exception:
     has_tensorflow = False
 
 
