@@ -1,0 +1,9 @@
+/outputs
+/_pycache_/
+/.vscode/
+.DS_Store
+env/
+__pycache__/
+.ipynb_checkpoints
+*.pyc
+rfcomparison.py
