@@ -1201,7 +1201,7 @@ class GraphNetwork(torch.nn.Module):
             edge_features: Tensor,
             global_features: Tensor,
             batch: Optional[Tensor] = None) -> Tuple[Tensor, Tensor, Tensor]:
-        """Output computation for a GraphNetwork
+        r"""Output computation for a GraphNetwork
         
         Parameters
         ----------
@@ -7722,7 +7722,7 @@ class SE3PairwiseConv(nn.Module):
 
 
 class SE3Sum(nn.Module):
-    """
+    r"""
     SE(3)-Equivariant Graph Residual Sum Function (SE3Sum).
 
     This layer performs element-wise summation of SE(3)-equivariant
@@ -7819,7 +7819,7 @@ class SE3Sum(nn.Module):
 
 
 class SE3Cat(nn.Module):
-    """
+    r"""
     SE(3)-Equivariant Graph Feature Concatenation (SE3Cat).
 
     This layer concatenates features from two SE(3)-equivariant fiber representations.
@@ -7909,7 +7909,7 @@ class SE3Cat(nn.Module):
 
 
 class SE3AvgPooling(nn.Module):
-    """
+    r"""
     SE(3)-Equivariant Graph Average Pooling Module (SE3AvgPooling).
 
     This layer **performs average pooling over graph nodes while preserving SE(3) equivariance.
@@ -8013,7 +8013,7 @@ class SE3AvgPooling(nn.Module):
 
 
 class SE3MaxPooling(nn.Module):
-    """
+    r"""
     SE(3)-Equivariant Graph Max Pooling Module (SE3MaxPooling).
 
     This layer performs max pooling over graph nodes while preserving SE(3) equivariance.
@@ -8119,7 +8119,7 @@ class SE3MaxPooling(nn.Module):
 
 
 class SE3MultiHeadAttention(nn.Module):
-    """
+    r"""
     SE(3)-Equivariant Multi-Headed Self-Attention for Graph Neural Networks.
     This layer extends multi-head self-attention (MHA) to SE(3)-equivariant
     representations. Instead of using dot-product attention in standard Transformers,
@@ -8186,7 +8186,7 @@ class SE3MultiHeadAttention(nn.Module):
     """
 
     def __init__(self, f_value: Fiber, f_key: Fiber, n_heads: int) -> None:
-        """
+        r"""
         Initialize the SE(3)-equivariant multi-head self-attention layer.
 
         Parameters
