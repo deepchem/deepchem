@@ -333,14 +333,15 @@ class TestLosses(unittest.TestCase):
         mu = tf.constant([[0.2, 0.7], [1.2, 0.4]])
         result = loss._compute_tf_loss(logvar, mu).numpy()
         expected = [
-            0.5 * np.mean([
-                0.04 + 1.0 - np.log(1e-20 + 1.0) - 1,
-                0.49 + 1.69 - np.log(1e-20 + 1.69) - 1
-            ]), 0.5 * np.mean([
-                1.44 + 0.36 - np.log(1e-20 + 0.36) - 1,
-                0.16 + 1.44 - np.log(1e-20 + 1.44) - 1
-            ])
-        ]
+    0.5 * np.mean([
+        0.04 + np.exp(1.0) - 1.0 - 1,
+        0.49 + np.exp(1.3) - 1.3 - 1
+    ]),
+    0.5 * np.mean([
+        1.44 + np.exp(0.6) - 0.6 - 1,
+        0.16 + np.exp(1.2) - 1.2 - 1
+    ])
+]
         assert np.allclose(expected, result)
 
     @pytest.mark.torch
@@ -351,14 +352,15 @@ class TestLosses(unittest.TestCase):
         mu = torch.tensor([[0.2, 0.7], [1.2, 0.4]])
         result = loss._create_pytorch_loss()(logvar, mu).numpy()
         expected = [
-            0.5 * np.mean([
-                0.04 + 1.0 - np.log(1e-20 + 1.0) - 1,
-                0.49 + 1.69 - np.log(1e-20 + 1.69) - 1
-            ]), 0.5 * np.mean([
-                1.44 + 0.36 - np.log(1e-20 + 0.36) - 1,
-                0.16 + 1.44 - np.log(1e-20 + 1.44) - 1
-            ])
-        ]
+    0.5 * np.mean([
+        0.04 + np.exp(1.0) - 1.0 - 1,
+        0.49 + np.exp(1.3) - 1.3 - 1
+    ]),
+    0.5 * np.mean([
+        1.44 + np.exp(0.6) - 0.6 - 1,
+        0.16 + np.exp(1.2) - 1.2 - 1
+    ])
+]
         assert np.allclose(expected, result)
 
     @pytest.mark.tensorflow
