@@ -59,7 +59,7 @@ class Cache(object):
         self._cacheable_pnames: List[str] = []
         self._fname: Optional[str] = None
         self._pnames_to_cache: Optional[List[str]] = None
-        self._fhandler: Optional[h5py.File] = None
+        self._fhandler: Optional["h5py.File"] = None
 
     def set(self, fname: str, pnames: Optional[List[str]] = None):
         """set up the cache
@@ -313,7 +313,7 @@ class Cache(object):
         """
         return pname.replace(".", "/")
 
-    def _get_file_handler(self) -> h5py.File:
+    def _get_file_handler(self) -> "h5py.File":
         """Return the file handler, if the file is not opened yet,
         then raise an error
 
@@ -340,7 +340,7 @@ class Cache(object):
         """
         return self._fname is not None
 
-    def _load_dset(self, dset_name: str, fhandler: h5py.File) -> torch.Tensor:
+    def _load_dset(self, dset_name: str, fhandler: "h5py.File") -> torch.Tensor:
         """Load the dataset from the file handler (check is performed outside)
 
         Parameters
@@ -355,7 +355,7 @@ class Cache(object):
         dset = torch.as_tensor(dset_np)
         return dset
 
-    def _save_dset(self, dset_name: str, fhandler: h5py.File,
+    def _save_dset(self, dset_name: str, fhandler: "h5py.File",
                    dset: torch.Tensor):
         """Save res to the h5py in the dataset name
 
