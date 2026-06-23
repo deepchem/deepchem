@@ -4,7 +4,9 @@ Feature calculations.
 import inspect
 import logging
 import numpy as np
+from joblib import Parallel, delayed
 from typing import Any, Dict, Iterable, Optional, Tuple, Union, cast
+from collections.abc import Sequence as _Sequence  # runtime Sequence check
 
 from deepchem.utils import get_print_threshold
 from deepchem.utils.typing import PymatgenStructure
@@ -24,8 +26,9 @@ class Featurizer(object):
     """
 
     def featurize(self,
-                  datapoints: Iterable[Any],
+                  datapoints: Any,
                   log_every_n: int = 1000,
+                  n_jobs: int = 1,
                   **kwargs) -> np.ndarray:
         """Calculate features for datapoints.
 
@@ -37,25 +40,80 @@ class Featurizer(object):
             objects in the sequence.
         log_every_n: int, default 1000
             Logs featurization progress every `log_every_n` steps.
+        n_jobs: int, default 1
+            Number of parallel jobs to run.
+            -1 means "use all available cores".
 
         Returns
         -------
         np.ndarray
             A numpy array containing a featurized representation of `datapoints`.
         """
-        datapoints = list(datapoints)
-        features = []
-        for i, point in enumerate(datapoints):
+        # Normalize datapoints to a list. We accept Any here to maximize
+        # compatibility with subclasses that may use different signatures.
+        try:
+            datapoints = list(datapoints)
+        except TypeError:
+            # datapoints may be a single element (not iterable); wrap it.
+            datapoints = [datapoints]
+
+        # Helper that executes a single datapoint featurization safely.
+        def _safe_featurize(i: int, point: Any) -> Any:
+            """Helper to featurize safely with error handling.
+
+            Builds kwargs_per_datapoint: scalar kwargs are passed through;
+            sequence-like kwargs (lists/tuples/ndarrays) are indexed per i.
+            Strings and bytes are treated as scalars (not sequences to index).
+            """
             if i % log_every_n == 0:
                 logger.info("Featurizing datapoint %i" % i)
             try:
-                features.append(self._featurize(point, **kwargs))
-            except:
-                logger.warning(
-                    "Failed to featurize datapoint %d. Appending empty array")
-                features.append(np.array([]))
+                # Build kwargs for this datapoint.
+                kwargs_per_datapoint: Dict[str, Any] = {}
+                for key, val in kwargs.items():
+                    # Treat string/bytes as scalar even though they are sequences.
+                    if isinstance(val, _Sequence) and not isinstance(
+                            val, (str, bytes)):
+                        # Sequence-like: try indexing, but fall back to whole value on error.
+                        try:
+                            kwargs_per_datapoint[key] = val[i]
+                        except Exception:
+                            # If indexing fails (e.g., wrong length), pass original value.
+                            kwargs_per_datapoint[key] = val
+                    else:
+                        # Scalar: pass through.
+                        kwargs_per_datapoint[key] = val
 
-        return np.asarray(features)
+                return self._featurize(point, **kwargs_per_datapoint)
+            except Exception as e:
+                # Log the exception and return an empty array marker.
+                logger.warning(
+                    "Failed to featurize datapoint {}. Appending empty array. Error: {}"
+                    .format(i, e))
+                return np.array([])
+
+        # Run in parallel if requested
+        if n_jobs != 1:
+            logger.info(
+                "Featurizing {} datapoints using {} parallel jobs".format(
+                    len(datapoints), n_jobs))
+            # Use joblib.Parallel to run the safe wrapper on each datapoint.
+            features = Parallel(n_jobs=n_jobs)(
+                delayed(_safe_featurize)(i, point)
+                for i, point in enumerate(datapoints))
+        else:
+            features = [
+                _safe_featurize(i, point) for i, point in enumerate(datapoints)
+            ]
+
+        # Try to assemble into a homogeneous numpy array; if shapes differ,
+        # fall back to an object-dtype array to preserve results.
+        try:
+            return np.asarray(features)
+        except ValueError as e:
+            logger.warning(
+                "Exception while creating numpy array from features: %s", e)
+            return np.asarray(features, dtype=object)
 
     def __call__(self, datapoints: Iterable[Any], **kwargs):
         """Calculate features for datapoints.
@@ -160,6 +218,7 @@ class ComplexFeaturizer(Featurizer):
     def featurize(self,
                   datapoints: Optional[Iterable[Tuple[str, str]]] = None,
                   log_every_n: int = 100,
+                  n_jobs: int = 1,
                   **kwargs) -> np.ndarray:
         """
         Calculate features for mol/protein complexes.
@@ -169,6 +228,11 @@ class ComplexFeaturizer(Featurizer):
             List of filenames (PDB, SDF, etc.) for ligand molecules and proteins.
             Each element should be a tuple of the form (ligand_filename,
             protein_filename).
+        log_every_n: int, default 100
+            Logging messages reported every `log_every_n` samples.
+        n_jobs: int, default 1
+            Number of parallel jobs to run.
+            -1 means "use all available cores".
 
         Returns
         -------
@@ -183,32 +247,40 @@ class ComplexFeaturizer(Featurizer):
             )
         if not isinstance(datapoints, Iterable):
             datapoints = [cast(Tuple[str, str], datapoints)]
-        features, failures, successes = [], [], []
-        for idx, point in enumerate(datapoints):
-            if idx % log_every_n == 0:
-                logger.info("Featurizing datapoint %i" % idx)
-            try:
-                features.append(self._featurize(point, **kwargs))
+
+        # Convert to list for processing
+        datapoints = list(datapoints)
+
+        # Delegate to base class for parallel processing
+        features = super().featurize(datapoints,
+                                     log_every_n=log_every_n,
+                                     n_jobs=n_jobs,
+                                     **kwargs)
+
+        # Handle complex-specific post-processing for failed featurizations
+        # Find successful featurizations and create dummy arrays for failures
+        successes = []
+        failures = []
+        for idx, feature in enumerate(features):
+            if feature.size > 0:
                 successes.append(idx)
-            except:
-                logger.warning(
-                    "Failed to featurize datapoint %i. Appending empty array." %
-                    idx)
-                features.append(np.zeros(1))
+            else:
                 failures.append(idx)
 
-        # Find a successful featurization
-        try:
-            i = np.argmax([f.shape[0] for f in features])
-            dtype = features[i].dtype
-            shape = features[i].shape
-            dummy_array = np.zeros(shape, dtype=dtype)
-        except AttributeError:
-            dummy_array = features[successes[0]]
+        if failures and successes:
+            # Find a successful featurization to use as template
+            try:
+                i = np.argmax([f.shape[0] for f in features[successes]])
+                success_idx = successes[i]
+                dtype = features[success_idx].dtype
+                shape = features[success_idx].shape
+                dummy_array = np.zeros(shape, dtype=dtype)
+            except (AttributeError, IndexError):
+                dummy_array = np.zeros(1)
 
-        # Replace failed featurizations with appropriate array
-        for idx in failures:
-            features[idx] = dummy_array
+            # Replace failed featurizations with appropriate array
+            for idx in failures:
+                features[idx] = dummy_array
 
         return np.asarray(features, dtype=object)
 
@@ -242,7 +314,7 @@ molecule.
     The subclasses of this class require RDKit to be installed.
     """
 
-    def __init__(self, use_original_atoms_order=False):
+    def __init__(self, use_original_atoms_order: bool = False):
         """
         Parameters
         ----------
@@ -251,7 +323,11 @@ molecule.
         """
         self.use_original_atoms_order = use_original_atoms_order
 
-    def featurize(self, datapoints, log_every_n=1000, **kwargs) -> np.ndarray:
+    def featurize(self,
+                  datapoints: Any,
+                  log_every_n: int = 1000,
+                  n_jobs: int = 1,
+                  **kwargs) -> np.ndarray:
         """Calculate features for molecules.
 
         Parameters
@@ -261,6 +337,9 @@ molecule.
             strings.
         log_every_n: int, default 1000
             Logging messages reported every `log_every_n` samples.
+        n_jobs: int, default 1
+            Number of parallel jobs to run.
+            -1 means "use all available cores".
 
         Returns
         -------
@@ -286,43 +365,38 @@ molecule.
             datapoints = [datapoints]
         else:
             # Convert iterables to list
-            datapoints = list(datapoints)
-
-        features: list = []
-        for i, mol in enumerate(datapoints):
-            if i % log_every_n == 0:
-                logger.info("Featurizing datapoint %i" % i)
-
             try:
-                if isinstance(mol, str):
-                    # condition if the original atom order is required
-                    if hasattr(self, 'use_original_atoms_order'
-                              ) and self.use_original_atoms_order:
-                        # mol must be a RDKit Mol object, so parse a SMILES
-                        mol = Chem.MolFromSmiles(mol)
-                    else:
-                        # mol must be a RDKit Mol object, so parse a SMILES
-                        mol = Chem.MolFromSmiles(mol)
-                        # SMILES is unique, so set a canonical order of atoms
-                        new_order = rdmolfiles.CanonicalRankAtoms(mol)
-                        mol = rdmolops.RenumberAtoms(mol, new_order)
-                kwargs_per_datapoint = {}
-                for key in kwargs.keys():
-                    kwargs_per_datapoint[key] = kwargs[key][i]
-                features.append(self._featurize(mol, **kwargs_per_datapoint))
-            except Exception as e:
-                if isinstance(mol, Chem.rdchem.Mol):
-                    mol = Chem.MolToSmiles(mol)
-                logger.warning(
-                    "Failed to featurize datapoint %d, %s. Appending empty array",
-                    i, mol)
-                logger.warning("Exception message: {}".format(e))
-                features.append(np.array([]))
-        try:
-            return np.asarray(features)
-        except ValueError as e:
-            logger.warning("Exception message: {}".format(e))
-            return np.asarray(features, dtype=object)
+                datapoints = list(datapoints)
+            except TypeError:
+                datapoints = [datapoints]
+
+        # Build a processed list where SMILES strings are converted to RDKit Mol
+        # objects and invalid SMILES produce None placeholders. We annotate
+        # the list for mypy/type-checkers.
+        processed: list[Optional[Mol]] = []
+        for mol in datapoints:
+            if isinstance(mol, str):
+                # Parse SMILES into RDKit Mol; None if parsing fails.
+                parsed = Chem.MolFromSmiles(mol)
+                if parsed is None:
+                    processed.append(None)
+                    continue
+                # If canonical ordering is desired, renumber atoms.
+                if not getattr(self, 'use_original_atoms_order', False):
+                    new_order = rdmolfiles.CanonicalRankAtoms(parsed)
+                    parsed = rdmolops.RenumberAtoms(parsed, new_order)
+                processed.append(parsed)
+            else:
+                # Already an RDKit Mol (or None), append as-is.
+                processed.append(mol)
+
+        # Delegate to base class for the core featurization loop (including
+        # per-datapoint kwargs handling and parallelization). We forward
+        # n_jobs explicitly so that callers can request parallel execution.
+        return super().featurize(processed,
+                                 log_every_n=log_every_n,
+                                 n_jobs=n_jobs,
+                                 **kwargs)
 
 
 class MaterialStructureFeaturizer(Featurizer):
@@ -352,6 +426,7 @@ class MaterialStructureFeaturizer(Featurizer):
                   datapoints: Optional[Iterable[Union[Dict[
                       str, Any], PymatgenStructure]]] = None,
                   log_every_n: int = 1000,
+                  n_jobs: int = 1,
                   **kwargs) -> np.ndarray:
         """Calculate features for crystal structures.
 
@@ -362,7 +437,10 @@ class MaterialStructureFeaturizer(Featurizer):
             or pymatgen.core.Structure. Please confirm the dictionary representations
             of pymatgen.core.Structure from https://pymatgen.org/pymatgen.core.structure.html.
         log_every_n: int, default 1000
-            Logging messages reported every `log_every_n` samples.
+            Logging messages reported every `log_every_n` steps.
+        n_jobs: int, default 1
+            Number of parallel jobs to run.
+            -1 means "use all available cores".
 
         Returns
         -------
@@ -386,22 +464,19 @@ class MaterialStructureFeaturizer(Featurizer):
                 cast(Union[Dict[str, Any], PymatgenStructure], datapoints)
             ]
 
+        # Convert to list and preprocess structures
         datapoints = list(datapoints)
-        features = []
-        for idx, structure in enumerate(datapoints):
-            if idx % log_every_n == 0:
-                logger.info("Featurizing datapoint %i" % idx)
-            try:
-                if isinstance(structure, Dict):
-                    structure = Structure.from_dict(structure)
-                features.append(self._featurize(structure, **kwargs))
-            except:
-                logger.warning(
-                    "Failed to featurize datapoint %i. Appending empty array" %
-                    idx)
-                features.append(np.array([]))
+        processed_structures = []
+        for structure in datapoints:
+            if isinstance(structure, Dict):
+                structure = Structure.from_dict(structure)
+            processed_structures.append(structure)
 
-        return np.asarray(features)
+        # Delegate to base class for parallel processing
+        return super().featurize(processed_structures,
+                                 log_every_n=log_every_n,
+                                 n_jobs=n_jobs,
+                                 **kwargs)
 
 
 class MaterialCompositionFeaturizer(Featurizer):
@@ -430,6 +505,7 @@ class MaterialCompositionFeaturizer(Featurizer):
     def featurize(self,
                   datapoints: Optional[Iterable[str]] = None,
                   log_every_n: int = 1000,
+                  n_jobs: int = 1,
                   **kwargs) -> np.ndarray:
         """Calculate features for crystal compositions.
 
@@ -438,7 +514,10 @@ class MaterialCompositionFeaturizer(Featurizer):
         datapoints: Iterable[str]
             Iterable sequence of composition strings, e.g. "MoS2".
         log_every_n: int, default 1000
-            Logging messages reported every `log_every_n` samples.
+            Logging messages reported every `log_every_n` steps.
+        n_jobs: int, default 1
+            Number of parallel jobs to run.
+            -1 means "use all available cores".
 
         Returns
         -------
@@ -460,21 +539,18 @@ class MaterialCompositionFeaturizer(Featurizer):
         if not isinstance(datapoints, Iterable):
             datapoints = [cast(str, datapoints)]
 
+        # Convert to list and preprocess compositions
         datapoints = list(datapoints)
-        features = []
-        for idx, composition in enumerate(datapoints):
-            if idx % log_every_n == 0:
-                logger.info("Featurizing datapoint %i" % idx)
-            try:
-                c = Composition(composition)
-                features.append(self._featurize(c, **kwargs))
-            except:
-                logger.warning(
-                    "Failed to featurize datapoint %i. Appending empty array" %
-                    idx)
-                features.append(np.array([]))
+        processed_compositions = []
+        for composition in datapoints:
+            c = Composition(composition)
+            processed_compositions.append(c)
 
-        return np.asarray(features)
+        # Delegate to base class for parallel processing
+        return super().featurize(processed_compositions,
+                                 log_every_n=log_every_n,
+                                 n_jobs=n_jobs,
+                                 **kwargs)
 
 
 class PolymerFeaturizer(Featurizer):
@@ -511,6 +587,7 @@ class PolymerFeaturizer(Featurizer):
     def featurize(self,
                   datapoints: Iterable[Any],
                   log_every_n: int = 1000,
+                  n_jobs: int = 1,
                   **kwargs) -> np.ndarray:
         """Calculate features for polymers.
 
@@ -521,6 +598,9 @@ class PolymerFeaturizer(Featurizer):
 
         log_every_n: int, default 1000
             Logging messages reported every `log_every_n` samples.
+        n_jobs: int, default 1
+            Number of parallel jobs to run.
+            -1 means "use all available cores".
 
         Returns
         -------
@@ -531,32 +611,27 @@ class PolymerFeaturizer(Featurizer):
         if isinstance(datapoints, str):
             datapoints = [datapoints]
         else:
-            datapoints = list(datapoints)
-
-        features: list = []
-        for i, mol in enumerate(datapoints):
-            if i % log_every_n == 0:
-                logger.info("Featurizing datapoint %i" % i)
-
             try:
-                if isinstance(mol, str):
-                    # logic for string representation of the molecules
-                    features.append(self._featurize(mol))
-                else:
-                    raise ValueError(
-                        f"""The input data point has to be of string representation of
-                        BigSMILES or Weight Distributed String Representation not {type(mol)}"""
-                    )
-            except Exception as e:
-                # if it fails to featurize the polymer data point from given string
-                # then append an empty array
-                logger.warning("Exception message: {}".format(e))
-                features.append(np.array([]))
-        try:
-            return np.asarray(features)
-        except ValueError as e:
-            logger.warning("Exception message: {}".format(e))
-            return np.asarray(features, dtype=object)
+                datapoints = list(datapoints)
+            except TypeError:
+                datapoints = [datapoints]
+
+        # Validate and preprocess datapoints
+        processed_datapoints = []
+        for mol in datapoints:
+            if isinstance(mol, str):
+                processed_datapoints.append(mol)
+            else:
+                raise ValueError(
+                    "The input data point has to be of string representation of "
+                    "BigSMILES or Weight Distributed String Representation not {}"
+                    .format(type(mol)))
+
+        # Delegate to base class for parallel processing
+        return super().featurize(processed_datapoints,
+                                 log_every_n=log_every_n,
+                                 n_jobs=n_jobs,
+                                 **kwargs)
 
 
 class UserDefinedFeaturizer(Featurizer):
@@ -589,6 +664,7 @@ class DummyFeaturizer(Featurizer):
     def featurize(self,
                   datapoints: Iterable[Any],
                   log_every_n: int = 1000,
+                  n_jobs: int = 1,
                   **kwargs) -> np.ndarray:
         """Passes through dataset, and returns the datapoint.
 
