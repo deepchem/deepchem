@@ -249,9 +249,17 @@ class HuggingFaceModel(TorchModel):
                 self.model = AutoModelForCausalLM.from_pretrained(
                     model_dir, trust_remote_code=True, **self.config)
             else:
-                self.model = AutoModel.from_pretrained(model_dir,
-                                                       trust_remote_code=True,
-                                                       **self.config)
+try:
+    self.model = AutoModel.from_pretrained(model_name)
+except Exception as e:
+    raise ValueError(
+        f"[DeepChem Error] Failed to load HuggingFace model '{model_name}'.\n"
+        f"Possible reasons:\n"
+        f"- Model name is incorrect\n"
+        f"- No internet connection\n"
+        f"- Model not supported\n\n"
+        f"Original error: {str(e)}"
+    )
         elif not from_hf_checkpoint:
             checkpoints = sorted(self.get_checkpoints(model_dir))
             if len(checkpoints) == 0:
