@@ -286,6 +286,23 @@ class HuggingFaceModel(TorchModel):
                                            strict=False)
 
     def _prepare_batch(self, batch: Tuple[Any, Any, Any]):
+      """Prepare a batch of data for model input.
+
+        Tokenizes SMILES strings and formats inputs based on the task type.
+        For 'mlm', applies random token masking via the data collator.
+        For 'regression', 'classification', and 'mtr', converts labels to
+        the appropriate tensor dtype and moves all tensors to the device.
+
+        Parameters
+        ----------
+        batch: Tuple[Any, Any, Any]
+            A tuple of (X, y, w) from the dataset generator.
+
+        Returns
+        -------
+        Tuple[Any, Any, Any]
+            A tuple of (inputs_dict, labels, weights) ready for the model.
+        """
         smiles_batch, y, w = batch
         tokens = self.tokenizer(smiles_batch[0].tolist(),
                                 padding=True,
@@ -628,9 +645,13 @@ class HuggingFaceModel(TorchModel):
             mask_token_index = torch.where(
                 encoded_input["input_ids"] == self.tokenizer.mask_token_id)[1]
             # Ensure that the masked token index appears EXACTLY once.
-            assert mask_token_index.numel(
-            ) == 1, f"Sequence has masked indices at: {list(mask_token_index)}. Please ensure that only one position is masked in the sequence."
-
+         if mask_token_index.numel() != 1:
+                raise ValueError(
+                    f"Expected exactly one masked token in the sequence, "
+                    f"but found {mask_token_index.numel()} at positions: "
+                    f"{list(mask_token_index.tolist())}. "
+                    f"Please ensure only one position is masked."
+                )
             with torch.no_grad():
                 output = self.model(**encoded_input)
 
