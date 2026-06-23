@@ -9,8 +9,7 @@ from deepchem.models.losses import L2Loss
 
 
 class HNN(nn.Module):
-    """Model for learning hamiltonian dynamics using Hamiltonian Neural
-        Network.
+    """Model for learning hamiltonian dynamics using Hamiltonian Neural Network.
 
     Hamiltonian Neural Networks (HNNs) are a class of physics-informed
     models that learn the underlying Hamiltonian function of a dynamical
@@ -45,7 +44,7 @@ class HNN(nn.Module):
 
     References
     ----------
-    .. [1] Greydanus, S., Dzamba, M., & Yosinski, J. (2019).
+    .. [HNN_1] Greydanus, S., Dzamba, M., & Yosinski, J. (2019).
         "Hamiltonian Neural Networks."
        Advances in Neural Information Processing Systems (NeurIPS) 32.
        https://arxiv.org/abs/1906.01563
@@ -224,7 +223,7 @@ class HNNModel(TorchModel):
 
     References
     ----------
-    .. [1] Greydanus, S., Dzamba, M., & Yosinski, J. (2019).
+    .. [HNNModel_1] Greydanus, S., Dzamba, M., & Yosinski, J. (2019).
         "Hamiltonian Neural Networks."
        Advances in Neural Information Processing Systems (NeurIPS) 32.
        https://arxiv.org/abs/1906.01563

@@ -40,9 +40,9 @@ class ProgressiveMultitask(nn.Module):
 
     References
     ----------
-    See [1]_ for a full description of the progressive architecture
+    See [ProgressiveMultitask_1]_ for a full description of the progressive architecture
 
-    .. [1] Rusu, Andrei A., et al. "Progressive neural networks." arXiv preprint
+    .. [ProgressiveMultitask_1] Rusu, Andrei A., et al. "Progressive neural networks." arXiv preprint
         arXiv:1606.04671 (2016).
     """
 
@@ -331,9 +331,9 @@ class ProgressiveMultitaskModel(TorchModel):
 
     References
     ----------
-    See [1]_ for a full description of the progressive architecture
+    See [ProgressiveMultitaskModel_1]_ for a full description of the progressive architecture
 
-    .. [1] Rusu, Andrei A., et al. "Progressive neural networks." arXiv preprint
+    .. [ProgressiveMultitaskModel_1] Rusu, Andrei A., et al. "Progressive neural networks." arXiv preprint
         arXiv:1606.04671 (2016).
     """
 
@@ -548,9 +548,9 @@ class ProgressiveMultitaskRegressor(ProgressiveMultitaskModel):
 
     References
     ----------
-    See [1]_ for a full description of the progressive architecture
+    See [ProgressiveMultitaskRegressor_1]_ for a full description of the progressive architecture
 
-    .. [1] Rusu, Andrei A., et al. "Progressive neural networks." arXiv preprint
+    .. [ProgressiveMultitaskRegressor_1] Rusu, Andrei A., et al. "Progressive neural networks." arXiv preprint
         arXiv:1606.04671 (2016).
     """
 
@@ -637,9 +637,9 @@ class ProgressiveMultitaskClassifier(ProgressiveMultitaskModel):
 
     References
     ----------
-    See [1]_ for a full description of the progressive architecture
+    See [ProgressiveMultitaskClassifier_1]_ for a full description of the progressive architecture
 
-    .. [1] Rusu, Andrei A., et al. "Progressive neural networks." arXiv preprint
+    .. [ProgressiveMultitaskClassifier_1] Rusu, Andrei A., et al. "Progressive neural networks." arXiv preprint
         arXiv:1606.04671 (2016).
     """
 

@@ -33,9 +33,10 @@ class Smiles2Vec(nn.Module):
 
     References
     ----------
-    .. [1] Goh et al., "SMILES2vec: An Interpretable General-Purpose Deep Neural Network for
-    Predicting Chemical Properties" (https://arxiv.org/pdf/1712.02034.pdf)
-    .. [2] Chemnet (https://arxiv.org/abs/1712.02734)
+    .. [Smiles2Vec_1] Goh et al., "SMILES2vec: An Interpretable General-Purpose Deep Neural Network for
+        Predicting Chemical Properties" (https://arxiv.org/pdf/1712.02034.pdf)
+
+    .. [Smiles2Vec_2] Chemnet (https://arxiv.org/abs/1712.02734)
     """
 
     def __init__(
@@ -244,11 +245,11 @@ class Smiles2VecModel(TorchModel):
 
     References
     ----------
-    .. [1] Goh et al., "SMILES2vec: An Interpretable General-Purpose Deep Neural Network for
-    Predicting Chemical Properties" (https://arxiv.org/pdf/1712.02034.pdf)
+    .. [Smiles2VecModel_1] Goh et al., "SMILES2vec: An Interpretable General-Purpose Deep Neural Network for
+        Predicting Chemical Properties" (https://arxiv.org/pdf/1712.02034.pdf)
 
-    .. [2] Using Rule-Based Labels for Weak Supervised Learning: A ChemNet for Transferable
-    Chemical Property Prediction(https://arxiv.org/abs/1712.02734)
+    .. [Smiles2VecModel_2] Using Rule-Based Labels for Weak Supervised Learning: A ChemNet for Transferable
+        Chemical Property Prediction (https://arxiv.org/abs/1712.02734)
 
     """
 

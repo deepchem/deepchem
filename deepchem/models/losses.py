@@ -334,7 +334,7 @@ class VAE_ELBO(Loss):
 
     References
     ----------
-    .. [1] Kingma, Diederik P., and Max Welling. "Auto-encoding variational bayes." arXiv preprint arXiv:1312.6114 (2013).
+    .. [VAE_ELBO_1] Kingma, Diederik P., and Max Welling. "Auto-encoding variational bayes." arXiv preprint arXiv:1312.6114 (2013).
 
     """
 
@@ -392,7 +392,7 @@ class VAE_KLDivergence(Loss):
 
     References
     ----------
-    .. [1] Kingma, Diederik P., and Max Welling. "Auto-encoding variational bayes." arXiv preprint arXiv:1312.6114 (2013).
+    .. [VAE_KLDivergence_1] Kingma, Diederik P., and Max Welling. "Auto-encoding variational bayes." arXiv preprint arXiv:1312.6114 (2013).
 
     """
 
@@ -445,7 +445,7 @@ class ShannonEntropy(Loss):
 
     References
     ----------
-    .. [1] Chen, Ricky Xiaofeng. "A Brief Introduction to Shannon’s Information Theory." arXiv preprint arXiv:1612.09316 (2016).
+    .. [ShannonEntropy_1] Chen, Ricky Xiaofeng. "A Brief Introduction to Shannon’s Information Theory." arXiv preprint arXiv:1612.09316 (2016).
 
     """
 
@@ -493,7 +493,7 @@ class GlobalMutualInformationLoss(Loss):
 
     References
     ----------
-    .. [1] F.-Y. Sun, J. Hoffmann, V. Verma, and J. Tang, “InfoGraph: Unsupervised and Semi-supervised Graph-Level Representation Learning via Mutual Maximization.” arXiv, Jan. 17, 2020. http://arxiv.org/abs/1908.01000
+    .. [GlobalMutualInformationLoss_1] F.-Y. Sun, J. Hoffmann, V. Verma, and J. Tang, “InfoGraph: Unsupervised and Semi-supervised Graph-Level Representation Learning via Mutual Maximization.” arXiv, Jan. 17, 2020. http://arxiv.org/abs/1908.01000
 
     Examples
     --------
@@ -570,7 +570,7 @@ class LocalMutualInformationLoss(Loss):
 
     References
     ----------
-    .. [1] F.-Y. Sun, J. Hoffmann, V. Verma, and J. Tang, “InfoGraph: Unsupervised and Semi-supervised Graph-Level Representation Learning via Mutual Maximization.” arXiv, Jan. 17, 2020. http://arxiv.org/abs/1908.01000
+    .. [LocalMutualInformationLoss_1] F.-Y. Sun, J. Hoffmann, V. Verma, and J. Tang, “InfoGraph: Unsupervised and Semi-supervised Graph-Level Representation Learning via Mutual Maximization.” arXiv, Jan. 17, 2020. http://arxiv.org/abs/1908.01000
 
     Example
     -------
@@ -767,7 +767,8 @@ class GroverPretrainLoss(Loss):
 
     The Grover Pretraining consists learning of atom embeddings and bond embeddings for
     a molecule. To this end, the learning consists of three tasks:
-        1. Learning of atom vocabulary from atom embeddings and bond embeddings
+
+    1. Learning of atom vocabulary from atom embeddings and bond embeddings
         2. Learning of bond vocabulary from atom embeddings and bond embeddings
         3. Learning to predict functional groups from atom embedings readout and bond embeddings readout
     The loss function accepts atom vocabulary labels, bond vocabulary labels and functional group
@@ -952,7 +953,7 @@ class EdgePredictionLoss(Loss):
 
     References
     ----------
-    .. [1] Hu, W. et al. Strategies for Pre-training Graph Neural Networks. Preprint at https://doi.org/10.48550/arXiv.1905.12265 (2020).
+    .. [EdgePredictionLoss_1] Hu, W. et al. Strategies for Pre-training Graph Neural Networks. Preprint at https://doi.org/10.48550/arXiv.1905.12265 (2020).
     """
 
     def _create_pytorch_loss(self):
@@ -1028,7 +1029,7 @@ class GraphNodeMaskingLoss(Loss):
 
     References
     ----------
-    .. [1] Hu, W. et al. Strategies for Pre-training Graph Neural Networks. Preprint at https://doi.org/10.48550/arXiv.1905.12265 (2020).
+    .. [GraphNodeMaskingLoss_1] Hu, W. et al. Strategies for Pre-training Graph Neural Networks. Preprint at https://doi.org/10.48550/arXiv.1905.12265 (2020).
     """
 
     def _create_pytorch_loss(self, mask_edge=True):
@@ -1096,7 +1097,7 @@ class GraphEdgeMaskingLoss(Loss):
 
     References
     ----------
-    .. [1] Hu, W. et al. Strategies for Pre-training Graph Neural Networks. Preprint at https://doi.org/10.48550/arXiv.1905.12265 (2020).
+    .. [GraphEdgeMaskingLoss_1] Hu, W. et al. Strategies for Pre-training Graph Neural Networks. Preprint at https://doi.org/10.48550/arXiv.1905.12265 (2020).
     """
 
     def _create_pytorch_loss(self):
@@ -1150,7 +1151,7 @@ class DeepGraphInfomaxLoss(Loss):
 
     References
     ----------
-    .. [1] Veličković, P. et al. Deep Graph Infomax. Preprint at https://doi.org/10.48550/arXiv.1809.10341 (2018).
+    .. [DeepGraphInfomaxLoss_1] Veličković, P. et al. Deep Graph Infomax. Preprint at https://doi.org/10.48550/arXiv.1809.10341 (2018).
 
     """
 
@@ -1318,9 +1319,9 @@ class DensityProfileLoss(Loss):
 
 class NTXentMultiplePositives(Loss):
     """
-    This is a modification of the NTXent loss function from Chen [1]_. This loss is designed for contrastive learning of molecular representations, comparing the similarity of a molecule's latent representation to positive and negative samples.
+    This is a modification of the NTXent loss function from Chen [NTXentMultiplePositives_1]_. This loss is designed for contrastive learning of molecular representations, comparing the similarity of a molecule's latent representation to positive and negative samples.
 
-    The modifications proposed in [2]_ enable multiple conformers to be used as positive samples.
+    The modifications proposed in [NTXentMultiplePositives_2]_ enable multiple conformers to be used as positive samples.
 
     This loss function is designed for graph neural networks and is particularly useful for unsupervised pre-training tasks.
 
@@ -1351,9 +1352,9 @@ class NTXentMultiplePositives(Loss):
 
     References
     ----------
-    .. [1] Chen, T., Kornblith, S., Norouzi, M. & Hinton, G. A Simple Framework for Contrastive Learning of Visual Representations. Preprint at https://doi.org/10.48550/arXiv.2002.05709 (2020).
+    .. [NTXentMultiplePositives_1] Chen, T., Kornblith, S., Norouzi, M. & Hinton, G. A Simple Framework for Contrastive Learning of Visual Representations. Preprint at https://doi.org/10.48550/arXiv.2002.05709 (2020).
 
-    .. [2] Stärk, H. et al. 3D Infomax improves GNNs for Molecular Property Prediction. Preprint at https://doi.org/10.48550/arXiv.2110.04126 (2022).
+    .. [NTXentMultiplePositives_2] Stärk, H. et al. 3D Infomax improves GNNs for Molecular Property Prediction. Preprint at https://doi.org/10.48550/arXiv.2110.04126 (2022).
     """
 
     def __init__(self,
