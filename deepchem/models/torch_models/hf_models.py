@@ -173,6 +173,51 @@ class HuggingFaceModel(TorchModel):
             loss=None,  # type: ignore
             **kwargs)
 
+    @classmethod
+    def from_pretrained(cls,
+                       model_path: str,
+                       task: Optional[str] = None,
+                       tokenizer: Optional['transformers.tokenization_utils.PreTrainedTokenizer'] = None,
+                       config: Optional[Dict] = None,
+                       **kwargs):
+        """Create a HuggingFaceModel from a pretrained checkpoint.
+
+        This method provides a streamlined one-step approach to load
+        pretrained models, matching HuggingFace's standard API pattern.
+
+        Parameters
+        ----------
+        model_path : str
+            Path to pretrained model (HuggingFace model ID or local directory)
+        task : str, optional
+            Task type ('mlm', 'regression', 'classification', 'mtr', etc.)
+        tokenizer : transformers.tokenization_utils.PreTrainedTokenizer, optional
+            Tokenizer to use with the model
+        config : dict, optional
+            A dictionary of model configuration parameters
+        **kwargs : dict
+            Additional arguments passed to HuggingFaceModel constructor
+
+        Returns
+        -------
+        HuggingFaceModel
+            Initialized model with pretrained weights loaded
+        """
+        if task == 'mlm':
+            model = AutoModelForMaskedLM.from_pretrained(
+                model_path, trust_remote_code=True, **(config or {}))
+        elif task in ['mtr', 'regression', 'classification']:
+            model = AutoModelForSequenceClassification.from_pretrained(
+                model_path, trust_remote_code=True, **(config or {}))
+        elif task == "universal_segmentation":
+            model = AutoModelForUniversalSegmentation.from_pretrained(
+                model_path, trust_remote_code=True, **(config or {}))
+        else:
+            model = AutoModel.from_pretrained(
+                model_path, trust_remote_code=True, **(config or {}))
+
+        return cls(model=model, task=task, tokenizer=tokenizer, config=config, **kwargs)
+
     def load_from_pretrained(  # type: ignore
             self,
             model_dir: Optional[str] = None,
@@ -232,10 +277,8 @@ class HuggingFaceModel(TorchModel):
             model_dir = self.model_dir
 
         if from_hf_checkpoint:
-            # FIXME Transformers library has an api like AutoModel.from_pretrained. It allows to
-            # initialise and create a model instance directly without requiring a class instance initialisation step.
-            # To use `load_from_pretrained` in DeepChem, we need to follow a two step process
-            # of initialising class instance and then loading weights via `load_from_pretrained`.
+            # For a cleaner one-step approach, use HuggingFaceModel.from_pretrained() class method
+            # This two-step process is kept for backward compatibility
             if self.task == 'mlm':
                 self.model = AutoModelForMaskedLM.from_pretrained(
                     model_dir, trust_remote_code=True, **self.config)
