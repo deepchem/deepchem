@@ -11,9 +11,13 @@ import warnings
 try:
     import torch
     from deepchem.utils.dftutils import KSCalc
-    from deepchem.utils.dft_utils import parse_moldesc, BaseGrid, Mol, BaseSystem
+    from deepchem.utils.dft_utils.api.parser import parse_moldesc
+    from deepchem.utils.dft_utils.grid.base_grid import BaseGrid
+    from deepchem.utils.dft_utils.system.base_system import BaseSystem
+    from deepchem.utils.dft_utils.system.mol import Mol
+    from deepchem.utils.dft_utils.system.sol import Sol
 except Exception as e:
-    warnings.warn(f"Failed to import DFT dependencies with error: {e}")
+    warnings.warn(f"DFT dependencies error: {e}")
 
 
 class DFTSystem():
@@ -25,6 +29,16 @@ class DFTSystem():
     >>> from deepchem.feat.dft_data import DFTSystem
     >>> systems = {'moldesc': 'Li 1.5070 0 0; H -1.5070 0 0','basis': '6-311++G(3df,3pd)'}
     >>> output = DFTSystem(systems)
+
+    For periodic systems (Sol), include the 'alattice' key:
+
+    >>> import torch
+    >>> systems_pbc = {
+    ...     'moldesc': 'Si 0 0 0; Si 1.35 1.35 1.35',
+    ...     'basis': 'gth-szv',
+    ...     'alattice': torch.tensor([[5.43, 0, 0], [0, 5.43, 0], [0, 0, 5.43]])
+    ... }
+    >>> output_pbc = DFTSystem(systems_pbc)
 
     Returns
     -------
@@ -44,37 +58,76 @@ class DFTSystem():
         self.spin = 0
         self.charge = 0
         self.no = 1
+        self.alattice = None
+        self.grid = "sg3"
+        self.lattsum_opt = None
+
+        if 'auxbasis' in system.keys():
+            self.auxbasis = system["auxbasis"]
         if 'spin' in system.keys():
             self.spin = int(system["spin"])
         if 'charge' in system.keys():
             self.charge = int(system["charge"])
         if 'number' in system.keys():
             self.no = int(system["number"])
+        if 'alattice' in system.keys():
+            self.alattice = system["alattice"]
+        if 'grid' in system.keys():
+            self.grid = system["grid"]
+        if 'lattsum_opt' in system.keys():
+            self.lattsum_opt = system["lattsum_opt"]
         """
         Parameters
         ----------
         system: Dict
             system is a dictionary containing information on the atomic positions,
             atomic numbers, and basis set used for the DFT calculation.
+            For periodic systems (Sol), include 'alattice' as a torch.Tensor
+            defining the lattice vectors.
         """
 
     def get_dqc_mol(self, pos_reqgrad: bool = False) -> BaseSystem:
         """
         This method converts the system dictionary to a DQC system and returns it.
+        Returns a Mol object for isolated molecules, or a Sol object for periodic
+        systems (when 'alattice' is provided).
+
         Parameters
         ----------
         pos_reqgrad: bool
             decides if the atomic position require gradient calculation.
+
         Returns
         -------
-        mol
-            DQC mol object
+        BaseSystem
+            DQC Mol object for isolated molecules, or Sol object for periodic systems.
         """
         atomzs, atomposs = parse_moldesc(self.moldesc)
         if pos_reqgrad:
             atomposs.requires_grad_()
-        mol = Mol(self.moldesc, self.basis, spin=self.spin, charge=self.charge)
-        return mol
+
+        # If lattice vectors are provided, create a Sol (periodic) system
+        if self.alattice is not None:
+            system = Sol(
+                self.moldesc,
+                alattice=self.alattice,
+                basis=self.basis,
+                grid=self.grid,
+                spin=self.spin if self.spin != 0 else None,
+                lattsum_opt=self.lattsum_opt
+            )
+            # Density fitting is required for PBC calculations
+            system = system.densityfit(auxbasis=self.auxbasis)
+        else:
+            # Create a Mol (isolated molecule) system
+            system = Mol(
+                self.moldesc,
+                self.basis,
+                grid=self.grid,
+                spin=self.spin if self.spin != 0 else None,
+                charge=self.charge
+            )
+        return system
 
 
 class DFTEntry():

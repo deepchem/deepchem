@@ -5,7 +5,10 @@ from __future__ import annotations
 import torch
 from abc import abstractmethod, abstractproperty
 from typing import List, Optional, Union, Tuple
-from deepchem.utils.dft_utils import BaseGrid, BaseXC, BaseDF, SpinParam
+from deepchem.utils.dft_utils.grid.base_grid import BaseGrid
+from deepchem.utils.dft_utils.xc.base_xc import BaseXC
+from deepchem.utils.dft_utils.df.base_df import BaseDF
+from deepchem.utils.dft_utils.data.datastruct import SpinParam
 from deepchem.utils.differentiation_utils import EditableModule, LinearOperator
 
 
