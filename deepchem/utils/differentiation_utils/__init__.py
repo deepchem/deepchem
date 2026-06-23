@@ -5,6 +5,7 @@ try:
     from deepchem.utils.differentiation_utils.integrate.explicit_rk import fwd_euler_ivp
     from deepchem.utils.differentiation_utils.integrate.explicit_rk import rk4_ivp
     from deepchem.utils.differentiation_utils.integrate.explicit_rk import mid_point_ivp
+    from deepchem.utils.differentiation_utils.integrate.symplectic_integrator import leapfrog
 
     from deepchem.utils.differentiation_utils.editable_module import EditableModule
 
