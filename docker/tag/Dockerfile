@@ -1,4 +1,4 @@
-FROM nvidia/cuda:11.8.0-cudnn8-devel-ubuntu22.04
+FROM nvidia/cuda:12.4.1-cudnn-devel-ubuntu22.04
 
 # Install some utilities
 RUN apt-get update && \
@@ -7,7 +7,7 @@ RUN apt-get update && \
 
 # Install miniconda
 RUN MINICONDA="Miniconda3-latest-Linux-x86_64.sh" && \
-    wget --quiet https://repo.continuum.io/miniconda/$MINICONDA && \
+    wget --quiet https://repo.anaconda.com/miniconda/$MINICONDA && \
     bash $MINICONDA -b -p /miniconda && \
     rm -f $MINICONDA && \
     echo ". /miniconda/etc/profile.d/conda.sh" >> ~/.bashrc
@@ -17,7 +17,7 @@ SHELL ["/bin/bash", "-c"]
 
 # install latest version deepchem
 RUN conda update -n base conda && \
-    conda create -y --name deepchem python=3.10 && \
+    conda create -y --name deepchem python=3.11 && \
     . /miniconda/etc/profile.d/conda.sh && \
     conda activate deepchem && \
     pip install deepchem && \
