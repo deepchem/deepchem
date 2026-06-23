@@ -2,10 +2,33 @@
 Tests for weave featurizer.
 """
 import numpy as np
+import pytest
 import deepchem as dc
 from deepchem.feat.graph_features import max_pair_distance_pairs
+from rdkit import Chem
 
+def test_max_pair_distance_greater_than_N():
+    mol = Chem.MolFromSmiles('CCC')  # 3 atoms
+    # Test max_pair_distance >= N
+    # For CCC (3 atoms), max distance is 2.
+    # If we pass 3 or 100, it should be equivalent to None (all pairs).
+    # All pairs for 3 atoms = 3*3 = 9 pairs.
+    pair_edges_large = max_pair_distance_pairs(mol, 100)
+    assert pair_edges_large.shape == (2, 9)
 
+    pair_edges_exact_N = max_pair_distance_pairs(mol, 3)
+    assert pair_edges_exact_N.shape == (2, 9)
+
+def test_max_pair_distance_zero_raises():
+    mol = Chem.MolFromSmiles("CC")
+    with pytest.raises(ValueError, match="positive integer or None"):
+        max_pair_distance_pairs(mol, 0)
+
+def test_max_pair_distance_negative_raises():
+    mol = Chem.MolFromSmiles("CC")
+    with pytest.raises(ValueError, match="positive integer or None"):
+        max_pair_distance_pairs(mol, -1)
+        
 def test_max_pair_distance_pairs():
     """Test that max pair distance pairs are computed properly."""
     from rdkit import Chem
