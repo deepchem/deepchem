@@ -5,7 +5,8 @@ from typing import Dict, Iterable, Union
 import numpy as np
 
 
-def seq_one_hot_encode(sequences, letters: str = 'ATCGN') -> np.ndarray:
+def seq_one_hot_encode(sequences: Union[np.ndarray, Iterable],
+                       letters: str = 'ATCGN') -> np.ndarray:
     """One hot encodes list of genomic sequences.
 
     Sequences encoded have shape (N_sequences, N_letters, sequence_length, 1).
