@@ -1,9 +1,8 @@
 from typing import Dict, Any, Tuple
 from deepchem.models.torch_models.hf_models import HuggingFaceModel
-from transformers.models.roberta.modeling_roberta import (
-    RobertaConfig, RobertaForMaskedLM, RobertaForSequenceClassification)
-from transformers.models.roberta.tokenization_roberta_fast import \
-    RobertaTokenizerFast
+from transformers import (RobertaConfig, RobertaForMaskedLM,
+                          RobertaForSequenceClassification,
+                          RobertaTokenizerFast)
 from transformers.modeling_utils import PreTrainedModel
 try:
     import torch
