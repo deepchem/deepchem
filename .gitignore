@@ -108,4 +108,5 @@ env.yml
 .python-version
 **/*.ipynb_checkpoints/
 
-.database/
+.database/examples/tutorials/*.ipynb
+examples/tutorials/*.ipynb
