@@ -6,6 +6,7 @@ from deepchem.utils.dft_utils import BaseDF, DFMol, DensityFitInfo, eval_gto, ev
 from deepchem.utils.differentiation_utils import LinearOperator
 from deepchem.utils.cache_utils import Cache
 from deepchem.utils.dft_utils.hamilton.orbconverter import OrbitalOrthogonalizer
+from deepchem.utils.dft_utils.xc.base_xc import XCFamily
 
 logger = logging.getLogger(__name__)
 
@@ -69,7 +70,7 @@ class HamiltonCGTO(BaseHamilton):
         self.is_grad_ao_set = False
         self.is_lapl_ao_set = False
         self.xc: Optional[BaseXC] = None
-        self.xcfamily = 1
+        self.xcfamily = XCFamily.LDA
         self.is_built = False
 
         # initialize cache
@@ -214,7 +215,7 @@ class HamiltonCGTO(BaseHamilton):
         # save the family and save the xc
         self.xc = xc
         if xc is None:
-            self.xcfamily = 1
+            self.xcfamily = XCFamily.LDA
         else:
             self.xcfamily = xc.family
 
@@ -233,7 +234,7 @@ class HamiltonCGTO(BaseHamilton):
         self.basis_dvolume = self.basis * self.dvolume.unsqueeze(
             -1)  # (ngrid, nao)
 
-        if self.xcfamily == 1:  # LDA
+        if self.xcfamily == XCFamily.LDA:  # LDA
             return
 
         # setup the gradient of the basis
@@ -243,7 +244,7 @@ class HamiltonCGTO(BaseHamilton):
         self.grad_basis = eval_gradgto(self.libcint_wrapper,
                                        self.rgrid,
                                        to_transpose=True)
-        if self.xcfamily == 2:  # GGA
+        if self.xcfamily == XCFamily.GGA:  # GGA
             return
 
         # setup the laplacian of the basis
@@ -714,11 +715,11 @@ class HamiltonCGTO(BaseHamilton):
         gdens: Optional[torch.Tensor] = None
         lapldens: Optional[torch.Tensor] = None
         kindens: Optional[torch.Tensor] = None
-        if self.xcfamily == 2 or self.xcfamily == 4:  # GGA or MGGA
+        if self.xcfamily == XCFamily.GGA or self.xcfamily == XCFamily.MGGA:  # GGA or MGGA
             gdens = torch.empty((*dm.shape[:-2], 3, ngrid),
                                 dtype=self.dtype,
                                 device=self.device)  # (..., ndim, ngrid)
-        if self.xcfamily == 4:  # MGGA
+        if self.xcfamily == XCFamily.MGGA:  # MGGA
             lapldens = torch.empty((*batchshape, ngrid),
                                    dtype=self.dtype,
                                    device=self.device)
@@ -734,7 +735,7 @@ class HamiltonCGTO(BaseHamilton):
             dmao = torch.matmul(basis, dmdmt)  # (ngrid2, nao)
             dens[..., ioff:iend] = torch.einsum("...ri,ri->...r", dmao, basis)
 
-            if self.xcfamily == 2 or self.xcfamily == 4:  # GGA or MGGA
+            if self.xcfamily == XCFamily.GGA or self.xcfamily == XCFamily.MGGA:  # GGA or MGGA
                 assert gdens is not None
                 if not self.is_grad_ao_set:
                     msg = "Please call `setup_grid(grid, gradlevel>=1)` to calculate the density gradient"
@@ -752,7 +753,7 @@ class HamiltonCGTO(BaseHamilton):
                 gdens[..., 2, ioff:iend] = torch.einsum("...ri,ri->...r", dmao,
                                                         grad_basis2) * 2
 
-            if self.xcfamily == 4:
+            if self.xcfamily == XCFamily.MGGA:
                 assert lapldens is not None
                 assert kindens is not None
                 # calculate the laplacian of the density and kinetic energy density at the grid
@@ -813,7 +814,8 @@ class HamiltonCGTO(BaseHamilton):
             # basis: (nr, nao)
             vb = potinfo.value[..., ioff:iend].unsqueeze(
                 -1) * basis  # (*BD, nr, nao)
-            if self.xcfamily in [2, 4]:  # GGA or MGGA
+            if XCFamily.order(self.xcfamily) >= XCFamily.order(
+                    XCFamily.GGA):  # GGA or MGGA
                 assert potinfo.grad is not None  # (..., ndim, nr)
                 vgrad = potinfo.grad[..., ioff:iend] * 2
                 grad_basis0 = self.grad_basis[0, ioff:iend, :]  # (nr, nao)
@@ -825,7 +827,7 @@ class HamiltonCGTO(BaseHamilton):
                                    grad_basis1)
                 vb += torch.einsum("...r,ra->...ra", vgrad[..., 2, :],
                                    grad_basis2)
-            if self.xcfamily == 4:  # MGGA
+            if self.xcfamily == XCFamily.MGGA:  # MGGA
                 assert potinfo.lapl is not None  # (..., nrgrid)
                 assert potinfo.kin is not None
                 lapl = potinfo.lapl[..., ioff:iend]
@@ -836,7 +838,7 @@ class HamiltonCGTO(BaseHamilton):
             mat += torch.matmul(
                 self.basis_dvolume[ioff:iend, :].transpose(-2, -1), vb)
 
-            if self.xcfamily == 4:  # MGGA
+            if self.xcfamily == XCFamily.MGGA:  # MGGA
                 assert potinfo.lapl is not None  # (..., nrgrid)
                 assert potinfo.kin is not None
                 lapl_kin_dvol = (2 * lapl + 0.5 * kin) * self.dvolume[...,
@@ -917,17 +919,17 @@ class HamiltonCGTO(BaseHamilton):
         elif methodname == "_dm2densinfo":
             params = [prefix + "basis"] + \
                 self._orthozer.getparamnames("unconvert_dm", prefix=prefix + "_orthozer.")
-            if self.xcfamily == 2 or self.xcfamily == 4:
+            if self.xcfamily == XCFamily.GGA or self.xcfamily == XCFamily.MGGA:
                 params += [prefix + "grad_basis"]
-            if self.xcfamily == 4:
+            if self.xcfamily == XCFamily.MGGA:
                 params += [prefix + "lapl_basis"]
             return params
         elif methodname == "_get_vxc_from_potinfo":
             params = [prefix + "basis", prefix + "basis_dvolume"] + \
                 self._orthozer.getparamnames("convert2", prefix=prefix + "_orthozer.")
-            if self.xcfamily in [2, 4]:
+            if XCFamily.order(self.xcfamily) >= XCFamily.order(XCFamily.GGA):
                 params += [prefix + "grad_basis"]
-            if self.xcfamily == 4:
+            if self.xcfamily == XCFamily.MGGA:
                 params += [prefix + "lapl_basis", prefix + "dvolume"]
             return params
         else:

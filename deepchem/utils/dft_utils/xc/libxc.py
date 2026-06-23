@@ -6,6 +6,7 @@ except (ImportError, ModuleNotFoundError) as e:
     warnings.warn(f"Failed to import pylibxc. Might not be able to use xc. {e}")
 from typing import List, Tuple, Union, Optional
 from deepchem.utils.dft_utils import BaseXC, ValGrad, SpinParam
+from deepchem.utils.dft_utils.xc.base_xc import XCFamily
 from deepchem.utils.dft_utils.xc.libxc_wrapper import CalcLDALibXCPol, CalcLDALibXCUnpol, \
     CalcGGALibXCPol, CalcGGALibXCUnpol, CalcMGGALibXCUnpol, CalcMGGALibXCPol
 
@@ -66,16 +67,16 @@ class LibXCLDA(BaseXC):
         self._polfcn_wrapper = CalcLDALibXCPol  # type: ignore
 
     @property
-    def family(self) -> int:
+    def family(self) -> str:
         """Get the family of the exchange-correlation functional.
 
         Returns
         -------
-        int
+        str
             Family of the exchange-correlation functional
 
         """
-        return self._family
+        return XCFamily.LDA
 
     def get_vxc(
         self, densinfo: Union[ValGrad, SpinParam[ValGrad]]
@@ -97,7 +98,7 @@ class LibXCLDA(BaseXC):
             potentialinfo.grad: (*BD, nr, ndim)
 
         """
-        libxc_inps = _prepare_libxc_input(densinfo, xcfamily=self.family)
+        libxc_inps = _prepare_libxc_input(densinfo, xcfamily=self._family)
         flatten_inps = tuple(inp.reshape(-1) for inp in libxc_inps)
 
         # polarized case
@@ -133,7 +134,7 @@ class LibXCLDA(BaseXC):
             edens: (*BD, nr)
 
         """
-        libxc_inps = _prepare_libxc_input(densinfo, xcfamily=self.family)
+        libxc_inps = _prepare_libxc_input(densinfo, xcfamily=self._family)
         flatten_inps = tuple(inp.reshape(-1) for inp in libxc_inps)
 
         # polarized case
@@ -258,6 +259,18 @@ class LibXCGGA(LibXCLDA):
         self._unpolfcn_wrapper = CalcGGALibXCUnpol  # type: ignore
         self._polfcn_wrapper = CalcGGALibXCPol  # type: ignore
 
+    @property
+    def family(self) -> str:
+        """Get the family of the exchange-correlation functional.
+
+        Returns
+        -------
+        str
+            Family of the exchange-correlation functional
+
+        """
+        return XCFamily.GGA
+
 
 class LibXCMGGA(LibXCLDA):
     """Meta-Generalized Gradient Approximation (MGGA) wrapper for libxc.
@@ -310,6 +323,18 @@ class LibXCMGGA(LibXCLDA):
         self._family: int = 4
         self._unpolfcn_wrapper = CalcMGGALibXCUnpol  # type: ignore
         self._polfcn_wrapper = CalcMGGALibXCPol  # type: ignore
+
+    @property
+    def family(self) -> str:
+        """Get the family of the exchange-correlation functional.
+
+        Returns
+        -------
+        str
+            Family of the exchange-correlation functional
+
+        """
+        return XCFamily.MGGA
 
 
 def _prepare_libxc_input(densinfo: Union[SpinParam[ValGrad], ValGrad],
