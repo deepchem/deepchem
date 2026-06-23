@@ -1057,7 +1057,7 @@ class FASTALoader(DataLoader):
         if isinstance(input_files, str):
             input_files = [input_files]
 
-        def shard_generator():  # TODO Enable sharding with shard size parameter
+        def shard_generator():
             for input_file in input_files:
                 if self.legacy:
                     X = encode_bio_sequence(input_file)
@@ -1067,8 +1067,12 @@ class FASTALoader(DataLoader):
                     sequences = _read_file(input_file)
                     X = self.featurizer(sequences)
                 ids = np.ones(len(X))
-                # (X, y, w, ids)
-                yield X, None, None, ids
+                
+                if shard_size is not None and shard_size > 0:
+                    for i in range(0, len(X), shard_size):
+                        yield X[i:i+shard_size], None, None, ids[i:i+shard_size]
+                else:
+                    yield X, None, None, ids
 
         def _read_file(input_file: str):
             """
@@ -2012,13 +2016,17 @@ class SAMLoader(DataLoader):
         if isinstance(input_files, str):
             input_files = [input_files]
 
-        def shard_generator():  # TODO Enable sharding with shard size parameter
+        def shard_generator():
             for input_file in input_files:
                 samfile = pysam.AlignmentFile(input_file, "r")
                 X = self.featurizer._featurize(samfile)
                 ids = np.ones(len(X))
-                # (X, y, w, ids)
-                yield X, None, None, ids
+                
+                if shard_size is not None and shard_size > 0:
+                    for i in range(0, len(X), shard_size):
+                        yield X[i:i+shard_size], None, None, ids[i:i+shard_size]
+                else:
+                    yield X, None, None, ids
 
         return DiskDataset.create_dataset(shard_generator(), data_dir)
 
@@ -2110,13 +2118,17 @@ class BAMLoader(DataLoader):
         if isinstance(input_files, str):
             input_files = [input_files]
 
-        def shard_generator():  # TODO Enable sharding with shard size parameter
+        def shard_generator():
             for input_file in input_files:
                 bamfile = pysam.AlignmentFile(input_file, "rb")
                 X = self.featurizer._featurize(bamfile)
                 ids = np.ones(len(X))
-                # (X, y, w, ids)
-                yield X, None, None, ids
+                
+                if shard_size is not None and shard_size > 0:
+                    for i in range(0, len(X), shard_size):
+                        yield X[i:i+shard_size], None, None, ids[i:i+shard_size]
+                else:
+                    yield X, None, None, ids
 
         return DiskDataset.create_dataset(shard_generator(), data_dir)
 
@@ -2198,12 +2210,16 @@ class CRAMLoader(DataLoader):
         if isinstance(input_files, str):
             input_files = [input_files]
 
-        def shard_generator():  # TODO Enable sharding with shard size parameter
+        def shard_generator():
             for input_file in input_files:
                 cramfile = pysam.AlignmentFile(input_file, "rc")
                 X = self.featurizer._featurize(cramfile)
                 ids = np.ones(len(X))
-                # (X, y, w, ids)
-                yield X, None, None, ids
+                
+                if shard_size is not None and shard_size > 0:
+                    for i in range(0, len(X), shard_size):
+                        yield X[i:i+shard_size], None, None, ids[i:i+shard_size]
+                else:
+                    yield X, None, None, ids
 
         return DiskDataset.create_dataset(shard_generator(), data_dir)
