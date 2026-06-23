@@ -1961,6 +1961,15 @@ class DiskDataset(Dataset):
         DiskDataset
             A new `DiskDataset` constructed from the provided information.
         """
+        
+        import os
+        import logging
+        
+        if data_dir is not None and os.path.exists(data_dir):
+            if len(os.listdir(data_dir)) > 0:
+                logger = logging.getLogger(__name__)
+                logger.warning(f"Warning: The directory {data_dir} is not empty. You might be overwriting data!")
+                
         # To unify shape handling so from_numpy behaves like NumpyDataset, we just
         # make a NumpyDataset under the hood
         dataset = NumpyDataset(X, y, w, ids)
