@@ -1,0 +1,170 @@
+/* Theme tokens for DeepChem docs dark-mode support. */
+:root {
+  --dc-bg: #fcfcfc;
+  --dc-surface: #ffffff;
+  --dc-sidebar: #343131;
+  --dc-sidebar-search: #2b2929;
+  --dc-border: #d9d9d9;
+  --dc-text: #1f2937;
+  --dc-text-muted: #4b5563;
+  --dc-link: #2563eb;
+  --dc-code-bg: #f4f4f5;
+  --dc-code-text: #111827;
+}
+
+@media (prefers-color-scheme: dark) {
+  html:not([data-theme]) {
+    --dc-bg: #0f141d;
+    --dc-surface: #151c27;
+    --dc-sidebar: #0b1019;
+    --dc-sidebar-search: #111827;
+    --dc-border: #2e3a4f;
+    --dc-text: #e5e7eb;
+    --dc-text-muted: #c0c7d4;
+    --dc-link: #8cb4ff;
+    --dc-code-bg: #0b1220;
+    --dc-code-text: #dbeafe;
+  }
+}
+
+html[data-theme="light"] {
+  --dc-bg: #fcfcfc;
+  --dc-surface: #ffffff;
+  --dc-sidebar: #343131;
+  --dc-sidebar-search: #2b2929;
+  --dc-border: #d9d9d9;
+  --dc-text: #1f2937;
+  --dc-text-muted: #4b5563;
+  --dc-link: #2563eb;
+  --dc-code-bg: #f4f4f5;
+  --dc-code-text: #111827;
+}
+
+html[data-theme="dark"] {
+  --dc-bg: #0f141d;
+  --dc-surface: #151c27;
+  --dc-sidebar: #0b1019;
+  --dc-sidebar-search: #111827;
+  --dc-border: #2e3a4f;
+  --dc-text: #e5e7eb;
+  --dc-text-muted: #c0c7d4;
+  --dc-link: #8cb4ff;
+  --dc-code-bg: #0b1220;
+  --dc-code-text: #dbeafe;
+}
+
+body,
+.wy-body-for-nav,
+.wy-nav-content-wrap {
+  background: var(--dc-bg);
+  color: var(--dc-text);
+}
+
+.wy-nav-content {
+  background: var(--dc-surface);
+  color: var(--dc-text);
+}
+
+.wy-nav-side {
+  background: var(--dc-sidebar);
+}
+
+.wy-side-nav-search,
+.wy-side-nav-search > div.version {
+  background: var(--dc-sidebar-search);
+}
+
+.wy-menu-vertical a,
+.wy-breadcrumbs,
+.wy-breadcrumbs a,
+.rst-content,
+.rst-content p,
+.rst-content li {
+  color: var(--dc-text);
+}
+
+a,
+a:visited,
+.rst-content a,
+.rst-content a:visited {
+  color: var(--dc-link);
+}
+
+.wy-menu-vertical a:hover,
+.wy-menu-vertical a:focus {
+  background: rgba(140, 180, 255, 0.18);
+}
+
+.wy-menu-vertical li.current > a,
+.wy-menu-vertical li.current > a:hover {
+  background: rgba(140, 180, 255, 0.2);
+}
+
+.wy-menu-vertical li.toctree-l2.current > a,
+.wy-menu-vertical li.toctree-l3.current > a {
+  border-right: 2px solid var(--dc-link);
+}
+
+pre,
+code,
+.rst-content tt.literal,
+.rst-content code.literal {
+  background: var(--dc-code-bg);
+  color: var(--dc-code-text);
+  border-color: var(--dc-border);
+}
+
+.highlight {
+  background: var(--dc-code-bg);
+}
+
+.wy-table-responsive table td,
+.wy-table-responsive table th,
+.rst-content table.docutils td,
+.rst-content table.docutils th {
+  border-color: var(--dc-border);
+  color: var(--dc-text);
+}
+
+.wy-table-responsive table tr:nth-child(2n-1) td {
+  background: rgba(127, 127, 127, 0.06);
+}
+
+input[type="text"],
+input[type="email"],
+input[type="search"],
+input[type="password"],
+textarea {
+  background: var(--dc-surface);
+  color: var(--dc-text);
+  border-color: var(--dc-border);
+}
+
+.wy-alert,
+.rst-content .admonition,
+.rst-content .note,
+.rst-content .warning {
+  background: var(--dc-surface);
+  border-color: var(--dc-border);
+}
+
+.dc-theme-toggle {
+  position: fixed;
+  right: 1rem;
+  bottom: 1rem;
+  z-index: 1000;
+  padding: 0.45rem 0.7rem;
+  border: 1px solid var(--dc-border);
+  border-radius: 999px;
+  background: var(--dc-surface);
+  color: var(--dc-text);
+  font-size: 0.8rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.dc-theme-toggle:hover,
+.dc-theme-toggle:focus {
+  outline: none;
+  border-color: var(--dc-link);
+}
