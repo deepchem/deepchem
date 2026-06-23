@@ -1,15 +1,13 @@
 import re
 import torch
-import ctypes
 import numpy as np
 from typing import Tuple, Optional
 from deepchem.utils import estimate_ovlp_rcut
 from deepchem.utils.dft_utils.hamilton.intor.molintor import _gather_at_dims
-from deepchem.utils.dft_utils.hamilton.intor.utils import np2ctypes, int2ctypes, NDIM, CGTO
 from deepchem.utils.dft_utils import LibcintWrapper, get_default_kpts, get_default_options, PBCIntOption
+from deepchem.utils.analytical_integrators_torch.integrals import evaluate_gto_grid
 
-BLKSIZE = 128  # same as lib/gto/grid_ao_drv.c
-
+NDIM = 3
 
 # evaluation of the gaussian basis
 def evl(shortname: str,
@@ -661,38 +659,12 @@ def gto_evaluator(wrapper: LibcintWrapper, shortname: str, rgrid: torch.Tensor,
     in this file only
 
     """
-    ngrid = rgrid.shape[0]
-    nshells = len(wrapper)
-    nao = wrapper.nao()
-    opname = _get_evalgto_opname(shortname, wrapper.spherical)
-    outshape = _get_evalgto_compshape(shortname) + (nao, ngrid)
-
-    out = np.empty(outshape, dtype=np.float64)
-    non0tab = np.ones(((ngrid + BLKSIZE - 1) // BLKSIZE, nshells),
-                      dtype=np.int8)
-    rgrid = rgrid.contiguous()
-    coords = np.asarray(rgrid, dtype=np.float64, order='F')
-    ao_loc = np.asarray(wrapper.full_shell_to_aoloc, dtype=np.int32)
-
-    c_shls = (ctypes.c_int * 2)(*wrapper.shell_idxs)
-    c_ngrid = ctypes.c_int(ngrid)
-
-    # evaluate the orbital
-    operator = getattr(CGTO(), opname)
-    operator.restype = ctypes.c_double
-    atm, bas, env = wrapper.atm_bas_env
-    operator(c_ngrid, c_shls, np2ctypes(ao_loc), np2ctypes(out),
-             np2ctypes(coords), np2ctypes(non0tab), np2ctypes(atm),
-             int2ctypes(atm.shape[0]), np2ctypes(bas), int2ctypes(bas.shape[0]),
-             np2ctypes(env))
+    out = evaluate_gto_grid(wrapper, shortname, rgrid, wrapper.spherical)
 
     if to_transpose:
-        out = np.ascontiguousarray(np.moveaxis(out, -1, -2))
+        out = out.movedim(-1, -2).contiguous()
 
-    out_tensor = torch.as_tensor(out,
-                                 dtype=wrapper.dtype,
-                                 device=wrapper.device)
-    return out_tensor
+    return out.to(dtype=wrapper.dtype, device=wrapper.device)
 
 
 def _get_evalgto_opname(shortname: str, spherical: bool) -> str:

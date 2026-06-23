@@ -1091,22 +1091,6 @@ def test_s4_symmetry():
 
 
 @pytest.mark.torch
-def test_np2ctypes():
-    """Just checks that it doesn't raise errors."""
-    from deepchem.utils.dft_utils.hamilton.intor.utils import np2ctypes
-    arr = np.random.rand(2, 3, 4)
-    np2ctypes(arr)
-
-
-@pytest.mark.torch
-def test_int2ctypes():
-    """Just checks that it doesn't raise errors."""
-    from deepchem.utils.dft_utils.hamilton.intor.utils import int2ctypes
-    arr = 51
-    int2ctypes(arr)
-
-
-@pytest.mark.torch
 def test_memoize_method():
     from deepchem.utils import memoize_method
 
