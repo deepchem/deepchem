@@ -58,7 +58,7 @@ def run_benchmark_low_data(datasets,
   for dataset in datasets:
     if dataset in ['muv', 'sider', 'tox21']:
       mode = 'classification'
-      if metric == None:
+      if metric is None:
         metric = str('auc')
     else:
       raise ValueError('Dataset not supported')
@@ -70,7 +70,7 @@ def run_benchmark_low_data(datasets,
     if isinstance(metric, str):
       metric = metric_all[metric]
 
-    if featurizer == None and isinstance(model, str):
+    if featurizer is None and isinstance(model, str):
       # Assigning featurizer if not user defined
       pair = (dataset, model)
       if pair in CheckFeaturizer:
