@@ -113,6 +113,7 @@ tutorials discuss about using DeepChem for specific applications.
 * [2 Introducing_JaxModel_and_PINNModel](Introducing_JaxModel_and_PINNModel.ipynb)
 * [3 About_nODE_Using_Torchdiffeq_in_Deepchem](About_nODE_Using_Torchdiffeq_in_Deepchem.ipynb)
 * [4 Introduction_to_Hamiltonian_Neural_Network](Introduction_to_Hamiltonian_Neural_Network.ipynb)
+* [5 Introduction_To_Fourier_Neural_Operator](Introduction_To_Fourier_Neural_Operator.ipynb)
 
 ### Equivariance
 * [1 Introduction to Equivariance](Introduction_to_Equivariance.ipynb)
