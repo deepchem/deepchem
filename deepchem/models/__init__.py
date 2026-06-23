@@ -35,6 +35,13 @@ except ModuleNotFoundError as e:
 from deepchem.models.sklearn_models import SklearnModel
 from deepchem.models.gbdt_models import GBDTModel
 
+# Symbolic Regression model (requires PyTorch)
+try:
+    from deepchem.models.symbolic_regression import SymbolicRegressionModel
+except ModuleNotFoundError as e:
+    logger.warning(
+        f'Skipped loading SymbolicRegressionModel, missing a dependency. {e}')
+
 # PyTorch models
 try:
     from deepchem.models.torch_models import AtomConvModel as AtomicConvModel
