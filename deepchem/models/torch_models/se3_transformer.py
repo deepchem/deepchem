@@ -299,7 +299,6 @@ class SE3TransformerModel(TorchModel):
         model = SE3Transformer(
             num_layers=num_layers,
             atom_feature_size=atom_feature_size,
-            num_workers=num_workers,
             num_channels=num_channels,
             num_nlayers=num_nlayers,
             num_degrees=num_degrees,
@@ -310,6 +309,7 @@ class SE3TransformerModel(TorchModel):
         )
         super(SE3TransformerModel, self).__init__(model,
                                                   loss=loss,
+                                                  num_workers=num_workers,
                                                   device=self.device,
                                                   output_types=output_types,
                                                   **kwargs)
