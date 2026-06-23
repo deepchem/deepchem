@@ -135,9 +135,63 @@ class TestSplitter(unittest.TestCase):
             [train_data, valid_data, test_data])
         assert sorted(merged_dataset.ids) == (sorted(solubility_dataset.ids))
 
-    # TODO(rbharath): The IndexSplitter() had a bug with splitting sharded
-    # data. Make a test for properly splitting of sharded data. Perhaps using
-    # reshard() to handle this?
+    def test_index_splitter_on_sharded_dataset(self):
+        """
+        Regression test for IndexSplitter on sharded DiskDataset.
+
+        This test verifies that IndexSplitter correctly handles sharded datasets
+        by creating a DiskDataset, resharding it, and verifying the split
+        maintains data integrity.
+        """
+        # Create a dataset with enough samples to test sharding
+        n_samples = 100
+        n_features = 10
+        n_tasks = 1
+
+        np.random.seed(42)
+        X = np.random.rand(n_samples, n_features)
+        y = np.random.rand(n_samples, n_tasks)
+        w = np.ones((n_samples, n_tasks))
+        ids = np.array([f"sample_{i}" for i in range(n_samples)])
+
+        # Create DiskDataset and reshard to force multiple shards
+        dataset = dc.data.DiskDataset.from_numpy(X, y, w, ids)
+        shard_size = 10
+        dataset.reshard(shard_size=shard_size)
+
+        # Verify dataset is actually sharded
+        assert dataset.get_number_shards() > 1
+
+        # Split using IndexSplitter
+        index_splitter = dc.splits.IndexSplitter()
+        train_data, valid_data, test_data = index_splitter.train_valid_test_split(
+            dataset, frac_train=0.8, frac_valid=0.1, frac_test=0.1)
+
+        # Verify split sizes
+        assert len(train_data) == 80
+        assert len(valid_data) == 10
+        assert len(test_data) == 10
+
+        # Verify no data loss - all original samples should be present
+        all_split_ids = set(train_data.ids) | set(valid_data.ids) | set(
+            test_data.ids)
+        original_ids = set(dataset.ids)
+        assert all_split_ids == original_ids
+
+        # Verify no overlap between splits
+        assert set(train_data.ids).isdisjoint(set(valid_data.ids))
+        assert set(train_data.ids).isdisjoint(set(test_data.ids))
+        assert set(valid_data.ids).isdisjoint(set(test_data.ids))
+
+        # Verify data integrity - check that features match their IDs
+        merged_dataset = dc.data.DiskDataset.merge(
+            [train_data, valid_data, test_data])
+        for i, sample_id in enumerate(merged_dataset.ids):
+            # Extract original index from sample ID
+            original_idx = int(sample_id.split("_")[1])
+            # Verify the features match the original
+            assert np.allclose(merged_dataset.X[i], X[original_idx])
+            assert np.allclose(merged_dataset.y[i], y[original_idx])
 
     def test_singletask_scaffold_split(self):
         """
