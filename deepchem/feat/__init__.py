@@ -32,6 +32,10 @@ from deepchem.feat.molecule_featurizers import MACCSKeysFingerprint
 from deepchem.feat.molecule_featurizers import MordredDescriptors
 from deepchem.feat.molecule_featurizers import Mol2VecFingerprint
 from deepchem.feat.molecule_featurizers import MolGraphConvFeaturizer
+
+# ✅ YOUR ADDED FEATURE
+from deepchem.feat.molecular_weight_featurizer import MolecularWeightFeaturizer
+
 from deepchem.feat.molecule_featurizers import PagtnMolGraphFeaturizer
 from deepchem.feat.molecule_featurizers import MolGanFeaturizer
 from deepchem.feat.molecule_featurizers import OneHotFeaturizer
@@ -108,3 +112,85 @@ from deepchem.feat.vocabulary_builders import HuggingFaceVocabularyBuilder
 
 # support classes
 from deepchem.feat.molecule_featurizers import GraphMatrix
+
+
+# IMPORTANT: export list
+__all__ = [
+    "Featurizer",
+    "MolecularFeaturizer",
+    "MaterialStructureFeaturizer",
+    "MaterialCompositionFeaturizer",
+    "ComplexFeaturizer",
+    "UserDefinedFeaturizer",
+    "DummyFeaturizer",
+    "PolymerFeaturizer",
+
+    "ConvMolFeaturizer",
+    "WeaveFeaturizer",
+    "GraphData",
+    "WeightedDirectedGraphData",
+    "BindingPocketFeaturizer",
+
+    "AtomicCoordinates",
+    "BPSymmetryFunctionInput",
+    "CircularFingerprint",
+    "CoulombMatrix",
+    "CoulombMatrixEig",
+    "MACCSKeysFingerprint",
+    "MordredDescriptors",
+    "Mol2VecFingerprint",
+    "MolGraphConvFeaturizer",
+
+    # ✅ YOUR ADDITION (correct placement)
+    "MolecularWeightFeaturizer",
+
+    "PagtnMolGraphFeaturizer",
+    "MolGanFeaturizer",
+    "OneHotFeaturizer",
+    "SparseMatrixOneHotFeaturizer",
+    "PubChemFingerprint",
+    "RawFeaturizer",
+    "RDKitDescriptors",
+    "SmilesToImage",
+    "SmilesToSeq",
+
+    "MATFeaturizer",
+    "DMPNNFeaturizer",
+    "GroverFeaturizer",
+    "SNAPFeaturizer",
+    "RDKitConformerFeaturizer",
+    "MXMNetFeaturizer",
+    "EquivariantGraphFeaturizer",
+
+    "RdkitGridFeaturizer",
+    "NeighborListAtomicCoordinates",
+    "NeighborListComplexAtomicCoordinates",
+    "AtomicConvFeaturizer",
+    "ComplexNeighborListFragmentAtomicCoordinates",
+    "ContactCircularFingerprint",
+    "ContactCircularVoxelizer",
+    "SplifFingerprint",
+    "SplifVoxelizer",
+    "ChargeVoxelizer",
+    "SaltBridgeVoxelizer",
+    "CationPiVoxelizer",
+    "PiStackVoxelizer",
+    "HydrogenBondVoxelizer",
+    "HydrogenBondCounter",
+
+    "ElementPropertyFingerprint",
+    "SineCoulombMatrix",
+    "CGCNNFeaturizer",
+    "ElemNetFeaturizer",
+    "LCNNFeaturizer",
+
+    "AtomicConformation",
+    "AtomicConformationFeaturizer",
+    "HuggingFaceFeaturizer",
+
+    "RealignerFeaturizer",
+    "PileupFeaturizer",
+
+    "HuggingFaceVocabularyBuilder",
+    "GraphMatrix"
+]
