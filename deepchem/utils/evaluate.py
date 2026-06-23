@@ -94,12 +94,12 @@ def _process_metric_input(metrics: Metrics) -> List[Metric]:
     """
     # Make sure input is a list
     if not isinstance(metrics, list):
-        # FIXME: Incompatible types in assignment
-        metrics = [metrics]  # type: ignore
+        metrics_list: List[Metric_Func] = [metrics]
+    else:
+        metrics_list = metrics
 
     final_metrics = []
-    # FIXME: Argument 1 to "enumerate" has incompatible type
-    for i, metric in enumerate(metrics):  # type: ignore
+    for i, metric in enumerate(metrics_list):
         # Ensure that metric is wrapped in a list.
         if isinstance(metric, Metric):
             final_metrics.append(metric)
