@@ -255,7 +255,7 @@ class PPO(object):
                 manager.save()
                 checkpoint_time = time.time()
 
-    @tf.function(experimental_relax_shapes=True)
+    @tf.function(reduce_retracing=True)
     def _apply_gradients(self, inputs, actions_matrix, discounted_rewards,
                          advantages, action_prob):
         """Compute the gradient of the loss function for a batch and update the model."""
@@ -385,7 +385,7 @@ class PPO(object):
             ]
         return results
 
-    @tf.function(experimental_relax_shapes=True)
+    @tf.function(reduce_retracing=True)
     def _compute_model(self, inputs):
         return self._model.model(inputs)
 
@@ -566,6 +566,6 @@ class _Worker(object):
         state = state + rnn_states
         return [np.expand_dims(s, axis=0) for s in state]
 
-    @tf.function(experimental_relax_shapes=True)
+    @tf.function(reduce_retracing=True)
     def _compute_model(self, inputs):
         return self.model.model(inputs)
