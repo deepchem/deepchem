@@ -1,0 +1,45 @@
+/* Fix for API reference tables overflowing page width */
+/* Long identifiers (featurizer names, class names) should wrap */
+
+/* Make tables responsive and prevent overflow */
+.wy-table-responsive table {
+    width: 100%;
+    table-layout: fixed;
+}
+
+/* Allow word wrapping in table cells */
+.wy-table-responsive table td,
+.wy-table-responsive table th {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    hyphens: auto;
+}
+
+/* Specifically target code elements in tables to allow wrapping */
+.wy-table-responsive table td code,
+.wy-table-responsive table th code {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    white-space: pre-wrap;
+}
+
+/* Ensure the table container doesn't overflow */
+.wy-table-responsive {
+    overflow-x: auto;
+    max-width: 100%;
+}
+
+/* Allow long class/function names to wrap */
+.rst-content table.docutils td,
+.rst-content table.docutils th {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+/* Handle inline literals (backtick text) in tables */
+.rst-content table.docutils td code.literal,
+.rst-content table.docutils td code.xref,
+.rst-content table.docutils td a code {
+    white-space: pre-wrap;
+    word-break: break-word;
+}
