@@ -2,6 +2,7 @@ from typing import Union
 
 from deepchem.utils.typing import RDKitMol
 from deepchem.feat.base_classes import MolecularFeaturizer
+import warnings
 
 
 class RawFeaturizer(MolecularFeaturizer):
@@ -48,9 +49,7 @@ class RawFeaturizer(MolecularFeaturizer):
             raise ImportError("This class requires RDKit to be installed.")
         if 'mol' in kwargs:
             datapoint = kwargs.get("mol")
-            raise DeprecationWarning(
-                'Mol is being phased out as a parameter, please pass "datapoint" instead.'
-            )
+            warnings.warn('Mol is being phased out as a parameter, please pass "datapoint" instead.', DeprecationWarning, stacklevel=2)
 
         if self.smiles:
             return Chem.MolToSmiles(datapoint)
