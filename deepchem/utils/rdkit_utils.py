@@ -264,14 +264,15 @@ def load_molecule(molecule_file,
     """
     from rdkit import Chem
     from_pdb = False
+    is_sdf = False
     if ".mol2" in molecule_file:
         my_mol = Chem.MolFromMol2File(molecule_file,
                                       sanitize=False,
                                       removeHs=False)
     elif ".sdf" in molecule_file:
         suppl = Chem.SDMolSupplier(str(molecule_file), sanitize=False)
-        # TODO: This is wrong. Should return all molecules
-        my_mol = suppl[0]
+        is_sdf = True
+        my_mol = suppl
     elif ".pdbqt" in molecule_file:
         pdb_block = pdbqt_to_pdb(molecule_file)
         my_mol = Chem.MolFromPDBBlock(str(pdb_block),
@@ -286,27 +287,56 @@ def load_molecule(molecule_file,
     else:
         raise ValueError("Unrecognized file type for %s" % str(molecule_file))
 
-    if my_mol is None:
-        raise ValueError("Unable to read non None Molecule Object")
+    if is_sdf:
+        # Handle SDF files with multiple molecules
+        if len(suppl) == 0:
+            raise ValueError("Unable to read any molecules from SDF file")
 
-    if add_hydrogens or calc_charges:
-        my_mol = apply_pdbfixer(my_mol,
-                                hydrogenate=add_hydrogens,
-                                is_protein=is_protein)
-    if sanitize:
-        try:
-            Chem.SanitizeMol(my_mol)
-        # TODO: Ideally we should catch AtomValenceException but Travis seems to choke on it for some reason.
-        except:
-            logger.warning("Mol %s failed sanitization" %
-                           Chem.MolToSmiles(my_mol))
-    if calc_charges:
-        # This updates in place
-        compute_charges(my_mol)
+        results = []
+        for mol in suppl:
+            if mol is None:
+                continue
 
-    xyz = get_xyz_from_mol(my_mol)
+            if add_hydrogens or calc_charges:
+                mol = apply_pdbfixer(
+                    mol,
+                    hydrogenate=add_hydrogens,
+                    is_protein=is_protein)
+            if sanitize:
+                try:
+                    Chem.SanitizeMol(mol)
+                except:
+                    logger.warning("Mol %s failed sanitization" %
+                                   Chem.MolToSmiles(mol))
+            if calc_charges:
+                compute_charges(mol)
 
-    return xyz, my_mol
+            xyz = get_xyz_from_mol(mol)
+            results.append((xyz, mol))
+
+        # Return single tuple if only one molecule, else return list
+        return results[0] if len(results) == 1 else results
+    else:
+        if my_mol is None:
+            raise ValueError("Unable to read non None Molecule Object")
+
+        if add_hydrogens or calc_charges:
+            my_mol = apply_pdbfixer(my_mol,
+                                    hydrogenate=add_hydrogens,
+                                    is_protein=is_protein)
+        if sanitize:
+            try:
+                Chem.SanitizeMol(my_mol)
+            except:
+                logger.warning("Mol %s failed sanitization" %
+                               Chem.MolToSmiles(my_mol))
+        if calc_charges:
+            # This updates in place
+            compute_charges(my_mol)
+
+        xyz = get_xyz_from_mol(my_mol)
+
+        return xyz, my_mol
 
 
 def write_molecule(mol, outfile, is_protein=False):
