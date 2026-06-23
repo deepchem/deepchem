@@ -325,9 +325,18 @@ class ModularTorchModel(TorchModel):
             self.build_model()
 
         elif source_model is None:
-            self.restore(components=components,
-                         checkpoint=checkpoint,
-                         model_dir=model_dir)
+            logger.info('Loading pretrained model from checkpoint file')
+            if checkpoint is None:
+                checkpoints = sorted(self.get_checkpoints(model_dir))
+                if len(checkpoints) == 0:
+                    raise ValueError('No checkpoint found')
+                checkpoint = checkpoints[0]
+            data = torch.load(checkpoint)
+            for name, state_dict in data.items():
+                if name != 'model' and name in self.components.keys():
+                    if components is None or name in components:
+                        self.components[name].load_state_dict(state_dict)
+            self.build_model()
 
     def save_checkpoint(self, max_checkpoints_to_keep=5, model_dir=None):
         """
