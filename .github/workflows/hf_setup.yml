@@ -13,7 +13,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        python-version: ['3.8', '3.10', '3.11']
+        python-version: ['3.10', '3.11', '3.12']
         include:
           - os: windows-latest
             python-version: 3.9
@@ -43,7 +43,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        python-version: ['3.8', '3.10', '3.11']
+        python-version: ['3.10', '3.11', '3.12']
         include:
           - os: windows-latest
             python-version: '3.9'
@@ -109,7 +109,6 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Create env.yml for python 3.9+
       shell: bash
-      if: ${{ matrix.python-version != '3.8' }}
       run: |
         python -m pip install --upgrade pip;
         pip install conda-merge;
@@ -120,16 +119,6 @@ jobs:
         elif [[  "$(uname)" == "MINGW64_NT"* ]]; then
           conda-merge requirements/env_common.yml requirements/torch/env_torch.win.cpu.yml requirements/env_test.yml > env.yml
         fi
-    - name: Create env.yml for python 3.8
-      shell: bash
-      # A special case of environment creation for python 3.8 which includes an older version of matminer 
-      if: ${{ matrix.python-version == '3.8' }}
-      run: |
-        python -m pip install --upgrade pip;
-        pip install conda-merge;
-        sudo apt-get update
-        sudo apt-get install -y libopenblas-dev libatlas-base-dev libblas-dev liblapack-dev libhdf5-dev  
-        conda-merge requirements/env_common_3_8.yml requirements/torch/env_torch.cpu.yml requirements/env_test.yml > env.yml
     - name: Install all dependencies
       uses: conda-incubator/setup-miniconda@v3
       with:
@@ -139,10 +128,14 @@ jobs:
         channels: conda-forge,defaults
         python-version: ${{ matrix.python-version }}
         environment-file: env.yml
+        use-mamba: true
+    - name: Install uv for faster pip operations
+      shell: bash -l {0}
+      run: pip install uv pytest-xdist
     - name: Install DeepChem
       id: install
       shell: bash -l {0}
-      run: pip install -e .
+      run: uv pip install --system -e .
     - name: Doctest Linux
       if: ${{ (runner.os == 'Linux') && always() }}
       shell: bash -l {0}
@@ -155,4 +148,4 @@ jobs:
     - name: PyTest
       if: ${{ (success() || failure()) && (steps.install.outcome == 'failure' || steps.install.outcome == 'success') }}
       shell: bash -l {0}
-      run: pytest -v -m 'hf' deepchem
+      run: pytest -v -n auto -m 'hf' deepchem

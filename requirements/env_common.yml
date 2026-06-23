@@ -8,7 +8,7 @@ dependencies:
   - pdbfixer
   - pip
   - pip:
-    - numpy<1.26
+    - numpy>2.0.0
     - pymc>=5.10
     - rdkit==2023.09.5
     - pre-commit
@@ -20,12 +20,11 @@ dependencies:
     - networkx
     - pillow
     - pubchempy
-    - pyGPGO
     - pymatgen
     - simdna
     - transformers==4.51.3
     - tokenizers
     - xgboost
     - gensim  # used by mol2vec
-    - scipy<=1.12.0
+    - scipy
     - tensorboard
