@@ -50,7 +50,7 @@ class Featurizer(object):
                 logger.info("Featurizing datapoint %i" % i)
             try:
                 features.append(self._featurize(point, **kwargs))
-            except:
+            except Exception:
                 logger.warning(
                     "Failed to featurize datapoint %d. Appending empty array")
                 features.append(np.array([]))
@@ -190,7 +190,7 @@ class ComplexFeaturizer(Featurizer):
             try:
                 features.append(self._featurize(point, **kwargs))
                 successes.append(idx)
-            except:
+            except Exception:
                 logger.warning(
                     "Failed to featurize datapoint %i. Appending empty array." %
                     idx)
@@ -395,7 +395,7 @@ class MaterialStructureFeaturizer(Featurizer):
                 if isinstance(structure, Dict):
                     structure = Structure.from_dict(structure)
                 features.append(self._featurize(structure, **kwargs))
-            except:
+            except Exception:
                 logger.warning(
                     "Failed to featurize datapoint %i. Appending empty array" %
                     idx)
@@ -468,7 +468,7 @@ class MaterialCompositionFeaturizer(Featurizer):
             try:
                 c = Composition(composition)
                 features.append(self._featurize(c, **kwargs))
-            except:
+            except Exception:
                 logger.warning(
                     "Failed to featurize datapoint %i. Appending empty array" %
                     idx)

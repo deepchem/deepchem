@@ -74,7 +74,7 @@ def construct_df(pdb_stem_directory, pdbbind_label_file, pdbbind_df_joblib):
     try:
       with open(ligand_mol2_path, "rb") as f:
         ligand_mol2_lines = f.readlines()
-    except:
+    except Exception:
       ligand_mol2_lines = []
 
     print("About to compute ligand smiles string.")

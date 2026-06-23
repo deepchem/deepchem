@@ -4,7 +4,7 @@ Tests for DFT Periodic Table Utilities.
 try:
     from deepchem.utils.periodic_table_utils import get_atomz, get_atom_mass, get_period
     has_torch = True
-except:
+except Exception:
     has_torch = False
 import numpy as np
 import pytest

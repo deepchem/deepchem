@@ -9,7 +9,7 @@ import pytest
 try:
     import tensorflow as tf
     has_tensorflow = True
-except:
+except Exception:
     has_tensorflow = False
 
 from deepchem.metrics.genomic_metrics import get_motif_scores
