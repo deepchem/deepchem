@@ -51,13 +51,11 @@ Please check [the document](https://deepchem.readthedocs.io/en/latest/requiremen
 
 ### Stable version
 
-DeepChem stable version can be installed using pip or conda as
+The stable version of DeepChem can be installed using pip or conda as:
 
 ```bash
 pip install deepchem
-```
-or 
-```
+#OR
 conda install -c conda-forge deepchem
 ```
 
@@ -98,7 +96,7 @@ pip install --pre deepchem
 
 ### Docker
 
-If you want to install deepchem using a docker, you can pull two kinds of images.  
+If you want to install DeepChem using a Docker, you can pull two kinds of images.  
 DockerHub : https://hub.docker.com/repository/docker/deepchemio/deepchem
 
 - `deepchemio/deepchem:x.x.x`
