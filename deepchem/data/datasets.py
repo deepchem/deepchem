@@ -2214,7 +2214,30 @@ class DiskDataset(Dataset):
         Batch
             A batch data for i-th shard.
         """
+ 
+        # If caching is disabled, always load directly from disk
+        if self._memory_cache_size <= 0:
+            row = self.metadata_df.iloc[i]
 
+            X = np.array(load_from_disk(os.path.join(self.data_dir, row['X'])))
+
+            if row['y'] is not None:
+                y = np.array(load_from_disk(os.path.join(self.data_dir, row['y'])))
+            else:
+                y = None
+
+            if row['w'] is not None:
+                w = np.array(load_from_disk(os.path.join(self.data_dir, row['w'])))
+            else:
+                w = None
+
+            ids = np.array(
+                load_from_disk(os.path.join(self.data_dir, row['ids'])),
+                dtype=object
+            )
+
+            return (X, y, w, ids)
+    
         # See if we have a cached copy of this shard.
         if self._cached_shards is None:
             self._cached_shards = [None] * self.get_number_shards()
