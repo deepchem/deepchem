@@ -9,7 +9,7 @@ try:
     import torch
     from deepchem.models.torch_models.mxmnet import MXMNet
     has_torch = True
-except:
+except Exception:
     has_torch = False
 
 QM9_TASKS = [

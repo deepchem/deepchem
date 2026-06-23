@@ -84,7 +84,7 @@ def test_manual_save_restore():
     try:
         if os.path.exists("test_dir"):
             shutil.rmtree("test_dir")
-    except:
+    except Exception:
         pass  # Ignore cleanup errors
 
 
@@ -156,7 +156,7 @@ def test_multitask_classifier_restore_correctness():
     try:
         if os.path.exists("test_multitask_restore_dir"):
             shutil.rmtree("test_multitask_restore_dir")
-    except:
+    except Exception:
         pass  # Ignore cleanup errors caused by file locks
 
 
@@ -225,7 +225,7 @@ def test_gcn_model_restore_correctness():
     try:
         if os.path.exists("test_gcn_restore_dir"):
             shutil.rmtree("test_gcn_restore_dir")
-    except:
+    except Exception:
         pass  # Ignore cleanup errors caused by file locks
 
 
@@ -303,7 +303,7 @@ def test_gcn_model_overfit_and_checkpointing():
     try:
         if os.path.exists(lightning_trainer.model_dir):
             shutil.rmtree(lightning_trainer.model_dir)
-    except:
+    except Exception:
         pass  # Ignore cleanup errors caused by file locks
 
 
@@ -383,5 +383,5 @@ def test_lightning_dc_checkpoint_compatibility():
     try:
         if os.path.exists(lightning_trainer.model_dir):
             shutil.rmtree(lightning_trainer.model_dir)
-    except:
+    except Exception:
         pass  # Ignore cleanup errors caused by file locks

@@ -13,7 +13,7 @@ try:
     import torch  # noqa
     from deepchem.models import CGCNNModel
     has_pytorch_and_dgl = True
-except:
+except Exception:
     has_pytorch_and_dgl = False
 
 

@@ -181,7 +181,7 @@ class CGCNN(nn.Module):
         """
         try:
             import dgl
-        except:
+        except Exception:
             raise ImportError("This class requires DGL to be installed.")
         super(CGCNN, self).__init__()
         if mode not in ['classification', 'regression']:
@@ -351,7 +351,7 @@ class CGCNNModel(TorchModel):
         """
         try:
             import dgl
-        except:
+        except Exception:
             raise ImportError("This class requires DGL to be installed.")
 
         inputs, labels, weights = batch
