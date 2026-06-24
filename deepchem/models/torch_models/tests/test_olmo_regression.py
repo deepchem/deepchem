@@ -42,4 +42,3 @@ def test_olmo_multi_label_regression():
 
     predictions = model.predict(dataset)
     assert predictions.shape == (len(SMILES), 2)
-
