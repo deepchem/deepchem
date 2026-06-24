@@ -10,7 +10,7 @@ SMILES = [
 
 @pytest.mark.hf
 def test_olmo_single_label_classification():
-    from deepchem.models.torch_models.olmo_class import Olmo
+    from deepchem.models.torch_models.olmo import Olmo
 
     model = Olmo(model="allenai/OLMo-1B-hf",
                  tokenizer=None,
@@ -28,7 +28,7 @@ def test_olmo_single_label_classification():
 
 @pytest.mark.hf
 def test_olmo_multi_label_classification():
-    from deepchem.models.torch_models.olmo_class import Olmo
+    from deepchem.models.torch_models.olmo import Olmo
 
     model = Olmo(model="allenai/OLMo-1B-hf",
                  tokenizer=None,

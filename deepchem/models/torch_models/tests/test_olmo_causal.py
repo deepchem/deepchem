@@ -1,6 +1,5 @@
 import pytest
 import deepchem as dc
-import numpy as np
 
 SMILES = [
     "CCN(CCSC)C(=O)N[C@@](C)(CC)C(F)(F)F",
@@ -9,18 +8,19 @@ SMILES = [
 
 
 @pytest.mark.hf
-def test_olmo_regression():
+def test_olmo_causal_lm():
     from deepchem.models.torch_models.olmo import Olmo
 
     model = Olmo(model="allenai/OLMo-1B-hf",
                  tokenizer=None,
-                 task_type="regression",
-                 n_tasks=1)
+                 task_type="causal_lm")
 
-    dataset = dc.data.NumpyDataset(SMILES, np.array([[1.0], [0.0]]))
+    dataset = dc.data.NumpyDataset(SMILES)
 
     loss = model.fit(dataset, nb_epoch=1)
     assert loss is not None
 
-    predictions = model.predict(dataset)
-    assert predictions.shape == (len(SMILES), 1)
+    generated = model.generate(dataset, max_new_tokens=10)
+    assert len(generated) == len(SMILES)
+    for text in generated:
+        assert isinstance(text, str)
