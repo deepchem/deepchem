@@ -45,8 +45,7 @@ class Olmo(HuggingFaceModel):
         if isinstance(model, str):
             model_path = model
             if task_type == "causal_lm":
-                model = OlmoForCausalLM.from_pretrained(
-                    model_path, torch_dtype=torch.bfloat16)
+                model = OlmoForCausalLM.from_pretrained(model_path)
             else:
                 model = OlmoModel.from_pretrained(model_path,
                                                   torch_dtype=torch.bfloat16)
