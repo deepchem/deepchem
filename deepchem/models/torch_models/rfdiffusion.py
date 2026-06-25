@@ -315,12 +315,13 @@ class CosineSchedule(nn.Module):
         return noisy_x, noise
 
     @torch.no_grad()
-    def p_sample(self,
-                 model: nn.Module,
-                 x_t: torch.Tensor,
-                 t: torch.Tensor,
-                 x0_prev: Optional[torch.Tensor] = None
-                 ) -> Tuple[torch.Tensor, torch.Tensor]:
+    def p_sample(
+        self,
+        model: nn.Module,
+        x_t: torch.Tensor,
+        t: torch.Tensor,
+        x0_prev: Optional[torch.Tensor] = None
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Reverse diffusion: denoise x_t by one step using the model.
 
         Parameters
@@ -748,8 +749,7 @@ class RFDiffusionModel(TorchModel):
         if coords.ndim == 3 and coords.shape[1] == 3 and coords.shape[2] == 3:
             coords = coords.reshape(-1, 9)
         elif coords.ndim != 2 or coords.shape[1] != self.coord_dim:
-            raise ValueError(
-                'coords must have shape (L, 3, 3) or (L, 9).')
+            raise ValueError('coords must have shape (L, 3, 3) or (L, 9).')
         if coords.shape[0] == 0:
             raise ValueError('coords must have at least one residue.')
         ca_coords = coords[:, 3:6]
@@ -858,8 +858,8 @@ class RFDiffusionModel(TorchModel):
                 all_raw = [
                     X_b[i].reshape(-1, 9) if X_b[i].ndim == 3 else X_b[i]
                     for i in range(batch_size)
-                    if (sample_weights[i] > 0 and isinstance(X_b[i], np.ndarray)
-                        and X_b[i].size > 0)
+                    if (sample_weights[i] > 0 and
+                        isinstance(X_b[i], np.ndarray) and X_b[i].size > 0)
                 ]
                 if all_raw:
                     raw = np.concatenate(all_raw, axis=0)
@@ -918,12 +918,12 @@ class RFDiffusionModel(TorchModel):
                         while sr.dim() < noisy_coords.dim():
                             sr = sr.unsqueeze(-1)
                             srm = srm.unsqueeze(-1)
-                        x0_est = (sr.to(self.device) *
-                                  noisy_coords.to(self.device) -
-                                  srm.to(self.device) * noise_est)
+                        x0_est = (
+                            sr.to(self.device) * noisy_coords.to(self.device) -
+                            srm.to(self.device) * noise_est)
                         x0_np = x0_est.cpu().numpy()
-                    yield ([noisy_np, t_np, x0_np, mask_batch], [noise_np],
-                           [weights])
+                    yield ([noisy_np, t_np, x0_np,
+                            mask_batch], [noise_np], [weights])
                 else:
                     yield ([noisy_np, t_np, mask_batch], [noise_np], [weights])
 
@@ -1007,6 +1007,6 @@ class RFDiffusionModel(TorchModel):
                         strict=strict)
         data = torch.load(checkpoint, map_location=self.device)
         train_mean = data.get('rf_diffusion_train_mean')
-        self._train_mean = (None if train_mean is None else
-                            np.asarray(train_mean, dtype=np.float32))
+        self._train_mean = (None if train_mean is None else np.asarray(
+            train_mean, dtype=np.float32))
         self._train_std = data.get('rf_diffusion_train_std')
