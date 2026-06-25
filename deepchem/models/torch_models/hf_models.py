@@ -311,13 +311,17 @@ class HuggingFaceModel(TorchModel):
                 'labels': labels
             }
             return inputs, None, w
-        elif self.task in ['single-task-regression', 'single-task-classification', 'mtr' , 'multi-task-classification']:
+        elif self.task in [
+                'single-task-regression', 'single-task-classification', 'mtr',
+                'multi-task-classification'
+        ]:
             if y is not None:
                 # y is None during predict
                 y = torch.from_numpy(y[0])
-                if self.task in ('single-task-regression' , 'mtr'):
+                if self.task in ('single-task-regression', 'mtr'):
                     y = y.float().to(self.device)
-                elif self.task in ('single-task-classification' , 'multi-task-classification'):
+                elif self.task in ('single-task-classification',
+                                   'multi-task-classification'):
                     y = y.float().to(self.device)
             for key, value in tokens.items():
                 tokens[key] = value.to(self.device)
