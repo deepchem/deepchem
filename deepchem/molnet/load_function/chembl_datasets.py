@@ -9,7 +9,7 @@ from deepchem.molnet.load_function.chembl_tasks import chembl_tasks
 
 from typing import List, Optional, Tuple, Union
 
-CHEMBL_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/chembl_%s.csv.gz"
+CHEMBL_URL = "https://deepchemdata.s3.us-west-1.amazonaws.com/datasets/chembl_%s.csv.gz"
 
 
 class _ChemblLoader(_MolnetLoader):
