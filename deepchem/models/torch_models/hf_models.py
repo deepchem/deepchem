@@ -535,7 +535,9 @@ class HuggingFaceModel(TorchModel):
 
             if isinstance(output_values, torch.Tensor):
                 output_values = [output_values]
-            output_values = [t.float().detach().cpu().numpy() for t in output_values]
+            output_values = [
+                t.float().detach().cpu().numpy() for t in output_values
+            ]
             # Apply tranformers and record results.
             if uncertainty:
                 var = [output_values[i] for i in self._variance_outputs]
