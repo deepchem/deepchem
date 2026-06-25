@@ -15,36 +15,40 @@ class Dnabert(HuggingFaceModel):
 
     def __init__(self,
                  task: str,
-                 tokenizer_path: str = 'seyonec/PubChem10M_SMILES_BPE_60k',
+                 tokenizer_path: str = 'zhihan1996/DNABERT-2-117M',
                  n_tasks: int = 1,
-                 config: Dict[Any, Any] = {},
                  **kwargs):
         self.n_tasks = n_tasks
-        tokenizer = PreTrainedTokenizerFast.from_pretrained(tokenizer_path)
+        tokenizer = AutoTokenizer.from_pretrained(tokenizer_path,
+                                                  trust_remote_code=True)
         model: PreTrainedModel
-        chemberta_config = RobertaConfig(vocab_size=tokenizer.vocab_size,
-                                         **config)
+        dnabert_config = AutoConfig.from_pretrained(tokenizer_path,
+                                                    trust_remote_code=True)
         if task == 'mlm':
-            model = BertForMaskedLM(chemberta_config) # More changes
+            model = AutoModelForMaskedLM.from_pretrained(
+                tokenizer_path, trust_remote_code=True)
         elif task == 'mtr':
-            chemberta_config.problem_type = 'regression'
-            chemberta_config.num_labels = n_tasks
-            model = BertForSequenceClassification(chemberta_config)
+            dnabert_config.problem_type = 'regression'
+            dnabert_config.num_labels = n_tasks
+            model = AutoModelForSequenceClassification.from_pretrained(
+                tokenizer_path, config=dnabert_config, trust_remote_code=True)
         elif task == 'regression':
-            chemberta_config.problem_type = 'regression'
-            chemberta_config.num_labels = n_tasks
-            model = BertForSequenceClassification(chemberta_config)
+            dnabert_config.problem_type = 'regression'
+            dnabert_config.num_labels = n_tasks
+            model = AutoModelForSequenceClassification.from_pretrained(
+                tokenizer_path, config=dnabert_config, trust_remote_code=True)
         elif task == 'classification':
             if n_tasks == 1:
-                chemberta_config.problem_type = 'single_label_classification'
+                dnabert_config.problem_type = 'single_label_classification'
             else:
-                chemberta_config.problem_type = 'multi_label_classification'
-                chemberta_config.num_labels = n_tasks
-            model = BertForSequenceClassification(chemberta_config)
+                dnabert_config.problem_type = 'multi_label_classification'
+                dnabert_config.num_labels = n_tasks
+            model = AutoModelForSequenceClassification.from_pretrained(
+                tokenizer_path, config=dnabert_config, trust_remote_code=True)
         else:
             raise ValueError('invalid task specification')
 
-        super(Chemberta, self).__init__(model=model,
-                                        task=task,
-                                        tokenizer=tokenizer,
-                                        **kwargs)
+        super(Dnabert, self).__init__(model=model,
+                                     task=task,
+                                     tokenizer=tokenizer,
+                                     **kwargs)
