@@ -7,10 +7,10 @@ from deepchem.molnet.load_function.molnet_loader import TransformerGenerator, _M
 from deepchem.data import Dataset
 from typing import List, Optional, Tuple, Union
 
-QM7_MAT_UTL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/qm7.mat"
-QM7_CSV_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/qm7.csv"
-QM7B_MAT_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/qm7b.mat"
-GDB7_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/gdb7.tar.gz"
+QM7_MAT_UTL = "https://deepchemdata.s3.us-west-1.amazonaws.com/datasets/qm7.mat"
+QM7_CSV_URL = "https://deepchemdata.s3.us-west-1.amazonaws.com/datasets/qm7.csv"
+QM7B_MAT_URL = "https://deepchemdata.s3.us-west-1.amazonaws.com/datasets/qm7b.mat"
+GDB7_URL = "https://deepchemdata.s3.us-west-1.amazonaws.com/datasets/gdb7.tar.gz"
 GDB7_V2_URL = "https://deepchemdata.s3.us-west-1.amazonaws.com/datasets/gdb7_v2.tar.gz"
 QM7_TASKS = ["u0_atom"]
 

@@ -7,7 +7,7 @@ from deepchem.molnet.load_function.molnet_loader import TransformerGenerator, _M
 from deepchem.data import Dataset
 from typing import List, Optional, Tuple, Union
 
-TOXCAST_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/toxcast_data.csv.gz"
+TOXCAST_URL = "https://deepchemdata.s3.us-west-1.amazonaws.com/datasets/toxcast_data.csv.gz"
 TOXCAST_TASKS = [
     'ACEA_T47D_80hr_Negative', 'ACEA_T47D_80hr_Positive',
     'APR_HepG2_CellCycleArrest_24h_dn', 'APR_HepG2_CellCycleArrest_24h_up',

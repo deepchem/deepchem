@@ -12,9 +12,9 @@ from deepchem.utils import remove_missing_entries
 
 logger = logging.getLogger(__name__)
 
-TRAIN_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/UV_training_disguised_combined_full.csv.gz"
-VALID_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/UV_test1_disguised_combined_full.csv.gz"
-TEST_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/UV_test2_disguised_combined_full.csv.gz"
+TRAIN_URL = "https://deepchemdata.s3.us-west-1.amazonaws.com/datasets/UV_training_disguised_combined_full.csv.gz"
+VALID_URL = "https://deepchemdata.s3.us-west-1.amazonaws.com/datasets/UV_test1_disguised_combined_full.csv.gz"
+TEST_URL = "https://deepchemdata.s3.us-west-1.amazonaws.com/datasets/UV_test2_disguised_combined_full.csv.gz"
 
 TRAIN_FILENAME = "UV_training_disguised_combined_full.csv.gz"
 VALID_FILENAME = "UV_test1_disguised_combined_full.csv.gz"
