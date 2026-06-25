@@ -6,6 +6,8 @@ from numpy.typing import NDArray
 from deepchem.feat.base_classes import Featurizer
 from deepchem.feat.graph_data import GraphData
 
+from ase import Atoms
+
 
 class AtomisticRadiusGraphFeaturizer(Featurizer):
     """Featurize ``ase.Atoms`` objects as radius graphs.
@@ -43,7 +45,7 @@ class AtomisticRadiusGraphFeaturizer(Featurizer):
 
         self.cutoff = cutoff
 
-    def _get_node_features(self, atoms: Any) -> NDArray[np.int64]:
+    def _get_node_features(self, atoms: "Atoms") -> NDArray[np.int64]:
         """Construct node features from atomic information.
 
         This helper is separated out so the featurizer can be extended later
@@ -64,7 +66,7 @@ class AtomisticRadiusGraphFeaturizer(Featurizer):
         return atomic_numbers.reshape(-1, 1)
 
     def _get_radius_graph(
-        self, atoms: Any
+        self, atoms: "Atoms"
     ) -> Tuple[NDArray[np.int64], NDArray[np.float32], NDArray[np.float32]]:
         """Construct a deterministic directed radius graph from ASE atoms."""
         from ase.neighborlist import neighbor_list
@@ -88,7 +90,7 @@ class AtomisticRadiusGraphFeaturizer(Featurizer):
         edge_index = np.asarray([src_indices, dst_indices], dtype=np.int64)
         return edge_index, edge_displacements, edge_distances
 
-    def _featurize(self, datapoint: Any, **kwargs: Any) -> GraphData:
+    def _featurize(self, datapoint: "Atoms", **kwargs: Any) -> GraphData:
         """
         Parameters
         ----------
