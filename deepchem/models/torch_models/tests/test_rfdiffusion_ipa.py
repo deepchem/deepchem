@@ -95,8 +95,8 @@ class TestIPAOutputShape:
         backbone = _make_backbone(batch=2, seq=6)
         R, t = build_backbone_frames(backbone)
         layer = InvariantPointAttention(embed_dim=32, num_heads=4)
-        mask = torch.tensor([[1, 1, 1, 1, 0, 0],
-                             [1, 1, 1, 0, 0, 0]], dtype=torch.bool)
+        mask = torch.tensor([[1, 1, 1, 1, 0, 0], [1, 1, 1, 0, 0, 0]],
+                            dtype=torch.bool)
         out = layer(torch.randn(2, 6, 32), R, t, mask=mask)
         assert out.shape == (2, 6, 32)
 
@@ -112,7 +112,8 @@ class TestIPAMasking:
         layer = InvariantPointAttention(embed_dim=32, num_heads=4)
         mask = torch.tensor([[1, 1, 1, 0, 0]], dtype=torch.bool)
         out = layer(torch.randn(1, 5, 32), R, t, mask=mask)
-        assert torch.allclose(out[:, 3:], torch.zeros_like(out[:, 3:]),
+        assert torch.allclose(out[:, 3:],
+                              torch.zeros_like(out[:, 3:]),
                               atol=0.0)
 
     def test_masked_keys_do_not_affect_unmasked_queries(self):
@@ -135,7 +136,9 @@ class TestIPAMasking:
         R, t = build_backbone_frames(backbone)
         layer = InvariantPointAttention(embed_dim=16, num_heads=4)
         with pytest.raises(ValueError, match='mask'):
-            layer(torch.randn(1, 5, 16), R, t,
+            layer(torch.randn(1, 5, 16),
+                  R,
+                  t,
                   mask=torch.ones(1, 5, 1, dtype=torch.bool))
 
 
@@ -149,9 +152,10 @@ class TestIPAInvariance:
         torch.manual_seed(seed)
         backbone = _make_backbone(batch=2, seq=6, seed=seed)
         R, t = build_backbone_frames(backbone)
-        layer = InvariantPointAttention(
-            embed_dim=32, num_heads=4, num_qk_points=3,
-            num_v_points=4).eval()
+        layer = InvariantPointAttention(embed_dim=32,
+                                        num_heads=4,
+                                        num_qk_points=3,
+                                        num_v_points=4).eval()
         single = torch.randn(2, 6, 32)
 
         out = layer(single, R, t)
@@ -228,7 +232,9 @@ class TestIPAValidation:
         R, t = build_backbone_frames(backbone)
         layer = InvariantPointAttention(embed_dim=16, num_heads=4)  # no pair
         with pytest.raises(ValueError):
-            layer(torch.randn(1, 4, 16), R, t,
+            layer(torch.randn(1, 4, 16),
+                  R,
+                  t,
                   pair_repr=torch.randn(1, 4, 4, 8))
 
     def test_bad_single_repr_dims_raises(self):
@@ -241,9 +247,10 @@ class TestIPAValidation:
     def test_bad_rotation_shape_raises(self):
         layer = InvariantPointAttention(embed_dim=16, num_heads=4)
         with pytest.raises(ValueError):
-            layer(torch.randn(1, 4, 16),
-                  torch.randn(1, 4, 3),  # wrong rotation shape
-                  torch.zeros(1, 4, 3))
+            layer(
+                torch.randn(1, 4, 16),
+                torch.randn(1, 4, 3),  # wrong rotation shape
+                torch.zeros(1, 4, 3))
 
 
 @pytest.mark.torch
@@ -265,7 +272,8 @@ class TestIPAGradients:
         assert (gamma > 0).all()
 
     def test_weighting_constants_have_expected_values(self):
-        layer = InvariantPointAttention(embed_dim=32, num_heads=4,
+        layer = InvariantPointAttention(embed_dim=32,
+                                        num_heads=4,
                                         num_qk_points=4)
         expected_wc = math.sqrt(2.0 / (9.0 * 4))
         expected_wl = math.sqrt(1.0 / 2.0)  # no pair → L=2

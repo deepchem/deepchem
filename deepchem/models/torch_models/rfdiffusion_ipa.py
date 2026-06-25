@@ -244,10 +244,10 @@ class InvariantPointAttention(nn.Module):
             raise ValueError(
                 'pair_repr must be provided iff pair_dim was set at '
                 'construction.')
-        if pair_repr is not None and pair_repr.shape != (b, l, l, self.pair_dim):
-            raise ValueError(
-                'pair_repr must have shape '
-                '(batch, num_residues, num_residues, pair_dim).')
+        if pair_repr is not None and pair_repr.shape != (b, l, l,
+                                                         self.pair_dim):
+            raise ValueError('pair_repr must have shape '
+                             '(batch, num_residues, num_residues, pair_dim).')
 
         if mask is not None and mask.shape != (b, l):
             raise ValueError('mask must have shape (batch, num_residues).')
@@ -289,19 +289,17 @@ class InvariantPointAttention(nn.Module):
 
         if self.pair_bias is not None:
             assert pair_repr is not None
-            bias = self.pair_bias(pair_repr).permute(0, 3, 1,
-                                                     2)  # (B, H, L, L)
+            bias = self.pair_bias(pair_repr).permute(0, 3, 1, 2)  # (B, H, L, L)
         else:
             bias = torch.zeros_like(scalar_logits)
 
         logits = self.w_l.to(dtype=dtype) * (scalar_logits + point_logits +
-                                              bias)
+                                             bias)
 
         # ---------- Mask and attention --------------------------------
         if mask is not None:
-            logits = logits.masked_fill(
-                ~mask.view(b, 1, 1, l),
-                torch.finfo(logits.dtype).min)
+            logits = logits.masked_fill(~mask.view(b, 1, 1, l),
+                                        torch.finfo(logits.dtype).min)
 
         attn = torch.softmax(logits, dim=-1)
         attn = self.dropout(attn)
