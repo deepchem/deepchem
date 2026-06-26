@@ -4,6 +4,7 @@ import pytest
 from ase import Atoms
 
 import deepchem as dc
+from deepchem.feat.graph_data import BatchGraphData
 
 
 def test_two_atoms_inside_cutoff():
@@ -16,8 +17,7 @@ def test_two_atoms_inside_cutoff():
     assert isinstance(graph, dc.feat.GraphData)
     np.testing.assert_array_equal(graph.node_features,
                                   np.array([[1], [8]], dtype=int))
-    np.testing.assert_array_equal(graph.atomic_numbers,
-                                  np.array([1, 8], dtype=int))
+    assert not hasattr(graph, "atomic_numbers")
     np.testing.assert_allclose(graph.node_pos_features,
                                np.array([[0.0, 0.0, 0.0], [1.0, 0.0, 0.0]]))
     np.testing.assert_array_equal(graph.edge_index,
@@ -89,6 +89,26 @@ def test_edge_displacements_and_distances():
 def test_invalid_cutoff_raises():
     with pytest.raises(ValueError):
         dc.feat.AtomisticRadiusGraphFeaturizer(cutoff=0.0)
+
+
+def test_variable_size_graphs_can_batch():
+    featurizer = dc.feat.AtomisticRadiusGraphFeaturizer(cutoff=1.5)
+    atoms_list = [
+        Atoms(numbers=[1, 8],
+              positions=[[0.0, 0.0, 0.0], [1.0, 0.0, 0.0]]),
+        Atoms(numbers=[1, 6, 8],
+              positions=[[0.0, 0.0, 0.0], [1.0, 0.0, 0.0],
+                         [2.0, 0.0, 0.0]])
+    ]
+
+    graphs = featurizer.featurize(atoms_list)
+    batch = BatchGraphData(graphs)
+
+    np.testing.assert_array_equal(batch.node_features,
+                                  np.array([[1], [8], [1], [6], [8]]))
+    np.testing.assert_array_equal(batch.graph_index,
+                                  np.array([0, 0, 1, 1, 1]))
+    assert not hasattr(batch, "atomic_numbers")
 
 
 def test_invalid_input_type_raises():

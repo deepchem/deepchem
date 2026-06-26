@@ -110,8 +110,6 @@ class AtomisticRadiusGraphFeaturizer(Featurizer):
         if not isinstance(datapoint, Atoms):
             raise TypeError("datapoint must be an ase.Atoms object.")
 
-        atomic_numbers = np.asarray(datapoint.get_atomic_numbers(),
-                                    dtype=np.int64)
         positions = np.asarray(datapoint.get_positions(), dtype=np.float32)
         node_features = self._get_node_features(datapoint)
         edge_index, edge_features, edge_distances_array = self._get_radius_graph(
@@ -121,5 +119,4 @@ class AtomisticRadiusGraphFeaturizer(Featurizer):
                          edge_index=edge_index,
                          edge_features=edge_features,
                          node_pos_features=positions,
-                         edge_distances=edge_distances_array,
-                         atomic_numbers=atomic_numbers)
+                         edge_distances=edge_distances_array)
