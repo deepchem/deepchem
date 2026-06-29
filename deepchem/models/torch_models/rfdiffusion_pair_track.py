@@ -85,6 +85,8 @@ class RelativePositionEmbedding(nn.Module):
     Examples
     --------
     >>> import torch
+    >>> from deepchem.models.torch_models.rfdiffusion_pair_track import (
+    ...     RelativePositionEmbedding)
     >>> rel = RelativePositionEmbedding(pair_dim=16, max_relative_position=4)
     >>> emb = rel(8)
     >>> emb.shape
