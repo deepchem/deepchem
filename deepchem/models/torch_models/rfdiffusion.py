@@ -53,6 +53,7 @@ class SinusoidalTimestepEmbedding(nn.Module):
     Examples
     --------
     >>> import torch
+    >>> from deepchem.models.torch_models.rfdiffusion import SinusoidalTimestepEmbedding
     >>> emb = SinusoidalTimestepEmbedding(64)
     >>> t = torch.tensor([0, 100, 500, 999])
     >>> output = emb(t)
@@ -102,6 +103,7 @@ class ResidueEmbedding(nn.Module):
     Examples
     --------
     >>> import torch
+    >>> from deepchem.models.torch_models.rfdiffusion import ResidueEmbedding
     >>> emb = ResidueEmbedding(9, 128)
     >>> x = torch.randn(2, 50, 9)
     >>> output = emb(x)
@@ -150,6 +152,7 @@ class PositionalEncoding(nn.Module):
     Examples
     --------
     >>> import torch
+    >>> from deepchem.models.torch_models.rfdiffusion import PositionalEncoding
     >>> pe = PositionalEncoding(128, max_len=256)
     >>> x = torch.randn(2, 50, 128)
     >>> output = pe(x)
