@@ -671,6 +671,16 @@ LNNModel
 .. autoclass:: deepchem.models.torch_models.LNNModel
   :members:
 
+CosineSchedule
+--------------------
+.. autoclass:: deepchem.models.torch_models.rfdiffusion.CosineSchedule
+  :members:
+
+BackboneDiffusion
+--------------------
+.. autoclass:: deepchem.models.torch_models.rfdiffusion.BackboneDiffusion
+  :members:
+
 SE3TransformerModel
 --------------------
 .. autoclass:: deepchem.models.torch_models.SE3TransformerModel
