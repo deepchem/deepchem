@@ -274,7 +274,7 @@ def _dfs(used_partitions: Set[int], current_partition: int,
 
     Parameters
     ----------
-    used_partions: Set[int]
+    used_partitions: Set[int]
         Partitions which have already been used
     current_partition: int
         The current partition to expand
@@ -324,7 +324,7 @@ def _valid_bond(used_partitions: Set[int], bond: Tuple[int, int],
 
     Parameters
     ----------
-    used_partions: Set[int]
+    used_partitions: Set[int]
         Partitions which have already been used
     bond: Tuple[int, int]
         The bond to check if it goes to an unexplored partition.

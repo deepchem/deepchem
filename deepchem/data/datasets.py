@@ -1629,7 +1629,7 @@ class DiskDataset(Dataset):
         batch_size: int, optional (default None)
             Number of elements in a batch. If None, then it yields batches
             with size equal to the size of each individual shard.
-        epoch: int, default 1
+        epochs: int, default 1
             Number of epochs to walk over dataset
         deterministic: bool, default False
             Whether or not we should should shuffle each shard before
