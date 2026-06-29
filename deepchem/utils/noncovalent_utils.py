@@ -126,7 +126,7 @@ def compute_hbonds_in_range(frag1, frag2, pairwise_distances, hbond_dist_bin,
         Matrix of shape `(N, M)` with pairwise distances between frag1/frag2.
     hbond_dist_bin: tuple
         Tuple of floats `(min_dist, max_dist)` in angstroms.
-    hbond_angle_cutoffs: list[float]
+    hbond_angle_cutoff: list[float]
         List of angles of deviances allowed for hbonds
     """
 

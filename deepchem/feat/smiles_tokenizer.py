@@ -299,7 +299,7 @@ class BasicSmilesTokenizer(object):
 
         Parameters
         ----------
-        regex: string
+        regex_pattern: string
             SMILES token regex
         """
         self.regex_pattern = regex_pattern
