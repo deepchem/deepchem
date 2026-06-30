@@ -72,7 +72,13 @@ from deepchem.feat.material_featurizers import SineCoulombMatrix
 from deepchem.feat.material_featurizers import CGCNNFeaturizer
 from deepchem.feat.material_featurizers import ElemNetFeaturizer
 from deepchem.feat.material_featurizers import LCNNFeaturizer
-from deepchem.feat.material_featurizers import AtomisticRadiusGraphFeaturizer
+
+try:
+    from deepchem.feat.material_featurizers import AtomisticRadiusGraphFeaturizer
+except ModuleNotFoundError as e:
+    logger.warning(
+        f'Skipped loading material featurizer, missing a dependency. {e}'
+    )
 
 from deepchem.feat.atomic_conformation import AtomicConformation
 from deepchem.feat.atomic_conformation import AtomicConformationFeaturizer
