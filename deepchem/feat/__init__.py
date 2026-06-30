@@ -75,10 +75,8 @@ from deepchem.feat.material_featurizers import LCNNFeaturizer
 
 try:
     from deepchem.feat.material_featurizers import AtomisticRadiusGraphFeaturizer
-except ModuleNotFoundError as e:
-    logger.warning(
-        f'Skipped loading material featurizer, missing a dependency. {e}'
-    )
+except ImportError:
+    pass
 
 from deepchem.feat.atomic_conformation import AtomicConformation
 from deepchem.feat.atomic_conformation import AtomicConformationFeaturizer
