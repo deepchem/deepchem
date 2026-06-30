@@ -10,7 +10,7 @@ import tarfile
 import zipfile
 import logging
 from urllib.request import urlretrieve
-from typing import Any, Iterator, List, Optional, Tuple, Union, cast, IO
+from typing import Any, Iterator, List, Mapping, Optional, Sequence, Tuple, Union, cast, IO
 
 import pandas as pd
 import numpy as np
@@ -18,6 +18,173 @@ import numpy as np
 import deepchem as dc
 
 logger = logging.getLogger(__name__)
+
+
+def normalize_materials_inputs(inputs: Any) -> List[str]:
+    """Normalize MaterialsLoader inputs to a list of path strings.
+
+    Parameters
+    ----------
+    inputs: Any
+        One path string or an iterable of path strings.
+
+    Returns
+    -------
+    List[str]
+        The normalized input paths.
+
+    Raises
+    ------
+    ValueError
+        If ``inputs`` is not a path string or iterable of path strings.
+    """
+    if isinstance(inputs, str):
+        return [inputs]
+    try:
+        input_paths = list(inputs)
+    except TypeError:
+        raise ValueError(
+            "inputs must be a path string or an iterable of path strings for "
+            "MaterialsLoader.")
+    if not all(isinstance(path, str) for path in input_paths):
+        raise ValueError(
+            "inputs must contain only path strings for MaterialsLoader.")
+    return input_paths
+
+
+def make_materials_frame_id(input_path: str, frame_index: int) -> str:
+    """Create a stable identifier for one frame in a materials file."""
+    return f"{input_path}:{frame_index}"
+
+
+def get_ase_calc_results(atoms: Any) -> Mapping[str, Any]:
+    """Get already-loaded ASE calculator results without running a calculator.
+
+    Parameters
+    ----------
+    atoms: Any
+        An ``ase.Atoms``-like object.
+
+    Returns
+    -------
+    Mapping[str, Any]
+        The serialized calculator results, or an empty dictionary if they are
+        unavailable.
+    """
+    calc = getattr(atoms, "calc", None)
+    if calc is None:
+        return {}
+    results = getattr(calc, "results", None)
+    if isinstance(results, Mapping):
+        return results
+    return {}
+
+
+def extract_ase_energy(atoms: Any, energy_key: str, input_path: str,
+                       frame_index: int) -> Any:
+    """Extract an energy label from an ASE frame."""
+    if energy_key in atoms.info:
+        return atoms.info[energy_key]
+    calc_results = get_ase_calc_results(atoms)
+    if energy_key in calc_results:
+        return calc_results[energy_key]
+    raise ValueError(
+        "Missing requested label for task 'energy' with key '%s' in file '%s' "
+        "frame %d." % (energy_key, input_path, frame_index))
+
+
+def extract_ase_forces(atoms: Any, forces_key: str, input_path: str,
+                       frame_index: int) -> np.ndarray:
+    """Extract and validate force labels from an ASE frame."""
+    if forces_key in atoms.arrays:
+        forces = np.asarray(atoms.arrays[forces_key], dtype=np.float32)
+    else:
+        calc_results = get_ase_calc_results(atoms)
+        if forces_key not in calc_results:
+            raise ValueError(
+                "Missing requested label for task 'forces' with key '%s' in "
+                "file '%s' frame %d." % (forces_key, input_path, frame_index))
+        forces = np.asarray(calc_results[forces_key], dtype=np.float32)
+    if forces.shape != (len(atoms), 3):
+        raise ValueError(
+            "Invalid forces shape %s for task 'forces' with key '%s' in file "
+            "'%s' frame %d. Expected (%d, 3)." %
+            (forces.shape, forces_key, input_path, frame_index, len(atoms)))
+    return forces
+
+
+def extract_ase_stress(atoms: Any, stress_key: str, input_path: str,
+                       frame_index: int) -> np.ndarray:
+    """Extract and validate stress labels from an ASE frame."""
+    if stress_key in atoms.info:
+        stress = np.asarray(atoms.info[stress_key], dtype=np.float32)
+    else:
+        calc_results = get_ase_calc_results(atoms)
+        if stress_key not in calc_results:
+            raise ValueError(
+                "Missing requested label for task 'stress' with key '%s' in "
+                "file '%s' frame %d." % (stress_key, input_path, frame_index))
+        stress = np.asarray(calc_results[stress_key], dtype=np.float32)
+    if stress.shape not in ((6,), (3, 3)):
+        raise ValueError(
+            "Invalid stress shape %s for task 'stress' with key '%s' in file "
+            "'%s' frame %d. Expected (6,) or (3, 3)." %
+            (stress.shape, stress_key, input_path, frame_index))
+    return stress
+
+
+def extract_ase_labels(atoms: Any, tasks: Sequence[str], energy_key: str,
+                       forces_key: str, stress_key: str, input_path: str,
+                       frame_index: int) -> np.ndarray:
+    """Extract requested labels from an ASE frame in task order."""
+    labels = np.empty((len(tasks),), dtype=object)
+    for task_index, task in enumerate(tasks):
+        if task == "energy":
+            labels[task_index] = extract_ase_energy(atoms, energy_key,
+                                                    input_path, frame_index)
+        elif task == "forces":
+            labels[task_index] = extract_ase_forces(atoms, forces_key,
+                                                    input_path, frame_index)
+        elif task == "stress":
+            labels[task_index] = extract_ase_stress(atoms, stress_key,
+                                                    input_path, frame_index)
+        else:
+            raise ValueError("Unsupported materials task '%s'." % task)
+    return labels
+
+
+def featurize_ase_frame(featurizer: Any, atoms: Any, log_every_n: int,
+                        input_path: str, frame_index: int) -> Any:
+    """Featurize one ASE frame through the public featurizer API."""
+    features = featurizer.featurize([atoms], log_every_n=log_every_n)
+    if len(features) != 1:
+        raise ValueError(
+            "Featurizer returned %d outputs for file '%s' frame %d. Expected "
+            "exactly 1." % (len(features), input_path, frame_index))
+    feature = features[0]
+    if isinstance(feature, np.ndarray) and feature.size == 0:
+        raise ValueError("Failed to featurize file '%s' frame %d." %
+                         (input_path, frame_index))
+    return feature
+
+
+def finalize_materials_shard(
+    features: List[Any], labels: Optional[List[np.ndarray]],
+    tasks: Sequence[str], ids: List[str]
+) -> Tuple[np.ndarray, Optional[np.ndarray], Optional[np.ndarray], np.ndarray]:
+    """Convert buffered materials samples to a DeepChem dataset shard."""
+    X = np.asarray(features, dtype=object)
+    ids_array = np.asarray(ids, dtype=object)
+    if len(tasks) == 0:
+        return X, None, None, ids_array
+    if labels is None:
+        raise ValueError("labels must be provided when materials tasks exist.")
+
+    y = np.empty((len(labels), len(tasks)), dtype=object)
+    for sample_index, sample_labels in enumerate(labels):
+        y[sample_index, :] = sample_labels
+    w = np.ones((len(labels), len(tasks)), dtype=np.float32)
+    return X, y, w, ids_array
 
 
 def pad_array(x: np.ndarray,
