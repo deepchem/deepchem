@@ -48,5 +48,5 @@ def test_genomic_featurize():
 
     long_feat = featurizer.featurize(long_sequence, **feat_kwargs)
     assert len(long_feat) == 1
-    assert len(long_feat[0]) == 2  # the tokens and attention mask
-    assert len(long_feat[0][0]) == 100  # number of tokens for each DNA sequence
+    assert len(long_feat[0]) == 2
+    assert len(long_feat[0][0]) == 100
