@@ -69,4 +69,8 @@ class DNABertFeaturizer(PreTrainedTokenizerFast, Featurizer):
 
     def __call__(self, *args, **kwargs) -> Dict[str, List[int]]:
         encoding = super().__call__(*args, **kwargs)
-        return {k: v for k, v in encoding.items() if k in ('input_ids', 'attention_mask')}
+        return {
+            k: v
+            for k, v in encoding.items()
+            if k in ('input_ids', 'attention_mask')
+        }
