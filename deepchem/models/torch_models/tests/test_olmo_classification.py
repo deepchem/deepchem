@@ -32,7 +32,7 @@ def test_olmo_multi_label_classification():
 
     model = Olmo(model="allenai/OLMo-1B-hf",
                  tokenizer=None,
-                 task_type="classification",
+                 task_type="mtc",
                  n_tasks=2)
 
     dataset = dc.data.NumpyDataset(SMILES, np.array([[1.0, 0.0], [0.0, 1.0]]))
