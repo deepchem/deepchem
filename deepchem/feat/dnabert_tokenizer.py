@@ -13,31 +13,15 @@ class DNABertFeaturizer(PreTrainedTokenizerFast, Featurizer):
 
     The DNABertFeaturizer is a wrapper class of the PreTrainedTokenizerFast,
     which is used by Huggingface's transformers library for tokenizing DNA sequences for DNABERT-2 Models.
-
     Please see https://github.com/huggingface/transformers
     and https://github.com/Zhihan1996/DNABERT_2 for more details.
 
     Examples
     --------
-    DNABertFeaturizer can be used directly as a HuggingFace tokenizer via `__call__`,
-    returning a `BatchEncoding` dictionary with `input_ids` and `attention_mask`.
-
     >>> from deepchem.feat.dnabert_tokenizer import DNABertFeaturizer
     >>> sequences = ["ACGTACGT", "GGGTTTCCC"]
     >>> featurizer = DNABertFeaturizer.from_pretrained("zhihan1996/DNABERT-2-117M", trust_remote_code=True)
     >>> out = featurizer(sequences, add_special_tokens=True, truncation=True)
-    >>> list(out.keys())
-    ['input_ids', 'attention_mask']
-
-    It can also be used as a DeepChem featurizer via the `.featurize()` method,
-    which returns a numpy array of shape `(n_sequences, 2, max_length)`.
-
-    >>> from deepchem.feat.dnabert_tokenizer import DNABertFeaturizer
-    >>> sequences = ["ACGTACGT", "GGGTTTCCC"]
-    >>> featurizer = DNABertFeaturizer.from_pretrained("zhihan1996/DNABERT-2-117M", trust_remote_code=True)
-    >>> feats = featurizer.featurize(sequences, add_special_tokens=True, truncation=True, padding='max_length', max_length=100)
-    >>> feats.shape
-    (2, 2, 100)
 
     Note
     -----
@@ -55,8 +39,8 @@ class DNABertFeaturizer(PreTrainedTokenizerFast, Featurizer):
 
         Parameters
         ----------
-        datapoint: str
-            DNA sequence string to be tokenized.
+        sequence: str
+            Arbitrary DNA sequence string to be tokenized.
 
         Returns
         -------
