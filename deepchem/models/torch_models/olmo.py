@@ -32,6 +32,7 @@ class OlmoForSequenceClassification(GenericForSequenceClassification,
         self.num_labels = config.num_labels
         setattr(self, self.base_model_prefix, AutoModel.from_config(config))
         self.score = nn.Linear(config.hidden_size, self.num_labels, bias=False)
+        self.score = self.score.to(next(self.parameters()).dtype)
         self.post_init()
 
 
