@@ -1,3 +1,6 @@
+import gc
+import os
+
 import pytest
 import deepchem as dc
 
@@ -16,9 +19,10 @@ SMILES = [
 def test_olmo_causal_lm():
     from deepchem.models.torch_models.olmo import Olmo
 
-    model = Olmo(model="allenai/OLMo-1B-hf",
-                 tokenizer=None,
-                 task_type="causal_lm")
+    model = Olmo(task_type="causal_lm",
+                 tokenizer_path="allenai/OLMo-1B-hf",
+                 torch_dtype=torch.float16)
+    model.load_from_pretrained("allenai/OLMo-1B-hf", from_hf_checkpoint=True)
 
     dataset = dc.data.NumpyDataset(SMILES)
 
@@ -27,7 +31,8 @@ def test_olmo_causal_lm():
 
     predictions = model.predict(dataset)
     predictions = torch.argmax(torch.tensor(predictions), dim=-1)
-    decoded = model.tokenizer.batch_decode(predictions, skip_special_tokens=True)
+    decoded = model.tokenizer.batch_decode(predictions,
+                                           skip_special_tokens=True)
 
     assert len(decoded) == len(SMILES)
     for i in decoded:
@@ -37,3 +42,97 @@ def test_olmo_causal_lm():
     assert len(generated) == len(SMILES)
     for text in generated:
         assert isinstance(text, str)
+    del model
+    gc.collect()
+
+
+@pytest.mark.hf
+def test_olmo_causal_lm_overfit():
+    from deepchem.models.torch_models.olmo import Olmo
+
+    model = Olmo(task_type="causal_lm",
+                 tokenizer_path="allenai/OLMo-1B-hf",
+                 torch_dtype=torch.float16)
+    model.load_from_pretrained("allenai/OLMo-1B-hf", from_hf_checkpoint=True)
+
+    dataset = dc.data.NumpyDataset(SMILES)
+
+    loss = model.fit(dataset, nb_epoch=1)
+    assert loss is not None
+
+    predictions = model.predict(dataset)
+    predictions = torch.argmax(torch.tensor(predictions), dim=-1)
+    decoded = model.tokenizer.batch_decode(predictions,
+                                           skip_special_tokens=True)
+
+    assert len(decoded) == len(SMILES)
+    for i in decoded:
+        assert isinstance(i, str)
+    del model
+    gc.collect()
+
+
+@pytest.mark.hf
+def test_olmo_load_from_pretrained(tmpdir):
+    from deepchem.models.torch_models.olmo import Olmo
+    pretrain_model_dir = os.path.join(tmpdir, 'pretrain')
+    finetune_model_dir = os.path.join(tmpdir, 'finetune')
+
+    pretrain_model = Olmo(task_type="causal_lm",
+                          tokenizer_path="allenai/OLMo-1B-hf",
+                          torch_dtype=torch.float16)
+    pretrain_model.load_from_pretrained("allenai/OLMo-1B-hf",
+                                        from_hf_checkpoint=True)
+
+    pretrain_model.save_checkpoint(model_dir=pretrain_model_dir)
+    finetune_model = Olmo(task_type="causal_lm",
+                          tokenizer_path="allenai/OLMo-1B-hf",
+                          torch_dtype=torch.float16,
+                          model_dir=finetune_model_dir)
+    finetune_model.load_from_pretrained(pretrain_model_dir)
+    pretrain_model_state_dict = pretrain_model.model.state_dict()
+    finetune_model_state_dict = finetune_model.model.state_dict()
+
+    pretrain_base_model_keys = [
+        key for key in pretrain_model_state_dict.keys()
+        if key.startswith('model.')
+    ]
+    matches = [
+        torch.allclose(pretrain_model_state_dict[key],
+                       finetune_model_state_dict[key])
+        for key in pretrain_base_model_keys
+    ]
+
+    assert all(matches)
+    del pretrain_model, finetune_model
+    gc.collect()
+
+
+@pytest.mark.hf
+def test_olmo_causal_lm_save_reload(tmpdir):
+    from deepchem.models.torch_models.olmo import Olmo
+    model = Olmo(task_type="causal_lm",
+                 tokenizer_path="allenai/OLMo-1B-hf",
+                 torch_dtype=torch.float16,
+                 model_dir=tmpdir)
+    model.load_from_pretrained("allenai/OLMo-1B-hf", from_hf_checkpoint=True)
+    model._ensure_built()
+    model.save_checkpoint()
+
+    model_new = Olmo(task_type="causal_lm",
+                     tokenizer_path="allenai/OLMo-1B-hf",
+                     torch_dtype=torch.float16,
+                     model_dir=tmpdir)
+    model_new.restore()
+
+    old_state = model.model.state_dict()
+    new_state = model_new.model.state_dict()
+    matches = [
+        torch.allclose(old_state[key], new_state[key])
+        for key in old_state.keys()
+    ]
+
+    # all keys values should match
+    assert all(matches)
+    del model, model_new
+    gc.collect()
