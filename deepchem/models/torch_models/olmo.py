@@ -2,8 +2,7 @@ import gc
 import torch
 import torch.nn as nn
 from typing import Any, Optional, Tuple
-from transformers import (AutoTokenizer, AutoModel, OlmoPreTrainedModel,
-                          OlmoForCausalLM, OlmoConfig)
+from transformers import AutoTokenizer, AutoModel, OlmoPreTrainedModel, OlmoForCausalLM, OlmoConfig
 from transformers.modeling_layers import GenericForSequenceClassification
 from deepchem.models.torch_models.hf_models import HuggingFaceModel
 
