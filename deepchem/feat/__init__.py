@@ -100,6 +100,7 @@ try:
     from deepchem.feat.smiles_tokenizer import BasicSmilesTokenizer
     from deepchem.feat.bert_tokenizer import BertFeaturizer
     from deepchem.feat.roberta_tokenizer import RobertaFeaturizer
+    from deepchem.feat.dnabert_tokenizer import DNABertFeaturizer
     from deepchem.feat.reaction_featurizer import RxnFeaturizer
 except ModuleNotFoundError:
     pass
