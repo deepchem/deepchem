@@ -170,7 +170,9 @@ class Olmo(HuggingFaceModel):
 
         if self.task == "causal_lm":
             self.model = OlmoForCausalLM.from_pretrained(
-                model_dir, torch_dtype=self._torch_dtype)
+                model_dir,
+                torch_dtype=self._torch_dtype,
+                low_cpu_mem_usage=True)
         else:
             if self.task in ("classification", "mtc"):
                 problem_type = "multi_label_classification"
@@ -180,7 +182,8 @@ class Olmo(HuggingFaceModel):
                 model_dir,
                 num_labels=self.n_tasks,
                 problem_type=problem_type,
-                torch_dtype=self._torch_dtype)
+                torch_dtype=self._torch_dtype,
+                low_cpu_mem_usage=True)
 
         self.model.gradient_checkpointing_enable()
         self.model = self.model.to(self.device)
