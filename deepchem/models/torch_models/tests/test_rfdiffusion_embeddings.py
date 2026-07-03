@@ -2,17 +2,18 @@
 
 import pytest
 
-from deepchem.models.torch_models.rfdiffusion import (
-    PositionalEncoding,
-    ResidueEmbedding,
-    SinusoidalTimestepEmbedding,
-)
-
 try:
     import torch
     has_torch = True
 except ImportError:
     has_torch = False
+
+if has_torch:
+    from deepchem.models.torch_models.rfdiffusion import (
+        PositionalEncoding,
+        ResidueEmbedding,
+        SinusoidalTimestepEmbedding,
+    )
 
 
 @pytest.mark.torch
