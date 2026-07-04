@@ -131,14 +131,15 @@ class Olmo(HuggingFaceModel):
             olmo_config.num_labels = n_tasks
             model = OlmoForSequenceClassification(olmo_config)
 
-        model.gradient_checkpointing_enable()  # type: ignore[union-attr]
+        model.gradient_checkpointing_enable()  # type: ignore[attr-defined]
         if isinstance(self._torch_dtype, torch.dtype):
-            model = model.to(self._torch_dtype)  # type: ignore[union-attr]
+            model = model.to(self._torch_dtype)  # type: ignore[attr-defined]
 
-        super().__init__(model=model,  # type: ignore[arg-type]
-                         tokenizer=tokenizer,
-                         task=task_type,
-                         **kwargs)
+        super().__init__(
+            model=model,  # type: ignore[arg-type]
+            tokenizer=tokenizer,
+            task=task_type,
+            **kwargs)
 
     def load_from_pretrained(  # type: ignore[override]
             self,
