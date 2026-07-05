@@ -3,12 +3,11 @@ import torch
 import torch.nn as nn
 from typing import Any, Optional, Tuple
 from transformers import AutoTokenizer, AutoModel, OlmoPreTrainedModel, OlmoForCausalLM, OlmoConfig
-from transformers.modeling_layers import GenericForSequenceClassification
+from transformers.modeling_outputs import SequenceClassifierOutputWithPast
 from deepchem.models.torch_models.hf_models import HuggingFaceModel
 
 
-class OlmoForSequenceClassification(GenericForSequenceClassification,
-                                    OlmoPreTrainedModel):
+class OlmoForSequenceClassification(OlmoPreTrainedModel):
     """OLMo model with a linear scoring head for classification or regression.
 
     Adds a linear layer on top of the last token's hidden state.
@@ -28,12 +27,53 @@ class OlmoForSequenceClassification(GenericForSequenceClassification,
     base_model_prefix = "model"
 
     def __init__(self, config):
-        super(GenericForSequenceClassification, self).__init__(config)
+        super().__init__(config)
         self.num_labels = config.num_labels
-        setattr(self, self.base_model_prefix, AutoModel.from_config(config))
+        self.model = AutoModel.from_config(config)
         self.score = nn.Linear(config.hidden_size, self.num_labels, bias=False)
         self.score = self.score.to(next(self.parameters()).dtype)
         self.post_init()
+
+    def forward(self,
+                input_ids=None,
+                attention_mask=None,
+                labels=None,
+                **kwargs):
+        outputs = self.model(input_ids, attention_mask=attention_mask, **kwargs)
+        hidden_states = outputs[0]
+        logits = self.score(hidden_states)
+
+        batch_size = (input_ids.shape[0]
+                      if input_ids is not None else hidden_states.shape[0])
+
+        if self.config.pad_token_id is None:
+            sequence_lengths = -1
+        else:
+            if input_ids is not None:
+                sequence_lengths = (
+                    torch.ne(input_ids, self.config.pad_token_id).sum(-1) -
+                    1).to(logits.device)
+            else:
+                sequence_lengths = -1
+
+        pooled_logits = logits[torch.arange(batch_size, device=logits.device),
+                               sequence_lengths]
+
+        loss = None
+        if labels is not None:
+            labels = labels.to(logits.device)
+            if self.config.problem_type == "regression":
+                loss = nn.MSELoss()(pooled_logits, labels)
+            elif self.config.problem_type == "multi_label_classification":
+                loss = nn.BCEWithLogitsLoss()(pooled_logits, labels)
+
+        return SequenceClassifierOutputWithPast(
+            loss=loss,
+            logits=pooled_logits,
+            past_key_values=getattr(outputs, 'past_key_values', None),
+            hidden_states=getattr(outputs, 'hidden_states', None),
+            attentions=getattr(outputs, 'attentions', None),
+        )
 
 
 DTYPES = {
