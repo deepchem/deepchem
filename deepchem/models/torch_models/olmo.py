@@ -39,6 +39,7 @@ class OlmoForSequenceClassification(OlmoPreTrainedModel):
                 attention_mask=None,
                 labels=None,
                 **kwargs):
+        """Forward pass for OLMo sequence classification/regression."""
         outputs = self.model(input_ids, attention_mask=attention_mask, **kwargs)
         hidden_states = outputs[0]
         logits = self.score(hidden_states)
@@ -160,8 +161,7 @@ class Olmo(HuggingFaceModel):
         tokenizer = AutoTokenizer.from_pretrained(tokenizer_path)
         olmo_config = OlmoConfig.from_pretrained(tokenizer_path)
 
-        model: Union[OlmoForCausalLM,
-                     OlmoForSequenceClassification]
+        model: Union[OlmoForCausalLM, OlmoForSequenceClassification]
         if task_type == "causal_lm":
             model = OlmoForCausalLM(olmo_config)
         else:
@@ -173,9 +173,9 @@ class Olmo(HuggingFaceModel):
             olmo_config.num_labels = n_tasks
             model = OlmoForSequenceClassification(olmo_config)
 
-        model.gradient_checkpointing_enable()  # type: ignore[attr-defined]
+        model.gradient_checkpointing_enable()  # type: ignore[union-attr]
         if isinstance(self._torch_dtype, torch.dtype):
-            model = model.to(self._torch_dtype)  # type: ignore[attr-defined]
+            model = model.to(self._torch_dtype)  # type: ignore[union-attr]
 
         super().__init__(
             model=model,  # type: ignore[arg-type]
