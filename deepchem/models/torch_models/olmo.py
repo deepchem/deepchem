@@ -1,7 +1,7 @@
 import gc
 import torch
 import torch.nn as nn
-from typing import Any, Optional, Tuple
+from typing import Any, Optional, Tuple, Union
 from transformers import AutoTokenizer, AutoModel, OlmoPreTrainedModel, OlmoForCausalLM, OlmoConfig
 from transformers.modeling_outputs import SequenceClassifierOutputWithPast
 from deepchem.models.torch_models.hf_models import HuggingFaceModel
@@ -160,6 +160,8 @@ class Olmo(HuggingFaceModel):
         tokenizer = AutoTokenizer.from_pretrained(tokenizer_path)
         olmo_config = OlmoConfig.from_pretrained(tokenizer_path)
 
+        model: Union[OlmoForCausalLM,
+                     OlmoForSequenceClassification]
         if task_type == "causal_lm":
             model = OlmoForCausalLM(olmo_config)
         else:
