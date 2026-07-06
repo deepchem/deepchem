@@ -617,15 +617,14 @@ class TestSplitter(unittest.TestCase):
 
     def test_scaffold_splitter_seed(self):
         """Test that ScaffoldSplitter seed works for tie-breaking shuffling."""
-        smiles = [
-            'C1CCCCC1', 'c1ccccc1', 'C1COCCN1', 'c1ncncn1', 'c1ccccc1CC',
-            'C1CCCCCC1', 'c1cc[nH]c1', 'C1CSCCS1'
-        ]
-        dataset = dc.data.DiskDataset.from_numpy(X=np.zeros(8),
-                                                 y=np.ones(8),
-                                                 w=np.zeros(8),
-                                                 ids=smiles)
+        # Use a NumpyDataset and stub generate_scaffolds to return known
+        # equal-sized scaffold groups, making the test deterministic and
+        # independent of RDKit scaffold generation across versions.
+        dataset = dc.data.NumpyDataset(X=np.zeros(8), y=np.ones(8))
         splitter = dc.splits.ScaffoldSplitter()
+        splitter.generate_scaffolds = lambda _: [
+            [i] for i in range(len(dataset))
+        ]  # type: ignore[method-assign]
 
         # Same seed twice -> identical splits
         train1, valid1, test1 = splitter.split(dataset,
@@ -642,7 +641,8 @@ class TestSplitter(unittest.TestCase):
         assert valid1 == valid2
         assert test1 == test2
 
-        # Different seeds -> different splits (since we have multiple size 1 scaffold groups)
+        # Different seeds -> different splits (all groups are size 1 so
+        # tie-breaking order determines the split)
         train3, valid3, test3 = splitter.split(dataset,
                                                frac_train=0.5,
                                                frac_valid=0.25,
@@ -650,7 +650,8 @@ class TestSplitter(unittest.TestCase):
                                                seed=43)
         assert train1 != train3 or valid1 != valid3 or test1 != test3
 
-        # seed=None -> runs without error and splits respect fractions
+        # seed=None -> runs without error, splits respect fractions,
+        # and behaviour remains deterministic (no shuffling applied)
         train_none, valid_none, test_none = splitter.split(dataset,
                                                            frac_train=0.5,
                                                            frac_valid=0.25,
@@ -659,3 +660,4 @@ class TestSplitter(unittest.TestCase):
         assert len(train_none) == 4
         assert len(valid_none) == 2
         assert len(test_none) == 2
+

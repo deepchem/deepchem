@@ -1555,14 +1555,16 @@ class ScaffoldSplitter(Splitter):
         scaffold_sets = self.generate_scaffolds(dataset)
 
         from collections import defaultdict
-        rng = np.random.RandomState(seed)
         size_to_group_idxs = defaultdict(list)
         for i, group in enumerate(scaffold_sets):
             size_to_group_idxs[len(group)].append(i)
-        for idxs in size_to_group_idxs.values():
-            rng.shuffle(idxs)
 
         ordered_sizes = sorted(size_to_group_idxs.keys(), reverse=True)
+        if seed is not None:
+            rng = np.random.RandomState(seed)
+            for size in ordered_sizes:
+                rng.shuffle(size_to_group_idxs[size])
+
         scaffold_sets = [
             scaffold_sets[i]
             for size in ordered_sizes
