@@ -1552,7 +1552,9 @@ class ScaffoldSplitter(Splitter):
             Each indices is a list of integers.
         """
         np.testing.assert_almost_equal(frac_train + frac_valid + frac_test, 1.)
-        scaffold_sets = self.generate_scaffolds(dataset)
+        scaffold_sets = self.generate_scaffolds(
+            dataset,
+            log_every_n=log_every_n if log_every_n is not None else 1000)
 
         from collections import defaultdict
         size_to_group_idxs = defaultdict(list)
