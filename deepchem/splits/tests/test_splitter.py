@@ -614,3 +614,48 @@ class TestSplitter(unittest.TestCase):
             cv_folds[1][1])
         assert len(multitask_dataset) == len(cv_folds[2][0]) + len(
             cv_folds[2][1])
+
+    def test_scaffold_splitter_seed(self):
+        """Test that ScaffoldSplitter seed works for tie-breaking shuffling."""
+        smiles = [
+            'C1CCCCC1', 'c1ccccc1', 'C1COCCN1', 'c1ncncn1', 'c1ccccc1CC',
+            'C1CCCCCC1', 'c1cc[nH]c1', 'C1CSCCS1'
+        ]
+        dataset = dc.data.DiskDataset.from_numpy(X=np.zeros(8),
+                                                 y=np.ones(8),
+                                                 w=np.zeros(8),
+                                                 ids=smiles)
+        splitter = dc.splits.ScaffoldSplitter()
+
+        # Same seed twice -> identical splits
+        train1, valid1, test1 = splitter.split(dataset,
+                                               frac_train=0.5,
+                                               frac_valid=0.25,
+                                               frac_test=0.25,
+                                               seed=42)
+        train2, valid2, test2 = splitter.split(dataset,
+                                               frac_train=0.5,
+                                               frac_valid=0.25,
+                                               frac_test=0.25,
+                                               seed=42)
+        assert train1 == train2
+        assert valid1 == valid2
+        assert test1 == test2
+
+        # Different seeds -> different splits (since we have multiple size 1 scaffold groups)
+        train3, valid3, test3 = splitter.split(dataset,
+                                               frac_train=0.5,
+                                               frac_valid=0.25,
+                                               frac_test=0.25,
+                                               seed=43)
+        assert train1 != train3 or valid1 != valid3 or test1 != test3
+
+        # seed=None -> runs without error and splits respect fractions
+        train_none, valid_none, test_none = splitter.split(dataset,
+                                                           frac_train=0.5,
+                                                           frac_valid=0.25,
+                                                           frac_test=0.25,
+                                                           seed=None)
+        assert len(train_none) == 4
+        assert len(valid_none) == 2
+        assert len(test_none) == 2
