@@ -25,6 +25,7 @@ dependencies:
     - simdna
     - transformers==4.51.3
     - accelerate>=0.26.0
+    - bitsandbytes
     - tokenizers
     - xgboost
     - gensim  # used by mol2vec

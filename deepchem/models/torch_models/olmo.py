@@ -1,10 +1,13 @@
 import gc
 import torch
 import torch.nn as nn
-from typing import Any, Optional, Tuple, Union
+from typing import Any, Iterable, List, Optional, Tuple, Union
 from transformers import AutoTokenizer, AutoModel, OlmoPreTrainedModel, OlmoForCausalLM, OlmoConfig
 from transformers.modeling_outputs import SequenceClassifierOutputWithPast
 from deepchem.models.torch_models.hf_models import HuggingFaceModel
+from deepchem.trans import Transformer, undo_transforms
+from deepchem.utils.typing import OneOrMany
+import numpy as np
 
 
 class OlmoForSequenceClassification(OlmoPreTrainedModel):
@@ -20,7 +23,7 @@ class OlmoForSequenceClassification(OlmoPreTrainedModel):
     Examples
     --------
     >>> model = OlmoForSequenceClassification.from_pretrained(
-    ...     "allenai/OLMo-1B-hf", num_labels=1,
+    ...     "allenai/OLMo-7B-hf", num_labels=1,
     ...     problem_type="multi_label_classification")
     """
 
@@ -109,7 +112,7 @@ class Olmo(HuggingFaceModel):
     ----------
     task_type : str, default 'classification'
         One of 'classification', 'regression', 'causal_lm', 'mtc', or 'mtr'.
-    tokenizer_path : str, default 'allenai/OLMo-1B-hf'
+    tokenizer_path : str, default 'allenai/OLMo-7B-hf'
         HuggingFace model ID or local path used to load the tokenizer and
         architecture config. Pretrained weights are not loaded here.
     n_tasks : int, default 1
@@ -118,6 +121,12 @@ class Olmo(HuggingFaceModel):
         Dtype for model weights. Accepts a torch.dtype (e.g. torch.float16) or
         a string alias: 'float16'/'fp16', 'bfloat16'/'bf16', 'float32'/'fp32',
         'float64'/'fp64'. None uses the checkpoint's saved dtype.
+    quantization_config : Optional[transformers.BitsAndBytesConfig], default None
+        Quantization configuration used when loading pretrained weights via
+        load_from_pretrained(..., from_hf_checkpoint=True). Has no effect on the
+        randomly-initialised model built in __init__, since bitsandbytes
+        quantization is only applied while a checkpoint's weights are being
+        loaded through from_pretrained. 
     **kwargs
         Forwarded to HuggingFaceModel.
 
@@ -126,9 +135,9 @@ class Olmo(HuggingFaceModel):
     >>> import deepchem as dc
     >>> import numpy as np
     >>> from deepchem.models.torch_models.olmo import Olmo
-    >>> model = Olmo(task_type="classification", tokenizer_path="allenai/OLMo-1B-hf",
+    >>> model = Olmo(task_type="classification", tokenizer_path="allenai/OLMo-7B-hf",
     ...              n_tasks=1)
-    >>> model.load_from_pretrained("allenai/OLMo-1B-hf", from_hf_checkpoint=True)
+    >>> model.load_from_pretrained("allenai/OLMo-7B-hf", from_hf_checkpoint=True)
     >>> dataset = dc.data.NumpyDataset(
     ...     ["CCN(CCSC)C(=O)N[C@@](C)(CC)C(F)(F)F",
     ...      "CC1(C)CN(C(=O)Nc2cc3ccccc3nn2)C[C@@]2(CCOC2)O1"],
@@ -139,9 +148,10 @@ class Olmo(HuggingFaceModel):
 
     def __init__(self,
                  task_type: str = "classification",
-                 tokenizer_path: str = "allenai/OLMo-1B-hf",
+                 tokenizer_path: str = "allenai/OLMo-7B-hf",
                  n_tasks: int = 1,
                  torch_dtype=None,
+                 quantization_config=None,
                  **kwargs):
         self.n_tasks = n_tasks
         if isinstance(torch_dtype, str):
@@ -151,6 +161,7 @@ class Olmo(HuggingFaceModel):
                     f"Valid string values are: {list(DTYPES.keys())}")
             torch_dtype = DTYPES[torch_dtype]
         self._torch_dtype = torch_dtype
+        self._quantization_config = quantization_config
 
         if task_type not in ("classification", "regression", "causal_lm", "mtc",
                              "mtr"):
@@ -215,6 +226,7 @@ class Olmo(HuggingFaceModel):
         if self.task == "causal_lm":
             self.model = OlmoForCausalLM.from_pretrained(
                 model_dir,
+                quantization_config=self._quantization_config,
                 torch_dtype=self._torch_dtype,
                 low_cpu_mem_usage=True)
         else:
@@ -226,11 +238,15 @@ class Olmo(HuggingFaceModel):
                 model_dir,
                 num_labels=self.n_tasks,
                 problem_type=problem_type,
+                quantization_config=self._quantization_config,
                 torch_dtype=self._torch_dtype,
                 low_cpu_mem_usage=True)
 
         self.model.gradient_checkpointing_enable()
-        self.model = self.model.to(self.device)
+        if self._quantization_config is None:
+            # bitsandbytes-quantized models are placed on device during
+            # from_pretrained and raise if .to() is called afterwards.
+            self.model = self.model.to(self.device)
 
     def _prepare_batch(self, batch: Tuple[Any, Any, Any]):
         """Tokenize inputs and cast labels to the model dtype for each task.
@@ -276,3 +292,125 @@ class Olmo(HuggingFaceModel):
             return inputs, y, w
         else:
             return super()._prepare_batch(batch)
+    
+    def _predict(self, generator: Iterable[Tuple[Any, Any, Any]],
+                 transformers: List[Transformer], uncertainty: bool,
+                 other_output_types: Optional[OneOrMany[str]]):
+        """Predicts output for data provided by generator.
+
+        This is the private implementation of prediction. Do not
+        call it directly. Instead call one of the public prediction methods.
+
+        Overridden from HuggingFaceModel._predict solely to cast logits to
+        float32 before calling .numpy(). NumPy has no native bfloat16 dtype,
+        so when the model is loaded with torch_dtype=torch.bfloat16 (or
+        torch.float16 on some platforms), the base implementation's
+        t.detach().cpu().numpy() raises
+        "TypeError: Got unsupported ScalarType BFloat16".
+
+        Parameters
+        ----------
+        generator: generator
+            this should generate batches, each represented as a tuple of the form
+            (inputs, labels, weights).
+        transformers: list of dc.trans.Transformers
+            Transformers that the input data has been transformed by.  The output
+            is passed through these transformers to undo the transformations.
+        uncertainty: bool
+            specifies whether this is being called as part of estimating uncertainty.
+            If True, it sets the training flag so that dropout will be enabled, and
+            returns the values of the uncertainty outputs.
+        other_output_types: list, optional
+            Provides a list of other output_types (strings) to predict from model.
+
+        Returns
+        -------
+            a NumPy array of the model produces a single output, or a list of arrays
+            if it produces multiple outputs
+
+        Note
+        ----
+        A HuggingFace model does not output uncertainity. The argument is here
+        since it is also present in TorchModel. Similarly, other variables like
+        other_output_types are also not used. Instead, a HuggingFace model outputs
+        loss, logits, hidden state and attentions.
+        """
+        results: Optional[List[List[np.ndarray]]] = None
+        variances: Optional[List[List[np.ndarray]]] = None
+        if uncertainty and (other_output_types is not None):
+            raise ValueError(
+                'This model cannot compute uncertainties and other output types simultaneously. Please invoke one at a time.'
+            )
+        if uncertainty:
+            if self._variance_outputs is None or len(
+                    self._variance_outputs) == 0:
+                raise ValueError('This model cannot compute uncertainties')
+            if len(self._variance_outputs) != len(self._prediction_outputs):
+                raise ValueError(
+                    'The number of variances must exactly match the number of outputs'
+                )
+        if other_output_types:
+            if self._other_outputs is None or len(self._other_outputs) == 0:
+                raise ValueError(
+                    'This model cannot compute other outputs since no other output_types were specified.'
+                )
+        self._ensure_built()
+        self.model.eval()
+        for batch in generator:
+            inputs, labels, weights = batch
+            inputs, _, _ = self._prepare_batch((inputs, None, None))
+
+            # Invoke the model.
+            output_values = self.model(**inputs)
+            output_values = output_values.get('logits')
+
+            if isinstance(output_values, torch.Tensor):
+                output_values = [output_values]
+            output_values = [t.detach().float().cpu().numpy() for t in output_values]
+            # Apply tranformers and record results.
+            if uncertainty:
+                var = [output_values[i] for i in self._variance_outputs]
+                if variances is None:
+                    variances = [var]
+                else:
+                    for i, t in enumerate(var):
+                        variances[i].append(t)
+            access_values = []
+            if other_output_types:
+                access_values += self._other_outputs
+            elif self._prediction_outputs is not None:
+                access_values += self._prediction_outputs
+
+            if len(access_values) > 0:
+                output_values = [output_values[i] for i in access_values]
+
+            if len(transformers) > 0:
+                if len(output_values) > 1:
+                    raise ValueError(
+                        "predict() does not support Transformers for models with multiple outputs."
+                    )
+                elif len(output_values) == 1:
+                    output_values = [
+                        undo_transforms(output_values[0], transformers)
+                    ]
+            if results is None:
+                results = [[] for i in range(len(output_values))]
+            for i, t in enumerate(output_values):
+                results[i].append(t)
+
+        # Concatenate arrays to create the final results.
+        final_results = []
+        final_variances = []
+        if results is not None:
+            for r in results:
+                final_results.append(np.concatenate(r, axis=0))
+
+        if uncertainty and variances is not None:
+            for v in variances:
+                final_variances.append(np.concatenate(v, axis=0))
+            return zip(final_results, final_variances)
+
+        if len(final_results) == 1:
+            return final_results[0]
+        else:
+            return np.array(final_results)

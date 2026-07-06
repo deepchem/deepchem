@@ -15,13 +15,24 @@ SMILES = [
 ]
 
 
+def quantization_config():
+    from transformers import BitsAndBytesConfig
+    return BitsAndBytesConfig(
+        load_in_4bit=True,
+        bnb_4bit_quant_type="nf4",
+        bnb_4bit_use_double_quant=True,
+        bnb_4bit_compute_dtype=torch.float16,
+    )
+
+
 @pytest.mark.hf
 def test_olmo_causal_lm():
     from deepchem.models.torch_models.olmo import Olmo
 
     model = Olmo(task_type="causal_lm",
                  tokenizer_path="allenai/OLMo-1B-hf",
-                 torch_dtype=torch.float16)
+                 torch_dtype=torch.float16,
+                 quantization_config=quantization_config())
     model.load_from_pretrained("allenai/OLMo-1B-hf", from_hf_checkpoint=True)
 
     dataset = dc.data.NumpyDataset(SMILES)
@@ -52,7 +63,8 @@ def test_olmo_causal_lm_overfit():
 
     model = Olmo(task_type="causal_lm",
                  tokenizer_path="allenai/OLMo-1B-hf",
-                 torch_dtype=torch.float16)
+                 torch_dtype=torch.float16,
+                 quantization_config=quantization_config())
     model.load_from_pretrained("allenai/OLMo-1B-hf", from_hf_checkpoint=True)
 
     dataset = dc.data.NumpyDataset(SMILES)

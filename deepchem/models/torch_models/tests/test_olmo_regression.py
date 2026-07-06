@@ -16,6 +16,16 @@ SMILES = [
 ]
 
 
+def quantization_config():
+    from transformers import BitsAndBytesConfig
+    return BitsAndBytesConfig(
+        load_in_4bit=True,
+        bnb_4bit_quant_type="nf4",
+        bnb_4bit_use_double_quant=True,
+        bnb_4bit_compute_dtype=torch.float16,
+    )
+
+
 @pytest.mark.hf
 def test_olmo_single_label_regression():
     from deepchem.models.torch_models.olmo import Olmo
@@ -23,7 +33,8 @@ def test_olmo_single_label_regression():
     model = Olmo(task_type="regression",
                  tokenizer_path="allenai/OLMo-1B-hf",
                  n_tasks=1,
-                 torch_dtype=torch.float16)
+                 torch_dtype=torch.float16,
+                 quantization_config=quantization_config())
     model.load_from_pretrained("allenai/OLMo-1B-hf", from_hf_checkpoint=True)
 
     dataset = dc.data.NumpyDataset(SMILES, np.array([[1.0], [0.0]]))
@@ -44,7 +55,8 @@ def test_olmo_single_label_regression_overfit():
     model = Olmo(task_type="regression",
                  tokenizer_path="allenai/OLMo-1B-hf",
                  n_tasks=1,
-                 torch_dtype=torch.float16)
+                 torch_dtype=torch.float16,
+                 quantization_config=quantization_config())
     model.load_from_pretrained("allenai/OLMo-1B-hf", from_hf_checkpoint=True)
 
     dataset = dc.data.NumpyDataset(SMILES, np.array([[1.0], [0.0]]))
@@ -136,7 +148,8 @@ def test_olmo_multi_label_regression():
     model = Olmo(task_type="regression",
                  tokenizer_path="allenai/OLMo-1B-hf",
                  n_tasks=2,
-                 torch_dtype=torch.float16)
+                 torch_dtype=torch.float16,
+                 quantization_config=quantization_config())
     model.load_from_pretrained("allenai/OLMo-1B-hf", from_hf_checkpoint=True)
 
     dataset = dc.data.NumpyDataset(SMILES, np.array([[1.0, 0.0], [0.0, 1.0]]))
@@ -157,7 +170,8 @@ def test_olmo_multi_label_regression_overfit():
     model = Olmo(task_type="mtr",
                  tokenizer_path="allenai/OLMo-1B-hf",
                  n_tasks=2,
-                 torch_dtype=torch.float16)
+                 torch_dtype=torch.float16,
+                 quantization_config=quantization_config())
     model.load_from_pretrained("allenai/OLMo-1B-hf", from_hf_checkpoint=True)
 
     dataset = dc.data.NumpyDataset(SMILES, np.array([[1.0, 0.0], [0.0, 1.0]]))
