@@ -16,6 +16,9 @@ SMILES = [
 
 
 def quantization_config():
+    if not torch.cuda.is_available():
+        # bitsandbytes 4-bit quantization requires a CUDA GPU.
+        return None
     from transformers import BitsAndBytesConfig
     return BitsAndBytesConfig(
         load_in_4bit=True,
@@ -31,7 +34,8 @@ def test_olmo_causal_lm():
 
     model = Olmo(task_type="causal_lm",
                  tokenizer_path="allenai/OLMo-1B-hf",
-                 torch_dtype=torch.float16,
+                 torch_dtype=torch.float16
+                 if torch.cuda.is_available() else torch.float32,
                  quantization_config=quantization_config())
     model.load_from_pretrained("allenai/OLMo-1B-hf", from_hf_checkpoint=True)
 
@@ -63,7 +67,8 @@ def test_olmo_causal_lm_overfit():
 
     model = Olmo(task_type="causal_lm",
                  tokenizer_path="allenai/OLMo-1B-hf",
-                 torch_dtype=torch.float16,
+                 torch_dtype=torch.float16
+                 if torch.cuda.is_available() else torch.float32,
                  quantization_config=quantization_config())
     model.load_from_pretrained("allenai/OLMo-1B-hf", from_hf_checkpoint=True)
 
@@ -92,14 +97,16 @@ def test_olmo_load_from_pretrained(tmpdir):
 
     pretrain_model = Olmo(task_type="causal_lm",
                           tokenizer_path="allenai/OLMo-1B-hf",
-                          torch_dtype=torch.float16)
+                          torch_dtype=torch.float16
+                          if torch.cuda.is_available() else torch.float32)
     pretrain_model.load_from_pretrained("allenai/OLMo-1B-hf",
                                         from_hf_checkpoint=True)
 
     pretrain_model.save_checkpoint(model_dir=pretrain_model_dir)
     finetune_model = Olmo(task_type="causal_lm",
                           tokenizer_path="allenai/OLMo-1B-hf",
-                          torch_dtype=torch.float16,
+                          torch_dtype=torch.float16
+                          if torch.cuda.is_available() else torch.float32,
                           model_dir=finetune_model_dir)
     finetune_model.load_from_pretrained(pretrain_model_dir)
     pretrain_model_state_dict = pretrain_model.model.state_dict()
@@ -125,7 +132,8 @@ def test_olmo_causal_lm_save_reload(tmpdir):
     from deepchem.models.torch_models.olmo import Olmo
     model = Olmo(task_type="causal_lm",
                  tokenizer_path="allenai/OLMo-1B-hf",
-                 torch_dtype=torch.float16,
+                 torch_dtype=torch.float16
+                 if torch.cuda.is_available() else torch.float32,
                  model_dir=tmpdir)
     model.load_from_pretrained("allenai/OLMo-1B-hf", from_hf_checkpoint=True)
     model._ensure_built()
@@ -133,7 +141,8 @@ def test_olmo_causal_lm_save_reload(tmpdir):
 
     model_new = Olmo(task_type="causal_lm",
                      tokenizer_path="allenai/OLMo-1B-hf",
-                     torch_dtype=torch.float16,
+                     torch_dtype=torch.float16
+                     if torch.cuda.is_available() else torch.float32,
                      model_dir=tmpdir)
     model_new.restore()
 
