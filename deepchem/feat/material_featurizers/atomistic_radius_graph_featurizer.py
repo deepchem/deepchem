@@ -37,7 +37,7 @@ class AtomisticRadiusGraphFeaturizer(Featurizer):
         Parameters
         ----------
         cutoff: float
-            Radius cutoff for constructing directed edges. Edges are created
+            Radius cutoff for constructing directed edges. The Edges are created
             when the interatomic distance is strictly smaller than this value.
         """
         if cutoff <= 0:
