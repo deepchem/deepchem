@@ -6,7 +6,14 @@ import numpy as np
 
 logger = logging.getLogger(__name__)
 
+try:
+    import pysam
+    has_pysam = True
+except ImportError:
+    has_pysam = False
 
+
+@unittest.skipIf(not has_pysam, "pysam is not installed")
 class TestPileupFeaturizer(unittest.TestCase):
 
     def setUp(self):

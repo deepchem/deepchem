@@ -23,7 +23,7 @@ class TestImageLoader(unittest.TestCase):
 
         # Create image file
         self.data_dir = tempfile.mkdtemp()
-        self.face = misc.face()
+        self.face = np.zeros((768, 1024, 3), dtype=np.uint8)
         self.face_path = os.path.join(self.data_dir, "face.png")
         Image.fromarray(self.face).save(self.face_path)
         self.face_copy_path = os.path.join(self.data_dir, "face_copy.png")
