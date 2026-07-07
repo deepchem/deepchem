@@ -4,6 +4,7 @@ channels:
   - defaults
 dependencies:
   - openmm
+  - ase
   - mdtraj
   - pdbfixer
   - pip
@@ -13,7 +14,6 @@ dependencies:
     - pre-commit
     - biopython
     - dgllife
-    - ase
     - lightgbm
     - matminer
     - mordred

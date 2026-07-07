@@ -16,4 +16,3 @@ dependencies:
    - yamlloader
    - tqdm
    - pyscf[all]
-   - ase
