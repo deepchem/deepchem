@@ -703,6 +703,8 @@ The utilites here are used to create an object that contains information about a
 
 .. autofunction:: deepchem.utils.differentiation_utils.integrate.explicit_rk.mid_point_ivp
 
+.. autofunction:: deepchem.utils.gaussian_integrals.integral_utils.boys
+
 Attribute Utilities
 -------------------
 
