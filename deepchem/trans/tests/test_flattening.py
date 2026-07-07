@@ -2,10 +2,11 @@ import tempfile
 import os
 import deepchem as dc
 import numpy as np
+from deepchem.utils.data_utils import UniversalNamedTemporaryFile
 
 
 def test_flattening_with_csv_load_withtask():
-    fin = tempfile.NamedTemporaryFile(mode='w', delete=False)
+    fin = UniversalNamedTemporaryFile(mode='w', delete=False)
     fin.write("smiles,endpoint\nc1ccccc1,1")
     fin.close()
     loader = dc.data.CSVLoader(
@@ -23,7 +24,7 @@ def test_flattening_with_csv_load_withtask():
 
 
 def test_flattening_with_csv_load_notask():
-    fin = tempfile.NamedTemporaryFile(mode='w', delete=False)
+    fin = UniversalNamedTemporaryFile(mode='w', delete=False)
     fin.write("smiles,endpoint\nc1ccccc1,1")
     fin.close()
     loader = dc.data.CSVLoader(

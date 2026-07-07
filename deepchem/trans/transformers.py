@@ -15,6 +15,7 @@ import deepchem as dc
 from deepchem.data import Dataset, NumpyDataset, DiskDataset
 from deepchem.feat import Featurizer
 from deepchem.feat.mol_graphs import ConvMol
+from deepchem.utils.data_utils import UniversalNamedTemporaryFile
 
 logger = logging.getLogger(__name__)
 
@@ -1030,7 +1031,7 @@ class FlatteningTransformer(Transformer):
 
     >>> import tempfile
     >>> import deepchem as dc
-    >>> with tempfile.NamedTemporaryFile(mode='wt', delete=False) as fin:
+    >>> with UniversalNamedTemporaryFile(mode='wt', delete=False) as fin:
     ...     tmp = fin.write("smiles,endpoint\\nc1ccccc1,1")
     >>> loader = dc.data.CSVLoader([], feature_field="smiles",
     ...    featurizer = dc.feat.ConvMolFeaturizer(per_atom_fragmentation=False))

@@ -3,6 +3,7 @@ import subprocess
 import tempfile
 
 import nbformat
+from deepchem.utils.data_utils import UniversalNamedTemporaryFile
 
 
 def _notebook_read(path):
@@ -18,7 +19,7 @@ def _notebook_read(path):
   errors: list of Exceptions
   """
 
-  with tempfile.NamedTemporaryFile(suffix=".ipynb") as fout:
+  with UniversalNamedTemporaryFile(suffix=".ipynb") as fout:
     args = [
         "jupyter-nbconvert", "--to", "notebook", "--execute",
         "--ExecutePreprocessor.timeout=600", "--output", fout.name, path

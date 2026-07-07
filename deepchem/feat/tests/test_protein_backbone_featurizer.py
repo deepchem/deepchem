@@ -6,6 +6,7 @@ import tempfile
 import os
 import numpy as np
 import deepchem as dc
+from deepchem.utils.data_utils import UniversalNamedTemporaryFile
 
 try:
     from Bio.PDB import PDBParser  # noqa: F401
@@ -40,7 +41,7 @@ class TestProteinBackboneFeaturizer(unittest.TestCase):
             "ATOM      9  C   VAL A   3"
             "       1.000   5.400   4.000  1.00  0.00           C\n"
             "END\n")
-        self.pdb_file = tempfile.NamedTemporaryFile(mode='w',
+        self.pdb_file = UniversalNamedTemporaryFile(mode='w',
                                                     suffix='.pdb',
                                                     delete=False)
         self.pdb_file.write(self.pdb_content)
@@ -113,7 +114,7 @@ class TestProteinBackboneFeaturizer(unittest.TestCase):
         lines.append("END\n")
         long_pdb_content = "".join(lines)
 
-        pdb_file2 = tempfile.NamedTemporaryFile(mode='w',
+        pdb_file2 = UniversalNamedTemporaryFile(mode='w',
                                                 suffix='.pdb',
                                                 delete=False)
         pdb_file2.write(long_pdb_content)
@@ -149,7 +150,7 @@ class TestProteinBackboneFeaturizer(unittest.TestCase):
                        "ATOM      5  CA  GLY A   2"
                        "       2.000   3.350   1.000  1.00  0.00           C\n"
                        "END\n")
-        missing_pdb = tempfile.NamedTemporaryFile(mode='w',
+        missing_pdb = UniversalNamedTemporaryFile(mode='w',
                                                   suffix='.pdb',
                                                   delete=False)
         missing_pdb.write(pdb_content)
@@ -181,7 +182,7 @@ class TestProteinBackboneFeaturizer(unittest.TestCase):
     @unittest.skipIf(not has_biopython, "BioPython not installed")
     def test_invalid_pdb(self):
         """Test handling of invalid PDB files."""
-        invalid_pdb = tempfile.NamedTemporaryFile(mode='w',
+        invalid_pdb = UniversalNamedTemporaryFile(mode='w',
                                                   suffix='.pdb',
                                                   delete=False)
         invalid_pdb.write("This is not a valid PDB file\n")
@@ -217,7 +218,7 @@ class TestProteinBackboneFeaturizer(unittest.TestCase):
 
         assert features[0].shape == (0, 3, 3)
         assert featurizer.get_metadata(missing_path) == {}
-        self.pdb_file = tempfile.NamedTemporaryFile(mode='w',
+        self.pdb_file = UniversalNamedTemporaryFile(mode='w',
                                                     suffix='.pdb',
                                                     delete=False)
         self.pdb_file.write(self.pdb_content)

@@ -148,31 +148,54 @@ def unzip_file(file: str,
 class UniversalNamedTemporaryFile:
     """The implementation for cross platform NamedTemporaryFile.
 
-    `tempfile.NamedTemporaryFile` causes a permission error on Windows.
-    This implementation avoids the error, please see threads on the stackoverflow [1]_.
+    `tempfile.NamedTemporaryFile` causes a permission error on Windows when the
+    file is reopened by name because Windows locks the file with an exclusive lock.
+    This implementation creates a temporary file safely using mkstemp but then
+    closes the OS-level handle and opens it with Python's standard `open()`, which
+    allows sharing.
+
+    It acts as a drop-in replacement for `tempfile.NamedTemporaryFile`.
 
     References
     ----------
     .. [1] https://stackoverflow.com/questions/23212435/permission-denied-to-write-to-my-temporary-file
     """
 
-    def __init__(self, mode='wb', delete=True):
+    def __init__(self, mode='w+b', delete=True, **kwargs):
         self._mode = mode
         self._delete = delete
+        # mkstemp safely creates the file and returns a file descriptor and path
+        fd, self.name = tempfile.mkstemp(**kwargs)
+        # Close the exclusive OS-level file descriptor
+        os.close(fd)
+        # Open it with Python's standard open, which allows shared access on Windows
+        self._tempFile = open(self.name, self._mode)
+
+    def __getattr__(self, name):
+        # Delegate all other attributes to the underlying file
+        return getattr(self._tempFile, name)
 
     def __enter__(self):
-        # Generate a random temporary file name
-        file_name = os.path.join(tempfile.gettempdir(), os.urandom(24).hex())
-        # Ensure the file is created
-        open(file_name, "x").close()
-        # Open the file in the given mode
-        self._tempFile = open(file_name, self._mode)
-        return self._tempFile
+        self._tempFile.__enter__()
+        return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        self._tempFile.close()
-        if self._delete:
-            os.remove(self._tempFile.name)
+        self._tempFile.__exit__(exc_type, exc_val, exc_tb)
+        self.close()
+
+    def close(self):
+        if not getattr(self, '_tempFile', None):
+            return
+        if not self._tempFile.closed:
+            self._tempFile.close()
+        if self._delete and os.path.exists(self.name):
+            try:
+                os.remove(self.name)
+            except OSError:
+                pass
+
+    def __del__(self):
+        self.close()
 
 
 def load_image_files(input_files: List[str]) -> np.ndarray:
