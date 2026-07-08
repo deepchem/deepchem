@@ -4,11 +4,11 @@ channels:
   - defaults
 dependencies:
   - openmm
-  - ase
   - mdtraj
   - pdbfixer
   - pip
   - pip:
+    - ase
     - numpy<1.26
     - pymc>=5.10
     - rdkit==2023.09.5
