@@ -15,7 +15,7 @@ class Dnabert(HuggingFaceModel):
 
     def __init__(self,
                  task: str,
-                 tokenizer_path: str = 'zhihan1996/DNABERT-2-117M',
+                 tokenizer_path: str = 'IronHead44/DNABERT-2-117M',
                  n_tasks: int = 1,
                  **kwargs):
         self.n_tasks = n_tasks
@@ -24,9 +24,11 @@ class Dnabert(HuggingFaceModel):
         model: PreTrainedModel
         dnabert_config = AutoConfig.from_pretrained(tokenizer_path,
                                                     trust_remote_code=True)
+        dnabert_config.pad_token_id = tokenizer.pad_token_id
+        dnabert_config.is_decoder = False
         if task == 'mlm':
             model = AutoModelForMaskedLM.from_pretrained(
-                tokenizer_path, trust_remote_code=True)
+                tokenizer_path, config=dnabert_config, trust_remote_code=True)
         elif task == 'mtr':
             dnabert_config.problem_type = 'regression'
             dnabert_config.num_labels = n_tasks
@@ -60,16 +62,12 @@ class Dnabert(HuggingFaceModel):
                     padding=True,
                     return_tensors="pt")
 
-        inputs, labels = self.data_collator.torch_mask_tokens(
-            tokens['input_ids']
-        )
-
         if self.task == 'mlm':
             inputs, labels = self.data_collator.torch_mask_tokens(
                 tokens['input_ids']
             )
             inputs = {
-                'input_ids': inputs.to_(self.device),
+                'input_ids': inputs.to(self.device),
                 'labels': labels.to(self.device),
                 'attention_mask': tokens['attention_mask'].to(self.device),
             }
@@ -85,8 +83,8 @@ class Dnabert(HuggingFaceModel):
                         y = y.long().to(self.device)
                     else:
                         y = y.float().to(self.device)
-            for key,value in tokens.items():
+            for key, value in tokens.items():
                 tokens[key] = value.to(self.device)
             
-            input = {**tokens, 'labels':y}
+            inputs = {**tokens, 'labels': y}
             return inputs, y, w
