@@ -2,13 +2,13 @@ import gc
 from contextlib import nullcontext
 import torch
 import torch.nn as nn
-from typing import Any, Optional, Tuple, Union
+from typing import Any, ContextManager, Optional, Tuple, Union
 from transformers import AutoTokenizer, AutoModel, OlmoPreTrainedModel, OlmoForCausalLM, OlmoConfig
 from transformers.modeling_outputs import SequenceClassifierOutputWithPast
 try:
     from transformers.modeling_utils import no_init_weights
 except ImportError:
-    from transformers.initialization import no_init_weights
+    from transformers.initialization import no_init_weights  # type: ignore[no-redef]
 from deepchem.models.torch_models.hf_models import HuggingFaceModel
 
 
@@ -168,6 +168,7 @@ class Olmo(HuggingFaceModel):
         olmo_config = OlmoConfig.from_pretrained(tokenizer_path)
 
         model: Union[OlmoForCausalLM, OlmoForSequenceClassification]
+        init_ctx: ContextManager
         if skip_weight_init:
             init_ctx = no_init_weights()
         else:
