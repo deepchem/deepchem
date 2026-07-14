@@ -1,23 +1,26 @@
 import gc
+from contextlib import nullcontext
 import torch
 import torch.nn as nn
 from typing import Any, Optional, Tuple, Union
 from transformers import AutoTokenizer, AutoModel, OlmoPreTrainedModel, OlmoForCausalLM, OlmoConfig
 from transformers.modeling_outputs import SequenceClassifierOutputWithPast
+try:
+    from transformers.modeling_utils import no_init_weights
+except ImportError:
+    from transformers.initialization import no_init_weights
 from deepchem.models.torch_models.hf_models import HuggingFaceModel
 
 
 class OlmoForSequenceClassification(OlmoPreTrainedModel):
-    """OLMo model with a linear scoring head for classification or regression.
-
-    Adds a linear layer on top of the last token's hidden state.
+    """OLMo with a linear scoring head over the last token's hidden state.
 
     Parameters
     ----------
     config : OlmoConfig
-        Must have num_labels and problem_type set before constructing.
+        Must have num_labels and problem_type set.
 
-    Examples
+    Example
     --------
     >>> model = OlmoForSequenceClassification.from_pretrained(
     ...     "allenai/OLMo-7B-hf", num_labels=1,
@@ -96,36 +99,28 @@ DTYPES = {
 class Olmo(HuggingFaceModel):
     """OLMo wrapper for classification, regression, and causal language modelling.
 
-    Loads the model architecture from a pretrained config in __init__ with
-    randomly-initialised weights. Call load_from_pretrained(model_dir,
-    from_hf_checkpoint=True) to replace those weights with a pretrained
-    HuggingFace checkpoint.
-
-    Classification/mtc uses BCEWithLogitsLoss with sigmoid outputs, regression/mtr
-    uses MSELoss, and causal_lm uses OlmoForCausalLM. Gradient checkpointing is
-    enabled for memory efficiency.
+    __init__ builds the architecture with random weights. Call
+    load_from_pretrained(model_dir, from_hf_checkpoint=True) to load a
+    pretrained HuggingFace checkpoint.
 
     Parameters
     ----------
     task_type : str, default 'classification'
         One of 'classification', 'regression', 'causal_lm', 'mtc', or 'mtr'.
     tokenizer_path : str, default 'allenai/OLMo-7B-hf'
-        HuggingFace model ID or local path used to load the tokenizer and
-        architecture config. Pretrained weights are not loaded here.
+        HuggingFace model ID or local path for the tokenizer and config.
     n_tasks : int, default 1
         Number of output labels. Ignored for causal_lm.
     torch_dtype : str or torch.dtype or None, default None
-        Dtype for model weights. Accepts a torch.dtype (e.g. torch.float16) or
-        a string alias: 'float16'/'fp16', 'bfloat16'/'bf16', 'float32'/'fp32',
-        'float64'/'fp64'. None uses the checkpoint's saved dtype.
+        Dtype for model weights. String aliases: 'float16'/'fp16',
+        'bfloat16'/'bf16', 'float32'/'fp32', 'float64'/'fp64'.
     quantization_config : Optional[transformers.BitsAndBytesConfig], default None
-        Quantization configuration used when loading pretrained weights via
-        load_from_pretrained(..., from_hf_checkpoint=True). Has no effect on the
-        randomly-initialised model built in __init__, since bitsandbytes
-        quantization is only applied while a checkpoint's weights are being
-        loaded through from_pretrained.
-    **kwargs
-        Forwarded to HuggingFaceModel.
+        Used only by load_from_pretrained(..., from_hf_checkpoint=True).
+    gradient_checkpointing : bool, default False
+        Trade compute for memory by recomputing activations in backward.
+    skip_weight_init : bool, default False
+        Skip random weight init in __init__ for faster construction of large
+        models.
 
     Example
     --------
@@ -149,8 +144,11 @@ class Olmo(HuggingFaceModel):
                  n_tasks: int = 1,
                  torch_dtype=None,
                  quantization_config=None,
+                 gradient_checkpointing: bool = False,
+                 skip_weight_init: bool = False,
                  **kwargs):
         self.n_tasks = n_tasks
+        self._gradient_checkpointing = gradient_checkpointing
         if isinstance(torch_dtype, str):
             if torch_dtype not in DTYPES:
                 raise ValueError(
@@ -170,18 +168,27 @@ class Olmo(HuggingFaceModel):
         olmo_config = OlmoConfig.from_pretrained(tokenizer_path)
 
         model: Union[OlmoForCausalLM, OlmoForSequenceClassification]
-        if task_type == "causal_lm":
-            model = OlmoForCausalLM(olmo_config)
+        if skip_weight_init:
+            init_ctx = no_init_weights()
         else:
-            if task_type in ("classification", "mtc"):
-                problem_type = "multi_label_classification"
+            init_ctx = nullcontext()
+        with init_ctx:
+            if task_type == "causal_lm":
+                model = OlmoForCausalLM(olmo_config)
             else:
-                problem_type = "regression"
-            olmo_config.problem_type = problem_type
-            olmo_config.num_labels = n_tasks
-            model = OlmoForSequenceClassification(olmo_config)
+                if task_type in ("classification", "mtc"):
+                    problem_type = "multi_label_classification"
+                else:
+                    problem_type = "regression"
+                olmo_config.problem_type = problem_type
+                olmo_config.num_labels = n_tasks
+                model = OlmoForSequenceClassification(olmo_config)
 
-        model.gradient_checkpointing_enable()  # type: ignore[union-attr]
+        if skip_weight_init:
+            model.tie_weights()  # type: ignore[union-attr]
+
+        if self._gradient_checkpointing:
+            model.gradient_checkpointing_enable()  # type: ignore[union-attr]
         if isinstance(self._torch_dtype, torch.dtype):
             model = model.to(self._torch_dtype)  # type: ignore[union-attr]
 
@@ -200,14 +207,11 @@ class Olmo(HuggingFaceModel):
         Parameters
         ----------
         model_dir : str, optional
-            HuggingFace Hub model ID, path to a save_pretrained directory, or
-            path to a directory containing DeepChem checkpoints. Defaults to
-            self.model_dir if not provided.
+            HuggingFace Hub model ID, save_pretrained directory, or DeepChem
+            checkpoint directory. Defaults to self.model_dir.
         from_hf_checkpoint : bool, default False
-            When True, loads from a HuggingFace checkpoint via from_pretrained,
-            replacing the randomly-initialised model. The random model is deleted
-            first to avoid holding two full copies in memory simultaneously.
-            When False, loads from a local DeepChem checkpoint.
+            True loads a HuggingFace checkpoint via from_pretrained. False
+            loads a local DeepChem checkpoint.
         """
         if not from_hf_checkpoint:
             return super().load_from_pretrained(model_dir=model_dir,
@@ -239,28 +243,26 @@ class Olmo(HuggingFaceModel):
                 torch_dtype=self._torch_dtype,
                 low_cpu_mem_usage=True)
 
-        self.model.gradient_checkpointing_enable()
+        if self._gradient_checkpointing:
+            self.model.gradient_checkpointing_enable()
         if self._quantization_config is None:
             # bitsandbytes-quantized models are placed on device during
             # from_pretrained and raise if .to() is called afterwards.
             self.model = self.model.to(self.device)
 
     def _prepare_batch(self, batch: Tuple[Any, Any, Any]):
-        """Tokenize inputs and cast labels to the model dtype for each task.
-
-        Labels are cast to the model dtype to match the head output, as required by
-        MSELoss and BCEWithLogitsLoss. causal_lm is used from the parent.
+        """Tokenize inputs and cast labels to the model dtype. causal_lm uses the parent.
 
         Parameters
         ----------
         batch : tuple of (inputs, labels, weights)
-            Raw batch where inputs[0] is a numpy array of SMILES strings,
-            labels has shape (1, batch_size, n_tasks) or None during predict.
+            inputs[0] is a numpy array of SMILES strings; labels has shape
+            (1, batch_size, n_tasks) or None during predict.
 
         Returns
         -------
         inputs : dict
-            Tokenized inputs with a labels key, ready for model forward().
+            Tokenized inputs with a labels key.
         y : torch.Tensor or None
             Label tensor on device, or None during prediction.
         w : torch.Tensor or None

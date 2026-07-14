@@ -38,7 +38,9 @@ def test_olmo_single_label_regression():
                  n_tasks=1,
                  torch_dtype=torch.float16
                  if torch.cuda.is_available() else torch.float32,
-                 quantization_config=quantization_config())
+                 quantization_config=quantization_config(),
+                 skip_weight_init=True,
+                 gradient_checkpointing=True)
     model.load_from_pretrained("allenai/OLMo-1B-hf", from_hf_checkpoint=True)
 
     dataset = dc.data.NumpyDataset(SMILES, np.array([[1.0], [0.0]]))
@@ -61,7 +63,9 @@ def test_olmo_single_label_regression_overfit():
                  n_tasks=1,
                  torch_dtype=torch.float16
                  if torch.cuda.is_available() else torch.float32,
-                 quantization_config=quantization_config())
+                 quantization_config=quantization_config(),
+                 skip_weight_init=True,
+                 gradient_checkpointing=True)
     model.load_from_pretrained("allenai/OLMo-1B-hf", from_hf_checkpoint=True)
 
     dataset = dc.data.NumpyDataset(SMILES, np.array([[1.0], [0.0]]))
@@ -86,7 +90,9 @@ def test_olmo_single_label_regression_load_from_pretrained(tmpdir):
                           tokenizer_path="allenai/OLMo-1B-hf",
                           n_tasks=1,
                           torch_dtype=torch.float16
-                          if torch.cuda.is_available() else torch.float32)
+                          if torch.cuda.is_available() else torch.float32,
+                          skip_weight_init=True,
+                          gradient_checkpointing=True)
     pretrain_model.load_from_pretrained("allenai/OLMo-1B-hf",
                                         from_hf_checkpoint=True)
 
@@ -96,7 +102,9 @@ def test_olmo_single_label_regression_load_from_pretrained(tmpdir):
                           n_tasks=1,
                           torch_dtype=torch.float16
                           if torch.cuda.is_available() else torch.float32,
-                          model_dir=finetune_model_dir)
+                          model_dir=finetune_model_dir,
+                          skip_weight_init=True,
+                          gradient_checkpointing=True)
     finetune_model.load_from_pretrained(pretrain_model_dir)
     pretrain_model_state_dict = pretrain_model.model.state_dict()
     finetune_model_state_dict = finetune_model.model.state_dict()
@@ -124,7 +132,9 @@ def test_olmo_single_label_regression_save_reload(tmpdir):
                  n_tasks=1,
                  torch_dtype=torch.float16
                  if torch.cuda.is_available() else torch.float32,
-                 model_dir=tmpdir)
+                 model_dir=tmpdir,
+                 skip_weight_init=True,
+                 gradient_checkpointing=True)
     model.load_from_pretrained("allenai/OLMo-1B-hf", from_hf_checkpoint=True)
     model._ensure_built()
     model.save_checkpoint()
@@ -134,7 +144,9 @@ def test_olmo_single_label_regression_save_reload(tmpdir):
                      n_tasks=1,
                      torch_dtype=torch.float16
                      if torch.cuda.is_available() else torch.float32,
-                     model_dir=tmpdir)
+                     model_dir=tmpdir,
+                     skip_weight_init=True,
+                     gradient_checkpointing=True)
     model_new.restore()
 
     old_state = model.model.state_dict()
@@ -159,7 +171,9 @@ def test_olmo_multi_label_regression():
                  n_tasks=2,
                  torch_dtype=torch.float16
                  if torch.cuda.is_available() else torch.float32,
-                 quantization_config=quantization_config())
+                 quantization_config=quantization_config(),
+                 skip_weight_init=True,
+                 gradient_checkpointing=True)
     model.load_from_pretrained("allenai/OLMo-1B-hf", from_hf_checkpoint=True)
 
     dataset = dc.data.NumpyDataset(SMILES, np.array([[1.0, 0.0], [0.0, 1.0]]))
@@ -182,7 +196,9 @@ def test_olmo_multi_label_regression_overfit():
                  n_tasks=2,
                  torch_dtype=torch.float16
                  if torch.cuda.is_available() else torch.float32,
-                 quantization_config=quantization_config())
+                 quantization_config=quantization_config(),
+                 skip_weight_init=True,
+                 gradient_checkpointing=True)
     model.load_from_pretrained("allenai/OLMo-1B-hf", from_hf_checkpoint=True)
 
     dataset = dc.data.NumpyDataset(SMILES, np.array([[1.0, 0.0], [0.0, 1.0]]))
@@ -207,7 +223,9 @@ def test_olmo_multi_label_regression_load_from_pretrained(tmpdir):
                           tokenizer_path="allenai/OLMo-1B-hf",
                           n_tasks=2,
                           torch_dtype=torch.float16
-                          if torch.cuda.is_available() else torch.float32)
+                          if torch.cuda.is_available() else torch.float32,
+                          skip_weight_init=True,
+                          gradient_checkpointing=True)
     pretrain_model.load_from_pretrained("allenai/OLMo-1B-hf",
                                         from_hf_checkpoint=True)
 
@@ -217,7 +235,9 @@ def test_olmo_multi_label_regression_load_from_pretrained(tmpdir):
                           n_tasks=2,
                           torch_dtype=torch.float16
                           if torch.cuda.is_available() else torch.float32,
-                          model_dir=finetune_model_dir)
+                          model_dir=finetune_model_dir,
+                          skip_weight_init=True,
+                          gradient_checkpointing=True)
     finetune_model.load_from_pretrained(pretrain_model_dir)
     pretrain_model_state_dict = pretrain_model.model.state_dict()
     finetune_model_state_dict = finetune_model.model.state_dict()
@@ -245,7 +265,9 @@ def test_olmo_multi_label_regression_save_reload(tmpdir):
                  n_tasks=2,
                  torch_dtype=torch.float16
                  if torch.cuda.is_available() else torch.float32,
-                 model_dir=tmpdir)
+                 model_dir=tmpdir,
+                 skip_weight_init=True,
+                 gradient_checkpointing=True)
     model.load_from_pretrained("allenai/OLMo-1B-hf", from_hf_checkpoint=True)
     model._ensure_built()
     model.save_checkpoint()
@@ -255,7 +277,9 @@ def test_olmo_multi_label_regression_save_reload(tmpdir):
                      n_tasks=2,
                      torch_dtype=torch.float16
                      if torch.cuda.is_available() else torch.float32,
-                     model_dir=tmpdir)
+                     model_dir=tmpdir,
+                     skip_weight_init=True,
+                     gradient_checkpointing=True)
     model_new.restore()
 
     old_state = model.model.state_dict()
