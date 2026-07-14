@@ -2,6 +2,8 @@ import os
 import deepchem as dc
 import numpy as np
 import pytest
+from deepchem.models.torch_models.tests.conftest_dnabert import (  # noqa: F401
+    genomic_regression_dataset, genomic_multitask_regression_dataset)
 
 try:
     import torch
@@ -12,7 +14,7 @@ except ModuleNotFoundError:
 
 @pytest.mark.hf
 def test_dnabert_pretraining(genomic_regression_dataset,
-                               genomic_multitask_regression_dataset):
+                             genomic_multitask_regression_dataset):
     # Pretraining in MLM mode
     from deepchem.models.torch_models.dnabert import Dnabert
 
@@ -24,6 +26,7 @@ def test_dnabert_pretraining(genomic_regression_dataset,
     model = Dnabert(task='mtr', n_tasks=2)
     loss = model.fit(genomic_multitask_regression_dataset, nb_epoch=1)
     assert loss
+
 
 @pytest.mark.hf
 def test_dnabert_finetuning(genomic_regression_dataset,
@@ -65,19 +68,20 @@ def test_dnabert_finetuning(genomic_regression_dataset,
     # logit scores
     assert prediction.shape == (dataset.y.shape[0], 2)
 
+
 @pytest.mark.hf
 def test_dnabert_load_from_pretrained(tmpdir, genomic_regression_dataset):
     pretrain_model_dir = os.path.join(tmpdir, 'pretrain')
     finetune_model_dir = os.path.join(tmpdir, 'finetune')
     tokenizer_path = 'IronHead44/DNABERT-2-117M'
     pretrain_model = Dnabert(task='mlm',
-                               tokenizer_path=tokenizer_path,
-                               model_dir=pretrain_model_dir)
+                             tokenizer_path=tokenizer_path,
+                             model_dir=pretrain_model_dir)
     pretrain_model.save_checkpoint()
 
     finetune_model = Dnabert(task='regression',
-                               tokenizer_path=tokenizer_path,
-                               model_dir=finetune_model_dir)
+                             tokenizer_path=tokenizer_path,
+                             model_dir=finetune_model_dir)
     finetune_model.load_from_pretrained(pretrain_model_dir)
 
     # check weights match
@@ -96,7 +100,6 @@ def test_dnabert_load_from_pretrained(tmpdir, genomic_regression_dataset):
     assert all(matches)
 
 
-
 @pytest.mark.hf
 def test_dnaber_save_reload(tmpdir):
     tokenizer_path = 'IronHead44/DNABERT-2-117M'
@@ -108,7 +111,7 @@ def test_dnaber_save_reload(tmpdir):
 
     model_new = Dnabert(task='regression',
                         tokenizer_path=tokenizer_path,
-                          model_dir=tmpdir)
+                        model_dir=tmpdir)
     model_new.restore()
 
     old_state = model.model.state_dict()
@@ -135,7 +138,6 @@ def test_dnabert_load_weights_from_hf_hub():
     assert old_model_id != new_model_id
 
 
-
 @pytest.mark.hf
 def test_dnabert_finetuning_multitask_classification():
     # test multitask classification with 10 tasks
@@ -157,7 +159,9 @@ def test_dnabert_finetuning_multitask_classification():
     y = np.random.choice([0, 1], size=(10, 10))
     dataset = dc.data.NumpyDataset(X=np.array(sequences), y=y)
 
-    model = Dnabert(task='classification', tokenizer_path=tokenizer_path, n_tasks=10)
+    model = Dnabert(task='classification',
+                    tokenizer_path=tokenizer_path,
+                    n_tasks=10)
     loss = model.fit(dataset, nb_epoch=1)
     eval_score = model.evaluate(dataset,
                                 metrics=dc.metrics.Metric(
@@ -187,7 +191,9 @@ def test_dnabert_finetuning_multitask_regression():
     y = np.random.randn(10, 10)
     dataset = dc.data.NumpyDataset(X=np.array(sequences), y=y)
 
-    model = Dnabert(task='regression', tokenizer_path=tokenizer_path, n_tasks=10)
+    model = Dnabert(task='regression',
+                    tokenizer_path=tokenizer_path,
+                    n_tasks=10)
     loss = model.fit(dataset, nb_epoch=1)
     eval_score = model.evaluate(dataset,
                                 metrics=dc.metrics.Metric(

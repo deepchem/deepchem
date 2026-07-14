@@ -776,6 +776,12 @@ MoLFormer
 .. autoclass:: deepchem.models.torch_models.molformer.MoLFormer
   :members:
 
+Dnabert
+---------
+
+.. autoclass:: deepchem.models.torch_models.dnabert.Dnabert
+  :members:
+
 ProtBERT
 ---------
 
