@@ -592,6 +592,13 @@ DummyFeaturizer
   :members:
   :inherited-members:
 
+DNABertFeaturizer
+^^^^^^^^^^^^^^^^^
+
+.. autoclass:: deepchem.feat.dnabert_tokenizer.DNABertFeaturizer
+  :members:
+  :inherited-members:
+
 
 Base Featurizers (for developers)
 ------------------------------
