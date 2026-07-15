@@ -165,6 +165,7 @@ def test_dnabert_finetuning_multitask_classification():
     model = Dnabert(task='classification',
                     tokenizer_path=tokenizer_path,
                     n_tasks=10)
+    model.load_from_pretrained(tokenizer_path, from_hf_checkpoint=True)
     loss = model.fit(dataset, nb_epoch=1)
     eval_score = model.evaluate(dataset,
                                 metrics=dc.metrics.Metric(
@@ -197,6 +198,7 @@ def test_dnabert_finetuning_multitask_regression():
     model = Dnabert(task='regression',
                     tokenizer_path=tokenizer_path,
                     n_tasks=10)
+    model.load_from_pretrained(tokenizer_path, from_hf_checkpoint=True)
     loss = model.fit(dataset, nb_epoch=1)
     eval_score = model.evaluate(dataset,
                                 metrics=dc.metrics.Metric(
