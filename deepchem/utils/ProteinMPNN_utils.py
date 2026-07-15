@@ -1,8 +1,8 @@
 import torch
 
 
-def _gather_edges(edges: torch.Tensor,
-                  neighbor_idx: torch.Tensor) -> torch.Tensor:
+def gather_edges(edges: torch.Tensor,
+                 neighbor_idx: torch.Tensor) -> torch.Tensor:
     """Gather edge features for each node's k-nearest neighbors.
 
     For every node, selects the edge feature vectors corresponding to its
@@ -34,7 +34,7 @@ def _gather_edges(edges: torch.Tensor,
     >>> import torch
     >>> edges = torch.rand(2, 5, 5, 16)
     >>> neighbor_idx = torch.randint(0, 5, (2, 5, 3))
-    >>> out = _gather_edges(edges, neighbor_idx)
+    >>> out = gather_edges(edges, neighbor_idx)
     >>> out.shape
     torch.Size([2, 5, 3, 16])
     """
@@ -42,8 +42,8 @@ def _gather_edges(edges: torch.Tensor,
     return torch.gather(edges, 2, neighbors)
 
 
-def _gather_nodes(nodes: torch.Tensor,
-                  neighbor_idx: torch.Tensor) -> torch.Tensor:
+def gather_nodes(nodes: torch.Tensor,
+                 neighbor_idx: torch.Tensor) -> torch.Tensor:
     """Gather node features for each node's k-nearest neighbors.
 
     For every node, collects the feature vectors of its k-nearest neighbors
@@ -74,7 +74,7 @@ def _gather_nodes(nodes: torch.Tensor,
     >>> import torch
     >>> nodes = torch.rand(2, 5, 32)
     >>> neighbor_idx = torch.randint(0, 5, (2, 5, 3))
-    >>> out = _gather_nodes(nodes, neighbor_idx)
+    >>> out = gather_nodes(nodes, neighbor_idx)
     >>> out.shape
     torch.Size([2, 5, 3, 32])
     """
@@ -84,8 +84,8 @@ def _gather_nodes(nodes: torch.Tensor,
     return neighbor_features.view(*neighbor_idx.shape[:3], -1)
 
 
-def _cat_neighbors_nodes(h_nodes: torch.Tensor, h_neighbors: torch.Tensor,
-                         E_idx: torch.Tensor) -> torch.Tensor:
+def cat_neighbors_nodes(h_nodes: torch.Tensor, h_neighbors: torch.Tensor,
+                        E_idx: torch.Tensor) -> torch.Tensor:
     """Concatenate neighboring node features with edge features.
 
     For each node and each of its k-nearest neighbors, gathers the neighbor's
@@ -122,9 +122,9 @@ def _cat_neighbors_nodes(h_nodes: torch.Tensor, h_neighbors: torch.Tensor,
     >>> h_nodes = torch.rand(2, 5, 32)
     >>> h_neighbors = torch.rand(2, 5, 3, 16)
     >>> E_idx = torch.randint(0, 5, (2, 5, 3))
-    >>> out = _cat_neighbors_nodes(h_nodes, h_neighbors, E_idx)
+    >>> out = cat_neighbors_nodes(h_nodes, h_neighbors, E_idx)
     >>> out.shape
     torch.Size([2, 5, 3, 48])
     """
-    h_nodes_gathered = _gather_nodes(h_nodes, E_idx)
+    h_nodes_gathered = gather_nodes(h_nodes, E_idx)
     return torch.cat([h_neighbors, h_nodes_gathered], dim=-1)

@@ -6,6 +6,8 @@ try:
 except ModuleNotFoundError:
     has_torch = False
 
+from deepchem.utils.ProteinMPNN_utils import gather_edges, gather_nodes, cat_neighbors_nodes
+
 
 @pytest.mark.torch
 def test_gather_edges_output_shape():
@@ -16,13 +18,12 @@ def test_gather_edges_output_shape():
     tensor of shape ``(batch, num_nodes, k)``, the output should have shape
     ``(batch, num_nodes, k, edge_features)``.
     """
-    from deepchem.utils.ProteinMPNN_utils import _gather_edges
 
     batch, num_nodes, k, edge_features = 2, 5, 3, 16
     edges = torch.rand(batch, num_nodes, num_nodes, edge_features)
     neighbor_idx = torch.randint(0, num_nodes, (batch, num_nodes, k))
 
-    out = _gather_edges(edges, neighbor_idx)
+    out = gather_edges(edges, neighbor_idx)
 
     assert out.shape == torch.Size([batch, num_nodes, k, edge_features])
 
@@ -35,9 +36,7 @@ def test_gather_edges_values():
     that each gathered slice matches the edge indexed by the corresponding
     neighbor index.
     """
-    from deepchem.utils.ProteinMPNN_utils import _gather_edges
 
-    # batch=1, 3 nodes, edge_features=2
     # edges[0, i, j] = [i*10 + j, i*10 + j + 1] (distinct per (i,j) pair)
     edges = torch.tensor([[[[0., 1.], [10., 11.], [20., 21.]],
                            [[100., 101.], [110., 111.], [120., 121.]],
@@ -47,7 +46,7 @@ def test_gather_edges_values():
     # For node 0: neighbors are [1, 2]; for node 1: [0, 2]; for node 2: [0, 1]
     neighbor_idx = torch.tensor([[[1, 2], [0, 2], [0, 1]]])  # (1, 3, 2)
 
-    out = _gather_edges(edges, neighbor_idx)  # (1, 3, 2, 2)
+    out = gather_edges(edges, neighbor_idx)  # (1, 3, 2, 2)
 
     # Node 0, neighbor 1 → edges[0, 0, 1] = [10, 11]
     assert torch.allclose(out[0, 0, 0], torch.tensor([10., 11.]))
@@ -61,14 +60,13 @@ def test_gather_edges_values():
 
 @pytest.mark.torch
 def test_gather_edges_single_neighbor():
-    """Test _gather_edges with k=1 (each node has exactly one neighbor)."""
-    from deepchem.utils.ProteinMPNN_utils import _gather_edges
+    """Test gather_edges with k=1 (each node has exactly one neighbor)."""
 
     batch, num_nodes, edge_features = 1, 4, 8
     edges = torch.rand(batch, num_nodes, num_nodes, edge_features)
     neighbor_idx = torch.randint(0, num_nodes, (batch, num_nodes, 1))
 
-    out = _gather_edges(edges, neighbor_idx)
+    out = gather_edges(edges, neighbor_idx)
 
     assert out.shape == torch.Size([batch, num_nodes, 1, edge_features])
     # Verify each gathered vector matches the indexed row of edges
@@ -79,19 +77,18 @@ def test_gather_edges_single_neighbor():
 
 @pytest.mark.torch
 def test_gather_nodes_output_shape():
-    """Test that _gather_nodes returns a tensor with the correct shape.
+    """Test that gather_nodes returns a tensor with the correct shape.
 
     Given a node feature tensor of shape ``(batch, num_nodes, node_features)``
     and a neighbor index tensor of shape ``(batch, num_nodes, k)``, the output
     should have shape ``(batch, num_nodes, k, node_features)``.
     """
-    from deepchem.utils.ProteinMPNN_utils import _gather_nodes
 
     batch, num_nodes, k, node_features = 2, 5, 3, 32
     nodes = torch.rand(batch, num_nodes, node_features)
     neighbor_idx = torch.randint(0, num_nodes, (batch, num_nodes, k))
 
-    out = _gather_nodes(nodes, neighbor_idx)
+    out = gather_nodes(nodes, neighbor_idx)
 
     assert out.shape == torch.Size([batch, num_nodes, k, node_features])
 
@@ -103,7 +100,6 @@ def test_gather_nodes_values():
     Constructs a small, deterministic node tensor and verifies that each
     gathered entry corresponds to the node indexed by the neighbor index.
     """
-    from deepchem.utils.ProteinMPNN_utils import _gather_nodes
 
     # batch=1, 3 nodes, node_features=2; each node has a distinct feature
     nodes = torch.tensor([[[1., 0.], [0., 1.], [1., 1.]]])  # (1, 3, 2)
@@ -111,7 +107,7 @@ def test_gather_nodes_values():
     # For each node gather its two nearest neighbors
     neighbor_idx = torch.tensor([[[1, 2], [0, 2], [0, 1]]])  # (1, 3, 2)
 
-    out = _gather_nodes(nodes, neighbor_idx)  # (1, 3, 2, 2)
+    out = gather_nodes(nodes, neighbor_idx)  # (1, 3, 2, 2)
 
     # Node 0, neighbor at index 1 → nodes[0, 1] = [0, 1]
     assert torch.allclose(out[0, 0, 0], torch.tensor([0., 1.]))
@@ -130,13 +126,12 @@ def test_gather_nodes_batched():
     Verifies that node gathering is performed per-batch-element and does not
     bleed information across batch items.
     """
-    from deepchem.utils.ProteinMPNN_utils import _gather_nodes
 
     batch, num_nodes, k, node_features = 3, 6, 2, 8
     nodes = torch.rand(batch, num_nodes, node_features)
     neighbor_idx = torch.randint(0, num_nodes, (batch, num_nodes, k))
 
-    out = _gather_nodes(nodes, neighbor_idx)
+    out = gather_nodes(nodes, neighbor_idx)
 
     assert out.shape == torch.Size([batch, num_nodes, k, node_features])
     # Spot-check: verify a specific batch element manually
@@ -155,7 +150,6 @@ def test_cat_neighbors_nodes_output_shape():
     ``edge_features + node_features``, since the function concatenates
     gathered node features onto the existing neighbor edge features.
     """
-    from deepchem.utils.ProteinMPNN_utils import _cat_neighbors_nodes
 
     batch, num_nodes, k = 2, 5, 3
     node_features, edge_features = 32, 16
@@ -164,7 +158,7 @@ def test_cat_neighbors_nodes_output_shape():
     h_neighbors = torch.rand(batch, num_nodes, k, edge_features)
     E_idx = torch.randint(0, num_nodes, (batch, num_nodes, k))
 
-    out = _cat_neighbors_nodes(h_nodes, h_neighbors, E_idx)
+    out = cat_neighbors_nodes(h_nodes, h_neighbors, E_idx)
 
     assert out.shape == torch.Size(
         [batch, num_nodes, k, edge_features + node_features])
@@ -177,7 +171,6 @@ def test_cat_neighbors_nodes_values():
     Constructs known node and edge feature tensors and verifies that the
     output is ``[h_neighbors, gathered_node_features]`` along the last dim.
     """
-    from deepchem.utils.ProteinMPNN_utils import _cat_neighbors_nodes
 
     # batch=1, 3 nodes, k=2, node_features=2, edge_features=3
     h_nodes = torch.tensor([[[1., 0.], [0., 1.], [1., 1.]]])  # (1, 3, 2)
@@ -187,7 +180,7 @@ def test_cat_neighbors_nodes_values():
                                                     1.8]]]])  # (1, 3, 2, 3)
     E_idx = torch.tensor([[[1, 2], [0, 2], [0, 1]]])  # (1, 3, 2)
 
-    out = _cat_neighbors_nodes(h_nodes, h_neighbors, E_idx)  # (1, 3, 2, 5)
+    out = cat_neighbors_nodes(h_nodes, h_neighbors, E_idx)  # (1, 3, 2, 5)
 
     assert out.shape == torch.Size([1, 3, 2, 5])
 
@@ -211,7 +204,6 @@ def test_cat_neighbors_nodes_self_loop():
     Ensures self-loop indices (where a node is its own neighbor) do not
     cause incorrect behavior.
     """
-    from deepchem.utils.ProteinMPNN_utils import _cat_neighbors_nodes
 
     batch, num_nodes, k = 1, 3, 1
     node_features, edge_features = 4, 4
@@ -221,7 +213,7 @@ def test_cat_neighbors_nodes_self_loop():
     # Each node points to itself
     E_idx = torch.arange(num_nodes).view(1, num_nodes, 1).expand(batch, -1, k)
 
-    out = _cat_neighbors_nodes(h_nodes, h_neighbors, E_idx)
+    out = cat_neighbors_nodes(h_nodes, h_neighbors, E_idx)
 
     assert out.shape == torch.Size(
         [batch, num_nodes, k, edge_features + node_features])
