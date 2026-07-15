@@ -94,6 +94,9 @@ except ImportError as e:
 from deepchem.feat.deepvariant_featurizer import RealignerFeaturizer
 from deepchem.feat.deepvariant_pileup_featurizer import PileupFeaturizer
 
+#ProteinMPNN featurizer
+from deepchem.feat.ProteinMPNN_featurizer import ProteinMPNNFeaturizer
+
 # tokenizers
 try:
     from deepchem.feat.smiles_tokenizer import SmilesTokenizer

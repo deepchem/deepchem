@@ -95,6 +95,13 @@ DMPNNFeaturizer
   :members:
   :inherited-members:
 
+ProteinMPNNFeaturizer
+*********************
+
+.. autoclass:: deepchem.feat.ProteinMPNNFeaturizer
+  :members:
+  :inherited-members:
+
 GroverFeaturizer
 ****************
 
@@ -369,7 +376,7 @@ SAMFeaturizer
 
 .. autoclass:: deepchem.feat.SAMFeaturizer
   :members:
-  :inherited-members: 
+  :inherited-members:
 
 BAMFeaturizer
 ^^^^^^^^^^^^^
