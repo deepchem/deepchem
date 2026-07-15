@@ -73,7 +73,7 @@ class Dnabert(HuggingFaceModel):
     >>> # finetuning in regression mode
     >>> finetune_model_dir = os.path.join(tempdir, 'finetune-model')
     >>> finetune_model = Dnabert(task='regression', model_dir=finetune_model_dir, tokenizer_path=tokenizer_path)
-    >>> finetune_model.load_from_pretrained(pretrain_model_dir)
+    >>> finetune_model.load_from_pretrained(tokenizer_path, from_hf_checkpoint=True)
     >>> finetuning_loss = finetune_model.fit(dataset, nb_epoch=1)
 
     >>> # prediction and evaluation
@@ -104,33 +104,33 @@ class Dnabert(HuggingFaceModel):
         dnabert_config.pad_token_id = tokenizer.pad_token_id
         dnabert_config.is_decoder = False
         if task == 'mlm':
-            model = AutoModelForMaskedLM.from_pretrained(tokenizer_path,
-                                                         config=dnabert_config,
-                                                         trust_remote_code=True)
+            model = AutoModelForMaskedLM.from_config(dnabert_config,
+                                                     trust_remote_code=True)
         elif task == 'mtr':
             dnabert_config.problem_type = 'regression'
             dnabert_config.num_labels = n_tasks
-            model = AutoModelForSequenceClassification.from_pretrained(
-                tokenizer_path, config=dnabert_config, trust_remote_code=True)
+            model = AutoModelForSequenceClassification.from_config(
+                config=dnabert_config, trust_remote_code=True)
         elif task == 'regression':
             dnabert_config.problem_type = 'regression'
             dnabert_config.num_labels = n_tasks
-            model = AutoModelForSequenceClassification.from_pretrained(
-                tokenizer_path, config=dnabert_config, trust_remote_code=True)
+            model = AutoModelForSequenceClassification.from_config(
+                config=dnabert_config, trust_remote_code=True)
         elif task == 'classification':
             if n_tasks == 1:
                 dnabert_config.problem_type = 'single_label_classification'
             else:
                 dnabert_config.problem_type = 'multi_label_classification'
                 dnabert_config.num_labels = n_tasks
-            model = AutoModelForSequenceClassification.from_pretrained(
-                tokenizer_path, config=dnabert_config, trust_remote_code=True)
+            model = AutoModelForSequenceClassification.from_config(
+                config=dnabert_config, trust_remote_code=True)
         else:
             raise ValueError('invalid task specification')
 
         super(Dnabert, self).__init__(model=model,
                                       task=task,
                                       tokenizer=tokenizer,
+                                      config=dnabert_config.to_dict(),
                                       **kwargs)
 
     def _prepare_batch(self, batch: Tuple[Any, Any, Any]):

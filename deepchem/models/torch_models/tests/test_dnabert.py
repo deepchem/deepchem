@@ -34,6 +34,7 @@ def test_dnabert_finetuning(genomic_regression_dataset,
     # test regression
     tokenizer_path = 'IronHead44/DNABERT-2-117M'
     model = Dnabert(task='regression', tokenizer_path=tokenizer_path)
+    model.load_from_pretrained(tokenizer_path, from_hf_checkpoint=True)
     loss = model.fit(genomic_regression_dataset, nb_epoch=1)
     eval_score = model.evaluate(genomic_regression_dataset,
                                 metrics=dc.metrics.Metric(
@@ -44,6 +45,7 @@ def test_dnabert_finetuning(genomic_regression_dataset,
 
     # test multitask regression
     model = Dnabert(task='mtr', tokenizer_path=tokenizer_path, n_tasks=2)
+    model.load_from_pretrained(tokenizer_path, from_hf_checkpoint=True)
     loss = model.fit(genomic_multitask_regression_dataset, nb_epoch=1)
     eval_score = model.evaluate(genomic_multitask_regression_dataset,
                                 metrics=dc.metrics.Metric(
@@ -59,6 +61,7 @@ def test_dnabert_finetuning(genomic_regression_dataset,
                                    w=genomic_regression_dataset.w,
                                    ids=genomic_regression_dataset.ids)
     model = Dnabert(task='classification', tokenizer_path=tokenizer_path)
+    model.load_from_pretrained(tokenizer_path, from_hf_checkpoint=True)
     loss = model.fit(dataset, nb_epoch=1)
     eval_score = model.evaluate(dataset,
                                 metrics=dc.metrics.Metric(
@@ -89,7 +92,7 @@ def test_dnabert_load_from_pretrained(tmpdir, genomic_regression_dataset):
     finetune_model_state_dict = finetune_model.model.state_dict()
 
     pretrain_base_model_keys = [
-        key for key in pretrain_model_state_dict.keys() if 'dnabert' in key
+        key for key in pretrain_model_state_dict.keys() if 'bert' in key
     ]
     matches = [
         torch.allclose(pretrain_model_state_dict[key],
