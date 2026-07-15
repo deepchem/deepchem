@@ -29,6 +29,7 @@ def quantization_config():
     )
 
 
+@pytest.mark.slow
 @pytest.mark.hf
 def test_olmo_single_label_regression():
     from deepchem.models.torch_models.olmo import Olmo
@@ -54,6 +55,7 @@ def test_olmo_single_label_regression():
     gc.collect()
 
 
+@pytest.mark.slow
 @pytest.mark.hf
 def test_olmo_single_label_regression_overfit():
     from deepchem.models.torch_models.olmo import Olmo
@@ -79,6 +81,7 @@ def test_olmo_single_label_regression_overfit():
     gc.collect()
 
 
+@pytest.mark.slow
 @pytest.mark.hf
 def test_olmo_single_label_regression_load_from_pretrained(tmpdir):
     from deepchem.models.torch_models.olmo import Olmo
@@ -124,6 +127,7 @@ def test_olmo_single_label_regression_load_from_pretrained(tmpdir):
     gc.collect()
 
 
+@pytest.mark.slow
 @pytest.mark.hf
 def test_olmo_single_label_regression_save_reload(tmpdir):
     from deepchem.models.torch_models.olmo import Olmo
@@ -162,6 +166,7 @@ def test_olmo_single_label_regression_save_reload(tmpdir):
     gc.collect()
 
 
+@pytest.mark.slow
 @pytest.mark.hf
 def test_olmo_multi_label_regression():
     from deepchem.models.torch_models.olmo import Olmo
@@ -187,6 +192,7 @@ def test_olmo_multi_label_regression():
     gc.collect()
 
 
+@pytest.mark.slow
 @pytest.mark.hf
 def test_olmo_multi_label_regression_overfit():
     from deepchem.models.torch_models.olmo import Olmo
@@ -212,6 +218,7 @@ def test_olmo_multi_label_regression_overfit():
     gc.collect()
 
 
+@pytest.mark.slow
 @pytest.mark.hf
 def test_olmo_multi_label_regression_load_from_pretrained(tmpdir):
     from deepchem.models.torch_models.olmo import Olmo
@@ -257,6 +264,7 @@ def test_olmo_multi_label_regression_load_from_pretrained(tmpdir):
     gc.collect()
 
 
+@pytest.mark.slow
 @pytest.mark.hf
 def test_olmo_multi_label_regression_save_reload(tmpdir):
     from deepchem.models.torch_models.olmo import Olmo

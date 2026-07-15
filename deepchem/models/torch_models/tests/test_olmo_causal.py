@@ -28,6 +28,7 @@ def quantization_config():
     )
 
 
+@pytest.mark.slow
 @pytest.mark.hf
 def test_olmo_causal_lm():
     from deepchem.models.torch_models.olmo import Olmo
@@ -63,6 +64,7 @@ def test_olmo_causal_lm():
     gc.collect()
 
 
+@pytest.mark.slow
 @pytest.mark.hf
 def test_olmo_causal_lm_overfit():
     from deepchem.models.torch_models.olmo import Olmo
@@ -93,6 +95,7 @@ def test_olmo_causal_lm_overfit():
     gc.collect()
 
 
+@pytest.mark.slow
 @pytest.mark.hf
 def test_olmo_load_from_pretrained(tmpdir):
     from deepchem.models.torch_models.olmo import Olmo
@@ -135,6 +138,7 @@ def test_olmo_load_from_pretrained(tmpdir):
     gc.collect()
 
 
+@pytest.mark.slow
 @pytest.mark.hf
 def test_olmo_causal_lm_save_reload(tmpdir):
     from deepchem.models.torch_models.olmo import Olmo
