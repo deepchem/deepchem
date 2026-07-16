@@ -275,11 +275,14 @@ class Olmo(HuggingFaceModel):
         if w is not None:
             w = torch.tensor(w, dtype=torch.float).to(self.device)
 
-        tokens = self.tokenizer(smiles_batch[0].tolist(),
-                                padding=True,
-                                return_tensors="pt")
-
         if self.task in ['regression', 'classification', 'mtr', 'mtc']:
+            original_padding_side = self.tokenizer.padding_side
+            self.tokenizer.padding_side = "right"
+            tokens = self.tokenizer(smiles_batch[0].tolist(),
+                                    padding=True,
+                                    return_tensors="pt")
+            self.tokenizer.padding_side = original_padding_side
+
             if y is not None:
                 # y is None during predict
                 model_dtype = next(self.model.parameters()).dtype
