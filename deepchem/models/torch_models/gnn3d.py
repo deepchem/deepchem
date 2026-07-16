@@ -606,8 +606,8 @@ class InfoMax3DModular(ModularTorchModel):
             # torch's one-hot encoding works with integer data types.
             # We convert labels to integer, one-hot encode and convert it back to float
             # for making it suitable to loss function
-            labels = F.one_hot(labels.squeeze().type(torch.int64)).type(
-                torch.float32)
+            labels = F.one_hot(labels.squeeze().type(torch.int64),
+                               num_classes=self.n_classes).type(torch.float32)
             loss = F.binary_cross_entropy_with_logits(logits, labels)
         return loss
 
