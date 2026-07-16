@@ -119,6 +119,8 @@ class Dnabert(HuggingFaceModel):
         elif task == 'classification':
             if n_tasks == 1:
                 dnabert_config.problem_type = 'single_label_classification'
+                print(f"The Probelm Type here that we are going to be facing is: {dnabert_config.problem_type}")
+                print(f'the number of tasks being used here are: {n_tasks}')
             else:
                 dnabert_config.problem_type = 'multi_label_classification'
                 dnabert_config.num_labels = n_tasks

@@ -20,6 +20,7 @@ def test_dnabert_pretraining(genomic_regression_dataset,
 
     model = Dnabert(task='mlm')
     loss = model.fit(genomic_regression_dataset, nb_epoch=1)
+    print(f'The loss here is {loss}')
     assert loss
 
     # Pretraining in Multitask Regression Mode
@@ -206,3 +207,84 @@ def test_dnabert_finetuning_multitask_regression():
     assert eval_score, loss
     prediction = model.predict(dataset)
     assert prediction.shape == dataset.y.shape
+
+
+@pytest.mark.hf
+def test_dnabert_overfit_finetuning():
+    """Test that DNABERT-2 can overfit a small classification dataset."""
+    tokenizer_path = 'IronHead44/DNABERT-2-117M'
+    sequences = [
+    "ATGCGTACGTTAGCTAGCATGCGTACG",   # 0
+    "GGCTAACCGTATCGGATCAAGTCCTAG",   # 1
+    "TTAAGCCGTACGATCGATCGATCGATCG",  # 1
+    "CCGATCGATCGATCGATCGATCGATCGA",  # 1
+
+    "ATGCGTACGTTAGCTAGCATGCGTACC",   # 0
+    "ATGCGTACGTTAGCTAGCATGCGTACT",   # 0
+    "GGCTAACCGTATCGGATCAAGTCCTAA",   # 1
+    "GGCTAACCGTATCGGATCAAGTCCTAC",   # 1
+
+    "TTAAGCCGTACGATCGATCGATCGATCA",  # 1
+    "CCGATCGATCGATCGATCGATCGATCGT",  # 1
+    ]
+    np.random.seed(42)
+    y = np.array([
+    0, 1, 1, 1,
+    0, 0, 1, 1,
+    1, 1
+    ])
+    dataset = dc.data.NumpyDataset(X=np.array(sequences), y=y)
+
+    model = Dnabert(task='classification',
+                    tokenizer_path=tokenizer_path,
+                    n_tasks=1,
+                    learning_rate=1e-4
+                    )
+    model.load_from_pretrained(tokenizer_path, from_hf_checkpoint=True)
+    losses = []
+
+    for name, param in model.model.named_parameters():
+        if "classifier" in name:
+            print(name, param.requires_grad)
+    before = model.model.classifier.weight.detach().clone()
+    loss = model.fit(dataset=dataset,nb_epoch=5000, all_losses=losses)
+    after = model.model.classifier.weight.detach()
+
+    print(torch.equal(before, after))
+    print(torch.norm(after - before))
+    pred = model.predict(dataset)
+
+    print("Prediction: ")
+    print(pred)
+
+    print("Labels: ")
+    print(dataset.y)
+    print(f'Final Loss is = {loss}')
+    print(f'Collected {len(losses)} logged losses')
+
+    for i, l in enumerate(losses):
+        print(f'{i}: {l}')
+    
+    classification_metric = dc.metrics.Metric(dc.metrics.accuracy_score)
+    eval_score = model.evaluate(dataset, [classification_metric])
+    assert eval_score[classification_metric.name] > 0.9
+
+
+# @pytest.mark.hf
+# def test_dnabert_overfit_pretraining():
+#     """Test that DNABERT-2 MLM pretraining loss decreases on a small dataset."""
+#     tokenizer_path = 'IronHead44/DNABERT-2-117M'
+#     sequences = [
+#         "ATGCGTACGTTAGCTAGCATGCGTACG",
+#         "GGCTAACCGTATCGGATCAAGTCCTAG",
+#         "TTAAGCCGTACGATCGATCGATCGATCG",
+#         "CCGATCGATCGATCGATCGATCGATCGA",
+#     ]
+#     np.random.seed(42)
+#     y = np.random.rand(4, 1)
+#     dataset = dc.data.NumpyDataset(X=np.array(sequences), y=y)
+
+#     model = Dnabert(task='mlm', tokenizer_path=tokenizer_path)
+#     initial_loss = model.fit(dataset, nb_epoch=1)
+#     final_loss = model.fit(dataset, nb_epoch=50)
+#     assert final_loss < initial_loss
