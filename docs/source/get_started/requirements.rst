@@ -87,10 +87,6 @@ DeepChem has a number of "soft" requirements.
 |                                |               |                                                   |
 |                                |               |                                                   |
 +--------------------------------+---------------+---------------------------------------------------+
-| `pyGPGO`_                      | latest        | :code:`dc.hyper.gaussian_process`                 |
-|                                |               |                                                   |
-|                                |               |                                                   |
-+--------------------------------+---------------+---------------------------------------------------+
 | `Pymatgen`_                    | latest        | :code:`dc.feat.materials_featurizers`             |
 |                                |               |                                                   |
 |                                |               |                                                   |
@@ -173,7 +169,6 @@ DeepChem has a number of "soft" requirements.
 .. _`PDBFixer`: https://github.com/pandegroup/pdbfixer
 .. _`Pillow`: https://pypi.org/project/Pillow/
 .. _`PubChemPy`: https://pubchempy.readthedocs.io/en/latest/
-.. _`pyGPGO`: https://pygpgo.readthedocs.io/en/latest/
 .. _`Pymatgen`: https://pymatgen.org/
 .. _`PyTorch`: https://pytorch.org/
 .. _`PyTorch Geometric`: https://pytorch-geometric.readthedocs.io/en/latest/

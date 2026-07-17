@@ -12,7 +12,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ['3.9', '3.10', '3.11']
+        python-version: ['3.9', '3.10', '3.11', '3.12']
     steps:
     - uses: actions/checkout@v4
     - name: Cache pip modules for Linux
@@ -39,7 +39,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        python-version: ['3.9', '3.10', '3.11']
+        python-version: ['3.9', '3.10', '3.11', '3.12']
     env:
       OS: ${{ matrix.os }}
       PYTHON_VERSION: ${{ matrix.python-version }}
@@ -114,11 +114,15 @@ jobs:
         channels: conda-forge,defaults
         python-version: ${{ matrix.python-version }}
         environment-file: env.yml
+        use-mamba: true
+    - name: Install uv for faster pip operations
+      shell: bash -l {0}
+      run: pip install uv pytest-xdist
     - name: Install DeepChem
       id: install
       shell: bash -l {0}
-      run: pip install -e .
+      run: uv pip install --system -e .
     - name: PyTest
       if: ${{ (success() || failure()) && (steps.install.outcome == 'failure' || steps.install.outcome == 'success') }}
       shell: bash -l {0}
-      run: pytest -v -m 'jax' deepchem
+      run: pytest -v -n auto -m 'jax' deepchem
