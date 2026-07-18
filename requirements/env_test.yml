@@ -5,6 +5,7 @@ dependencies:
     - mypy<=1.15.0
     - pytest
     - pytest-cov
+    - pytest-xdist
     - types-setuptools
     - yapf==0.32.0
     - python-Levenshtein

@@ -66,4 +66,4 @@ jobs:
       shell: bash -l {0}
       run: |
         echo "running dqc pytest"
-        pytest -v -m 'dqc' deepchem
+        pytest -v -n auto --dist loadscope -m 'dqc' deepchem
