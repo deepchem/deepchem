@@ -20,7 +20,7 @@ dependencies:
     - pillow
     - pubchempy
     - pyGPGO
-    - pymatgen
+    - pymatgen<2024  # newer releases need numpy>=1.26; unpinned it makes pip backtrack into source builds
     - simdna
     - transformers==4.46.3
     - tokenizers

@@ -3,7 +3,11 @@ import deepchem as dc
 import torch
 import torch.nn as nn
 from torch_geometric.data import Batch
-from torch_geometric.nn import global_add_pool, radius
+from torch_geometric.nn import global_add_pool
+# torch_geometric>=2.8 dropped the torch_cluster fallback for `radius` and now
+# requires pyg-lib; import it straight from torch_cluster (the function PyG
+# used to re-export) so it works without pyg-lib.
+from torch_cluster import radius
 from torch_geometric.utils import remove_self_loops
 from typing import Union, Callable, Tuple, Optional
 from deepchem.utils.pytorch_utils import get_activation

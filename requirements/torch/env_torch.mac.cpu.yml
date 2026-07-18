@@ -9,7 +9,7 @@ dependencies:
     - torch-geometric
     - lightning
     - pydantic
-    - torch-cluster
+    - torch-cluster==1.6.3
     - git+https://github.com/diffqc/dqclibs.git
     - basis-set-exchange
     - pyscf
