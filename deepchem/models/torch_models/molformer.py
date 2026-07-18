@@ -6,6 +6,12 @@ try:
 except:
     has_torch = False
 
+# Later revisions of the remote code in ibm/MoLFormer-XL-both-10pct require
+# transformers>=4.53 (transformers.masking_utils), newer than the version
+# supported by the pinned torch, so pin the last compatible revision.
+MOLFORMER_HF_REPO = 'ibm/MoLFormer-XL-both-10pct'
+MOLFORMER_HF_REVISION = '7b12d946c181a37f6012b9dc3b002275de070314'
+
 
 class MoLFormer(HuggingFaceModel):
     """
@@ -80,23 +86,34 @@ class MoLFormer(HuggingFaceModel):
                  n_tasks: int = 1,
                  **kwargs):
         self.n_tasks = n_tasks
+        tokenizer_kwargs = {'revision': MOLFORMER_HF_REVISION} if \
+            tokenizer_path == MOLFORMER_HF_REPO else {}
         tokenizer = AutoTokenizer.from_pretrained(tokenizer_path,
-                                                  trust_remote_code=True)
+                                                  trust_remote_code=True,
+                                                  **tokenizer_kwargs)
         molformer_config = AutoConfig.from_pretrained(
-            "ibm/MoLFormer-XL-both-10pct", trust_remote_code=True)
+            MOLFORMER_HF_REPO,
+            trust_remote_code=True,
+            revision=MOLFORMER_HF_REVISION)
         if task == 'mlm':
-            model = AutoModelForMaskedLM.from_config(molformer_config,
-                                                     trust_remote_code=True)
+            model = AutoModelForMaskedLM.from_config(
+                molformer_config,
+                trust_remote_code=True,
+                code_revision=MOLFORMER_HF_REVISION)
         elif task == 'mtr':
             molformer_config.problem_type = 'regression'
             molformer_config.num_labels = n_tasks
             model = AutoModelForSequenceClassification.from_config(
-                config=molformer_config, trust_remote_code=True)
+                config=molformer_config,
+                trust_remote_code=True,
+                code_revision=MOLFORMER_HF_REVISION)
         elif task == 'regression':
             molformer_config.problem_type = 'regression'
             molformer_config.num_labels = n_tasks
             model = AutoModelForSequenceClassification.from_config(
-                config=molformer_config, trust_remote_code=True)
+                config=molformer_config,
+                trust_remote_code=True,
+                code_revision=MOLFORMER_HF_REVISION)
         elif task == 'classification':
             if n_tasks == 1:
                 molformer_config.problem_type = 'single_label_classification'
@@ -104,7 +121,9 @@ class MoLFormer(HuggingFaceModel):
                 molformer_config.num_labels = n_tasks
                 molformer_config.problem_type = 'multi_label_classification'
             model = AutoModelForSequenceClassification.from_config(
-                molformer_config, trust_remote_code=True)
+                molformer_config,
+                trust_remote_code=True,
+                code_revision=MOLFORMER_HF_REVISION)
         else:
             raise ValueError('invalid task specification')
 
@@ -112,6 +131,7 @@ class MoLFormer(HuggingFaceModel):
                                         task=task,
                                         tokenizer=tokenizer,
                                         config=molformer_config.to_dict(),
+                                        code_revision=MOLFORMER_HF_REVISION,
                                         **kwargs)
 
     def _prepare_batch(self, batch):
