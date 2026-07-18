@@ -671,6 +671,31 @@ LNNModel
 .. autoclass:: deepchem.models.torch_models.LNNModel
   :members:
 
+SinusoidalTimestepEmbedding
+---------------------------
+.. autoclass:: deepchem.models.torch_models.rfdiffusion.SinusoidalTimestepEmbedding
+  :members:
+
+ResidueEmbedding
+----------------
+.. autoclass:: deepchem.models.torch_models.rfdiffusion.ResidueEmbedding
+  :members:
+
+PositionalEncoding
+------------------
+.. autoclass:: deepchem.models.torch_models.rfdiffusion.PositionalEncoding
+  :members:
+
+CosineSchedule
+--------------------
+.. autoclass:: deepchem.models.torch_models.rfdiffusion.CosineSchedule
+  :members:
+
+BackboneDiffusion
+--------------------
+.. autoclass:: deepchem.models.torch_models.rfdiffusion.BackboneDiffusion
+  :members:
+
 SE3TransformerModel
 --------------------
 .. autoclass:: deepchem.models.torch_models.SE3TransformerModel
