@@ -813,8 +813,6 @@ def _get_libxc_res(inp: Mapping[str, Union[np.ndarray, Tuple[np.ndarray, ...],
     """
     do_exc, do_vxc, do_fxc, do_kxc, do_lxc = _get_dos(deriv)
 
-    # pylibxc expects numpy arrays; recent libxc versions no longer convert
-    # torch tensors internally, so convert them here before calling compute
     inp = {
         k: v.detach().cpu().numpy() if isinstance(v, torch.Tensor) else v
         for k, v in inp.items()
@@ -1007,12 +1005,6 @@ def _extract_returns(ret: Mapping[str, np.ndarray], deriv: int, family: int) -> 
         raise RuntimeError("Unknown libxc family %d" % family)
 
     selected = keys[deriv]
-    # Recent libxc omits the output keys a functional does not depend on
-    # (e.g. 'vlapl' for a non-laplacian MGGA such as mgga_x_scan) instead of
-    # returning zeros. Those derivatives are identically zero, so fill them
-    # with a zero array shaped like the density-only derivative of the same
-    # order (the first key, always returned), which carries the spin
-    # multiplicity of the omitted laplacian terms.
     missing = [key for key in selected if key not in ret]
     if missing:
         zero = np.zeros_like(ret[selected[0]])
