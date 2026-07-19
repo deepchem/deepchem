@@ -3,7 +3,8 @@ import deepchem as dc
 import numpy as np
 import pytest
 from deepchem.models.torch_models.tests.conftest_dnabert import (  # noqa: F401
-    genomic_regression_dataset, genomic_multitask_regression_dataset)
+    genomic_regression_dataset, genomic_multitask_regression_dataset,
+    pretrained_checkpoint_dir)
 
 try:
     import torch
@@ -31,11 +32,12 @@ def test_dnabert_pretraining(genomic_regression_dataset,
 
 @pytest.mark.hf
 def test_dnabert_finetuning(genomic_regression_dataset,
-                            genomic_multitask_regression_dataset):
+                            genomic_multitask_regression_dataset,
+                            pretrained_checkpoint_dir):
     # test regression
     tokenizer_path = 'IronHead44/DNABERT-2-117M'
     model = Dnabert(task='regression', tokenizer_path=tokenizer_path)
-    model.load_from_pretrained(tokenizer_path, from_hf_checkpoint=True)
+    model.load_from_pretrained(pretrained_checkpoint_dir)
     loss = model.fit(genomic_regression_dataset, nb_epoch=1)
     eval_score = model.evaluate(genomic_regression_dataset,
                                 metrics=dc.metrics.Metric(
@@ -46,7 +48,7 @@ def test_dnabert_finetuning(genomic_regression_dataset,
 
     # test multitask regression
     model = Dnabert(task='mtr', tokenizer_path=tokenizer_path, n_tasks=2)
-    model.load_from_pretrained(tokenizer_path, from_hf_checkpoint=True)
+    model.load_from_pretrained(pretrained_checkpoint_dir)
     loss = model.fit(genomic_multitask_regression_dataset, nb_epoch=1)
     eval_score = model.evaluate(genomic_multitask_regression_dataset,
                                 metrics=dc.metrics.Metric(
@@ -62,7 +64,7 @@ def test_dnabert_finetuning(genomic_regression_dataset,
                                    w=genomic_regression_dataset.w,
                                    ids=genomic_regression_dataset.ids)
     model = Dnabert(task='classification', tokenizer_path=tokenizer_path)
-    model.load_from_pretrained(tokenizer_path, from_hf_checkpoint=True)
+    model.load_from_pretrained(pretrained_checkpoint_dir)
     loss = model.fit(dataset, nb_epoch=1)
     eval_score = model.evaluate(dataset,
                                 metrics=dc.metrics.Metric(
@@ -143,7 +145,7 @@ def test_dnabert_load_weights_from_hf_hub():
 
 
 @pytest.mark.hf
-def test_dnabert_finetuning_multitask_classification():
+def test_dnabert_finetuning_multitask_classification(pretrained_checkpoint_dir):
     # test multitask classification with 10 tasks
     tokenizer_path = 'IronHead44/DNABERT-2-117M'
     sequences = [
@@ -166,7 +168,7 @@ def test_dnabert_finetuning_multitask_classification():
     model = Dnabert(task='classification',
                     tokenizer_path=tokenizer_path,
                     n_tasks=10)
-    model.load_from_pretrained(tokenizer_path, from_hf_checkpoint=True)
+    model.load_from_pretrained(pretrained_checkpoint_dir)
     loss = model.fit(dataset, nb_epoch=1)
     eval_score = model.evaluate(dataset,
                                 metrics=dc.metrics.Metric(
@@ -177,7 +179,7 @@ def test_dnabert_finetuning_multitask_classification():
 
 
 @pytest.mark.hf
-def test_dnabert_finetuning_multitask_regression():
+def test_dnabert_finetuning_multitask_regression(pretrained_checkpoint_dir):
     tokenizer_path = 'IronHead44/DNABERT-2-117M'
     sequences = [
         "ATGCGTACGTTAGCTAGCATGCGTACG",
@@ -199,7 +201,7 @@ def test_dnabert_finetuning_multitask_regression():
     model = Dnabert(task='regression',
                     tokenizer_path=tokenizer_path,
                     n_tasks=10)
-    model.load_from_pretrained(tokenizer_path, from_hf_checkpoint=True)
+    model.load_from_pretrained(pretrained_checkpoint_dir)
     loss = model.fit(dataset, nb_epoch=1)
     eval_score = model.evaluate(dataset,
                                 metrics=dc.metrics.Metric(
@@ -210,7 +212,7 @@ def test_dnabert_finetuning_multitask_regression():
 
 
 @pytest.mark.hf
-def test_dnabert_overfit_finetuning():
+def test_dnabert_overfit_finetuning_classification(pretrained_checkpoint_dir):
     """Test that DNABERT-2 can overfit a small classification dataset."""
     tokenizer_path = 'IronHead44/DNABERT-2-117M'
     sequences = [
@@ -240,14 +242,14 @@ def test_dnabert_overfit_finetuning():
                     n_tasks=1,
                     learning_rate=1e-4
                     )
-    model.load_from_pretrained(tokenizer_path, from_hf_checkpoint=True)
+    model.load_from_pretrained(pretrained_checkpoint_dir)
     losses = []
 
     for name, param in model.model.named_parameters():
         if "classifier" in name:
             print(name, param.requires_grad)
     before = model.model.classifier.weight.detach().clone()
-    loss = model.fit(dataset=dataset,nb_epoch=5000, all_losses=losses)
+    loss = model.fit(dataset=dataset, nb_epoch=500, all_losses=losses)
     after = model.model.classifier.weight.detach()
 
     print(torch.equal(before, after))
@@ -264,27 +266,56 @@ def test_dnabert_overfit_finetuning():
 
     for i, l in enumerate(losses):
         print(f'{i}: {l}')
-    
+
     classification_metric = dc.metrics.Metric(dc.metrics.accuracy_score)
     eval_score = model.evaluate(dataset, [classification_metric])
     assert eval_score[classification_metric.name] > 0.9
 
 
-# @pytest.mark.hf
-# def test_dnabert_overfit_pretraining():
-#     """Test that DNABERT-2 MLM pretraining loss decreases on a small dataset."""
-#     tokenizer_path = 'IronHead44/DNABERT-2-117M'
-#     sequences = [
-#         "ATGCGTACGTTAGCTAGCATGCGTACG",
-#         "GGCTAACCGTATCGGATCAAGTCCTAG",
-#         "TTAAGCCGTACGATCGATCGATCGATCG",
-#         "CCGATCGATCGATCGATCGATCGATCGA",
-#     ]
-#     np.random.seed(42)
-#     y = np.random.rand(4, 1)
-#     dataset = dc.data.NumpyDataset(X=np.array(sequences), y=y)
+@pytest.mark.hf
+def test_dnabert_overfit_finetuning_regression(pretrained_checkpoint_dir):
+    """Test that DNABERT-2 can overfit a small regression dataset."""
+    tokenizer_path = 'IronHead44/DNABERT-2-117M'
+    sequences = [
+    "ATGCGTACGTTAGCTAGCATGCGTACG",
+    "GGCTAACCGTATCGGATCAAGTCCTAG",
+    "TTAAGCCGTACGATCGATCGATCGATCG",
+    "CCGATCGATCGATCGATCGATCGATCGA",
+    ]
 
-#     model = Dnabert(task='mlm', tokenizer_path=tokenizer_path)
-#     initial_loss = model.fit(dataset, nb_epoch=1)
-#     final_loss = model.fit(dataset, nb_epoch=50)
-#     assert final_loss < initial_loss
+    y = np.array([0.3, 0.8, 1.7, 2.5], dtype=np.float32)
+    dataset = dc.data.NumpyDataset(X=np.array(sequences), y=y)
+
+    model = Dnabert(task='regression',
+                    tokenizer_path=tokenizer_path,
+                    n_tasks=1,
+                    learning_rate=1e-4
+                    )
+    model.load_from_pretrained(pretrained_checkpoint_dir)
+    losses = []
+
+    for name, param in model.model.named_parameters():
+        if "classifier" in name:
+            print(name, param.requires_grad)
+    before = model.model.classifier.weight.detach().clone()
+    loss = model.fit(dataset=dataset, nb_epoch=500, all_losses=losses)
+    after = model.model.classifier.weight.detach()
+
+    print(torch.equal(before, after))
+    print(torch.norm(after - before))
+    pred = model.predict(dataset)
+
+    print("Prediction: ")
+    print(pred)
+
+    print("Labels: ")
+    print(dataset.y)
+    print(f'Final Loss is = {loss}')
+    print(f'Collected {len(losses)} logged losses')
+
+    for i, l in enumerate(losses):
+        print(f'{i}: {l}')
+
+    regression_metric = dc.metrics.Metric(dc.metrics.mean_squared_error)
+    eval_score = model.evaluate(dataset, [regression_metric])
+    assert eval_score[regression_metric.name] < 0.1
