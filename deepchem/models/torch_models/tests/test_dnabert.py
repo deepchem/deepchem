@@ -2,9 +2,6 @@ import os
 import deepchem as dc
 import numpy as np
 import pytest
-from deepchem.models.torch_models.tests.conftest_dnabert import (  # noqa: F401
-    genomic_regression_dataset, genomic_multitask_regression_dataset,
-    pretrained_checkpoint_dir)
 
 try:
     import torch
