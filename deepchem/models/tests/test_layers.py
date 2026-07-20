@@ -1039,6 +1039,21 @@ def test_dtnn_embedding():
 
 
 @pytest.mark.torch
+def test_dtnn_embedding_initializer_keyword():
+    """Test DTNNEmbedding accepts initializer with backwards compatibility."""
+    embedding_layer_torch = torch_layers.DTNNEmbedding(
+        5, 5, initializer='xavier_uniform_')
+    assert embedding_layer_torch.initializer == 'xavier_uniform_'
+    assert 'initializer=xavier_uniform_' in repr(embedding_layer_torch)
+    assert 'initalizer=' not in repr(embedding_layer_torch)
+
+    with pytest.warns(DeprecationWarning):
+        deprecated_layer_torch = torch_layers.DTNNEmbedding(
+            5, 5, initalizer='xavier_uniform_')
+    assert deprecated_layer_torch.initializer == 'xavier_uniform_'
+
+
+@pytest.mark.torch
 def test_dtnn_step():
     """Test invoking the Torch Equivalent of DTNNEmbedding."""
     # Weights and Embeddings from Tensorflow implementation
