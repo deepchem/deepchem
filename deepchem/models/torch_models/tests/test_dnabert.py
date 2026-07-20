@@ -213,32 +213,25 @@ def test_dnabert_overfit_finetuning_classification(pretrained_checkpoint_dir):
     """Test that DNABERT-2 can overfit a small classification dataset."""
     tokenizer_path = 'IronHead44/DNABERT-2-117M'
     sequences = [
-    "ATGCGTACGTTAGCTAGCATGCGTACG",   # 0
-    "GGCTAACCGTATCGGATCAAGTCCTAG",   # 1
-    "TTAAGCCGTACGATCGATCGATCGATCG",  # 1
-    "CCGATCGATCGATCGATCGATCGATCGA",  # 1
-
-    "ATGCGTACGTTAGCTAGCATGCGTACC",   # 0
-    "ATGCGTACGTTAGCTAGCATGCGTACT",   # 0
-    "GGCTAACCGTATCGGATCAAGTCCTAA",   # 1
-    "GGCTAACCGTATCGGATCAAGTCCTAC",   # 1
-
-    "TTAAGCCGTACGATCGATCGATCGATCA",  # 1
-    "CCGATCGATCGATCGATCGATCGATCGT",  # 1
+        "ATGCGTACGTTAGCTAGCATGCGTACG",  # 0
+        "GGCTAACCGTATCGGATCAAGTCCTAG",  # 1
+        "TTAAGCCGTACGATCGATCGATCGATCG",  # 1
+        "CCGATCGATCGATCGATCGATCGATCGA",  # 1
+        "ATGCGTACGTTAGCTAGCATGCGTACC",  # 0
+        "ATGCGTACGTTAGCTAGCATGCGTACT",  # 0
+        "GGCTAACCGTATCGGATCAAGTCCTAA",  # 1
+        "GGCTAACCGTATCGGATCAAGTCCTAC",  # 1
+        "TTAAGCCGTACGATCGATCGATCGATCA",  # 1
+        "CCGATCGATCGATCGATCGATCGATCGT",  # 1
     ]
     np.random.seed(42)
-    y = np.array([
-    0, 1, 1, 1,
-    0, 0, 1, 1,
-    1, 1
-    ])
+    y = np.array([0, 1, 1, 1, 0, 0, 1, 1, 1, 1])
     dataset = dc.data.NumpyDataset(X=np.array(sequences), y=y)
 
     model = Dnabert(task='classification',
                     tokenizer_path=tokenizer_path,
                     n_tasks=1,
-                    learning_rate=1e-4
-                    )
+                    learning_rate=1e-4)
     model.load_from_pretrained(pretrained_checkpoint_dir)
     losses = []
 
@@ -246,7 +239,7 @@ def test_dnabert_overfit_finetuning_classification(pretrained_checkpoint_dir):
         if "classifier" in name:
             print(name, param.requires_grad)
     before = model.model.classifier.weight.detach().clone()
-    loss = model.fit(dataset=dataset, nb_epoch=500, all_losses=losses)
+    loss = model.fit(dataset=dataset, nb_epoch=5, all_losses=losses)
     after = model.model.classifier.weight.detach()
 
     print(torch.equal(before, after))
@@ -274,10 +267,10 @@ def test_dnabert_overfit_finetuning_regression(pretrained_checkpoint_dir):
     """Test that DNABERT-2 can overfit a small regression dataset."""
     tokenizer_path = 'IronHead44/DNABERT-2-117M'
     sequences = [
-    "ATGCGTACGTTAGCTAGCATGCGTACG",
-    "GGCTAACCGTATCGGATCAAGTCCTAG",
-    "TTAAGCCGTACGATCGATCGATCGATCG",
-    "CCGATCGATCGATCGATCGATCGATCGA",
+        "ATGCGTACGTTAGCTAGCATGCGTACG",
+        "GGCTAACCGTATCGGATCAAGTCCTAG",
+        "TTAAGCCGTACGATCGATCGATCGATCG",
+        "CCGATCGATCGATCGATCGATCGATCGA",
     ]
 
     y = np.array([0.3, 0.8, 1.7, 2.5], dtype=np.float32)
@@ -286,16 +279,19 @@ def test_dnabert_overfit_finetuning_regression(pretrained_checkpoint_dir):
     model = Dnabert(task='regression',
                     tokenizer_path=tokenizer_path,
                     n_tasks=1,
-                    learning_rate=1e-4
-                    )
+                    learning_rate=1e-4)
+    old = id(model.model)
     model.load_from_pretrained(pretrained_checkpoint_dir)
+    new = id(model.model)
+
+    print(f"The result of their similarity is {new == old}")
     losses = []
 
     for name, param in model.model.named_parameters():
         if "classifier" in name:
             print(name, param.requires_grad)
     before = model.model.classifier.weight.detach().clone()
-    loss = model.fit(dataset=dataset, nb_epoch=500, all_losses=losses)
+    loss = model.fit(dataset=dataset, nb_epoch=2000, all_losses=losses)
     after = model.model.classifier.weight.detach()
 
     print(torch.equal(before, after))
