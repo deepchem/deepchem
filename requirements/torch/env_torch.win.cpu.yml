@@ -10,5 +10,5 @@ dependencies:
     - lightning
     - pydantic
     - -f https://data.pyg.org/whl/torch-2.2.1+cpu.html
-    - torch-cluster
+    - torch-cluster==1.6.3+pt22cpu
     - h5py
