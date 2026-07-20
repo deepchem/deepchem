@@ -69,11 +69,12 @@ class Dnabert(HuggingFaceModel):
     >>> tokenizer_path = "IronHead44/DNABERT-2-117M"
     >>> pretrain_model = Dnabert(task='mlm', model_dir=pretrain_model_dir, tokenizer_path=tokenizer_path)
     >>> pretraining_loss = pretrain_model.fit(dataset, nb_epoch=1)
+    >>> pretrain_model.save_checkpoint()
 
     >>> # finetuning in regression mode
     >>> finetune_model_dir = os.path.join(tempdir, 'finetune-model')
     >>> finetune_model = Dnabert(task='regression', model_dir=finetune_model_dir, tokenizer_path=tokenizer_path)
-    >>> finetune_model.load_from_pretrained(tokenizer_path, from_hf_checkpoint=True)
+    >>> finetune_model.load_from_pretrained(pretrain_model_dir)
     >>> finetuning_loss = finetune_model.fit(dataset, nb_epoch=1)
 
     >>> # prediction and evaluation
@@ -83,7 +84,6 @@ class Dnabert(HuggingFaceModel):
     >>> # removing temporary directory
     >>> if os.path.exists(tempdir):
     ...     shutil.rmtree(tempdir)
-
 
     Reference
     ---------
@@ -119,7 +119,9 @@ class Dnabert(HuggingFaceModel):
         elif task == 'classification':
             if n_tasks == 1:
                 dnabert_config.problem_type = 'single_label_classification'
-                print(f"The Probelm Type here that we are going to be facing is: {dnabert_config.problem_type}")
+                print(
+                    f"The Probelm Type here that we are going to be facing is: {dnabert_config.problem_type}"
+                )
                 print(f'the number of tasks being used here are: {n_tasks}')
             else:
                 dnabert_config.problem_type = 'multi_label_classification'
