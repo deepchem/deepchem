@@ -6,7 +6,8 @@ try:
 except ModuleNotFoundError:
     has_torch = False
 
-from deepchem.utils.ProteinMPNN_utils import gather_edges, gather_nodes, cat_neighbors_nodes
+if has_torch:
+    from deepchem.utils.ProteinMPNN_utils import gather_edges, gather_nodes, cat_neighbors_nodes
 
 
 @pytest.mark.torch
