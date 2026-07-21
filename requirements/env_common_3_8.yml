@@ -13,6 +13,7 @@ dependencies:
     - pre-commit
     - biopython
     - dgllife
+    - ase
     - lightgbm
     - matminer
     - mordred
