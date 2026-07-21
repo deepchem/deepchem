@@ -73,6 +73,11 @@ from deepchem.feat.material_featurizers import CGCNNFeaturizer
 from deepchem.feat.material_featurizers import ElemNetFeaturizer
 from deepchem.feat.material_featurizers import LCNNFeaturizer
 
+try:
+    from deepchem.feat.material_featurizers import AtomisticRadiusGraphFeaturizer
+except ImportError:
+    pass
+
 from deepchem.feat.atomic_conformation import AtomicConformation
 from deepchem.feat.atomic_conformation import AtomicConformationFeaturizer
 
