@@ -29,10 +29,10 @@ try:
 
     # This policy just learns a constant probability for each action, and a constant for the value.
 
-    class TestPolicy(dc.rl.Policy):
+    class PolicyTest(dc.rl.Policy):
 
         def __init__(self, env):
-            super(TestPolicy, self).__init__(['action_prob', 'value'])
+            super(PolicyTest, self).__init__(['action_prob', 'value'])
             self.env = env
 
         def create_model(self, **kwargs):
@@ -61,7 +61,7 @@ except:
 @pytest.mark.tensorflow
 def test_a2c_reload():
     env = RouletteEnvironment()
-    policy = TestPolicy(env)
+    policy = PolicyTest(env)
 
     a2c = dc.rl.A2C(env,
                     policy,
@@ -81,7 +81,7 @@ def test_a2c_reload():
 @pytest.mark.tensorflow
 def test_ppo_reload():
     env = RouletteEnvironment()
-    policy = TestPolicy(env)
+    policy = PolicyTest(env)
     ppo = dc.rl.PPO(env,
                     policy,
                     max_rollout_length=20,

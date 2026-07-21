@@ -1,9 +1,9 @@
 import pytest
-import warnings
 try:
     import torch
-except Exception as e:
-    warnings.warn("Could not import torch. Skipping tests." + str(e))
+    has_torch = True
+except ImportError:
+    has_torch = False
 
 
 @pytest.mark.dqc

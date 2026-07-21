@@ -1,16 +1,14 @@
 import pytest
-import warnings
 import numpy as np
 
 try:
+    import torch
     from deepchem.feat.dft_data import DFTEntry
     from deepchem.utils.dft_utils import KS
     from deepchem.utils.dftutils import KSCalc
-    import torch
     has_torch = True
-except Exception as e:
+except ImportError:
     has_torch = False
-    warnings.warn(f"Failed to import DFT dependencies with error: {e}")
 
 
 @pytest.mark.dqc
