@@ -10,15 +10,18 @@ denoiser transformer sees them:
   each with x, y, z) into a higher-dimensional space.
 - ``PositionalEncoding`` — adds sinusoidal position information so the
   network knows where each residue sits in the chain.
-
-None of these have learnable parameters that depend on later modules, so
-they are shipped separately as the first small, reviewable PR.
+- ``CosineSchedule`` — implements the improved cosine variance schedule
+  for the forward (noise-adding) and reverse (denoising) diffusion steps.
 
 References
 ----------
 .. [1] Watson, J. L., et al. "De novo design of protein structure and function
    with RFdiffusion." Nature 620.7976 (2023): 1089-1100.
-.. [2] Vaswani, A., et al. "Attention is all you need." NeurIPS 2017.
+.. [2] Ho, J., Jain, A., & Abbeel, P. "Denoising diffusion probabilistic
+   models." NeurIPS 2020.
+.. [3] Nichol, A. Q., & Dhariwal, P. "Improved denoising diffusion
+   probabilistic models." ICML 2021.
+.. [4] Vaswani, A., et al. "Attention is all you need." NeurIPS 2017.
 
 Notes
 -----
@@ -26,10 +29,12 @@ This module requires PyTorch to be installed.
 """
 
 import math
+from typing import Optional, Tuple
 
 try:
     import torch
     import torch.nn as nn
+    import torch.nn.functional as F
 except ModuleNotFoundError:
     raise ImportError('These classes require PyTorch to be installed.')
 
@@ -185,3 +190,240 @@ class PositionalEncoding(nn.Module):
             Input with positional encoding added, same shape.
         """
         return x + self.pe[:, :x.size(1), :]
+
+
+class CosineSchedule(nn.Module):
+    """Cosine variance schedule for the diffusion process.
+
+    Implements the cosine schedule from Improved DDPM [1]_, which tends to
+    give better sample quality than a linear schedule because the noise is
+    added more smoothly at the start and end of the diffusion trajectory.
+
+    The schedule tensors are computed once in ``__init__`` and kept as plain
+    attributes (``self.betas``, ``self.alpha_cumprod`` and so on). They are
+    fixed given ``num_timesteps`` and ``s``, so they are rebuilt on
+    construction rather than saved in the checkpoint.
+
+    Parameters
+    ----------
+    num_timesteps : int, default 1000
+        Total number of diffusion timesteps. This is the ``T`` term from
+        equation 17 of the Improved DDPM paper [1]_.
+    s : float, default 0.008
+        Small offset that keeps the schedule from reaching exactly zero at
+        ``t=0``. The default 0.008 is the value from the Improved DDPM
+        paper [1]_: it is chosen so ``sqrt(beta_0)`` sits just below the
+        pixel bin size ``1 / 127.5 ~ 0.00784``.
+
+    Notes
+    -----
+    ``RFDiffusionModel`` uses this schedule in two places: ``q_sample`` adds
+    noise at a random timestep during training, and ``sample`` runs the full
+    reverse loop to generate new backbones.
+
+    References
+    ----------
+    .. [1] Nichol, A. Q., & Dhariwal, P. "Improved denoising diffusion
+       probabilistic models." ICML 2021.
+
+    Examples
+    --------
+    >>> from deepchem.models.torch_models.rfdiffusion import CosineSchedule
+    >>> schedule = CosineSchedule(num_timesteps=100)
+    >>> import torch
+    >>> x0 = torch.randn(2, 10, 9)
+    >>> t = torch.tensor([0, 50])
+    >>> noisy_x, noise = schedule.q_sample(x0, t)
+    >>> noisy_x.shape
+    torch.Size([2, 10, 9])
+    """
+
+    def __init__(self, num_timesteps: int = 1000, s: float = 0.008) -> None:
+        super().__init__()
+        self.num_timesteps = num_timesteps
+
+        steps = num_timesteps + 1
+        t = torch.linspace(0, num_timesteps, steps) / num_timesteps
+        alpha_cumprod = torch.cos((t + s) / (1 + s) * math.pi / 2)**2
+        alpha_cumprod = alpha_cumprod / alpha_cumprod[0]
+        betas = 1 - (alpha_cumprod[1:] / alpha_cumprod[:-1])
+        betas = torch.clamp(betas, 0, 0.999)
+
+        alphas = 1.0 - betas
+        alpha_cumprod = torch.cumprod(alphas, dim=0)
+        alpha_cumprod_prev = F.pad(alpha_cumprod[:-1], (1, 0), value=1.0)
+
+        # The schedule tensors are fixed given num_timesteps and s, so they
+        # are kept as plain attributes rather than registered buffers.
+        self.betas = betas
+        self.alphas = alphas
+        self.alpha_cumprod = alpha_cumprod
+        self.sqrt_alpha_cumprod = torch.sqrt(alpha_cumprod)
+        self.sqrt_one_minus_alpha_cumprod = torch.sqrt(1.0 - alpha_cumprod)
+        self.sqrt_recip_alpha_cumprod = torch.sqrt(1.0 / alpha_cumprod)
+        self.sqrt_recipm1_alpha_cumprod = torch.sqrt(1.0 / alpha_cumprod - 1)
+
+        posterior_variance = (betas * (1.0 - alpha_cumprod_prev) /
+                              (1.0 - alpha_cumprod))
+        self.posterior_variance = posterior_variance
+        self.posterior_log_variance = torch.log(
+            torch.clamp(posterior_variance, min=1e-20))
+        self.posterior_mean_coef1 = (betas * torch.sqrt(alpha_cumprod_prev) /
+                                     (1.0 - alpha_cumprod))
+        self.posterior_mean_coef2 = ((1.0 - alpha_cumprod_prev) *
+                                     torch.sqrt(alphas) / (1.0 - alpha_cumprod))
+
+    def q_sample(
+        self,
+        x0: torch.Tensor,
+        t: torch.Tensor,
+        noise: Optional[torch.Tensor] = None
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Forward diffusion: add noise to clean data at timestep t.
+
+        Parameters
+        ----------
+        x0 : torch.Tensor
+            Clean data of shape ``(batch, ...)``.
+        t : torch.Tensor
+            Integer timesteps of shape ``(batch,)``.
+        noise : torch.Tensor, optional
+            Pre-sampled noise tensor. Drawn from N(0, I) if not provided.
+
+        Returns
+        -------
+        noisy_x : torch.Tensor
+            Noisy data at timestep t, same shape as x0.
+        noise : torch.Tensor
+            The noise that was added, same shape as x0.
+
+        Examples
+        --------
+        >>> import torch
+        >>> from deepchem.models.torch_models.rfdiffusion import CosineSchedule
+        >>> schedule = CosineSchedule(num_timesteps=100)
+        >>> x0 = torch.randn(2, 10, 9)
+        >>> noisy_x, noise = schedule.q_sample(x0, torch.tensor([0, 50]))
+        >>> noisy_x.shape
+        torch.Size([2, 10, 9])
+        """
+        if noise is None:
+            noise = torch.randn_like(x0)
+
+        t_idx = t.to(self.sqrt_alpha_cumprod.device)
+        sqrt_alpha = self.sqrt_alpha_cumprod[t_idx].to(x0.device)
+        sqrt_one_minus = self.sqrt_one_minus_alpha_cumprod[t_idx].to(x0.device)
+
+        while sqrt_alpha.dim() < x0.dim():
+            sqrt_alpha = sqrt_alpha.unsqueeze(-1)
+            sqrt_one_minus = sqrt_one_minus.unsqueeze(-1)
+
+        noisy_x = sqrt_alpha * x0 + sqrt_one_minus * noise
+        return noisy_x, noise
+
+    def p_sample(self, model: nn.Module, x_t: torch.Tensor,
+                 t: torch.Tensor) -> torch.Tensor:
+        """Reverse diffusion: denoise x_t by one step using the model.
+
+        Parameters
+        ----------
+        model : nn.Module
+            The denoiser network. Called as ``model([x_t, t])``.
+        x_t : torch.Tensor
+            Noisy data of shape ``(batch, num_residues, coord_dim)``.
+        t : torch.Tensor
+            Current timestep of shape ``(batch,)``.
+
+        Returns
+        -------
+        torch.Tensor
+            Denoised data at timestep t-1, same shape as x_t.
+
+        Examples
+        --------
+        >>> import torch
+        >>> from deepchem.models.torch_models.rfdiffusion import CosineSchedule
+        >>> class DummyDenoiser(torch.nn.Module):
+        ...     def forward(self, inputs):
+        ...         return torch.zeros_like(inputs[0])
+        >>> schedule = CosineSchedule(num_timesteps=10)
+        >>> x_t = torch.randn(2, 6, 9)
+        >>> x_prev = schedule.p_sample(
+        ...     DummyDenoiser(), x_t, torch.tensor([5, 5]))
+        >>> x_prev.shape
+        torch.Size([2, 6, 9])
+        """
+        with torch.no_grad():
+            device = x_t.device
+            noise_pred = model([x_t, t])
+
+            t_idx = t.to(self.betas.device)
+
+            sqrt_recip = self.sqrt_recip_alpha_cumprod[t_idx].to(device)
+            sqrt_recipm1 = self.sqrt_recipm1_alpha_cumprod[t_idx].to(device)
+            while sqrt_recip.dim() < x_t.dim():
+                sqrt_recip = sqrt_recip.unsqueeze(-1)
+                sqrt_recipm1 = sqrt_recipm1.unsqueeze(-1)
+            x0_pred = sqrt_recip * x_t - sqrt_recipm1 * noise_pred
+
+            coef1 = self.posterior_mean_coef1[t_idx].to(device)
+            coef2 = self.posterior_mean_coef2[t_idx].to(device)
+            while coef1.dim() < x_t.dim():
+                coef1 = coef1.unsqueeze(-1)
+                coef2 = coef2.unsqueeze(-1)
+            posterior_mean = coef1 * x0_pred + coef2 * x_t
+
+            noise = torch.randn_like(x_t)
+            nonzero_mask = (t != 0).float().to(device)
+            while nonzero_mask.dim() < x_t.dim():
+                nonzero_mask = nonzero_mask.unsqueeze(-1)
+
+            var = self.posterior_variance[t_idx].to(device)
+            while var.dim() < x_t.dim():
+                var = var.unsqueeze(-1)
+
+            return posterior_mean + nonzero_mask * torch.sqrt(var) * noise
+
+    def sample(self, model: nn.Module, shape: Tuple[int, ...],
+               device: torch.device) -> torch.Tensor:
+        """Generate samples by running the full reverse diffusion loop.
+
+        Parameters
+        ----------
+        model : nn.Module
+            The denoiser network.
+        shape : tuple of int
+            Shape of samples to produce: ``(batch, num_residues, coord_dim)``.
+        device : torch.device
+            Device to generate on.
+
+        Returns
+        -------
+        torch.Tensor
+            Generated samples of the given shape.
+
+        Examples
+        --------
+        >>> import torch
+        >>> from deepchem.models.torch_models.rfdiffusion import CosineSchedule
+        >>> class DummyDenoiser(torch.nn.Module):
+        ...     def forward(self, inputs):
+        ...         return torch.zeros_like(inputs[0])
+        >>> schedule = CosineSchedule(num_timesteps=10)
+        >>> samples = schedule.sample(
+        ...     DummyDenoiser(), (2, 6, 9), torch.device('cpu'))
+        >>> samples.shape
+        torch.Size([2, 6, 9])
+        """
+        model.eval()
+        with torch.no_grad():
+            x = torch.randn(shape, device=device)
+
+            for t_val in reversed(range(self.num_timesteps)):
+                t = torch.full((shape[0],),
+                               t_val,
+                               device=device,
+                               dtype=torch.long)
+                x = self.p_sample(model, x, t)
+
+            return x
