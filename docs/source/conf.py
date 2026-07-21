@@ -100,6 +100,16 @@ html_theme_options = {
     'display_version': True,
 }
 
+# Add fallback JS and CSS to ensure the mobile sidebar/hamburger toggles reliably.
+# These are non-invasive: they only run if the expected elements exist.
+html_js_files = [
+    'js/sidebar-toggle.js',
+]
+
+html_css_files = [
+    'css/custom.css',
+]
+
 copybutton_remove_prompts = True
 
 # -- Source code links ---------------------------------------------------
