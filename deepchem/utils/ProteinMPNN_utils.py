@@ -1,4 +1,8 @@
-import torch
+try:
+    import torch
+    has_torch = True
+except ModuleNotFoundError:
+    has_torch = False
 
 
 def gather_edges(edges: torch.Tensor,
