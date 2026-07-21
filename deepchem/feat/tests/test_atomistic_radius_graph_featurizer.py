@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 
+pytest.importorskip("ase")
 from ase import Atoms
 
 import deepchem as dc
