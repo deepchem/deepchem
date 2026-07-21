@@ -1,10 +1,10 @@
 import pytest
-import warnings
 try:
     import torch
     import torch.nn as nn
-except Exception as e:
-    warnings.warn("Could not import torch. Skipping tests. Error is: " + str(e))
+    has_torch = True
+except ImportError:
+    has_torch = False
 
 
 @pytest.mark.dqc
