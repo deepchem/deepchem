@@ -198,6 +198,30 @@ def testInfoMax3DModularClassification():
 
 
 @pytest.mark.torch
+def testInfoMax3DModularClassificationSingleClassBatch():
+    import numpy as np
+    import torch
+    from deepchem.models.torch_models.gnn3d import InfoMax3DModular
+
+    data, _ = get_classification_dataset()
+    data = data.select([0, 1, 2, 3])
+    assert np.all(data.y == 0)
+
+    model = InfoMax3DModular(hidden_dim=128,
+                             aggregators=['sum', 'mean', 'max'],
+                             readout_aggregators=['sum', 'mean'],
+                             scalers=['identity'],
+                             task='classification',
+                             n_tasks=1,
+                             n_classes=2,
+                             batch_size=4,
+                             device=torch.device('cpu'))
+
+    loss = model.fit(data, nb_epoch=1)
+    assert np.isfinite(loss)
+
+
+@pytest.mark.torch
 def test_infomax3d_load_from_pretrained(tmpdir):
     import torch
     from deepchem.models.torch_models.gnn3d import InfoMax3DModular
