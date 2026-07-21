@@ -12,7 +12,12 @@ from typing import List, Optional, Tuple, Any, Sequence, Union, Iterator
 import pandas as pd
 import numpy as np
 from deepchem.utils.typing import OneOrMany
+from deepchem.utils.data_utils import extract_ase_labels
+from deepchem.utils.data_utils import featurize_ase_frame
+from deepchem.utils.data_utils import finalize_materials_shard
 from deepchem.utils.data_utils import load_image_files, load_csv_files, load_json_files, load_sdf_files, unzip_file
+from deepchem.utils.data_utils import make_materials_frame_id
+from deepchem.utils.data_utils import normalize_materials_inputs
 from deepchem.feat import UserDefinedFeaturizer, Featurizer
 from deepchem.data import Dataset, DiskDataset, NumpyDataset, ImageDataset
 from deepchem.feat.molecule_featurizers import OneHotFeaturizer
@@ -1805,6 +1810,165 @@ class InMemoryLoader(DataLoader):
             ids.append(entry_id)
         X = np.concatenate(features, axis=0)
         return X, np.array(labels), np.array(weights), np.array(ids)
+
+
+class MaterialsLoader(DataLoader):
+    """Creates ``Dataset`` objects from ASE-readable atomistic files.
+
+    This loader streams ``ase.Atoms`` frames from one or more ASE-readable
+    files, featurizes each frame, and stores the results in a ``DiskDataset``.
+    Each frame becomes one datapoint in the output dataset.
+
+    Examples
+    --------
+    >>> import deepchem as dc
+    >>> featurizer = dc.feat.AtomisticRadiusGraphFeaturizer(cutoff=2.5)  # doctest: +SKIP
+    >>> loader = dc.data.MaterialsLoader(tasks=["energy"], featurizer=featurizer)  # doctest: +SKIP
+    >>> dataset = loader.create_dataset("molecule.extxyz")  # doctest: +SKIP
+
+    Notes
+    -----
+    This loader requires ASE to be installed. Requested labels are extracted
+    only from ``atoms.info``, ``atoms.arrays``, or already-loaded serialized
+    calculator results in ``atoms.calc.results``.
+
+    Parameters
+    ----------
+    tasks: List[str]
+        List of task names to extract. Supported values are ``"energy"``,
+        ``"forces"``, and ``"stress"``.
+    featurizer: Featurizer
+        Featurizer to use for each ``ase.Atoms`` frame.
+    energy_key: str, default "energy"
+        Key to read from ``atoms.info`` or ``atoms.calc.results`` for energy
+        labels.
+    forces_key: str, default "forces"
+        Key to read from ``atoms.arrays`` or ``atoms.calc.results`` for force
+        labels.
+    stress_key: str, default "stress"
+        Key to read from ``atoms.info`` or ``atoms.calc.results`` for stress
+        labels.
+    log_every_n: int, default 1000
+        Writes a logging statement this often.
+    """
+
+    _ALLOWED_TASKS: Tuple[str, str, str] = ("energy", "forces", "stress")
+
+    def __init__(self,
+                 tasks: List[str],
+                 featurizer: Featurizer,
+                 energy_key: str = "energy",
+                 forces_key: str = "forces",
+                 stress_key: str = "stress",
+                 log_every_n: int = 1000) -> None:
+        """Initializes MaterialsLoader.
+
+        Parameters
+        ----------
+        tasks: List[str]
+            List of task names to extract. Supported values are ``"energy"``,
+            ``"forces"``, and ``"stress"``.
+        featurizer: Featurizer
+            Featurizer to use to process each ``ase.Atoms`` frame.
+        energy_key: str, optional (default "energy")
+            Key to read from ``atoms.info`` or ``atoms.calc.results`` for
+            energy labels.
+        forces_key: str, optional (default "forces")
+            Key to read from ``atoms.arrays`` or ``atoms.calc.results`` for
+            force labels.
+        stress_key: str, optional (default "stress")
+            Key to read from ``atoms.info`` or ``atoms.calc.results`` for
+            stress labels.
+        log_every_n: int, optional (default 1000)
+            Writes a logging statement this often.
+        """
+        self._validate_tasks(tasks)
+        super().__init__(tasks=tasks,
+                         featurizer=featurizer,
+                         id_field=None,
+                         log_every_n=log_every_n)
+        self.energy_key = energy_key
+        self.forces_key = forces_key
+        self.stress_key = stress_key
+
+    def _validate_tasks(self, tasks: List[str]) -> None:
+        invalid_tasks = [
+            task for task in tasks if task not in self._ALLOWED_TASKS
+        ]
+        if invalid_tasks:
+            raise ValueError("Unsupported tasks: %s. Supported tasks are %s." %
+                             (invalid_tasks, list(self._ALLOWED_TASKS)))
+
+    def create_dataset(self,
+                       inputs: OneOrMany[str],
+                       data_dir: Optional[str] = None,
+                       shard_size: Optional[int] = 8192) -> DiskDataset:
+        """Creates a ``Dataset`` from ASE-readable input files.
+
+        Parameters
+        ----------
+        inputs: OneOrMany[str]
+            One filename or a list/tuple of filenames understood by ASE.
+            Each ``ase.Atoms`` frame becomes one datapoint in the output
+            dataset.
+        data_dir: str, optional (default None)
+            Directory to store featurized dataset.
+        shard_size: int, optional (default 8192)
+            Number of examples stored in each shard.
+
+        Returns
+        -------
+        DiskDataset
+            A ``DiskDataset`` object containing the featurized atomic frames
+            from ``inputs``.
+        """
+        try:
+            from ase.io import iread
+        except ImportError:
+            raise ImportError("This class requires ASE to be installed.")
+
+        input_files = normalize_materials_inputs(inputs)
+        logger.info("Loading raw samples now.")
+        logger.info("shard_size: %s" % str(shard_size))
+
+        def shard_generator():
+            features: List[Any] = []
+            labels: Optional[List[np.ndarray]] = [] if len(
+                self.tasks) > 0 else None
+            ids: List[str] = []
+
+            for input_path in input_files:
+                for frame_index, atoms in enumerate(iread(input_path,
+                                                          index=":")):
+                    if len(ids) % self.log_every_n == 0:
+                        logger.info("Featurizing frame %d from %s", frame_index,
+                                    input_path)
+                    feature = featurize_ase_frame(self.featurizer, atoms,
+                                                  self.log_every_n, input_path,
+                                                  frame_index)
+                    features.append(feature)
+                    ids.append(make_materials_frame_id(input_path, frame_index))
+                    if labels is not None:
+                        labels.append(
+                            extract_ase_labels(atoms, self.tasks,
+                                               self.energy_key, self.forces_key,
+                                               self.stress_key, input_path,
+                                               frame_index))
+
+                    if shard_size is not None and len(features) >= shard_size:
+                        yield finalize_materials_shard(features, labels,
+                                                       self.tasks, ids)
+                        features = []
+                        labels = [] if len(self.tasks) > 0 else None
+                        ids = []
+
+            if features:
+                yield finalize_materials_shard(features, labels, self.tasks,
+                                               ids)
+
+        return DiskDataset.create_dataset(shard_generator(),
+                                          data_dir=data_dir,
+                                          tasks=self.tasks)
 
 
 class DFTYamlLoader(DataLoader):
