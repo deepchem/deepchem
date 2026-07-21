@@ -1442,8 +1442,8 @@ def _split_fingerprints(fps: List, size1: int,
     remaining_fp = fps[1:]
     remaining_indices = list(range(1, len(fps)))
     max_similarity_to_group = [
-        DataStructs.BulkTanimotoSimilarity(fps[0], remaining_fp),
-        [0] * len(remaining_fp)
+        np.array(DataStructs.BulkTanimotoSimilarity(fps[0], remaining_fp)),
+        np.zeros(len(remaining_fp))
     ]
     # Return identity if no tuple to split to
     if size2 == 0:
@@ -1539,7 +1539,8 @@ class ScaffoldSplitter(Splitter):
         frac_test: float, optional (default 0.1)
             The fraction of data to be used for the test split.
         seed: int, optional (default None)
-            Random seed to use.
+            Random seed to use for tie-breaking shuffling among equal-sized
+            scaffold groups.
         log_every_n: int, optional (default 1000)
             Controls the logger by dictating how often logger outputs
             will be produced.
@@ -1551,7 +1552,26 @@ class ScaffoldSplitter(Splitter):
             Each indices is a list of integers.
         """
         np.testing.assert_almost_equal(frac_train + frac_valid + frac_test, 1.)
-        scaffold_sets = self.generate_scaffolds(dataset)
+        scaffold_sets = self.generate_scaffolds(
+            dataset,
+            log_every_n=log_every_n if log_every_n is not None else 1000)
+
+        from collections import defaultdict
+        size_to_group_idxs = defaultdict(list)
+        for i, group in enumerate(scaffold_sets):
+            size_to_group_idxs[len(group)].append(i)
+
+        ordered_sizes = sorted(size_to_group_idxs.keys(), reverse=True)
+        if seed is not None:
+            rng = np.random.RandomState(seed)
+            for size in ordered_sizes:
+                rng.shuffle(size_to_group_idxs[size])
+
+        scaffold_sets = [
+            scaffold_sets[i]
+            for size in ordered_sizes
+            for i in size_to_group_idxs[size]
+        ]
 
         train_cutoff = frac_train * len(dataset)
         valid_cutoff = (frac_train + frac_valid) * len(dataset)

@@ -614,3 +614,75 @@ class TestSplitter(unittest.TestCase):
             cv_folds[1][1])
         assert len(multitask_dataset) == len(cv_folds[2][0]) + len(
             cv_folds[2][1])
+
+    def test_scaffold_splitter_seed(self):
+        """Test that ScaffoldSplitter seed works for tie-breaking shuffling."""
+        # Use a NumpyDataset and stub generate_scaffolds to return known
+        # equal-sized scaffold groups, making the test deterministic and
+        # independent of RDKit scaffold generation across versions.
+        # The lambda signature matches the real generate_scaffolds signature:
+        # (self, dataset, log_every_n=1000) -> List[List[int]]
+        # When assigned to an instance, self is not passed, so we take
+        # (dataset, log_every_n=1000).
+        dataset = dc.data.NumpyDataset(X=np.zeros(8), y=np.ones(8))
+        splitter = dc.splits.ScaffoldSplitter()
+        splitter.generate_scaffolds = (  # type: ignore[method-assign]
+            lambda dataset, log_every_n=1000: [[i] for i in range(len(dataset))]
+        )
+
+        # seed=42: verify exact deterministic split order matches
+        # np.random.RandomState(42) shuffle of [0..7].
+        train1, valid1, test1 = splitter.split(dataset,
+                                               frac_train=0.5,
+                                               frac_valid=0.25,
+                                               frac_test=0.25,
+                                               seed=42)
+        expected_42 = list(range(8))
+        np.random.RandomState(42).shuffle(expected_42)
+        assert train1 == expected_42[:4]
+        assert valid1 == expected_42[4:6]
+        assert test1 == expected_42[6:]
+
+        # Same seed twice -> identical splits
+        train2, valid2, test2 = splitter.split(dataset,
+                                               frac_train=0.5,
+                                               frac_valid=0.25,
+                                               frac_test=0.25,
+                                               seed=42)
+        assert train1 == train2
+        assert valid1 == valid2
+        assert test1 == test2
+
+        # seed=43: verify exact deterministic split order (non-flaky)
+        train3, valid3, test3 = splitter.split(dataset,
+                                               frac_train=0.5,
+                                               frac_valid=0.25,
+                                               frac_test=0.25,
+                                               seed=43)
+        expected_43 = list(range(8))
+        np.random.RandomState(43).shuffle(expected_43)
+        assert train3 == expected_43[:4]
+        assert valid3 == expected_43[4:6]
+        assert test3 == expected_43[6:]
+
+        # seed=None -> no tie-breaking shuffle; preserves deterministic
+        # insertion order (0..7) and two calls produce the same result.
+        train_none, valid_none, test_none = splitter.split(dataset,
+                                                           frac_train=0.5,
+                                                           frac_valid=0.25,
+                                                           frac_test=0.25,
+                                                           seed=None)
+        assert train_none == [0, 1, 2, 3]
+        assert valid_none == [4, 5]
+        assert test_none == [6, 7]
+
+        train_none2, valid_none2, test_none2 = splitter.split(dataset,
+                                                              frac_train=0.5,
+                                                              frac_valid=0.25,
+                                                              frac_test=0.25,
+                                                              seed=None)
+        assert train_none == train_none2
+        assert valid_none == valid_none2
+        assert test_none == test_none2
+
+
