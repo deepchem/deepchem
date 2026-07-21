@@ -2711,13 +2711,19 @@ class DiskDataset(Dataset):
             return tuple(X_shape), tuple(y_shape), tuple(w_shape), tuple(
                 ids_shape)
 
-    def get_label_means(self) -> pd.DataFrame:
-        """Return pandas series of label means."""
-        return self.metadata_df["y_means"]
+    def get_label_means(self) -> np.ndarray:
+        """Return the mean of each label (task) over the dataset."""
+        # The metadata no longer stores per-shard `y_means`; compute the label
+        # means from the data via `get_statistics`.
+        y_means, _ = self.get_statistics(X_stats=False, y_stats=True)
+        return y_means
 
-    def get_label_stds(self) -> pd.DataFrame:
-        """Return pandas series of label stds."""
-        return self.metadata_df["y_stds"]
+    def get_label_stds(self) -> np.ndarray:
+        """Return the standard deviation of each label (task) over the dataset."""
+        # The metadata no longer stores per-shard `y_stds`; compute the label
+        # standard deviations from the data via `get_statistics`.
+        _, y_stds = self.get_statistics(X_stats=False, y_stats=True)
+        return y_stds
 
 
 class ImageDataset(Dataset):
