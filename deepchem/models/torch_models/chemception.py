@@ -4,6 +4,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import logging
+import torchvision.transforms.functional as TF
 from typing import Dict, Type, Optional, Literal, Sequence, Iterable, Tuple, List
 from deepchem.data import Dataset
 from deepchem.utils.typing import OneOrMany
@@ -118,6 +119,7 @@ class ChemCeptionLayer(nn.Module):
                  mode: str = "classification",
                  n_tasks: int = 10,
                  n_classes: int = 2,
+                 augment: bool = False,
                  **kwargs) -> None:
         """
         Parameters
@@ -159,6 +161,7 @@ class ChemCeptionLayer(nn.Module):
         self.inception_resnet_C = inception_resnet_C
         self.global_avg_pool = global_avg_pool
         self.output_layer = output_layer
+        self.augment = augment
 
     def forward(self, x: torch.Tensor) -> OneOrMany[torch.Tensor]:
         """
@@ -175,8 +178,13 @@ class ChemCeptionLayer(nn.Module):
            Output predictions corresponding to the provided images.
            Shape of regression output is (n_images, n_tasks, 1) and classification output is (n_images, n_tasks, 2).
         """
+        if self.training and self.augment:
+            angles = torch.rand(x.size(0)) * 360 - 180
+            x = torch.stack([TF.rotate(img, angle.item()) for img, angle in zip(x, angles)])
+
         x = self.stem(x)
         x = self.inception_resnet_A(x)
+        
         x = self.reduction_A(x)
         x = self.inception_resnet_B(x)
         x = self.reduction_B(x)
@@ -418,7 +426,8 @@ class ChemCeption(ModularTorchModel):
             output_layer=output_layer,
             mode=self.mode,
             n_tasks=self.n_tasks,
-            n_classes=self.n_classes)
+            n_classes=self.n_classes,
+            augment=self.augment)
 
     def loss_func(self, inputs: OneOrMany[torch.Tensor], labels: Sequence,
                   weights: Sequence) -> torch.Tensor:
