@@ -7,7 +7,7 @@ except Exception as e:
     warnings.warn("Could not import torch. Skipping tests. Error is: " + str(e))
 
 
-@pytest.mark.dqc
+@pytest.mark.torch
 def dummymodel():
     n = 2
 
@@ -23,7 +23,7 @@ def dummymodel():
     return DummyModel(n)
 
 
-@pytest.mark.dqc
+@pytest.mark.torch
 def test_nnlda():
     from deepchem.utils.dft_utils import ValGrad
     from deepchem.models.dft.nnxc import NNLDA
@@ -39,7 +39,7 @@ def test_nnlda():
     torch.testing.assert_close(output, expected_output, atol=1e-4, rtol=0)
 
 
-@pytest.mark.dqc
+@pytest.mark.torch
 def test_hybridxc():
     from deepchem.utils.dft_utils import ValGrad
     from deepchem.models.dft.nnxc import HybridXC
