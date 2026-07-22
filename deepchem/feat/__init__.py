@@ -108,6 +108,9 @@ try:
 except ModuleNotFoundError:
     pass
 
+# Multi-mode SMILES tokenizer (no HuggingFace dependency)
+from deepchem.feat.multimode_smiles_tokenizer import MultiModeSmilesTokenizer
+
 from deepchem.feat.vocabulary_builders import HuggingFaceVocabularyBuilder
 
 # support classes
