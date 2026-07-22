@@ -68,7 +68,14 @@ and then install the desired deep learning framework before installing DeepChem:
 3. Install DeepChem in `develop` mode
 
 ```bash
-python setup.py develop
+pip install -e .
+```
+Optionally, extras can be installed with:
+
+```bash
+pip install -e .[torch]
+pip install -e .[jax]
+pip install -e .[tensorflow]
 ```
 
 This mode will symlink the Python files from current local source tree into
