@@ -64,7 +64,8 @@ try:
     from deepchem.models.torch_models import MoLFormer
     from deepchem.models.torch_models import OneFormer
 except ImportError as e:
-    logger.warning(e)
+    logger.warning(
+        f'Skipped loading some HuggingFace models, missing a dependency. {e}')
 
 # Pytorch models with torch-geometric dependency
 try:
