@@ -297,7 +297,7 @@ def load_molecule(molecule_file,
         try:
             Chem.SanitizeMol(my_mol)
         # TODO: Ideally we should catch AtomValenceException but Travis seems to choke on it for some reason.
-        except:
+        except Exception:
             logger.warning("Mol %s failed sanitization" %
                            Chem.MolToSmiles(my_mol))
     if calc_charges:
@@ -661,7 +661,7 @@ def compute_all_pairs_shortest_path(
     """
     try:
         from rdkit import Chem
-    except:
+    except ImportError:
         raise ImportError("This class requires RDkit installed")
     n_atoms = mol.GetNumAtoms()
     paths_dict = {(i, j): Chem.rdmolops.GetShortestPath(mol, i, j)
@@ -685,7 +685,7 @@ def compute_pairwise_ring_info(mol):
     """
     try:
         from rdkit import Chem
-    except:
+    except ImportError:
         raise ImportError("This class requires RDkit installed")
     rings_dict = {}
 
