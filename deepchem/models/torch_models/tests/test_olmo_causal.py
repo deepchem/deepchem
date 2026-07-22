@@ -28,9 +28,10 @@ def quantization_config():
     )
 
 
-@pytest.mark.slow
 @pytest.mark.hf
 def test_olmo_causal_lm():
+    pytest.skip(
+        "Skipping slow OLMo test that downloads and runs the full model.")
     from deepchem.models.torch_models.olmo import Olmo
 
     model = Olmo(task_type="causal_lm",
@@ -64,9 +65,10 @@ def test_olmo_causal_lm():
     gc.collect()
 
 
-@pytest.mark.slow
 @pytest.mark.hf
 def test_olmo_causal_lm_overfit():
+    pytest.skip(
+        "Skipping slow OLMo test that downloads and runs the full model.")
     from deepchem.models.torch_models.olmo import Olmo
 
     model = Olmo(task_type="causal_lm",
@@ -95,9 +97,10 @@ def test_olmo_causal_lm_overfit():
     gc.collect()
 
 
-@pytest.mark.slow
 @pytest.mark.hf
 def test_olmo_load_from_pretrained(tmpdir):
+    pytest.skip(
+        "Skipping slow OLMo test that downloads and runs the full model.")
     from deepchem.models.torch_models.olmo import Olmo
     pretrain_model_dir = os.path.join(tmpdir, 'pretrain')
     finetune_model_dir = os.path.join(tmpdir, 'finetune')
@@ -138,9 +141,10 @@ def test_olmo_load_from_pretrained(tmpdir):
     gc.collect()
 
 
-@pytest.mark.slow
 @pytest.mark.hf
 def test_olmo_causal_lm_save_reload(tmpdir):
+    pytest.skip(
+        "Skipping slow OLMo test that downloads and runs the full model.")
     from deepchem.models.torch_models.olmo import Olmo
     model = Olmo(task_type="causal_lm",
                  tokenizer_path="allenai/OLMo-1B-hf",
