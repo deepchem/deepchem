@@ -1,5 +1,6 @@
 from typing import Callable, List, Optional
 import numpy as np
+import warnings
 
 from deepchem.utils.typing import RDKitMol
 from deepchem.feat.base_classes import MolecularFeaturizer
@@ -70,8 +71,10 @@ class MordredDescriptors(MolecularFeaturizer):
         """
         if 'mol' in kwargs:
             datapoint = kwargs.get("mol")
-            raise DeprecationWarning(
-                'Mol is being phased out as a parameter, please pass "datapoint" instead.'
+            warnings.warn(
+                'Mol is being phased out as a parameter, please pass "datapoint" instead.',
+                DeprecationWarning,
+                stacklevel=2
             )
         if self.calc is None:
             try:
