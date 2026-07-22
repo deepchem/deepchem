@@ -430,6 +430,8 @@ class KerasModel(Model):
             zero_grads = [tf.zeros(v.shape) for v in variables]
             self._tf_optimizer.apply_gradients(zip(zero_grads, variables))
         if var_key not in self._gradient_fn_for_vars:
+            if variables is not None and hasattr(self._tf_optimizer, 'build'):
+                self._tf_optimizer.build(variables)
             self._gradient_fn_for_vars[var_key] = self._create_gradient_fn(
                 variables)
         apply_gradient_for_batch = self._gradient_fn_for_vars[var_key]
