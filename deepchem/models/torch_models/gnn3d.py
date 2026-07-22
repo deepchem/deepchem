@@ -351,6 +351,24 @@ class Net3D(nn.Module):
         return {'d': F.silu(self.edge_input(edges.data['d']))}
 
 
+class _PretrainingWrapper(nn.Module):
+    """
+    Wrapper module to combine model2d and model3d during pretraining.
+    This ensures that both models' parameters are registered with the
+    optimizer in TorchModel.
+    """
+
+    def __init__(self, model2d: nn.Module, model3d: nn.Module):
+        super().__init__()
+        self.model2d = model2d
+        self.model3d = model3d
+
+    def forward(self, *args, **kwargs):
+        # The forward method is primarily used for inference in TorchModel,
+        # but loss_func bypasses this during pretraining.
+        return self.model2d(*args, **kwargs)
+
+
 class InfoMax3DModular(ModularTorchModel):
     """
     InfoMax3DModular is a modular torch model that uses a 2D PNA model and a 3D Net3D model to maximize the mutual information between their representations. The 2D model can then be used for downstream tasks without the need for 3D coordinates. This is based off the work in [1].
@@ -565,15 +583,16 @@ class InfoMax3DModular(ModularTorchModel):
 
     def build_model(self):
         """
-        Build the InfoMax3DModular model. This is the 2D network which is meant to be used for inference.
+        Build the InfoMax3DModular model.
 
         Returns
         -------
-        PNA
-            The 2D PNA model component.
+        nn.Module
+            The model to be trained.
         """
-        # FIXME For pretraining task, both model2d and model3d but the super class
-        # can't handle two models for contrastive learning, hence we pass only model2d
+        if self.task == 'pretraining':
+            return _PretrainingWrapper(self.components['model2d'],
+                                       self.components['model3d'])
         return self.components['model2d']
 
     def loss_func(self, inputs, labels, weights):

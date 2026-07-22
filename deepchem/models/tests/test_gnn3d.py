@@ -226,3 +226,25 @@ def test_infomax3d_load_from_pretrained(tmpdir):
     # Finetune model weights should match after loading from pretrained model
     for key, value in pretrain_model_state_dict.items():
         assert torch.allclose(value, finetune_model_new_state_dict[key])
+
+
+@pytest.mark.torch
+def test_infomax3d_optimizer_parameters():
+    import torch
+    from deepchem.models.torch_models.gnn3d import InfoMax3DModular
+
+    model = InfoMax3DModular(hidden_dim=64,
+                             target_dim=10,
+                             aggregators=['sum', 'mean', 'max'],
+                             readout_aggregators=['sum', 'mean'],
+                             scalers=['identity'],
+                             device=torch.device('cpu'),
+                             task='pretraining')
+                             
+    model2d_params = list(model.components['model2d'].parameters())
+    model3d_params = list(model.components['model3d'].parameters())
+    all_params = list(model.model.parameters())
+    
+    # Assert that the optimizer will receive parameters for BOTH model2d and model3d
+    assert len(all_params) == len(model2d_params) + len(model3d_params)
+    assert len(model3d_params) > 0
