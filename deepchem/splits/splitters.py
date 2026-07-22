@@ -1011,6 +1011,7 @@ class MolecularWeightSplitter(Splitter):
         """
         try:
             from rdkit import Chem
+            from rdkit.Chem import rdMolDescriptors
         except ModuleNotFoundError:
             raise ImportError("This function requires RDKit to be installed.")
 
@@ -1021,7 +1022,7 @@ class MolecularWeightSplitter(Splitter):
         mws = []
         for smiles in dataset.ids:
             mol = Chem.MolFromSmiles(smiles)
-            mw = Chem.rdMolDescriptors.CalcExactMolWt(mol)
+            mw = rdMolDescriptors.CalcExactMolWt(mol)
             mws.append(mw)
 
         # Sort by increasing MW
