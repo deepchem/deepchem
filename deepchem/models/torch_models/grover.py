@@ -409,10 +409,7 @@ class GroverModel(ModularTorchModel):
                          model_dir=self.model_dir,
                          output_types=output_types,
                          **kwargs)
-        # FIXME In the above step, we initialize modular torch model but
-        # something is missing here. The attribute loss from TorchModel gets assigned `loss_func`
-        # by super class initialization in ModularTorchModel but here we reinitialize it.
-        self.loss = self.get_loss_func()
+        self.criterion = self.get_loss_func()
 
     def build_components(self):
         """Builds components for grover pretraining and finetuning model.
@@ -663,19 +660,19 @@ class GroverModel(ModularTorchModel):
         av_task_atom_pred, av_task_bond_pred, bv_task_atom_pred, bv_task_bond_pred, fg_prediction_atom_from_atom, fg_prediction_atom_from_bond, fg_prediction_bond_from_atom, fg_prediction_bond_from_bond = self.model(
             inputs)
 
-        loss = self.loss(av_task_atom_pred,
-                         av_task_bond_pred,
-                         bv_task_atom_pred,
-                         bv_task_bond_pred,
-                         fg_prediction_atom_from_atom,
-                         fg_prediction_atom_from_bond,
-                         fg_prediction_bond_from_atom,
-                         fg_prediction_bond_from_bond,
-                         labels['av_task'],
-                         labels['bv_task'],
-                         labels['fg_task'],
-                         weights=weights,
-                         dist_coff=dist_coff)  # type: ignore
+        loss = self.criterion(av_task_atom_pred,
+                              av_task_bond_pred,
+                              bv_task_atom_pred,
+                              bv_task_bond_pred,
+                              fg_prediction_atom_from_atom,
+                              fg_prediction_atom_from_bond,
+                              fg_prediction_bond_from_atom,
+                              fg_prediction_bond_from_bond,
+                              labels['av_task'],
+                              labels['bv_task'],
+                              labels['fg_task'],
+                              weights=weights,
+                              dist_coff=dist_coff)  # type: ignore
         return loss
 
     def _finetuning_loss(self, inputs, labels, weights, dist_coff=0.1):
