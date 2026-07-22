@@ -11,7 +11,7 @@ Cell Counting,Synthetic emulations of fluorescence microscopic images of bacteri
 ChEMBL (set = ‘sparse’),A sparse subset of ChEMBL with activity data for one target,Molecules,244 245,`ref <https://www.ebi.ac.uk/chembl/.>`_
 ChEMBL (set = ‘5thresh’),A subset of ChEMBL with activity data for at least five targets,Molecules,23 871,`ref <https://www.ebi.ac.uk/chembl/.>`_
 ChEMBL25,,Molecules,,`ref <https://www.ebi.ac.uk/chembl/.>`_
-Clearance,,,,`ref <https://arxiv.org/abs/1703.00564>`_
+Clearance,Result of the rate at which the human body removes unbound drugs from the blood,Molecules,837,`ref <https://pubs.acs.org/doi/10.1021/acs.molpharmaceut.7b01144>`_
 Clintox,Compares drugs approved by the FDA and drugs that have failed clinical trials for toxicity reasons.,Molecules,1491,`ref <https://pubs.rsc.org/en/content/articlehtml/2018/sc/c7sc02664a>`_
 Delaney,A regression dataset containing structures and water solubility data,Molecules,1128,`ref <https://arxiv.org/abs/1703.00564>`_
 Factors,Merck in-house compounds that were measured for IC50 of inhibition on 12 serine proteases,Molecules,1500,
@@ -42,4 +42,5 @@ Toxcast,Toxicology data for an extensive library of compounds based on in vitro 
 USPTO,Subsets of USPTO dataset of organic chemical reactions extracted from US patents and patent applications,Chemical reactions SMILES,MIT  479 000  - STEREO  1 M - 50K  50 000,`ref <https://doi.org/10.6084/m9.figshare.5104873.v1>`_
 UV,The UV dataset tests Merck’s internal compounds on 190 absorption wavelengths between 210 and 400 nm,Molecules,10 000,
 ZINC15,Purchasable compounds for virtual screening of small molecules to identify structures that are likely to bind to drug targets,Molecules,250K - 1M - 10M,`ref <http://pubs.acs.org/doi/abs/10.1021/acs.jcim.5b00559.>`_
+
 Platinum Adsorption,Different configurations of Adsorbates (i.e N and NO) on Platinum surface represented as Lattice and their formation energy,Adsorbate Configurations,648,
