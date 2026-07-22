@@ -529,3 +529,25 @@ def test_torch_compile():
     model_output = np.argmax(model_output, axis=2)
 
     assert np.all(model_output == y)
+
+
+@pytest.mark.torch
+def test_torch_model_summary():
+    """Test generating a summary for a TorchModel."""
+
+    class SimpleTorchModel(torch.nn.Module):
+
+        def __init__(self):
+            super(SimpleTorchModel, self).__init__()
+            self.fc = torch.nn.Linear(10, 5)
+
+        def forward(self, x):
+            return self.fc(x)
+
+    pytorch_model = SimpleTorchModel()
+    model = dc.models.TorchModel(pytorch_model, dc.models.losses.L2Loss())
+
+    # We should be able to call it without throwing an error if torchinfo is installed
+    summary_output = model.summary(input_size=(1, 10))
+    assert summary_output is not None
+    assert summary_output.total_params == 55  # 10 * 5 + 5 bias = 55
