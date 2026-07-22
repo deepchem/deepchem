@@ -27,7 +27,7 @@ try:
     from deepchem.models.molgan import BasicMolGANModel
     from deepchem.models.text_cnn import TextCNNModel
     from deepchem.models.chemnet_models import Smiles2Vec, ChemCeption
-except ModuleNotFoundError as e:
+except Exception as e:
     logger.warning(
         f'Skipped loading some Tensorflow models, missing a dependency. {e}')
 

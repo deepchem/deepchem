@@ -1659,6 +1659,7 @@ class DiskDataset(Dataset):
         def iterate(dataset: DiskDataset, batch_size: Optional[int],
                     epochs: int):
             num_shards = len(shard_indices)
+            shard_perm: np.ndarray
             if deterministic:
                 shard_perm = np.arange(num_shards)
 

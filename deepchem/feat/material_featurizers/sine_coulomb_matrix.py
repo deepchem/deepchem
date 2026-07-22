@@ -100,6 +100,7 @@ class SineCoulombMatrix(MaterialStructureFeaturizer):
         # Get full N x N SCM
         sine_mat = self.scm.featurize(datapoint)
 
+        features: np.ndarray
         if self.flatten:
             eigs, _ = np.linalg.eig(sine_mat)
             zeros = np.zeros(self.max_atoms)

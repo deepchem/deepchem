@@ -593,7 +593,7 @@ class A2C(object):
         # Rearrange the states into the proper set of arrays.
 
         if self._state_is_list:
-            state_arrays: List[List[np.ndarray]] = [
+            state_arrays: List[Any] = [
                 [] for i in range(len(self._env.state_shape))
             ]
             for state in states:
