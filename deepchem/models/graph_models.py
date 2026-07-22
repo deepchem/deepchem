@@ -94,8 +94,7 @@ class WeaveModel(KerasModel):
                  activation_fns: OneOrMany[ActivationFn] = tf.nn.relu,
                  batch_normalize: bool = True,
                  batch_normalize_kwargs: Dict = {
-                     "renorm": True,
-                     "fused": False
+                     "renorm": True
                  },
                  gaussian_expand: bool = True,
                  compress_post_gaussian_expansion: bool = False,
@@ -837,7 +836,7 @@ class _GraphConvKerasModel(tf.keras.Model):
             for layer_size in graph_conv_layers
         ]
         self.batch_norms = [
-            BatchNormalization(fused=False) if batch_normalize else None
+            BatchNormalization() if batch_normalize else None
             for _ in range(len(graph_conv_layers) + 1)
         ]
         self.dropouts = [
