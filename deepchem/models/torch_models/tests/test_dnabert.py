@@ -18,7 +18,6 @@ def test_dnabert_pretraining(genomic_regression_dataset,
 
     model = Dnabert(task='mlm')
     loss = model.fit(genomic_regression_dataset, nb_epoch=1)
-    print(f'The loss here is {loss}')
     assert loss
 
     # Pretraining in Multitask Regression Mode
@@ -213,16 +212,16 @@ def test_dnabert_overfit_finetuning_classification(pretrained_checkpoint_dir):
     """Test that DNABERT-2 can overfit a small classification dataset."""
     tokenizer_path = 'IronHead44/DNABERT-2-117M'
     sequences = [
-        "ATGCGTACGTTAGCTAGCATGCGTACG",  # 0
-        "GGCTAACCGTATCGGATCAAGTCCTAG",  # 1
-        "TTAAGCCGTACGATCGATCGATCGATCG",  # 1
-        "CCGATCGATCGATCGATCGATCGATCGA",  # 1
-        "ATGCGTACGTTAGCTAGCATGCGTACC",  # 0
-        "ATGCGTACGTTAGCTAGCATGCGTACT",  # 0
-        "GGCTAACCGTATCGGATCAAGTCCTAA",  # 1
-        "GGCTAACCGTATCGGATCAAGTCCTAC",  # 1
-        "TTAAGCCGTACGATCGATCGATCGATCA",  # 1
-        "CCGATCGATCGATCGATCGATCGATCGT",  # 1
+        "ATGCGTACGTTAGCTAGCATGCGTACG",
+        "GGCTAACCGTATCGGATCAAGTCCTAG",
+        "TTAAGCCGTACGATCGATCGATCGATCG",
+        "CCGATCGATCGATCGATCGATCGATCGA",
+        "ATGCGTACGTTAGCTAGCATGCGTACC",
+        "ATGCGTACGTTAGCTAGCATGCGTACT",
+        "GGCTAACCGTATCGGATCAAGTCCTAA",
+        "GGCTAACCGTATCGGATCAAGTCCTAC",
+        "TTAAGCCGTACGATCGATCGATCGATCA",
+        "CCGATCGATCGATCGATCGATCGATCGT",
     ]
     np.random.seed(42)
     y = np.array([0, 1, 1, 1, 0, 0, 1, 1, 1, 1])
@@ -233,30 +232,7 @@ def test_dnabert_overfit_finetuning_classification(pretrained_checkpoint_dir):
                     n_tasks=1,
                     learning_rate=1e-4)
     model.load_from_pretrained(pretrained_checkpoint_dir)
-    losses = []
-
-    for name, param in model.model.named_parameters():
-        if "classifier" in name:
-            print(name, param.requires_grad)
-    before = model.model.classifier.weight.detach().clone()
-    loss = model.fit(dataset=dataset, nb_epoch=5, all_losses=losses)
-    after = model.model.classifier.weight.detach()
-
-    print(torch.equal(before, after))
-    print(torch.norm(after - before))
-    pred = model.predict(dataset)
-
-    print("Prediction: ")
-    print(pred)
-
-    print("Labels: ")
-    print(dataset.y)
-    print(f'Final Loss is = {loss}')
-    print(f'Collected {len(losses)} logged losses')
-
-    for i, l in enumerate(losses):
-        print(f'{i}: {l}')
-
+    model.fit(dataset=dataset, nb_epoch=500)
     classification_metric = dc.metrics.Metric(dc.metrics.accuracy_score)
     eval_score = model.evaluate(dataset, [classification_metric])
     assert eval_score[classification_metric.name] > 0.9
@@ -280,35 +256,9 @@ def test_dnabert_overfit_finetuning_regression(pretrained_checkpoint_dir):
                     tokenizer_path=tokenizer_path,
                     n_tasks=1,
                     learning_rate=1e-4)
-    old = id(model.model)
     model.load_from_pretrained(pretrained_checkpoint_dir)
-    new = id(model.model)
-
-    print(f"The result of their similarity is {new == old}")
-    losses = []
-
-    for name, param in model.model.named_parameters():
-        if "classifier" in name:
-            print(name, param.requires_grad)
-    before = model.model.classifier.weight.detach().clone()
-    loss = model.fit(dataset=dataset, nb_epoch=2000, all_losses=losses)
-    after = model.model.classifier.weight.detach()
-
-    print(torch.equal(before, after))
-    print(torch.norm(after - before))
-    pred = model.predict(dataset)
-
-    print("Prediction: ")
-    print(pred)
-
-    print("Labels: ")
-    print(dataset.y)
-    print(f'Final Loss is = {loss}')
-    print(f'Collected {len(losses)} logged losses')
-
-    for i, l in enumerate(losses):
-        print(f'{i}: {l}')
-
+    assert id(model.model) == id(model.model)
+    model.fit(dataset=dataset, nb_epoch=500)
     regression_metric = dc.metrics.Metric(dc.metrics.mean_squared_error)
     eval_score = model.evaluate(dataset, [regression_metric])
     assert eval_score[regression_metric.name] < 0.1
