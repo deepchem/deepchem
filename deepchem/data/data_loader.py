@@ -743,8 +743,10 @@ class SDFLoader(DataLoader):
     >>> import os
     >>> current_dir = os.path.dirname(os.path.realpath(__file__))
     >>> featurizer = dc.feat.CircularFingerprint(size=16)
-    >>> loader = dc.data.SDFLoader(["LogP(RRCK)"], featurizer=featurizer, sanitize=True)
-    >>> dataset = loader.create_dataset(os.path.join(current_dir, "tests", "membrane_permeability.sdf")) # doctest:+ELLIPSIS
+    >>> loader = dc.data.SDFLoader(["LogP(RRCK)"], featurizer=featurizer,
+    ...                             sanitize=True)
+    >>> dataset = loader.create_dataset(
+    ...     os.path.join(current_dir, "tests", "membrane_permeability.sdf"))
     >>> len(dataset)
     2
     """
@@ -1036,8 +1038,6 @@ class FASTALoader(DataLoader):
                        shard_size: Optional[int] = None) -> DiskDataset:
         """Creates a `Dataset` from input FASTA files.
 
-        At present, FASTA support is limited and doesn't allow for sharding.
-
         Parameters
         ----------
         input_files: List[str]
@@ -1045,8 +1045,10 @@ class FASTALoader(DataLoader):
         data_dir: str, optional (default None)
             Name of directory where featurized data is stored.
         shard_size: int, optional (default None)
-            For now, this argument is ignored and each FASTA file gets its
-            own shard.
+            Number of sequences per shard. If None, each file is processed
+            as a single shard. Only applies when legacy=False and
+            use_raw_fasta=False; legacy and raw modes load entire files
+            for backward compatibility.
 
         Returns
         -------
@@ -1057,25 +1059,82 @@ class FASTALoader(DataLoader):
         if isinstance(input_files, str):
             input_files = [input_files]
 
-        def shard_generator():  # TODO Enable sharding with shard size parameter
+        def shard_generator():
+            """Generator that yields shards of featurized FASTA data."""
             for input_file in input_files:
                 if self.legacy:
+                    # Legacy mode: load entire file (backward compatibility)
                     X = encode_bio_sequence(input_file)
+                    ids = np.ones(len(X))
+                    yield X, None, None, ids
                 elif self.use_raw_fasta:
+                    # Raw FASTA mode: load entire file (backward compatibility)
                     X = self.featurizer._featurize(input_file)
+                    ids = np.ones(len(X))
+                    yield X, None, None, ids
                 else:
-                    sequences = _read_file(input_file)
-                    X = self.featurizer(sequences)
-                ids = np.ones(len(X))
-                # (X, y, w, ids)
-                yield X, None, None, ids
+                    # New sharding-enabled mode
+                    for seq_chunk in _read_file_in_chunks(
+                            input_file, shard_size):
+                        X = self.featurizer(seq_chunk)
+                        ids = np.arange(len(X))
+                        yield X, None, None, ids
+
+        def _read_file_in_chunks(input_file: str, chunk_size: Optional[int]):
+            """
+            Generator that yields chunks of sequences from a FASTA file.
+
+            Parameters
+            ----------
+            input_file: str
+                Path to FASTA file
+            chunk_size: int, optional
+                Number of sequences per chunk. If None, yields all sequences at once.
+
+            Yields
+            ------
+            np.ndarray
+                Array of FASTA sequence strings
+            """
+            sequences = []
+            current_seq = ""
+
+            with open(input_file, 'r') as f:
+                for line in f:
+                    line = line.strip()
+                    if line.startswith(">"):  # Header line
+                        # Save previous sequence if it exists
+                        if current_seq:
+                            if self.auto_add_annotations:
+                                current_seq = "[CLS]" + current_seq + "[SEP]"
+                            sequences.append(current_seq)
+
+                            # Yield chunk if we've reached the shard size
+                            if chunk_size is not None and len(
+                                    sequences) >= chunk_size:
+                                yield np.array(sequences)
+                                sequences = []
+
+                        current_seq = ""
+                    elif line:  # Sequence data line
+                        current_seq += line
+
+                # Don't forget the last sequence
+                if current_seq:
+                    if self.auto_add_annotations:
+                        current_seq = "[CLS]" + current_seq + "[SEP]"
+                    sequences.append(current_seq)
+
+            # Yield any remaining sequences
+            if sequences:
+                yield np.array(sequences)
 
         def _read_file(input_file: str):
             """
             Convert the FASTA file to a numpy array of FASTA-format strings.
+            DEPRECATED: Only used by legacy code path, kept for backward compatibility.
             """
 
-            # TODO don't convert all sequences into np array (allow shards)
             def _generate_sequences(fasta_file, header_mark=">") -> np.ndarray:
                 """
                 Uses a fasta_file to create a numpy array of annotated FASTA-format strings
@@ -1143,8 +1202,8 @@ def _fastq_load_files(input_files: List[str],
             # iterate through each line in the input file
             for num, line in enumerate(f):
                 # If the number of lines iterated through is equal or less than the shard size:
-                if (shard_size is not None) and ((num + 1) - line_number <=
-                                                 (shard_size * 4)):
+                if (shard_size is not None) and ((num + 1) - line_number
+                                                 <= (shard_size * 4)):
                     # append to list
                     df.append(line)
                 else:
@@ -1292,9 +1351,10 @@ class FASTQLoader(DataLoader):
             """
             Creates a numpy array of annotated FASTQ-format strings.
             """
-            assert len(
-                shard
-            ) % 4 == 0, f'Sharded length not divisible by four: Length of shard = {len(shard)}. File is possibly incomplete'
+            assert len(shard) % 4 == 0, (
+                f'Sharded length not divisible by four: '
+                f'Length of shard = {len(shard)}. File is possibly incomplete'
+            )
             sequences: np.ndarray = np.array([], dtype='object')
             if self.return_quality_scores:
                 quality_scores: np.ndarray = np.array([], dtype='object')
@@ -1999,8 +2059,8 @@ class SAMLoader(DataLoader):
         data_dir: str, optional (default None)
             Name of directory where featurized data is stored.
         shard_size: int, optional (default None)
-            For now, this argument is ignored and each SAM file gets its
-            own shard.
+            Number of alignment records per shard. If None, entire file
+            is loaded as a single shard.
 
         Returns
         -------
@@ -2012,13 +2072,34 @@ class SAMLoader(DataLoader):
         if isinstance(input_files, str):
             input_files = [input_files]
 
-        def shard_generator():  # TODO Enable sharding with shard size parameter
+        def shard_generator():
+            """Generator that yields shards of featurized SAM data."""
             for input_file in input_files:
                 samfile = pysam.AlignmentFile(input_file, "r")
-                X = self.featurizer._featurize(samfile)
-                ids = np.ones(len(X))
-                # (X, y, w, ids)
-                yield X, None, None, ids
+
+                if shard_size is None:
+                    # Backward compatibility: load entire file
+                    X = self.featurizer._featurize(samfile)
+                    ids = np.ones(len(X))
+                    yield X, None, None, ids
+                else:
+                    # Chunked reading
+                    alignments = []
+                    for alignment in samfile:
+                        alignments.append(alignment)
+                        if len(alignments) >= shard_size:
+                            X = self.featurizer._featurize(alignments)
+                            ids = np.arange(len(X))
+                            yield X, None, None, ids
+                            alignments = []
+
+                    # Yield remaining alignments
+                    if alignments:
+                        X = self.featurizer._featurize(alignments)
+                        ids = np.arange(len(X))
+                        yield X, None, None, ids
+
+                samfile.close()
 
         return DiskDataset.create_dataset(shard_generator(), data_dir)
 
@@ -2097,8 +2178,8 @@ class BAMLoader(DataLoader):
         data_dir: str, optional (default None)
             Name of directory where featurized data is stored.
         shard_size: int, optional (default None)
-            For now, this argument is ignored and each BAM file gets its
-            own shard.
+            Number of alignment records per shard. If None, entire file
+            is loaded as a single shard.
 
         Returns
         -------
@@ -2110,13 +2191,34 @@ class BAMLoader(DataLoader):
         if isinstance(input_files, str):
             input_files = [input_files]
 
-        def shard_generator():  # TODO Enable sharding with shard size parameter
+        def shard_generator():
+            """Generator that yields shards of featurized BAM data."""
             for input_file in input_files:
                 bamfile = pysam.AlignmentFile(input_file, "rb")
-                X = self.featurizer._featurize(bamfile)
-                ids = np.ones(len(X))
-                # (X, y, w, ids)
-                yield X, None, None, ids
+
+                if shard_size is None:
+                    # Backward compatibility: load entire file
+                    X = self.featurizer._featurize(bamfile)
+                    ids = np.ones(len(X))
+                    yield X, None, None, ids
+                else:
+                    # Chunked reading
+                    alignments = []
+                    for alignment in bamfile:
+                        alignments.append(alignment)
+                        if len(alignments) >= shard_size:
+                            X = self.featurizer._featurize(alignments)
+                            ids = np.arange(len(X))
+                            yield X, None, None, ids
+                            alignments = []
+
+                    # Yield remaining alignments
+                    if alignments:
+                        X = self.featurizer._featurize(alignments)
+                        ids = np.arange(len(X))
+                        yield X, None, None, ids
+
+                bamfile.close()
 
         return DiskDataset.create_dataset(shard_generator(), data_dir)
 
@@ -2185,8 +2287,8 @@ class CRAMLoader(DataLoader):
         data_dir: str, optional (default None)
             Name of directory where featurized data is stored.
         shard_size: int, optional (default None)
-            For now, this argument is ignored and each CRAM file gets its
-            own shard.
+            Number of alignment records per shard. If None, entire file
+            is loaded as a single shard.
 
         Returns
         -------
@@ -2198,12 +2300,33 @@ class CRAMLoader(DataLoader):
         if isinstance(input_files, str):
             input_files = [input_files]
 
-        def shard_generator():  # TODO Enable sharding with shard size parameter
+        def shard_generator():
+            """Generator that yields shards of featurized CRAM data."""
             for input_file in input_files:
                 cramfile = pysam.AlignmentFile(input_file, "rc")
-                X = self.featurizer._featurize(cramfile)
-                ids = np.ones(len(X))
-                # (X, y, w, ids)
-                yield X, None, None, ids
+
+                if shard_size is None:
+                    # Backward compatibility: load entire file
+                    X = self.featurizer._featurize(cramfile)
+                    ids = np.ones(len(X))
+                    yield X, None, None, ids
+                else:
+                    # Chunked reading
+                    alignments = []
+                    for alignment in cramfile:
+                        alignments.append(alignment)
+                        if len(alignments) >= shard_size:
+                            X = self.featurizer._featurize(alignments)
+                            ids = np.arange(len(X))
+                            yield X, None, None, ids
+                            alignments = []
+
+                    # Yield remaining alignments
+                    if alignments:
+                        X = self.featurizer._featurize(alignments)
+                        ids = np.arange(len(X))
+                        yield X, None, None, ids
+
+                cramfile.close()
 
         return DiskDataset.create_dataset(shard_generator(), data_dir)
