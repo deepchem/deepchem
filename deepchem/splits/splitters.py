@@ -1675,7 +1675,7 @@ class TimeSplitterPDBbind(Splitter):
                     dc.utils.download_url(
                         'http://deepchem.io.s3-website-us-west-1.amazonaws.com/datasets/pdbbind_year.csv',
                         dest_dir=data_dir)
-            except:
+            except Exception:
                 raise ValueError("Time description file should be specified")
         df = pd.read_csv(self.year_file, header=None)
         self.years = {}

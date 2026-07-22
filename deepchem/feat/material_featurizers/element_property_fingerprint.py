@@ -92,7 +92,7 @@ class ElementPropertyFingerprint(MaterialCompositionFeaturizer):
 
         try:
             feats = self.ep_featurizer.featurize(datapoint)
-        except:
+        except Exception:
             feats = []
 
         return np.nan_to_num(np.array(feats))

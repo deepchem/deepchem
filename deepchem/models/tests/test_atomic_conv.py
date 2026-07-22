@@ -13,7 +13,7 @@ try:
     import tensorflow as tf  # noqa: F401
     from deepchem.models import atomic_conv
     has_tensorflow = True
-except:
+except Exception:
     has_tensorflow = False
 
 

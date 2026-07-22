@@ -76,7 +76,7 @@ def cut_raw_images(all_images, path):
   print("Num of images to be processed: %d" % len(all_images))
   try:
     import cv2
-  except:
+  except Exception:
     logger.warn("OpenCV required for image preprocessing")
     return
 

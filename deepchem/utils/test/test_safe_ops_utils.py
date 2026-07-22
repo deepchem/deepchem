@@ -1,7 +1,7 @@
 import pytest
 try:
     import torch
-except:
+except Exception:
     pass
 
 
