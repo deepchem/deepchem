@@ -108,3 +108,4 @@ try:
     from deepchem.models.IRV import TensorflowMultitaskIRVClassifier
 except ModuleNotFoundError:
     pass
+from deepchem.models.torch_models.mace import MACEClean

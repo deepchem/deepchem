@@ -695,6 +695,65 @@ SE3TransformerModel
 --------------------
 .. autoclass:: deepchem.models.torch_models.SE3TransformerModel
   :members:
+
+
+MACE Models
+-----------
+
+MACEClean
+^^^^^^^^^
+
+.. autoclass:: deepchem.models.torch_models.mace.MACEClean
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+EquivariantMACEInteractionClean
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. autoclass:: deepchem.models.torch_models.mace.EquivariantMACEInteractionClean
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+RadialBasis
+^^^^^^^^^^^
+
+.. autoclass:: deepchem.models.torch_models.mace.RadialBasis
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+MACEWithForcesClean
+^^^^^^^^^^^^^^^^^^^
+
+.. autoclass:: deepchem.models.torch_models.mace.MACEWithForcesClean
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+MACEWithForcesFixed
+^^^^^^^^^^^^^^^^^^^
+
+.. autoclass:: deepchem.models.torch_models.mace.MACEWithForcesFixed
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+MACELoss
+^^^^^^^^
+
+.. autoclass:: deepchem.models.torch_models.mace.MACELoss
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+combined_loss_with_force_labels
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. autofunction:: deepchem.models.torch_models.mace.combined_loss_with_force_labels
+
+
   
 TFNModel
 --------------------
