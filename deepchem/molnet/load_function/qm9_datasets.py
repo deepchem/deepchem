@@ -55,10 +55,7 @@ def load_qm9(
     - qm9.sdf: molecular structures
     - qm9.sdf.csv: tables for molecular properties
 
-    - "mol_id" - Molecule ID (gdb9 index) mapping to the .sdf file
-    - "A" - Rotational constant (unit: GHz)
-    - "B" - Rotational constant (unit: GHz)
-    - "C" - Rotational constant (unit: GHz)
+    The tasks in this dataset are:
     - "mu" - Dipole moment (unit: D)
     - "alpha" - Isotropic polarizability (unit: Bohr^3)
     - "homo" - Highest occupied molecular orbital energy (unit: Hartree)
@@ -66,11 +63,11 @@ def load_qm9(
     - "gap" - Gap between HOMO and LUMO (unit: Hartree)
     - "r2" - Electronic spatial extent (unit: Bohr^2)
     - "zpve" - Zero point vibrational energy (unit: Hartree)
+    - "cv" - Heat capavity at 298.15K (unit: cal/(mol*K))
     - "u0" - Internal energy at 0K (unit: Hartree)
     - "u298" - Internal energy at 298.15K (unit: Hartree)
     - "h298" - Enthalpy at 298.15K (unit: Hartree)
     - "g298" - Free energy at 298.15K (unit: Hartree)
-    - "cv" - Heat capavity at 298.15K (unit: cal/(mol*K))
     - "u0_atom" - Atomization energy at 0K (unit: kcal/mol)
     - "u298_atom" - Atomization energy at 298.15K (unit: kcal/mol)
     - "h298_atom" - Atomization enthalpy at 298.15K (unit: kcal/mol)
