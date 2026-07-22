@@ -151,7 +151,6 @@ class CalcLDALibXCPol(torch.autograd.Function):
             spin-down and some of its combination.
 
         """
-
         inp = {
             "rho": _pack_input(rho_u, rho_d),
         }
