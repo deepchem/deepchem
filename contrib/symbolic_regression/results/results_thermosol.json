@@ -1,0 +1,51 @@
+{
+  "dataset": "thermosol",
+  "featurized": "rdkit",
+  "scores": {
+    "symbolic_regression_deepchem": {
+      "test": {
+        "mean-mae_score": 0.7866398043382129,
+        "mean-pearson_r2_score": 0.10755178737012591,
+        "mean-r2_score": 0.10135356147287156,
+        "mean-rms_score": 0.9284509533625341
+      },
+      "train": {
+        "mean-mae_score": 0.7758919117209915,
+        "mean-pearson_r2_score": 0.08615800287465179,
+        "mean-r2_score": 0.08586715612403473,
+        "mean-rms_score": 0.9217406595396488
+      },
+      "valid": {
+        "mean-mae_score": 0.7348074956690055,
+        "mean-pearson_r2_score": 0.13392851998488478,
+        "mean-r2_score": 0.11389703329200751,
+        "mean-rms_score": 0.9029859403664857
+      }
+    },
+    "symbolic_regression_pysr": {
+      "test": {
+        "mean-mae_score": 0.7990408490464997,
+        "mean-pearson_r2_score": 0.09110938283600294,
+        "mean-r2_score": 0.08956643100616801,
+        "mean-rms_score": 0.9345201477572911
+      },
+      "train": {
+        "mean-mae_score": 0.7656740561970728,
+        "mean-pearson_r2_score": 0.10230337647579422,
+        "mean-r2_score": 0.10230337561180547,
+        "mean-rms_score": 0.9134165683085712
+      },
+      "valid": {
+        "mean-mae_score": 0.7746961899251111,
+        "mean-pearson_r2_score": 0.06901682830641012,
+        "mean-r2_score": 0.055465903274838135,
+        "mean-rms_score": 0.9322828885542251
+      }
+    }
+  },
+  "split_sizes": {
+    "test": 177,
+    "train": 1410,
+    "valid": 176
+  }
+}
