@@ -100,11 +100,11 @@ class AttentiveFP(nn.Module):
         """
         try:
             import dgl  # noqa: F401
-        except:
+        except Exception:
             raise ImportError('This class requires dgl.')
         try:
             import dgllife  # noqa: F401
-        except:
+        except Exception:
             raise ImportError('This class requires dgllife.')
 
         if mode not in ['classification', 'regression']:
@@ -299,7 +299,7 @@ class AttentiveFPModel(TorchModel):
         """
         try:
             import dgl
-        except:
+        except Exception:
             raise ImportError('This class requires dgl.')
 
         inputs, labels, weights = batch

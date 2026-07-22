@@ -21,7 +21,7 @@ try:
             super(MLP, self).__init__(model=pytorch_model, loss=loss, **kwargs)
 
     has_pytorch = True
-except:
+except Exception:
     has_pytorch = False
 
 

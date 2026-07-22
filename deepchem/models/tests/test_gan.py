@@ -37,7 +37,7 @@ try:
             return tf.keras.Model(inputs=inputs, outputs=output)
 
     has_tensorflow = True
-except:
+except Exception:
     has_tensorflow = False
 
 

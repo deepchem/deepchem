@@ -11,7 +11,7 @@ try:
     import torch
     import torch.nn as nn
     has_pytorch = True
-except:
+except Exception:
     has_pytorch = False
 
 

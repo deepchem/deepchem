@@ -6,7 +6,7 @@ try:
     import torch
     import deepchem.models.torch_models.layers as torch_layers
     has_torch = True
-except:
+except Exception:
     has_torch = False
 
 

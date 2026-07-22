@@ -7,7 +7,7 @@ import deepchem as dc
 try:
     import tensorflow as tf
     has_tensorflow = True
-except:
+except Exception:
     has_tensorflow = False
 
 
