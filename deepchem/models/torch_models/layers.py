@@ -1,4 +1,5 @@
 import math
+import warnings
 from math import pi as PI
 import numpy as np
 import itertools
@@ -3165,7 +3166,7 @@ class DTNNEmbedding(nn.Module):
     def __init__(self,
                  n_embedding: int = 30,
                  periodic_table_length: int = 30,
-                 initalizer: str = 'xavier_uniform_',
+                 initializer: str = 'xavier_uniform_',
                  **kwargs):
         """
         Parameters
@@ -3174,17 +3175,24 @@ class DTNNEmbedding(nn.Module):
             Number of features for each atom
         periodic_table_length: int, optional
             Length of embedding, 83=Bi
-        initalizer: str, optional
+        initializer: str, optional
             Weight initialization for filters.
             Options: {xavier_uniform_, xavier_normal_, kaiming_uniform_, kaiming_normal_, trunc_normal_}
 
         """
+        if 'initalizer' in kwargs:
+            initializer = kwargs.pop('initalizer')
+            warnings.warn(
+                "'initalizer' is deprecated and will be removed in a future "
+                "release. Use 'initializer' instead.",
+                DeprecationWarning,
+                stacklevel=2)
         super(DTNNEmbedding, self).__init__(**kwargs)
         self.n_embedding = n_embedding
         self.periodic_table_length = periodic_table_length
-        self.initalizer = initalizer  # Set weight initialization
+        self.initializer = initializer  # Set weight initialization
 
-        init_func: Callable = getattr(initializers, self.initalizer)
+        init_func: Callable = getattr(initializers, self.initializer)
         self.embedding_list: nn.Parameter = nn.Parameter(
             init_func(
                 torch.empty([self.periodic_table_length, self.n_embedding])))
@@ -3198,12 +3206,12 @@ class DTNNEmbedding(nn.Module):
             Number of features for each atom
         periodic_table_length: int, optional
             Length of embedding, 83=Bi
-        initalizer: str, optional
+        initializer: str, optional
             Weight initialization for filters.
             Options: {xavier_uniform_, xavier_normal_, kaiming_uniform_, kaiming_normal_, trunc_normal_}
 
         """
-        return f'{self.__class__.__name__}(n_embedding={self.n_embedding}, periodic_table_length={self.periodic_table_length}, initalizer={self.initalizer})'
+        return f'{self.__class__.__name__}(n_embedding={self.n_embedding}, periodic_table_length={self.periodic_table_length}, initializer={self.initializer})'
 
     def forward(self, inputs: torch.Tensor):
         """Returns Embeddings according to indices.
