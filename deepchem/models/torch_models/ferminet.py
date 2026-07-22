@@ -183,6 +183,7 @@ class Ferminet(torch.nn.Module):
             return energy.detach()
 
     def calculate_nuclear_nuclear(self,) -> torch.Tensor:
+
         """
         Function to calculate where only the nucleus terms are involved and does not change when new electrons are sampled.
         atom-atom potential term = Zi*Zj/|Ri-Rj|, where Zi, Zj are the nuclear charges and Ri, Rj are nuclear coordinates
@@ -236,7 +237,7 @@ class Ferminet(torch.nn.Module):
         return potential.detach()
 
     def calculate_kinetic_energy(self,):
-        """
+        r"""
         Function to calculate the expected kinetic energy term per batch
         It is calculated via:
         \sum_{ri}^{}[(\pdv[]{log|\Psi|}{(ri)})^2 + \pdv[2]{log|\Psi|}{(ri)}]
