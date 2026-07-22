@@ -33,7 +33,7 @@ class FNOBlock(nn.Module):
     The forward pass computes:
     FNO_block(x) = ReLU(SpectralConv(x) + Conv(x))
 
-    Example
+    Examples
     -------------
     >>> import torch
     >>> from deepchem.models.torch_models.fno import FNOBlock
@@ -101,7 +101,8 @@ class FNO(nn.Module):
 
     References
     ----------
-    This technique was introduced in Li, Zongyi, et al. "Fourier neural operator for parametric partial differential equations." arXiv preprint arXiv:2010.08895 (2020).
+    Li, Zongyi et al. (2020). "Fourier Neural Operator for Parametric Partial Differential Equations."
+    arXiv:2010.08895.
 
     Example
     -------------
@@ -262,7 +263,7 @@ class FNOModel(TorchModel):
     ----------
     This technique was introduced in Li, Zongyi, et al. "Fourier neural operator for parametric partial differential equations." arXiv preprint arXiv:2010.08895 (2020).
 
-    Example
+    Examples
     -------------
     >>> import torch
     >>> import deepchem as dc
@@ -291,7 +292,7 @@ class FNOModel(TorchModel):
             Dimension of input features at each spatial location
         out_channels: int
             Dimension of output features at each spatial location
-        modes: int or tuple
+        modes : int or tuple
             Number of Fourier modes to keep in spectral convolution. Higher values
             capture more high-frequency information but increase computational cost
         width: int
