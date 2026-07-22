@@ -53,12 +53,52 @@ ConvMolFeaturizer
   :members:
   :inherited-members:
 
+
+Chirality Handling
+^^^^^^^^^^^^^^^^^^
+In chemistry, chirality refers to molecules that are mirror images of each other but are not identical (or superimposable).
+
+The `use_chirality` parameter in `ConvMolFeaturizer` controls whether chirality information is included in the atom features.
+
+- When `use_chirality=False`, chirality is ignored.
+- When `use_chirality=True`, additional atom-level features are included to capture stereochemical differences.
+
+Example:
+
+.. code-block:: python
+
+    from deepchem.feat import ConvMolFeaturizer
+
+    featurizer = ConvMolFeaturizer(use_chirality=True)
+    features = featurizer.featurize(["C[C@H](O)Cl"])
+
 WeaveFeaturizer
 ***************
 
 .. autoclass:: deepchem.feat.WeaveFeaturizer
   :members:
   :inherited-members:
+
+
+Chirality Handling
+^^^^^^^^^^^^^^^^^^
+
+In chemistry, chirality refers to molecules that are mirror images of each other but are not identical (or superimposable).
+
+The `use_chirality` parameter in `WeaveFeaturizer` determines whether chirality information is included during featurization.
+
+- When `use_chirality=False`, chirality information is not considered.
+- When `use_chirality=True`, additional atom and pair-level features are included to capture stereochemical differences.
+
+Example:
+
+.. code-block:: python
+
+    from deepchem.feat import WeaveFeaturizer
+
+    featurizer = WeaveFeaturizer(use_chirality=True)
+    features = featurizer.featurize(["C[C@H](O)Cl"])
+
 
 MolGanFeaturizer
 ****************
