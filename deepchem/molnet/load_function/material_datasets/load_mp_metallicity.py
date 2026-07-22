@@ -37,7 +37,7 @@ def load_mp_metallicity(
     save_dir: Optional[str] = None,
     **kwargs
 ) -> Tuple[List[str], Tuple[Dataset, ...], List[dc.trans.Transformer]]:
-    """Load mp formation energy dataset.
+    """Load mp metallicity dataset.
 
     Contains 106113 inorganic crystal structures from the Materials
     Project database labeled as metals or nonmetals. In benchmark
