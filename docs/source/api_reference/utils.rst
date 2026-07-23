@@ -720,10 +720,10 @@ The utilities here are used to modify the attributes of the classes. Used by dif
 Polymer Weighted Directed Graph Data Utilities
 -----------------------------------------
 
-These classes and functions are required to handle converstion of string data to graph data 
+These classes and functions are required to handle converstion of string data to graph data
 and validation of the same.
 
-.. autofunction:: deepchem.utils.poly_wd_graph_utils.handle_hydrogen 
+.. autofunction:: deepchem.utils.poly_wd_graph_utils.handle_hydrogen
 
 .. autofunction:: deepchem.utils.poly_wd_graph_utils.make_polymer_mol
 
@@ -744,8 +744,8 @@ meaningful error message to the user indicating the type of error that hinders t
 
 The format is an extended string representation that is used as input format for Weighted Directed Message Passing Neural Network (wDMPNN) implementation
 using :code:`polymer-chemprop` python module. For more information and understanding, visit the `github repo <https://github.com/coleygroup/polymer-chemprop>`.
-The format development and implementation is done by Matteo Aldeghi and Connor W. Coley for their 
-work on "A graph representation of molecular ensembles for polymer property prediction". 
+The format development and implementation is done by Matteo Aldeghi and Connor W. Coley for their
+work on "A graph representation of molecular ensembles for polymer property prediction".
 
 The :code:`dc.utils.PolyWDGStringValidator` class is explicitly useful for validating a Weighted Directed
 Graph Representaion within a string data for polymers. It validates atom notations in monomer, valid Fragment
@@ -945,10 +945,19 @@ Caching Utils
 
 Caching utilities to reuse computation results across active sessions.
 These prevent redundant recalculations by saving function outputs to disk or memory,
-improving performance for expensive and data-heavy operations 
+improving performance for expensive and data-heavy operations
 (e.g., equivariant basis).
 
 .. autofunction:: deepchem.utils.cache_utils.FileSystemMutex
 
 .. autofunction:: deepchem.utils.cache_utils.cached_dirpklgz
 
+ProteinMPNN Utils
+-----------------
+
+The utilities here are used for ProteinMPNN specific operations.
+These are used to gather edges, nodes and concatenate the neighboring nodes.
+
+.. autofunction:: deepchem.utils.ProteinMPNN_utils.gather_edges
+.. autofunction:: deepchem.utils.ProteinMPNN_utils.gather_nodes
+.. autofunction:: deepchem.utils.ProteinMPNN_utils.cat_neighbors_nodes
