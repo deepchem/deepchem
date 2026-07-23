@@ -9,7 +9,7 @@ import scipy.ndimage
 try:
     import tensorflow as tf
     has_tensorflow = True
-except:
+except Exception:
     has_tensorflow = False
 
 import deepchem as dc

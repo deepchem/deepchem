@@ -56,7 +56,7 @@ def eval_tic_tac_toe(value_weight,
   model_dir = "/tmp/tictactoe"
   try:
     shutil.rmtree(model_dir)
-  except:
+  except Exception:
     pass
 
   avg_rewards = []
@@ -70,7 +70,7 @@ def eval_tic_tac_toe(value_weight,
         optimizer=Adam(learning_rate=0.001))
     try:
       a3c.restore()
-    except:
+    except Exception:
       print("unable to restore")
       pass
     a3c.fit(rollouts)

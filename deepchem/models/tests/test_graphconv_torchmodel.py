@@ -7,7 +7,7 @@ try:
     import torch.nn as nn
     from deepchem.models.torch_models import _GraphConvTorchModel
     has_torch = True
-except:
+except Exception:
     has_torch = False
 
 

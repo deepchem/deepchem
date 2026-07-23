@@ -384,7 +384,7 @@ def atom_features(atom,
                 results = results + one_of_k_encoding_unk(
                     atom.GetProp('_CIPCode'),
                     ['R', 'S']) + [atom.HasProp('_ChiralityPossible')]
-            except:
+            except Exception:
                 results = results + [False, False
                                     ] + [atom.HasProp('_ChiralityPossible')]
 

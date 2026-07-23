@@ -9,13 +9,13 @@ import deepchem.models.losses as losses
 try:
     import tensorflow as tf
     has_tensorflow = True
-except:
+except Exception:
     has_tensorflow = False
 
 try:
     import torch
     has_pytorch = True
-except:
+except Exception:
     has_pytorch = False
 
 

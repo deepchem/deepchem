@@ -14,7 +14,7 @@ try:
     tfd = tfp.distributions
     tfb = tfp.bijectors
     has_tensorflow_probablity = True
-except:
+except Exception:
     has_tensorflow_probablity = False
 
 

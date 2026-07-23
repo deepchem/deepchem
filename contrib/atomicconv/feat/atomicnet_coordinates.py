@@ -397,7 +397,7 @@ class ComplexNeighborListFragmentAtomicCoordinates(ComplexFeaturizer):
           frag1_pdb_file, sanitize=False, removeHs=False)
       frag2_mol = Chem.MolFromPDBFile(
           frag2_pdb_file, sanitize=False, removeHs=False)
-    except:
+    except Exception:
       frag1_mol = None
       frag2_mol = None
     if frag1_mol and frag2_mol:
