@@ -1,6 +1,7 @@
 import torch.nn as nn
 from torch import Tensor
 from deepchem.models.torch_models import TorchModel
+import torch.nn.functional as F
 import math
 import deepchem as dc
 import numpy as np
@@ -196,6 +197,9 @@ class MobileNetV2(nn.Module):
         x = features(x)
         x = x.mean(3).mean(2)  # Global average pooling
         x = self.classifier(x)
+        # Apply softmax conditionally if the flag is set
+        if hasattr(self, 'apply_softmax') and self.apply_softmax:
+            x = F.softmax(x, dim=1)
         return x
 
     def _initialize_weights(self) -> None:
