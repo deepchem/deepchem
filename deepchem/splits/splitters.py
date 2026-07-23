@@ -1513,6 +1513,9 @@ class ScaffoldSplitter(Splitter):
     - This class requires RDKit to be installed.
     - When a SMILES representation of a molecule is invalid, the splitter skips processing
     the datapoint i.e it will not include the molecule in any splits.
+    - The `seed` parameter in the splitting methods is included for API consistency
+    with other splitters but is **ignored** by this splitter. Scaffold splitting is
+    deterministic and depends only on the molecular structures in the dataset.
 
     """
 
