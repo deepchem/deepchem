@@ -29,6 +29,11 @@ try:
 except ImportError:
     pass
 
+try:
+    import scanpy as sc
+except ImportError:
+    sc = None
+
 logger = logging.getLogger(__name__)
 
 
@@ -2207,3 +2212,50 @@ class CRAMLoader(DataLoader):
                 yield X, None, None, ids
 
         return DiskDataset.create_dataset(shard_generator(), data_dir)
+
+class GeneformerLoader(DataLoader):
+    """
+    Loader for Geneformer specific data (scRNA-seq).
+    
+    This loader handles biological formats (.h5ad, .loom) and applies
+    the GeneformerFeaturizer to create a DeepChem DiskDataset.
+    """
+
+    def __init__(self, featurizer: 'GeneformerFeaturizer', tasks: Optional[List[str]] = None):
+        if sc is None:
+            raise ImportError("GeneformerLoader requires scanpy to be installed.")
+        super(GeneformerLoader, self).__init__(featurizer=featurizer, tasks=tasks)
+
+    def create_dataset(self, 
+                       input_files: OneOrMany[str], 
+                       data_dir: Optional[str] = None, 
+                       shard_size: int = 512) -> DiskDataset:
+        """
+        Implementation of the create_dataset method following DeepChem standards.
+        """
+        if isinstance(input_files, str):
+            input_files = [input_files]
+
+        def shard_generator():
+            for f in input_files:
+                # Load using scanpy
+                adata = sc.read_h5ad(f) if f.endswith('.h5ad') else sc.read_loom(f)
+                
+                # Metadata (labels) extraction
+                y = adata.obs[self.tasks].values if self.tasks else None
+                
+                for i in range(0, adata.n_obs, shard_size):
+                    end = min(i + shard_size, adata.n_obs)
+                    batch_counts = adata.X[i:end]
+                    
+                    if hasattr(batch_counts, "toarray"):
+                        batch_counts = batch_counts.toarray()
+
+                    # Apply featurization
+                    X_batch = self.featurizer.featurize(batch_counts)
+                    y_batch = y[i:end] if y is not None else np.zeros((len(X_batch), 0))
+                    ids_batch = adata.obs_names[i:end].values
+                    
+                    yield X_batch, y_batch, np.ones_like(y_batch), ids_batch
+
+        return DiskDataset.create_dataset(shard_generator(), data_dir=data_dir, tasks=self.tasks)
