@@ -29,8 +29,16 @@ jobs:
       shell: bash
       run: |
         python -m pip install --upgrade pip;
-        pip install conda-merge; 
+        pip install conda-merge;
         conda-merge requirements/env_dqc.yml requirements/env_test.yml > env.yml
+        # dqclibs and libxc are installed separately below with
+        # --no-build-isolation: their isolated build environments pull in
+        # a stale, unconditioned numpy==1.17.3 pin (from an outdated
+        # oldest-supported-numpy table) that has no wheel for Python 3.9+,
+        # breaking the build on modern setuptools. Building against the
+        # numpy already in the env sidesteps that.
+        grep -v -e 'git+https://github.com/diffqc/dqclibs.git' -e 'git+https://gitlab.com/libxc/libxc.git' env.yml > env.yml.filtered
+        mv env.yml.filtered env.yml
     - name: Install dependencies
       run: |
         sudo apt-get update
@@ -47,6 +55,12 @@ jobs:
     - name: Conda info
       shell: bash -el {0}
       run: conda info
+    - name: Install dqclibs and libxc (no build isolation)
+      shell: bash -l {0}
+      run: |
+        pip install --no-build-isolation \
+          git+https://github.com/diffqc/dqclibs.git \
+          git+https://gitlab.com/libxc/libxc.git
     - name: Install DeepChem
       shell: bash -l {0}
       run: pip install -e .
