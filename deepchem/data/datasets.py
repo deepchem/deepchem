@@ -2500,11 +2500,11 @@ class DiskDataset(Dataset):
                     # Handle empty case where no data from this shard needed
                     X_sel = X[shard_inds]
                     # Handle the case of datasets with y/w missing
-                    if y is not None:
+                    if y is not None and len(y) > 0:
                         y_sel = y[shard_inds]
                     else:
                         y_sel = np.array([])
-                    if w is not None:
+                    if w is not None and len(w) > 0:
                         w_sel = w[shard_inds]
                     else:
                         w_sel = np.array([])
