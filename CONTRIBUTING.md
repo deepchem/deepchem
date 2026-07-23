@@ -112,7 +112,7 @@ DeepChem uses these tools or styles for keeping our codes healthy.
 
 - [YAPF](https://github.com/google/yapf) (code format)
 - [Flake8](https://flake8.pycqa.org/en/latest/) (code style check)
-- [mypy](http://mypy-lang.org/) (type check)
+- [mypy](https://mypy-lang.org/) (type check)
 - [doctest](https://docs.python.org/3/library/doctest.html) (interactive examples)
 - [pytest](https://docs.pytest.org/en/6.2.x/index.html) (unit testing)
 
@@ -125,7 +125,7 @@ DeepChem uses [Sphinx](https://www.sphinx-doc.org/en/master/) to build
 [the document](https://deepchem.readthedocs.io/en/latest/index.html).
 The document is automatically built by
 [Numpy style docstrings](https://numpydoc.readthedocs.io/en/latest/format.html#numpydoc-docstring-guide)
-in source codes and [Napoleon extension](http://www.sphinx-doc.org/en/stable/ext/napoleon.html).
+in source codes and [Napoleon extension](https://www.sphinx-doc.org/en/stable/ext/napoleon.html).
 For any changes or modification to source code in a PR, please don't forget to add or modify Numpy style docstrings.
 
 ## The Agreement
