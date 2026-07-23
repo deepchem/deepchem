@@ -10,7 +10,7 @@ dependencies:
    - -f https://download.pytorch.org/whl/cpu/torch_stable.html
    - torch==2.2.1+cpu
    - git+https://github.com/diffqc/dqclibs.git
-   - git+https://gitlab.com/libxc/libxc.git
+   - git+https://gitlab.com/libxc/libxc.git@85e0c4c8027d2f81f2915e63f37c7bc8526783dc
    - pytest
    - PyYAML
    - yamlloader
