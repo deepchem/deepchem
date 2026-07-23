@@ -20,7 +20,7 @@ dependencies:
     - networkx
     - pillow
     - pubchempy
-    - pymatgen==2024.9.17
+    - pymatgen==2024.8.9
     - simdna
     - transformers==4.51.3
     - tokenizers
