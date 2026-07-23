@@ -53,6 +53,7 @@ class HuggingFaceModel(TorchModel):
          - `mtr` - multitask regression - a task used for both pretraining base models and finetuning
          - `regression` - use it for regression tasks, like property prediction
          - `classification` - use it for classification tasks
+         - `generation` - text generation using autoregressive models
 
         When the task is not specified or None, the wrapper returns raw output of the HuggingFaceModel.
         In cases where the HuggingFaceModel is a model without a task specific head, this output will be
@@ -583,6 +584,58 @@ class HuggingFaceModel(TorchModel):
             return final_results[0]
         else:
             return np.array(final_results)
+
+    def generate(self, inputs: Union[str, List[str]],
+                 **generate_kwargs) -> Union[str, List[str]]:
+        """Generate text for one or more input prompts.
+
+        This provides a task-specific generation API and keeps supervised
+        prediction paths unchanged.
+
+        Parameters
+        ----------
+        inputs: Union[str, List[str]]
+            Input prompt(s) for generation.
+        generate_kwargs: dict
+            Additional keyword arguments forwarded to
+            ``transformers.PreTrainedModel.generate``.
+
+        Returns
+        -------
+        Union[str, List[str]]
+            Generated text for a single input string or a list of generated
+            texts for multiple input strings.
+        """
+        if self.tokenizer is None:
+            raise ValueError('Tokenizer must be provided for generation.')
+        if not hasattr(self.model, 'generate'):
+            raise ValueError('The wrapped model does not support generate().')
+
+        self._ensure_built()
+        self.model.eval()
+
+        single_input = isinstance(inputs, str)
+        if single_input:
+            prompt_list = [inputs]
+        else:
+            prompt_list = list(inputs)
+            if len(prompt_list) == 0:
+                return []
+
+        tokenized_inputs = self.tokenizer(prompt_list,
+                                          padding=True,
+                                          return_tensors='pt')
+        tokenized_inputs = {
+            key: value.to(self.device)
+            for key, value in tokenized_inputs.items()
+        }
+
+        with torch.no_grad():
+            generated_tokens = self.model.generate(**tokenized_inputs,
+                                                   **generate_kwargs)
+        generated_texts = self.tokenizer.batch_decode(generated_tokens,
+                                                      skip_special_tokens=True)
+        return generated_texts[0] if single_input else generated_texts
 
     def fill_mask(self,
                   inputs: Union[str, List[str]],
