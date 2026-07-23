@@ -1523,6 +1523,7 @@ class ScaffoldSplitter(Splitter):
         frac_valid: float = 0.1,
         frac_test: float = 0.1,
         seed: Optional[int] = None,
+        shuffle: bool = False,
         log_every_n: Optional[int] = 1000
     ) -> Tuple[List[int], List[int], List[int]]:
         """
@@ -1540,6 +1541,8 @@ class ScaffoldSplitter(Splitter):
             The fraction of data to be used for the test split.
         seed: int, optional (default None)
             Random seed to use.
+        shuffle: bool, optional (default False)
+            Whether to shuffle the scaffold_sets before splitting.
         log_every_n: int, optional (default 1000)
             Controls the logger by dictating how often logger outputs
             will be produced.
@@ -1552,6 +1555,10 @@ class ScaffoldSplitter(Splitter):
         """
         np.testing.assert_almost_equal(frac_train + frac_valid + frac_test, 1.)
         scaffold_sets = self.generate_scaffolds(dataset)
+        
+        if seed is not None and shuffle:
+            rng = random.Random(seed)
+            rng.shuffle(scaffold_sets)
 
         train_cutoff = frac_train * len(dataset)
         valid_cutoff = (frac_train + frac_valid) * len(dataset)
@@ -1603,7 +1610,7 @@ class ScaffoldSplitter(Splitter):
                 else:
                     scaffolds[scaffold].append(ind)
 
-        # Sort from largest to smallest scaffold sets
+        # Sort scaffold_sets by size (length) in descending order, then by the first element
         scaffolds = {key: sorted(value) for key, value in scaffolds.items()}
         scaffold_sets = [
             scaffold_set
