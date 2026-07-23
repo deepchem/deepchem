@@ -54,7 +54,7 @@ try:
     from deepchem.models.torch_models import ScaledDotProductAttention, SelfAttention
     from deepchem.models.torch_models import GroverReadout
     from deepchem.models.torch_models import WeaveModel, DTNNModel
-except ModuleNotFoundError as e:
+except Exception as e:
     logger.warning(
         f'Skipped loading some PyTorch models, missing a dependency. {e}')
 
@@ -63,7 +63,7 @@ try:
     from deepchem.models.torch_models import Chemberta
     from deepchem.models.torch_models import MoLFormer
     from deepchem.models.torch_models import OneFormer
-except ImportError as e:
+except Exception as e:
     logger.warning(e)
 
 # Pytorch models with torch-geometric dependency
@@ -71,7 +71,7 @@ try:
     # TODO We should clean up DMPNN and remove torch_geometric dependency during import
     from deepchem.models.torch_models import MEGNetModel
     from deepchem.models.torch_models import DMPNN, DMPNNModel, GNNModular, MXMNet
-except ImportError as e:
+except Exception as e:
     logger.warning(
         f'Skipped loading modules with pytorch-geometric dependency, missing a dependency. {e}'
     )

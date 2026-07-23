@@ -2858,7 +2858,7 @@ class ImageDataset(Dataset):
                 if not deterministic:
                     sample_perm = np.random.permutation(n_samples)
                 batch_idx = 0
-                num_batches = np.math.ceil(n_samples / batch_size)
+                num_batches = math.ceil(n_samples / batch_size)
                 while batch_idx < num_batches:
                     start = batch_idx * batch_size
                     end = min(n_samples, (batch_idx + 1) * batch_size)
