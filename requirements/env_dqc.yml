@@ -16,4 +16,5 @@ dependencies:
    - PyYAML
    - yamlloader
    - tqdm
-   - pyscf[all]
+   - pyscf==2.14.0
+   - basis-set-exchange
