@@ -128,9 +128,7 @@ class NeighborListComplexAtomicCoordinates(ComplexFeaturizer):
         """
         if 'complex' in kwargs:
             datapoint = kwargs.get("complex")
-            raise DeprecationWarning(
-                'Complex is being phased out as a parameter, please pass "datapoint" instead.'
-            )
+            warnings.warn('Complex is being phased out as a parameter, please pass "datapoint" instead.', DeprecationWarning, stacklevel=2)
 
         mol_pdb_file, protein_pdb_file = datapoint
         mol_coords, ob_mol = load_molecule(mol_pdb_file)

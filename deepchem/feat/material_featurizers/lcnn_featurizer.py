@@ -7,6 +7,7 @@ from deepchem.utils.typing import PymatgenStructure
 from deepchem.feat.graph_data import GraphData
 from scipy.spatial.distance import pdist, squareform, cdist
 from scipy.spatial.transform import Rotation
+import warnings
 
 
 class LCNNFeaturizer(MaterialStructureFeaturizer):
@@ -175,9 +176,7 @@ class LCNNFeaturizer(MaterialStructureFeaturizer):
         """
         if 'structure' in kwargs and datapoint is None:
             datapoint = kwargs.get("structure")
-            raise DeprecationWarning(
-                'Structure is being phased out as a parameter, please pass "datapoint" instead.'
-            )
+            warnings.warn('Structure is being phased out as a parameter, please pass "datapoint" instead.', DeprecationWarning, stacklevel=2)
 
         xSites, xNSs = self.setup_env.read_datum(datapoint)
         config_size = xNSs.shape
