@@ -17,9 +17,12 @@ extras = {
         'dgllife'
     ],
     'tensorflow': [
-        'tensorflow',
-        'tensorflow_probability',
-        "tensorflow_addons; python_version < '3.12'",
+        'tensorflow==2.20.0; python_version >= "3.9"',
+        'tensorflow<2.16; python_version < "3.9"',
+        'tf-keras==2.20.1; python_version >= "3.9"',
+        'tensorflow_probability==0.25.0; python_version >= "3.9"',
+        'tensorflow_probability<0.24; python_version < "3.9"',
+        'tensorflow_addons; python_version < "3.9"',
     ],
     'dqc': ['dqc', 'xitorch', 'torch==2.3.0', 'pylibxc2']
 }
