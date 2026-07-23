@@ -93,6 +93,7 @@ except ImportError as e:
 
 from deepchem.feat.deepvariant_featurizer import RealignerFeaturizer
 from deepchem.feat.deepvariant_pileup_featurizer import PileupFeaturizer
+from deepchem.feat.RFDiffusion_featurizer import RFDiffusionFeaturizer
 
 #ProteinMPNN featurizer
 from deepchem.feat.ProteinMPNN_featurizer import ProteinMPNNFeaturizer
