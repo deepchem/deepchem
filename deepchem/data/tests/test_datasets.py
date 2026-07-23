@@ -908,3 +908,42 @@ class TestDatasets(unittest.TestCase):
         """Test creating a PyTorch Dataset from a DiskDataset."""
         dataset = load_solubility_data()
         _validate_pytorch_dataset(dataset)
+
+
+def test_create_dataset_warns_on_existing_files():
+    """Test that create_dataset logs a warning when saving to a non-empty directory."""
+    import logging
+    import tempfile
+
+    X = np.random.random((4, 5))
+    y = np.random.random((4, 1))
+    w = np.ones((4, 1))
+    ids = np.arange(4)
+
+    with tempfile.TemporaryDirectory() as data_dir:
+        # Populate the directory with an initial dataset.
+        dc.data.DiskDataset.create_dataset([(X, y, w, ids)], data_dir=data_dir)
+
+        # Capture log output from the datasets module.
+        dc_logger = logging.getLogger("deepchem.data.datasets")
+        dc_logger.setLevel(logging.WARNING)
+
+        log_records = []
+
+        class _Capture(logging.Handler):
+
+            def emit(self, record):
+                log_records.append(record)
+
+        handler = _Capture()
+        dc_logger.addHandler(handler)
+        try:
+            dc.data.DiskDataset.create_dataset(
+                [(X, y, w, ids)], data_dir=data_dir)
+        finally:
+            dc_logger.removeHandler(handler)
+
+        messages = [r.getMessage() for r in log_records]
+        assert any("already contains" in m for m in messages), (
+            "Expected a warning about overwriting an existing directory, "
+            "but none was logged. Messages: %s" % messages)
