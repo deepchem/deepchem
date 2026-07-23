@@ -39,6 +39,17 @@ DeepChem currently supports Python 3.7 through 3.10 and requires these packages 
 - [scikit-learn](https://scikit-learn.org/stable/)
 - [SciPy](https://www.scipy.org/)
 - [rdkit](https://www.rdkit.org/)
+### Environment YAML Files Overview
+
+- **[env_common_3.8.yml](./requirements/env_common_3_8.yml)**: Common environment configuration for scientific applications and machine learning in DeepChem.  
+- **[env_common.yml](./requirements/env_common.yml)**: Common environment configuration for scientific applications and machine learning in DeepChem.  
+- **[env_dqc.yml](./requirements/env_dqc.yml)**: Environment for Differentiable Quantum Chemistry (DQC) with PyTorch-based deep learning and quantum chemistry libraries.  
+- **[env_mac_3_11.yml](./requirements/env_mac_3_11.yml)**: Environment for DeepChem on macOS (Python 3.11), including molecular docking (`vina`) and bioinformatics (`pysam`).  
+- **[env_mac_arm64.yml](./requirements/env_mac_arm64.yml)**: Environment for DeepChem on Apple Silicon (ARM64), including molecular docking (`vina`) and bioinformatics (`pysam`). Excludes `hhsuite` for compatibility.  
+- **[env_mac.yml](./requirements/env_mac.yml)**: Environment for molecular docking (`vina`), bioinformatics (`pysam`), and protein sequence analysis (`hhsuite`) in DeepChem.  
+- **[env_test.yml](./requirements/env_test.yml)**: Development and testing environment with linting (`flake8`, `yapf`), static typing (`mypy`), and testing tools (`pytest`, `pytest-cov`, `flaky`).  
+- **[env_ubuntu_3_11.yml](./requirements/env_ubuntu_3_11.yml)**: Environment for DeepChem on Ubuntu (Python 3.11), including molecular docking (`vina`) and bioinformatics (`pysam`).  
+- **[env_ubuntu.yml](./requirements/env_ubuntu.yml)**: Environment for molecular docking (`vina`), bioinformatics (`pysam`), and protein sequence analysis (`hhsuite`) in DeepChem.  
 
 ### Soft Requirements
 
