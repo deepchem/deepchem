@@ -7,8 +7,8 @@ from deepchem.molnet.load_function.molnet_loader import TransformerGenerator, _M
 from deepchem.data import Dataset
 from typing import List, Optional, Tuple, Union
 
-GDB9_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/gdb9.tar.gz"
-QM9_CSV_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/qm9.csv"
+GDB9_URL = "https://deepchemdata.s3.us-west-1.amazonaws.com/datasets/gdb9.tar.gz"
+QM9_CSV_URL = "https://deepchemdata.s3.us-west-1.amazonaws.com/datasets/qm9.csv"
 QM9_URL = "https://deepchemdata.s3.us-west-1.amazonaws.com/datasets/qm9.tar.gz"
 QM9_TASKS = [
     "mu", "alpha", "homo", "lumo", "gap", "r2", "zpve", "cv", "u0", "u298",

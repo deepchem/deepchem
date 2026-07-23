@@ -7,7 +7,7 @@ from deepchem.molnet.load_function.molnet_loader import TransformerGenerator, _M
 from deepchem.data import Dataset
 from typing import List, Optional, Tuple, Union
 
-HOPV_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/hopv.tar.gz"
+HOPV_URL = "https://deepchemdata.s3.us-west-1.amazonaws.com/datasets/hopv.tar.gz"
 HOPV_TASKS = [
     'HOMO', 'LUMO', 'electrochemical_gap', 'optical_gap', 'PCE', 'V_OC', 'J_SC',
     'fill_factor'

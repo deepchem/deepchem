@@ -9,7 +9,7 @@ from deepchem.molnet.load_function.molnet_loader import TransformerGenerator, _M
 from deepchem.data import Dataset
 from typing import List, Optional, Tuple, Union
 
-NCI_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/nci_unique.csv"
+NCI_URL = "https://deepchemdata.s3.us-west-1.amazonaws.com/datasets/nci_unique.csv"
 NCI_TASKS = [
     'CCRF-CEM', 'HL-60(TB)', 'K-562', 'MOLT-4', 'RPMI-8226', 'SR', 'A549/ATCC',
     'EKVX', 'HOP-62', 'HOP-92', 'NCI-H226', 'NCI-H23', 'NCI-H322M', 'NCI-H460',
