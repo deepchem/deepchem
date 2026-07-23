@@ -47,7 +47,7 @@ class Weave(nn.Module):
 
     References
     ----------
-    .. [1] Kearnes, Steven, et al. "Molecular graph convolutions: moving beyond
+    .. [Weave_1] Kearnes, Steven, et al. "Molecular graph convolutions: moving beyond
         fingerprints." Journal of computer-aided molecular design 30.8 (2016):
         595-608.
     """
@@ -332,7 +332,7 @@ class WeaveModel(TorchModel):
     """Implements Google-style Weave Graph Convolutions
 
     This model implements the Weave style graph convolutions
-    from [1]_.
+    from [WeaveModel_1]_.
 
     The biggest difference between WeaveModel style convolutions
     and GraphConvModel style convolutions is that Weave
@@ -342,9 +342,9 @@ class WeaveModel(TorchModel):
     scaling issues, but may possibly allow for better modeling
     of subtle bond effects.
 
-    Note that [1]_ introduces a whole variety of different architectures for
+    Note that [WeaveModel_1]_ introduces a whole variety of different architectures for
     Weave models. The default settings in this class correspond to the W2N2
-    variant from [1]_ which is the most commonly used variant..
+    variant from [WeaveModel_1]_ which is the most commonly used variant..
 
     Examples
     --------
@@ -362,7 +362,7 @@ class WeaveModel(TorchModel):
 
     References
     ----------
-    .. [1] Kearnes, Steven, et al. "Molecular graph convolutions: moving beyond
+    .. [WeaveModel_1] Kearnes, Steven, et al. "Molecular graph convolutions: moving beyond
         fingerprints." Journal of computer-aided molecular design 30.8 (2016):
         595-608.
 

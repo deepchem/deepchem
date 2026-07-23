@@ -401,7 +401,7 @@ class ScaleNorm(nn.Module):
 
     References
     ----------
-    .. [1] Lukasz Maziarka et al. "Molecule Attention Transformer" Graph Representation Learning workshop and Machine Learning and the Physical Sciences workshop at NeurIPS 2019. 2020. https://arxiv.org/abs/2002.08264
+    .. [Maziarka2020MAT_ScaleNorm] Lukasz Maziarka et al. "Molecule Attention Transformer" Graph Representation Learning workshop and Machine Learning and the Physical Sciences workshop at NeurIPS 2019. 2020. https://arxiv.org/abs/2002.08264
 
     Examples
     --------
@@ -433,14 +433,14 @@ class ScaleNorm(nn.Module):
 
 
 class MultiHeadedMATAttention(nn.Module):
-    """First constructs an attention layer tailored to the Molecular Attention Transformer [1]_ and then converts it into Multi-Headed Attention.
+    """First constructs an attention layer tailored to the Molecular Attention Transformer [Maziarka2020MAT_MultiHead]_ and then converts it into Multi-Headed Attention.
 
     In Multi-Headed attention the attention mechanism multiple times parallely through the multiple attention heads.
     Thus, different subsequences of a given sequences can be processed differently.
     The query, key and value parameters are split multiple ways and each split is passed separately through a different attention head.
     References
     ----------
-    .. [1] Lukasz Maziarka et al. "Molecule Attention Transformer" Graph Representation Learning workshop and Machine Learning and the Physical Sciences workshop at NeurIPS 2019. 2020. https://arxiv.org/abs/2002.08264
+    .. [Maziarka2020MAT_MultiHead] Lukasz Maziarka et al. "Molecule Attention Transformer" Graph Representation Learning workshop and Machine Learning and the Physical Sciences workshop at NeurIPS 2019. 2020. https://arxiv.org/abs/2002.08264
     Examples
     --------
     >>> from deepchem.models.torch_models.layers import MultiHeadedMATAttention, MATEmbedding
@@ -626,7 +626,7 @@ class MATEncoderLayer(nn.Module):
 
     References
     ----------
-    .. [1] Lukasz Maziarka et al. "Molecule Attention Transformer" Graph Representation Learning workshop and Machine Learning and the Physical Sciences workshop at NeurIPS 2019. 2020. https://arxiv.org/abs/2002.08264
+    .. [Maziarka2020MAT_Encoder] Lukasz Maziarka et al. "Molecule Attention Transformer" Graph Representation Learning workshop and Machine Learning and the Physical Sciences workshop at NeurIPS 2019. 2020. https://arxiv.org/abs/2002.08264
 
     Examples
     --------
@@ -794,18 +794,18 @@ class SublayerConnection(nn.Module):
 
 
 class PositionwiseFeedForward(nn.Module):
-    """PositionwiseFeedForward is a layer used to define the position-wise feed-forward (FFN) algorithm for the Molecular Attention Transformer [1]_
+    """PositionwiseFeedForward is a layer used to define the position-wise feed-forward (FFN) algorithm for the Molecular Attention Transformer [Maziarka2020MAT_FFN]_
 
     Each layer in the MAT encoder contains a fully connected feed-forward network which applies two linear transformations and the given activation function.
     This is done in addition to the SublayerConnection module.
 
     Note: This modified version of `PositionwiseFeedForward` class contains `dropout_at_input_no_act` condition to facilitate its use in defining
-        the feed-forward (FFN) algorithm for the Directed Message Passing Neural Network (D-MPNN) [2]_
+        the feed-forward (FFN) algorithm for the Directed Message Passing Neural Network (D-MPNN) [Yang2019DMPNN_FFN]_
 
     References
     ----------
-    .. [1] Lukasz Maziarka et al. "Molecule Attention Transformer" Graph Representation Learning workshop and Machine Learning and the Physical Sciences workshop at NeurIPS 2019. 2020. https://arxiv.org/abs/2002.08264
-    .. [2] Analyzing Learned Molecular Representations for Property Prediction https://arxiv.org/pdf/1904.01561.pdf
+    .. [Maziarka2020MAT_FFN] Lukasz Maziarka et al. "Molecule Attention Transformer" Graph Representation Learning workshop and Machine Learning and the Physical Sciences workshop at NeurIPS 2019. 2020. https://arxiv.org/abs/2002.08264
+    .. [Yang2019DMPNN_FFN] Analyzing Learned Molecular Representations for Property Prediction https://arxiv.org/pdf/1904.01561.pdf
 
     Examples
     --------
@@ -917,7 +917,7 @@ class MATEmbedding(nn.Module):
 
     References
     ----------
-    .. [1] Lukasz Maziarka et al. "Molecule Attention Transformer" Graph Representation Learning workshop and Machine Learning and the Physical Sciences workshop at NeurIPS 2019. 2020. https://arxiv.org/abs/2002.08264
+    .. [Maziarka2020MAT_Embed] Lukasz Maziarka et al. "Molecule Attention Transformer" Graph Representation Learning workshop and Machine Learning and the Physical Sciences workshop at NeurIPS 2019. 2020. https://arxiv.org/abs/2002.08264
 
     Examples
     --------
@@ -965,7 +965,7 @@ class MATGenerator(nn.Module):
 
     References
     ----------
-    .. [1] Lukasz Maziarka et al. "Molecule Attention Transformer" Graph Representation Learning workshop and Machine Learning and the Physical Sciences workshop at NeurIPS 2019. 2020. https://arxiv.org/abs/2002.08264
+    .. [Maziarka2020MAT_Gen] Lukasz Maziarka et al. "Molecule Attention Transformer" Graph Representation Learning workshop and Machine Learning and the Physical Sciences workshop at NeurIPS 2019. 2020. https://arxiv.org/abs/2002.08264
 
     Examples
     --------
@@ -1097,7 +1097,7 @@ class GraphNetwork(torch.nn.Module):
 
     References
     ----------
-    .. [1] Battaglia et al, Relational inductive biases, deep learning, and graph networks. https://arxiv.org/abs/1806.01261 (2018)
+    .. [Battaglia2018GN] Battaglia et al, Relational inductive biases, deep learning, and graph networks. https://arxiv.org/abs/1806.01261 (2018)
   """
 
     def __init__(self,
@@ -1201,7 +1201,7 @@ class GraphNetwork(torch.nn.Module):
             edge_features: Tensor,
             global_features: Tensor,
             batch: Optional[Tensor] = None) -> Tuple[Tensor, Tensor, Tensor]:
-        """Output computation for a GraphNetwork
+        r"""Output computation for a GraphNetwork
         
         Parameters
         ----------
@@ -1261,7 +1261,7 @@ class GraphNetwork(torch.nn.Module):
 
 class DMPNNEncoderLayer(nn.Module):
     """
-    Encoder layer for use in the Directed Message Passing Neural Network (D-MPNN) [1]_.
+    Encoder layer for use in the Directed Message Passing Neural Network (D-MPNN) [Yang2019DMPNN]_.
 
     The role of the DMPNNEncoderLayer class is to generate molecule encodings in following steps:
 
@@ -1272,11 +1272,13 @@ class DMPNNEncoderLayer(nn.Module):
 
     Let the diagram given below represent a molecule containing 5 atoms (nodes) and 4 bonds (edges):-
 
-    |   1 --- 5
-    |   |
-    |   2 --- 4
-    |   |
-    |   3
+    .. code-block:: text
+
+        1 --- 5
+        |
+        2 --- 4
+        |
+        3
 
     Let the bonds from atoms 1->2 (**B[12]**) and 2->1 (**B[21]**) be considered as 2 different bonds.
     Hence, by considering the same for all atoms, the total number of bonds = 8.
@@ -1343,10 +1345,12 @@ class DMPNNEncoderLayer(nn.Module):
     Example:
     ``(1)m21 = (0)h32 + (0)h42``
 
-    |   2 <--- 3
-    |   ^
-    |   |
-    |   4
+    .. code-block:: text
+
+        2 <--- 3
+        ^
+        |
+        4
 
     **Computing the messages**
 
@@ -1411,7 +1415,7 @@ class DMPNNEncoderLayer(nn.Module):
 
     References
     ----------
-    .. [1] Analyzing Learned Molecular Representations for Property Prediction https://arxiv.org/pdf/1904.01561.pdf
+    .. [Yang2019DMPNN] Analyzing Learned Molecular Representations for Property Prediction https://arxiv.org/pdf/1904.01561.pdf
 
     Examples
     --------
@@ -2571,7 +2575,7 @@ class AtomicConv(nn.Module):
 
     References
     ----------
-    .. [1] Gomes, Joseph, et al. "Atomic convolutional networks for predicting protein-ligand binding affinity." arXiv preprint arXiv:1703.10603 (2017).
+    .. [AtomicConv_1] Gomes, Joseph, et al. "Atomic convolutional networks for predicting protein-ligand binding affinity." arXiv preprint arXiv:1703.10603 (2017).
 
     Examples
     --------
@@ -3257,7 +3261,7 @@ class MolGANConvolutionLayer(nn.Module):
 
     References
     ----------
-    .. [1] Nicola De Cao et al. "MolGAN: An implicit generative model
+    .. [DeCao2018MolGAN_Conv] Nicola De Cao et al. "MolGAN: An implicit generative model
         for small molecular graphs", https://arxiv.org/abs/1805.11973
     """
 
@@ -3399,7 +3403,7 @@ class MolGANAggregationLayer(nn.Module):
 
     References
     ----------
-    .. [1] Nicola De Cao et al. "MolGAN: An implicit generative model
+    .. [DeCao2018MolGAN_Aggr] Nicola De Cao et al. "MolGAN: An implicit generative model
         for small molecular graphs", https://arxiv.org/abs/1805.11973
     """
 
@@ -3502,7 +3506,7 @@ class MolGANMultiConvolutionLayer(nn.Module):
 
     References
     ----------
-    .. [1] Nicola De Cao et al. "MolGAN: An implicit generative model
+    .. [DeCao2018MolGAN_MultiConv] Nicola De Cao et al. "MolGAN: An implicit generative model
         for small molecular graphs", https://arxiv.org/abs/1805.11973
     """
 
@@ -3639,7 +3643,7 @@ class MolGANEncoderLayer(nn.Module):
 
     References
     ----------
-    .. [1] Nicola De Cao et al. "MolGAN: An implicit generative model
+    .. [DeCao2018MolGAN_Encoder] Nicola De Cao et al. "MolGAN: An implicit generative model
         for small molecular graphs", https://arxiv.org/abs/1805.11973
     """
 
@@ -4090,7 +4094,7 @@ class EdgeNetwork(nn.Module):
 
 
 class WeaveLayer(nn.Module):
-    """This class implements the core Weave convolution from the Google graph convolution paper [1]_
+    """This class implements the core Weave convolution from the Google graph convolution paper [WeaveLayer_1]_
     This is the Torch equivalent of the original implementation using Keras.
 
     This model contains atom features and bond features
@@ -4178,7 +4182,7 @@ class WeaveLayer(nn.Module):
 
     References
     ----------
-    .. [1] Kearnes, Steven, et al. "Molecular graph convolutions: moving beyond
+    .. [WeaveLayer_1] Kearnes, Steven, et al. "Molecular graph convolutions: moving beyond
         fingerprints." Journal of computer-aided molecular design 30.8 (2016):
         595-608.
     """
@@ -4434,11 +4438,11 @@ class WeaveGather(nn.Module):
     """Implements the weave-gathering section of weave convolutions.
     This is the Torch equivalent of the original implementation using Keras.
 
-    Implements the gathering layer from [1]_. The weave gathering layer gathers
+    Implements the gathering layer from [WeaveGather_1]_. The weave gathering layer gathers
     per-atom features to create a molecule-level fingerprint in a weave
     convolutional network. This layer can also performs Gaussian histogram
-    expansion as detailed in [1]_. Note that the gathering function here is
-    simply addition as in [1]_>
+    expansion as detailed in [WeaveGather_1]_. Note that the gathering function here is
+    simply addition as in [WeaveGather_1]_>
 
     Examples
     --------
@@ -4482,7 +4486,7 @@ class WeaveGather(nn.Module):
 
     References
     ----------
-    .. [1] Kearnes, Steven, et al. "Molecular graph convolutions: moving beyond
+    .. [WeaveGather_1] Kearnes, Steven, et al. "Molecular graph convolutions: moving beyond
         fingerprints." Journal of computer-aided molecular design 30.8 (2016):
         595-608.
     """
@@ -4718,7 +4722,7 @@ try:
 
     class MXMNetGlobalMessagePassing(MessagePassing):
         """This class implements the Global Message Passing Layer from the Molecular Mechanics-Driven Graph Neural Network
-        with Multiplex Graph for Molecular Structures(MXMNet) paper [1]_.
+        with Multiplex Graph for Molecular Structures(MXMNet) paper [MXMNetGlobalMessagePassing_1]_.
 
         This layer consists of two message passing steps and an update step between them.
 
@@ -4759,7 +4763,7 @@ try:
 
         References
         ----------
-        .. [1] Molecular Mechanics-Driven Graph Neural Network with Multiplex Graph for Molecular Structures. https://arxiv.org/pdf/2011.07457.pdf
+        .. [MXMNetGlobalMessagePassing_1] Molecular Mechanics-Driven Graph Neural Network with Multiplex Graph for Molecular Structures. https://arxiv.org/pdf/2011.07457.pdf
 
 
         Examples
@@ -5007,7 +5011,7 @@ class VariationalRandomizer(nn.Module):
 
     References
     ----------
-    .. [1] Samuel R. Bowman et al., "Generating Sentences from a Continuous Space"
+    .. [VariationalRandomizer_1] Samuel R. Bowman et al., "Generating Sentences from a Continuous Space"
 
     """
 
@@ -5132,7 +5136,7 @@ class EncoderRNN(nn.Module):
 
     References
     ----------
-    .. [1] Sutskever et al., "Sequence to Sequence Learning with Neural Networks"
+    .. [EncoderRNN_1] Sutskever et al., "Sequence to Sequence Learning with Neural Networks"
 
     """
 
@@ -5220,7 +5224,7 @@ class DecoderRNN(nn.Module):
 
     References
     ----------
-    .. [1] Sutskever et al., "Sequence to Sequence Learning with Neural Networks"
+    .. [DecoderRNN_1] Sutskever et al., "Sequence to Sequence Learning with Neural Networks"
 
     """
 
@@ -5336,7 +5340,7 @@ class FerminetElectronFeature(torch.nn.Module):
 
     References
     ----------
-    .. [1] Spencer, James S., et al. Better, Faster Fermionic Neural Networks. arXiv:2011.07125, arXiv, 13 Nov. 2020. arXiv.org, http://arxiv.org/abs/2011.07125.
+    .. [FerminetElectronFeature_1] Spencer, James S., et al. Better, Faster Fermionic Neural Networks. arXiv:2011.07125, arXiv, 13 Nov. 2020. arXiv.org, http://arxiv.org/abs/2011.07125.
 
     Examples
     --------
@@ -5491,7 +5495,7 @@ class FerminetEnvelope(torch.nn.Module):
 
     References
     ----------
-    .. [1] Spencer, James S., et al. Better, Faster Fermionic Neural Networks. arXiv:2011.07125, arXiv, 13 Nov. 2020. arXiv.org, http://arxiv.org/abs/2011.07125.
+    .. [FerminetEnvelope_1] Spencer, James S., et al. Better, Faster Fermionic Neural Networks. arXiv:2011.07125, arXiv, 13 Nov. 2020. arXiv.org, http://arxiv.org/abs/2011.07125.
 
     Examples
     --------
@@ -5634,11 +5638,11 @@ class FerminetEnvelope(torch.nn.Module):
 
 class MXMNetLocalMessagePassing(nn.Module):
     """
-    The MXMNetLocalMessagePassing class defines a local message passing layer used in the MXMNet model [1]_.
+    The MXMNetLocalMessagePassing class defines a local message passing layer used in the MXMNet model [MXMNetLocalMessagePassing_1]_.
     This layer integrates cross-layer mappings inside the local message passing, allowing for the transformation
     of input tensors representing pairwise distances and angles between atoms in a molecular system.
     The layer aggregates information using message passing and updates atom representations accordingly.
-    The 3-step message passing scheme is proposed in the paper [1]_.
+    The 3-step message passing scheme is proposed in the paper [MXMNetLocalMessagePassing_1]_.
 
     1. Step 1 contains Message Passing 1 that captures the two-hop angles and related pairwise distances to update edge-level embeddings {mji}.
     2. Step 2 contains Message Passing 2 that captures the one-hop angles and related pairwise distances to further update {mji}.
@@ -5694,7 +5698,7 @@ class MXMNetLocalMessagePassing(nn.Module):
 
     References
     ----------
-    .. [1] Molecular Mechanics-Driven Graph Neural Network with Multiplex Graph for Molecular Structures. https://arxiv.org/pdf/2011.07457
+    .. [MXMNetLocalMessagePassing_1] Molecular Mechanics-Driven Graph Neural Network with Multiplex Graph for Molecular Structures. https://arxiv.org/pdf/2011.07457
     Examples
     --------
     >>> dim = 1
@@ -6002,7 +6006,7 @@ class HighwayLayer(torch.nn.Module):
 
     References
     ----------
-    .. [1] Srivastava et al., "Training Very Deep Networks".https://arxiv.org/abs/1507.06228
+    .. [HighwayLayer_1] Srivastava et al., "Training Very Deep Networks".https://arxiv.org/abs/1507.06228
 
     Examples
     --------
@@ -6062,7 +6066,7 @@ class HighwayLayer(torch.nn.Module):
 class GraphConv(nn.Module):
     """Graph Convolutional Layers
 
-    This layer implements the graph convolution introduced in [1]_.  The graph
+    This layer implements the graph convolution introduced in [GraphConv_1]_.  The graph
     convolution combines per-node feature vectures in a nonlinear fashion with
     the feature vectors for neighboring nodes.  This "blends" information in
     local neighborhoods of a graph.
@@ -6097,7 +6101,7 @@ class GraphConv(nn.Module):
 
     References
     ----------
-    .. [1] Duvenaud, David K., et al. "Convolutional networks on graphs for learning molecular fingerprints."
+    .. [GraphConv_1] Duvenaud, David K., et al. "Convolutional networks on graphs for learning molecular fingerprints."
         Advances in neural information processing systems. 2015. https://arxiv.org/abs/1509.09292
 
   """
@@ -6253,7 +6257,7 @@ class GraphPool(nn.Module):
     This layer does a max-pooling over the feature vectors of atoms in a
     neighborhood. You can think of this layer as analogous to a max-pooling
     layer for 2D convolutions but which operates on graphs instead. This
-    technique is described in [1]_.
+    technique is described in [GraphPool_1]_.
 
     Example
     --------
@@ -6280,7 +6284,7 @@ class GraphPool(nn.Module):
 
     References
     ----------
-    .. [1] Duvenaud, David K., et al. "Convolutional networks on graphs for
+    .. [GraphPool_1] Duvenaud, David K., et al. "Convolutional networks on graphs for
         learning molecular fingerprints." Advances in neural information processing
         systems. 2015. https://arxiv.org/abs/1509.09292
 
@@ -6308,9 +6312,10 @@ class GraphPool(nn.Module):
         """
         Returns a string representation of the object.
 
-        Returns:
+        Returns
         -------
-        str: A string that contains the class name followed by the values of its instance variable.
+        str
+            A string that contains the class name followed by the values of its instance variable.
         """
         # flake8: noqa
         return (
@@ -6410,7 +6415,7 @@ class GraphGather(nn.Module):
 
     References
     ----------
-    .. [1] Duvenaud, David K., et al. "Convolutional networks on graphs for
+    .. [GraphGather_1] Duvenaud, David K., et al. "Convolutional networks on graphs for
         learning molecular fingerprints." Advances in neural information processing
         systems. 2015. https://arxiv.org/abs/1509.09292
     """
@@ -6439,9 +6444,10 @@ class GraphGather(nn.Module):
         """
         Returns a string representation of the object.
 
-        Returns:
+        Returns
         -------
-        str: A string that contains the class name followed by the values of its instance variable.
+        str
+            A string that contains the class name followed by the values of its instance variable.
         """
         # flake8: noqa
         return (
@@ -6885,7 +6891,7 @@ class DAGLayer(nn.Module):
 
     References
     ----------
-    .. [1] Lusci Alessandro, Gianluca Pollastri, and Pierre Baldi. "Deep architectures and deep learning in chemoinformatics: the prediction of aqueous solubility for drug-like molecules." Journal of chemical information and modeling 53.7 (2013): 1563-1575. https://pmc.ncbi.nlm.nih.gov/articles/PMC3739985
+    .. [DAGLayer_1] Lusci Alessandro, Gianluca Pollastri, and Pierre Baldi. "Deep architectures and deep learning in chemoinformatics: the prediction of aqueous solubility for drug-like molecules." Journal of chemical information and modeling 53.7 (2013): 1563-1575. https://pmc.ncbi.nlm.nih.gov/articles/PMC3739985
     """
 
     def __init__(self,
@@ -7097,7 +7103,7 @@ class DAGGather(nn.Module):
 
     References
     ----------
-    .. [1] Lusci Alessandro, Gianluca Pollastri, and Pierre Baldi. "Deep architectures and deep learning in chemoinformatics: the prediction of aqueous solubility for drug-like molecules." Journal of chemical information and modeling 53.7 (2013): 1563-1575. https://pmc.ncbi.nlm.nih.gov/articles/PMC3739985
+    .. [DAGGather_1] Lusci Alessandro, Gianluca Pollastri, and Pierre Baldi. "Deep architectures and deep learning in chemoinformatics: the prediction of aqueous solubility for drug-like molecules." Journal of chemical information and modeling 53.7 (2013): 1563-1575. https://pmc.ncbi.nlm.nih.gov/articles/PMC3739985
     """
 
     def __init__(self,
@@ -7326,7 +7332,7 @@ class Fiber(object):
 
     References
     ----------
-    .. [1] Fabian B. Fuchs, Daniel E. Worrall, Volker Fischer, Max Welling.
+    .. [Fiber_1] Fabian B. Fuchs, Daniel E. Worrall, Volker Fischer, Max Welling.
            "SE(3)-Transformers: 3D Roto-Translation Equivariant Attention Networks."
            NeurIPS 2020. https://arxiv.org/abs/2006.10503
     """
@@ -7481,9 +7487,9 @@ class SE3LayerNorm(nn.Module):
 
     References
     ----------
-    .. [1] Ba, Jimmy Lei, Jamie Ryan Kiros, and Geoffrey E. Hinton. "Layer normalization."
+    .. [SE3LayerNorm_1] Ba, Jimmy Lei, Jamie Ryan Kiros, and Geoffrey E. Hinton. "Layer normalization."
            arXiv preprint arXiv:1607.06450 (2016).
-    .. [2] SE(3)-Transformers: 3D Roto-Translation Equivariant Attention Networks
+    .. [SE3LayerNorm_2] SE(3)-Transformers: 3D Roto-Translation Equivariant Attention Networks
            Fabian B. Fuchs, Daniel E. Worrall, Volker Fischer, Max Welling
            NeurIPS 2020, https://arxiv.org/abs/2006.10503
     """
@@ -7542,7 +7548,7 @@ class SE3RadialFunc(nn.Module):
 
     References
     ----------
-    .. [1] SE(3)-Transformers: 3D Roto-Translation Equivariant Attention Networks
+    .. [Fuchs2020Fiber] SE(3)-Transformers: 3D Roto-Translation Equivariant Attention Networks
            Fabian B. Fuchs, Daniel E. Worrall, Volker Fischer, Max Welling
            NeurIPS 2020, https://arxiv.org/abs/2006.10503
     """
@@ -7600,7 +7606,7 @@ class SE3RadialFunc(nn.Module):
 
 
 class SE3PairwiseConv(nn.Module):
-    """
+    r"""
     SE(3)-equivariant convolution between two single-type features.
     This layer implements a learnable convolution operation that preserves SE(3) equivariance
     by operating on pairwise interactions using a basis defined by spherical harmonics.
@@ -7615,6 +7621,7 @@ class SE3PairwiseConv(nn.Module):
       how feature strength varies with distance.
     - The angular component (orientation-dependent) is handled via a spherical harmonics basis,
       ensuring that rotations affect the output in a structured manner.
+
     Example
     -------
     >>> from rdkit import Chem
@@ -7666,7 +7673,7 @@ class SE3PairwiseConv(nn.Module):
 
     References
     ----------
-    .. [1] SE(3)-Transformers: 3D Roto-Translation Equivariant Attention Networks
+    .. [Fuchs2020Pairwise] SE(3)-Transformers: 3D Roto-Translation Equivariant Attention Networks
            Fabian B. Fuchs, Daniel E. Worrall, Volker Fischer, Max Welling
            NeurIPS 2020, https://arxiv.org/abs/2006.10503
     """
@@ -7722,7 +7729,7 @@ class SE3PairwiseConv(nn.Module):
 
 
 class SE3Sum(nn.Module):
-    """
+    r"""
     SE(3)-Equivariant Graph Residual Sum Function (SE3Sum).
 
     This layer performs element-wise summation of SE(3)-equivariant
@@ -7819,7 +7826,7 @@ class SE3Sum(nn.Module):
 
 
 class SE3Cat(nn.Module):
-    """
+    r"""
     SE(3)-Equivariant Graph Feature Concatenation (SE3Cat).
 
     This layer concatenates features from two SE(3)-equivariant fiber representations.
@@ -7909,10 +7916,10 @@ class SE3Cat(nn.Module):
 
 
 class SE3AvgPooling(nn.Module):
-    """
+    r"""
     SE(3)-Equivariant Graph Average Pooling Module (SE3AvgPooling).
 
-    This layer **performs average pooling over graph nodes while preserving SE(3) equivariance.
+    This layer performs average pooling over graph nodes while preserving SE(3) equivariance.
 
     Given a set of **node features** \( h_i \) over a graph \( G \),
     the average pooling operation computes:
@@ -7953,7 +7960,7 @@ class SE3AvgPooling(nn.Module):
 
     References
     ----------
-    .. [1] SE(3)-Transformers: 3D Roto-Translation Equivariant Attention Networks
+    .. [Fuchs2020AvgPool] SE(3)-Transformers: 3D Roto-Translation Equivariant Attention Networks
            Fabian B. Fuchs, Daniel E. Worrall, Volker Fischer, Max Welling
            NeurIPS 2020, https://arxiv.org/abs/2006.10503
     """
@@ -8013,7 +8020,7 @@ class SE3AvgPooling(nn.Module):
 
 
 class SE3MaxPooling(nn.Module):
-    """
+    r"""
     SE(3)-Equivariant Graph Max Pooling Module (SE3MaxPooling).
 
     This layer performs max pooling over graph nodes while preserving SE(3) equivariance.
@@ -8057,7 +8064,7 @@ class SE3MaxPooling(nn.Module):
 
     References
     ----------
-    .. [1] SE(3)-Transformers: 3D Roto-Translation Equivariant Attention Networks
+    .. [Fuchs2020MaxPool] SE(3)-Transformers: 3D Roto-Translation Equivariant Attention Networks
            Fabian B. Fuchs, Daniel E. Worrall, Volker Fischer, Max Welling
            NeurIPS 2020, https://arxiv.org/abs/2006.10503
     """
@@ -8119,7 +8126,7 @@ class SE3MaxPooling(nn.Module):
 
 
 class SE3MultiHeadAttention(nn.Module):
-    """
+    r"""
     SE(3)-Equivariant Multi-Headed Self-Attention for Graph Neural Networks.
     This layer extends multi-head self-attention (MHA) to SE(3)-equivariant
     representations. Instead of using dot-product attention in standard Transformers,
@@ -8141,11 +8148,13 @@ class SE3MultiHeadAttention(nn.Module):
     - The above equations are applied separately for each degree (l) in the SE(3)
       representation, ensuring equivariance is preserved across scalar (l=0), vector (l=1),
       and higher-degree features.
-   Usage in SE(3)-Transformers:
+
+    Usage in SE(3)-Transformers:
     - This layer replaces MHA in SE(3)-Transformers by applying equivariant self-attention
       over graph edges.
     - Used inside `GSE3Res` blocks for message passing.
     - Preserves SE(3) symmetry when computing interactions.
+
     Example
     -------
     >>> import torch
@@ -8180,7 +8189,7 @@ class SE3MultiHeadAttention(nn.Module):
 
     References
     ----------
-    .. [1] SE(3)-Transformers: 3D Roto-Translation Equivariant Attention Networks
+    .. [SE3MultiHeadAttention1] SE(3)-Transformers: 3D Roto-Translation Equivariant Attention Networks
            Fabian B. Fuchs, Daniel E. Worrall, Volker Fischer, Max Welling
            NeurIPS 2020, https://arxiv.org/abs/2006.10503
     """
@@ -8301,7 +8310,7 @@ class SE3MultiHeadAttention(nn.Module):
 
 
 class SE3AttentiveSelfInteraction(nn.Module):
-    """
+    r"""
     A self-interaction layer with an attention mechanism that preserves SE(3) equivariance.
     This layer applies learnable self-interactions using attention weights
     to dynamically control the contribution of different feature components. It enables
@@ -8310,14 +8319,20 @@ class SE3AttentiveSelfInteraction(nn.Module):
     attention weights based on input feature relationships. These weights determine how
     much each feature contributes to the output.
     Mathematically, this can be expressed as:
-        h_out[d] = softmax(W_d * (h_in[d] ⊗ h_in[d])) * h_in[d]
+
+    .. math::
+        h_{\text{out}}[d] = \text{softmax}(W_d * (h_{\text{in}}[d] \otimes h_{\text{in}}[d])) * h_{\text{in}}[d]
+
     where:
-    - h_in[d]  is the input feature tensor of degree `d`.
-    - W_d      is the learnable attention weight matrix for degree `d`.
-    - ⊗        represents an inner product to compute self-attention scalars.
-    - h_out[d] is the transformed output feature tensor.
+
+    - $h_{\text{in}}[d]$  is the input feature tensor of degree `d`.
+    - $W_d$      is the learnable attention weight matrix for degree `d`.
+    - $\otimes$        represents an inner product to compute self-attention scalars.
+    - $h_{\text{out}}[d]$ is the transformed output feature tensor.
+
     This method enables a data-dependent feature transformation, which is
     particularly useful for learning complex interactions in SE(3)-equivariant models.
+
     Parameters
     ----------
     f_in : Any
@@ -8353,7 +8368,7 @@ class SE3AttentiveSelfInteraction(nn.Module):
 
     References
     ----------
-    .. [1] SE(3)-Transformers: 3D Roto-Translation Equivariant Attention Networks
+    .. [Fuchs2020AttentiveSelfInt] SE(3)-Transformers: 3D Roto-Translation Equivariant Attention Networks
            Fabian B. Fuchs, Daniel E. Worrall, Volker Fischer, Max Welling
            NeurIPS 2020, https://arxiv.org/abs/2006.10503
     """
@@ -8465,14 +8480,14 @@ class SE3AttentiveSelfInteraction(nn.Module):
 
 
 class SE3SelfInteraction(nn.Module):
-    """
+    r"""
     A linear SE(3)-equivariant layer, equivalent to a 1x1 convolution.
     This layer applies independent linear transformations to each feature type
     while preserving SE(3) equivariance. It acts as a self-interaction layer
     by linearly transforming node features without aggregating information from
     neighbors.
     Mathematically, this operation is similar to a fully connected transformation,
-    but applied independently to each *feature type (degree)* in the SE(3)-equivariant
+    but applied independently to each feature type (degree) in the SE(3)-equivariant
     representation.
     This is equivalent to a self-interaction layer in Tensor Field Networks (TFN),
     where each SE(3)-invariant or equivariant feature undergoes a learned transformation.
@@ -8506,7 +8521,7 @@ class SE3SelfInteraction(nn.Module):
 
     References
     ----------
-    .. [1] SE(3)-Transformers: 3D Roto-Translation Equivariant Attention Networks
+    .. [Fuchs2020SelfInt] SE(3)-Transformers: 3D Roto-Translation Equivariant Attention Networks
            Fabian B. Fuchs, Daniel E. Worrall, Volker Fischer, Max Welling
            NeurIPS 2020, https://arxiv.org/abs/2006.10503
     """
@@ -8542,14 +8557,18 @@ class SE3SelfInteraction(nn.Module):
                 **kwargs: Any) -> Dict[str, torch.Tensor]:
         """
         Forward pass of the SE(3)-equivariant 1x1 convolution.
-        This function applies a linear transformation *separately to each
+        This function applies a linear transformation separately to each
         feature type (degree) in the SE(3)-equivariant representation.
         Mathematically, this operation is performed as:
-            h_out[d] = W_d * h_in[d]
+
+        .. math::
+            h_{\text{out}}[d] = W_d * h_{\text{in}}[d]
+
         where:
-        - h_in[d]  is the input feature tensor of type d.
-        - W_d      is the learned transformation matrix for type d.
-        - h_out[d] is the transformed feature tensor of type d.
+        - $h_{\text{in}}[d]$  is the input feature tensor of type d.
+        - $W_d$      is the learned transformation matrix for type d.
+        - $h_{\text{out}}[d]$ is the transformed feature tensor of type d.
+
         Parameters
         ----------
         features : Dict[str, torch.Tensor]
@@ -8567,7 +8586,7 @@ class SE3SelfInteraction(nn.Module):
 
 
 class SE3GraphConv(nn.Module):
-    """
+    r"""
     A graph convolutional layer that is equivariant under SE(3) transformations.
 
     This layer performs message passing between nodes while ensuring that
@@ -8629,7 +8648,7 @@ class SE3GraphConv(nn.Module):
 
     References
     ----------
-    .. [1] SE(3)-Transformers: 3D Roto-Translation Equivariant Attention Networks
+    .. [Fuchs2020GraphConv] SE(3)-Transformers: 3D Roto-Translation Equivariant Attention Networks
            Fabian B. Fuchs, Daniel E. Worrall, Volker Fischer, Max Welling
            NeurIPS 2020, https://arxiv.org/abs/2006.10503
     """
@@ -8691,7 +8710,7 @@ class SE3GraphConv(nn.Module):
         """
         Computes the convolution for a single output feature type.
 
-        This function is designed as a *User Defined Function (UDF)
+        This function is designed as a User Defined Function (UDF)
         in DGL for performing message passing.
 
         Parameters
@@ -8807,7 +8826,7 @@ class SE3GraphConv(nn.Module):
 
 
 class SE3GraphNorm(nn.Module):
-    """
+    r"""
     SE(3)-Equivariant Graph Normalization Layer.
 
     This layer applies graph-based feature normalization while preserving
@@ -8860,7 +8879,7 @@ class SE3GraphNorm(nn.Module):
 
     References
     ----------
-    .. [1] SE(3)-Transformers: 3D Roto-Translation Equivariant Attention Networks
+    .. [Fuchs2020GraphNorm] SE(3)-Transformers: 3D Roto-Translation Equivariant Attention Networks
            Fabian B. Fuchs, Daniel E. Worrall, Volker Fischer, Max Welling
            NeurIPS 2020, https://arxiv.org/abs/2006.10503
     """
@@ -8950,7 +8969,7 @@ class SE3GraphNorm(nn.Module):
 
 
 class SE3PartialEdgeConv(nn.Module):
-    """
+    r"""
     Graph SE(3)-equivariant node-to-edge partial convolution layer.
 
     This layer applies a partial SE(3)-equivariant convolution, mapping
@@ -9025,7 +9044,7 @@ class SE3PartialEdgeConv(nn.Module):
 
     References
     ----------
-    .. [1] SE(3)-Transformers: 3D Roto-Translation Equivariant Attention Networks
+    .. [Fuchs2020PartialEdgeConv] SE(3)-Transformers: 3D Roto-Translation Equivariant Attention Networks
            Fabian B. Fuchs, Daniel E. Worrall, Volker Fischer, Max Welling
            NeurIPS 2020, https://arxiv.org/abs/2006.10503
     """
@@ -9157,7 +9176,7 @@ class SE3PartialEdgeConv(nn.Module):
 
 
 class SE3ResidualAttention(nn.Module):
-    """
+    r"""
     SE(3)-Equivariant Residual Attention Block for Graph Neural Networks.
 
     This layer applies self-attention over SE(3)-equivariant features while preserving
@@ -9231,7 +9250,7 @@ class SE3ResidualAttention(nn.Module):
 
     References
     ----------
-    .. [1] SE(3)-Transformers: 3D Roto-Translation Equivariant Attention Networks
+    .. [Fuchs2020ResidualAtt] SE(3)-Transformers: 3D Roto-Translation Equivariant Attention Networks
            Fabian B. Fuchs, Daniel E. Worrall, Volker Fischer, Max Welling
            NeurIPS 2020, https://arxiv.org/abs/2006.10503
     """
@@ -9441,16 +9460,16 @@ class SpectralConv(nn.Module):
                                  self.scale)  # Bias is kept real-valued
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """
+        r"""
         Parameters
         ----------
         x: torch.Tensor
-            Input tensor of shape (batch, in_channels, *spatial_dims).
+            Input tensor of shape (batch, in_channels, \*spatial_dims).
         
         Returns
         -------
         torch.Tensor
-            Output tensor of shape (batch, out_channels, *spatial_dims).
+            Output tensor of shape (batch, out_channels, \*spatial_dims).
         """
 
         if not x.ndim == self.dims + 2:

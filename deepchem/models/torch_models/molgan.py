@@ -167,8 +167,8 @@ class BasicMolGANModel(WGANModel):
         dense and dropout layers. Then data is converted into two forms
         one used for training and other for generation of compounds.
         The model has two outputs:
-            1. edges
-            2. nodes
+        1. edges
+        2. nodes
 
         The format differs depending on intended use (training or sample generation).
         For sample generation use flag, sample_generation=True while calling generator

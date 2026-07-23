@@ -117,12 +117,12 @@ class AdaGrad(Optimizer):
 
     Adagrad is an optimizer with parameter-specific learning rates, which are
     adapted relative to how frequently a parameter gets updated during training.
-    The more updates a parameter receives, the smaller the updates. See [1]_ for
+    The more updates a parameter receives, the smaller the updates. See [AdaGrad_1]_ for
     a full reference for the algorithm.
 
     References
     ----------
-    .. [1] Duchi, John, Elad Hazan, and Yoram Singer. "Adaptive subgradient
+    .. [AdaGrad_1] Duchi, John, Elad Hazan, and Yoram Singer. "Adaptive subgradient
         methods for online learning and stochastic optimization." Journal of machine
         learning research 12.7 (2011).
     """

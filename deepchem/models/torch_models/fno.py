@@ -69,12 +69,12 @@ class FNOBlock(nn.Module):
             raise ValueError(f"Invalid dimension: {dims}. Must be 1, 2, or 3.")
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """Forward pass through the FNO block.
+        r"""Forward pass through the FNO block.
 
         Parameters
         ----------
         x: torch.Tensor
-            Input tensor of shape (batch, width, *spatial_dims)
+            Input tensor of shape (batch, width, \*spatial_dims)
 
         Returns
         -------

@@ -10,7 +10,7 @@ from tensorflow.keras import layers
 
 class BasicMolGANModel(WGAN):
     """
-    Model for de-novo generation of small molecules based on work of Nicola De Cao et al. [1]_.
+    Model for de-novo generation of small molecules based on work of Nicola De Cao et al. [BasicMolGANModel_1]_.
     It uses a GAN directly on graph data and a reinforcement learning objective to induce the network to generate molecules with certain chemical properties.
     Utilizes WGAN infrastructure; uses adjacency matrix and node features as inputs.
     Inputs need to be one-hot representation.
@@ -50,7 +50,7 @@ class BasicMolGANModel(WGAN):
 
     References
     ----------
-    .. [1] Nicola De Cao et al. "MolGAN: An implicit generative model
+    .. [BasicMolGANModel_1] Nicola De Cao et al. "MolGAN: An implicit generative model
         for small molecular graphs", https://arxiv.org/abs/1805.11973
     """
 
@@ -121,8 +121,8 @@ class BasicMolGANModel(WGAN):
         dense and dropout layers. Then data is converted into two forms
         one used for training and other for generation of compounds.
         The model has two outputs:
-            1. edges
-            2. nodes
+        1. edges
+        2. nodes
         The format differs depending on intended use (training or sample generation).
         For sample generation use flag, sample_generation=True while calling generator
         i.e. gan.generators[0](noise_input, training=False, sample_generation=True).
@@ -138,8 +138,8 @@ class BasicMolGANModel(WGAN):
         """
         Create discriminator model based on MolGAN layers.
         Takes two inputs:
-            1. adjacency tensor, containing bond information
-            2. nodes tensor, containing atom information
+        1. adjacency tensor, containing bond information
+        2. nodes tensor, containing atom information
         The input vectors need to be in one-hot encoding format.
         Use MolGAN featurizer for that purpose. It will be simplified
         in the future release.

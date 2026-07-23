@@ -23,9 +23,9 @@ class RobustMultitask(nn.Module):
 
     References
     ----------
-    This technique was introduced in [1]_
+    This technique was introduced in [RobustMultitask_1]_
 
-    .. [1] Ramsundar, Bharath, et al. "Is multitask deep learning practical for pharma?." Journal of chemical information and modeling 57.8 (2017): 2068-2076.
+    .. [RobustMultitask_1] Ramsundar, Bharath, et al. "Is multitask deep learning practical for pharma?." Journal of chemical information and modeling 57.8 (2017): 2068-2076.
 
     """
 
@@ -266,8 +266,8 @@ class RobustMultitaskClassifier(TorchModel):
     destructive interference.
     References
     ----------
-    This technique was introduced in [1]_
-    .. [1] Ramsundar, Bharath, et al. "Is multitask deep learning practical for pharma?." Journal of chemical information and modeling 57.8 (2017): 2068-2076.
+    This technique was introduced in [RobustMultitaskClassifier_1]_
+    .. [RobustMultitaskClassifier_1] Ramsundar, Bharath, et al. "Is multitask deep learning practical for pharma?." Journal of chemical information and modeling 57.8 (2017): 2068-2076.
     """
 
     def __init__(self,
@@ -423,9 +423,9 @@ class RobustMultitaskRegressor(TorchModel):
 
     References
     ----------
-    This technique was introduced in [1]_
+    This technique was introduced in [RobustMultitaskRegressor_1]_
 
-    .. [1] Ramsundar, Bharath, et al. "Is multitask deep learning practical for pharma?." Journal of chemical information and modeling 57.8 (2017): 2068-2076.
+    .. [RobustMultitaskRegressor_1] Ramsundar, Bharath, et al. "Is multitask deep learning practical for pharma?." Journal of chemical information and modeling 57.8 (2017): 2068-2076.
 
     """
 

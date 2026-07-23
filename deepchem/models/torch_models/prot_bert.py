@@ -77,8 +77,8 @@ class ProtBERT(HuggingFaceModel):
 
    References
    ----------
-   .. [1] Elnaggar, Ahmed, et al. "Prottrans: Toward understanding the language of life through self-supervised learning." IEEE transactions on pattern analysis and machine intelligence 44.10 (2021): 7112-7127.
-   .. [2] https://huggingface.co/Rostlab/prot_bert
+   .. [ProtBERT_1] Elnaggar, Ahmed, et al. "Prottrans: Toward understanding the language of life through self-supervised learning." IEEE transactions on pattern analysis and machine intelligence 44.10 (2021): 7112-7127.
+   .. [ProtBERT_2] https://huggingface.co/Rostlab/prot_bert
 
 
    """
