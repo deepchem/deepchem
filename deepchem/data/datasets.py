@@ -1266,6 +1266,13 @@ class DiskDataset(Dataset):
             data_dir = tempfile.mkdtemp()
         elif not os.path.exists(data_dir):
             os.makedirs(data_dir)
+        else:
+            existing_files = os.listdir(data_dir)
+            if existing_files:
+                logger.warning(
+                    "The directory %s already contains %d file(s): %s. "
+                    "Saving to this directory will overwrite existing data.",
+                    data_dir, len(existing_files), existing_files)
 
         metadata_rows = []
         time1 = time.time()
