@@ -5,7 +5,14 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+try:
+    import pysam
+    has_pysam = True
+except ImportError:
+    has_pysam = False
 
+
+@unittest.skipIf(not has_pysam, "pysam is not installed")
 class TestRealignerFeaturizer(unittest.TestCase):
 
     def setUp(self):
