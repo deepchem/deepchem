@@ -952,12 +952,11 @@ improving performance for expensive and data-heavy operations
 
 .. autofunction:: deepchem.utils.cache_utils.cached_dirpklgz
 
-
 ProteinMPNN Utils
 -----------------
 
 The utilities here are used for ProteinMPNN specific operations.
-These are used to gather edges, nodes and cat neighbors nodes.
+These are used to gather edges, nodes and concatenate the neighboring nodes.
 
 .. autofunction:: deepchem.utils.ProteinMPNN_utils.gather_edges
 .. autofunction:: deepchem.utils.ProteinMPNN_utils.gather_nodes
