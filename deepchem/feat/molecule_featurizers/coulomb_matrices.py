@@ -10,6 +10,7 @@ from typing import Any, List, Optional
 from deepchem.utils.typing import RDKitMol
 from deepchem.utils.data_utils import pad_array
 from deepchem.feat.base_classes import MolecularFeaturizer
+import warnings
 
 
 class CoulombMatrix(MolecularFeaturizer):
@@ -101,8 +102,8 @@ class CoulombMatrix(MolecularFeaturizer):
         """
         if 'mol' in kwargs:
             datapoint = kwargs.get("mol")
-            raise DeprecationWarning(
-                'Mol is being phased out as a parameter, please pass "datapoint" instead.'
+            warnings.warn(
+                'Mol is being phased out as a parameter, please pass "datapoint" instead.', DeprecationWarning
             )
 
         features = self.coulomb_matrix(datapoint)
@@ -298,8 +299,8 @@ class CoulombMatrixEig(CoulombMatrix):
         """
         if 'mol' in kwargs:
             datapoint = kwargs.get("mol")
-            raise DeprecationWarning(
-                'Mol is being phased out as a parameter, please pass "datapoint" instead.'
+            warnings.warn(
+                'Mol is being phased out as a parameter, please pass "datapoint" instead.', DeprecationWarning
             )
 
         cmat = self.coulomb_matrix(datapoint)

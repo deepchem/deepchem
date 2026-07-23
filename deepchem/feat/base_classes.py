@@ -8,6 +8,7 @@ from typing import Any, Dict, Iterable, Optional, Tuple, Union, cast
 
 from deepchem.utils import get_print_threshold
 from deepchem.utils.typing import PymatgenStructure
+import warnings
 
 logger = logging.getLogger(__name__)
 
@@ -178,8 +179,8 @@ class ComplexFeaturizer(Featurizer):
 
         if 'complexes' in kwargs:
             datapoints = kwargs.get("complexes")
-            raise DeprecationWarning(
-                'Complexes is being phased out as a parameter, please pass "datapoints" instead.'
+            warnings.warn(
+                'Complexes is being phased out as a parameter, please pass "datapoints" instead.', DeprecationWarning
             )
         if not isinstance(datapoints, Iterable):
             datapoints = [cast(Tuple[str, str], datapoints)]
@@ -277,8 +278,8 @@ molecule.
 
         if 'molecules' in kwargs:
             datapoints = kwargs.get("molecules")
-            raise DeprecationWarning(
-                'Molecules is being phased out as a parameter, please pass "datapoints" instead.'
+            warnings.warn(
+                'Molecules is being phased out as a parameter, please pass "datapoints" instead.', DeprecationWarning
             )
 
         # Special case handling of single molecule
@@ -377,8 +378,8 @@ class MaterialStructureFeaturizer(Featurizer):
 
         if 'structures' in kwargs:
             datapoints = kwargs.get("structures")
-            raise DeprecationWarning(
-                'Structures is being phased out as a parameter, please pass "datapoints" instead.'
+            warnings.warn(
+                'Structures is being phased out as a parameter, please pass "datapoints" instead.', DeprecationWarning
             )
 
         if not isinstance(datapoints, Iterable):
@@ -453,8 +454,8 @@ class MaterialCompositionFeaturizer(Featurizer):
 
         if 'compositions' in kwargs and datapoints is None:
             datapoints = kwargs.get("compositions")
-            raise DeprecationWarning(
-                'Compositions is being phased out as a parameter, please pass "datapoints" instead.'
+            warnings.warn(
+                'Compositions is being phased out as a parameter, please pass "datapoints" instead.', DeprecationWarning
             )
 
         if not isinstance(datapoints, Iterable):

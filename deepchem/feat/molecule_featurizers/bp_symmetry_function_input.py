@@ -4,6 +4,7 @@ from deepchem.utils.typing import RDKitMol
 from deepchem.utils.data_utils import pad_array
 from deepchem.feat.base_classes import MolecularFeaturizer
 from deepchem.feat.molecule_featurizers.atomic_coordinates import AtomicCoordinates
+import warnings
 
 
 class BPSymmetryFunctionInput(MolecularFeaturizer):
@@ -63,8 +64,8 @@ class BPSymmetryFunctionInput(MolecularFeaturizer):
         """
         if 'mol' in kwargs:
             datapoint = kwargs.get("mol")
-            raise DeprecationWarning(
-                'Mol is being phased out as a parameter, please pass "datapoint" instead.'
+            warnings.warn(
+                'Mol is being phased out as a parameter, please pass "datapoint" instead.', DeprecationWarning
             )
         coordinates = self.coordfeat._featurize(datapoint)
         atom_numbers = np.array(

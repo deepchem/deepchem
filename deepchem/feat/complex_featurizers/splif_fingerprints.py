@@ -17,6 +17,7 @@ from deepchem.utils.geometry_utils import compute_pairwise_distances
 from deepchem.utils.geometry_utils import subtract_centroid
 
 from typing import Optional, Tuple, Dict, List
+import warnings
 
 logger = logging.getLogger(__name__)
 
@@ -157,8 +158,8 @@ class SplifFingerprint(ComplexFeaturizer):
         """
         if 'complex' in kwargs:
             datapoint = kwargs.get("complex")
-            raise DeprecationWarning(
-                'Complex is being phased out as a parameter, please pass "datapoint" instead.'
+            warnings.warn(
+                'Complex is being phased out as a parameter, please pass "datapoint" instead.', DeprecationWarning
             )
 
         try:
@@ -256,8 +257,8 @@ class SplifVoxelizer(ComplexFeaturizer):
         """
         if 'complex' in kwargs:
             datapoint = kwargs.get("complex")
-            raise DeprecationWarning(
-                'Complex is being phased out as a parameter, please pass "datapoint" instead.'
+            warnings.warn(
+                'Complex is being phased out as a parameter, please pass "datapoint" instead.', DeprecationWarning
             )
 
         try:
