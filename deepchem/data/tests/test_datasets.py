@@ -908,3 +908,26 @@ class TestDatasets(unittest.TestCase):
         """Test creating a PyTorch Dataset from a DiskDataset."""
         dataset = load_solubility_data()
         _validate_pytorch_dataset(dataset)
+    
+    def test_move_raises_if_directory_exists(self):
+        import tempfile
+        import os
+        import pytest
+        import numpy as np
+        import deepchem as dc
+
+        # Create a small dummy dataset
+        X = np.random.rand(5, 2)
+        y = np.random.rand(5)
+        dataset = dc.data.DiskDataset.from_numpy(X, y)
+
+        # Create an existing directory
+        temp_dir = tempfile.mkdtemp()
+
+        # Add a dummy file so the directory is not empty
+        with open(os.path.join(temp_dir, "dummy.txt"), "w") as f:
+            f.write("test")
+
+        # Verify error is raised instead of silent overwrite
+        with pytest.raises(ValueError):
+            dataset.move(temp_dir, delete_if_exists=False)
