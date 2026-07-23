@@ -149,9 +149,15 @@ class HuggingFaceModel(TorchModel):
             tokenizer: 'transformers.tokenization_utils.PreTrainedTokenizer',
             task: Optional[str] = None,
             config: Optional[Dict] = None,
+            code_revision: Optional[str] = None,
             **kwargs):
         self.task = task
         self.tokenizer = tokenizer
+        # Revision of the remote code repo (referenced via the config's
+        # ``auto_map``) to use when reloading a ``trust_remote_code`` model.
+        # Pinning it keeps reloads reproducible and immune to breaking
+        # changes pushed to the Hub repo.
+        self._code_revision = code_revision
         if self.task == 'mlm':
             self.data_collator = DataCollatorForLanguageModeling(
                 tokenizer=tokenizer)
@@ -236,21 +242,29 @@ class HuggingFaceModel(TorchModel):
             # initialise and create a model instance directly without requiring a class instance initialisation step.
             # To use `load_from_pretrained` in DeepChem, we need to follow a two step process
             # of initialising class instance and then loading weights via `load_from_pretrained`.
+            remote_code_kwargs = {}
+            if self._code_revision is not None:
+                remote_code_kwargs['code_revision'] = self._code_revision
             if self.task == 'mlm':
                 self.model = AutoModelForMaskedLM.from_pretrained(
-                    model_dir, trust_remote_code=True, **self.config)
+                    model_dir, trust_remote_code=True, **remote_code_kwargs,
+                    **self.config)
             elif self.task in ['mtr', 'regression', 'classification']:
                 self.model = AutoModelForSequenceClassification.from_pretrained(
-                    model_dir, trust_remote_code=True, **self.config)
+                    model_dir, trust_remote_code=True, **remote_code_kwargs,
+                    **self.config)
             elif self.task == "universal_segmentation":
                 self.model = AutoModelForUniversalSegmentation.from_pretrained(
-                    model_dir, trust_remote_code=True, **self.config)
+                    model_dir, trust_remote_code=True, **remote_code_kwargs,
+                    **self.config)
             elif self.task == 'causal_lm':
                 self.model = AutoModelForCausalLM.from_pretrained(
-                    model_dir, trust_remote_code=True, **self.config)
+                    model_dir, trust_remote_code=True, **remote_code_kwargs,
+                    **self.config)
             else:
                 self.model = AutoModel.from_pretrained(model_dir,
                                                        trust_remote_code=True,
+                                                       **remote_code_kwargs,
                                                        **self.config)
         elif not from_hf_checkpoint:
             checkpoints = sorted(self.get_checkpoints(model_dir))
