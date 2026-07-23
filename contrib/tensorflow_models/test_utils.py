@@ -27,6 +27,7 @@ from tensorflow.python.platform import googletest
 from tensorflow.python.training import checkpoint_state_pb2
 
 from deepchem.models.tensorflow_models import utils
+from deepchem.utils.data_utils import UniversalNamedTemporaryFile
 
 test_random_seed = 20151102
 
@@ -39,14 +40,14 @@ class UtilsTest(test_util.TensorFlowTestCase):
 
   def testParseCheckpoint(self):
     # parse CheckpointState proto
-    with tempfile.NamedTemporaryFile(mode='w+') as f:
+    with UniversalNamedTemporaryFile(mode='w+') as f:
       cp = checkpoint_state_pb2.CheckpointState()
       cp.model_checkpoint_path = 'my-checkpoint'
       f.write(text_format.MessageToString(cp))
       f.file.flush()
       self.assertEqual(utils.ParseCheckpoint(f.name), 'my-checkpoint')
     # parse path to actual checkpoint
-    with tempfile.NamedTemporaryFile(mode='w+') as f:
+    with UniversalNamedTemporaryFile(mode='w+') as f:
       f.write('This is not a CheckpointState proto.')
       f.file.flush()
       self.assertEqual(utils.ParseCheckpoint(f.name), f.name)

@@ -3,11 +3,12 @@ import os
 import pandas as pd
 from rdkit import Chem
 import deepchem as dc
+from deepchem.utils.data_utils import UniversalNamedTemporaryFile
 
 
 def testGroverAtomVocabularyBuilder():
     from deepchem.feat.vocabulary_builders.grover_vocab import GroverAtomVocabularyBuilder
-    file = tempfile.NamedTemporaryFile()
+    file = UniversalNamedTemporaryFile()
     dataset = dc.data.NumpyDataset(X=[['CC(=O)C'], ['CCC']])
     vocab = GroverAtomVocabularyBuilder()
     vocab.build(dataset)
@@ -64,7 +65,7 @@ def test_grover_atom_vocabulary_build_from_csv(tmpdir):
 
 def testGroverBondVocabularyBuilder():
     from deepchem.feat.vocabulary_builders.grover_vocab import GroverBondVocabularyBuilder
-    file = tempfile.NamedTemporaryFile()
+    file = UniversalNamedTemporaryFile()
     dataset = dc.data.NumpyDataset(X=[['CC(=O)C'], ['CCC']])
     vocab = GroverBondVocabularyBuilder()
     vocab.build(dataset)
@@ -135,7 +136,7 @@ def test_grover_bond_vocabulary_build_from_csv(tmpdir):
 
 def testGroverAtomVocabTokenizer():
     from deepchem.feat.vocabulary_builders.grover_vocab import GroverAtomVocabularyBuilder, GroverAtomVocabTokenizer
-    file = tempfile.NamedTemporaryFile()
+    file = UniversalNamedTemporaryFile()
     dataset = dc.data.NumpyDataset(X=[['CC(=O)C'], ['CCC']])
     vocab = GroverAtomVocabularyBuilder()
     vocab.build(dataset)
@@ -150,7 +151,7 @@ def testGroverAtomVocabTokenizer():
 
 def testGroverBondVocabTokenizer():
     from deepchem.feat.vocabulary_builders.grover_vocab import GroverBondVocabularyBuilder, GroverBondVocabTokenizer
-    file = tempfile.NamedTemporaryFile()
+    file = UniversalNamedTemporaryFile()
     dataset = dc.data.NumpyDataset(X=[['CC(=O)C'], ['CCC']])
     vocab = GroverBondVocabularyBuilder()
     vocab.build(dataset)
