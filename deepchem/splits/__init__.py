@@ -22,6 +22,7 @@ from deepchem.splits.splitters import ButinaSplitter
 # other splitter
 from deepchem.splits.task_splitter import merge_fold_datasets
 from deepchem.splits.task_splitter import TaskSplitter
+from deepchem.splits.ave_splitter import AVESplitter
 
 #################################################################
 # Removed API
