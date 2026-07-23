@@ -6,7 +6,7 @@
 [![Test for DeepChem Core](https://github.com/deepchem/deepchem/workflows/Test%20for%20DeepChem%20Core/badge.svg)](https://github.com/deepchem/deepchem/actions?query=workflow%3A%22Test+for+DeepChem+Core%22)
 [![Test for documents](https://github.com/deepchem/deepchem/workflows/Test%20for%20documents/badge.svg)](https://github.com/deepchem/deepchem/actions?query=workflow%3A%22Test+for+documents%22)
 [![Test for build scripts](https://github.com/deepchem/deepchem/workflows/Test%20for%20build%20scripts/badge.svg)](https://github.com/deepchem/deepchem/actions?query=workflow%3A%22Test+for+build+scripts%22)
-[![codecov](https://codecov.io/gh/deepchem/deepchem/branch/master/graph/badge.svg?token=5rOZB2BY3h)](https://codecov.io/gh/deepchem/deepchem)  
+[![codecov](https://codecov.io/gh/deepchem/deepchem/branch/master/graph/badge.svg?token=5rOZB2BY3h)](https://codecov.io/gh/deepchem/deepchem)
 
 [Website](https://deepchem.io/) | [Documentation](https://deepchem.readthedocs.io/en/latest/) | [Colab Tutorial](https://github.com/deepchem/deepchem/tree/master/examples/tutorials) | [Discussion Forum](https://forum.deepchem.io/) | [Discord](https://discord.gg/cGzwCdrUqS) | [Model Wishlist](https://github.com/deepchem/deepchem/issues/2680) | [Tutorial Wishlist](https://github.com/deepchem/deepchem/issues/2907)
 
@@ -56,7 +56,9 @@ DeepChem stable version can be installed using pip or conda as
 ```bash
 pip install deepchem
 ```
-or 
+
+or
+
 ```
 conda install -c conda-forge deepchem
 ```
@@ -69,16 +71,19 @@ For using models with tensorflow dependencies, you install using
 ```bash
 pip install deepchem[tensorflow]
 ```
+
 For using models with torch dependencies, you install using
 
 ```bash
 pip install deepchem[torch]
 ```
+
 For using models with jax dependencies, you install using
 
 ```bash
 pip install deepchem[jax]
 ```
+
 If GPU support is required, then make sure CUDA is installed and then install the desired deep learning framework using the links below before installing deepchem
 
 1. tensorflow - just cuda installed
@@ -89,7 +94,22 @@ In `zsh` square brackets are used for globbing/pattern matching. This means you
 need to escape the square brackets in the above installation. You can do so
 by including the dependencies in quotes like `pip install --pre 'deepchem[jax]'`
 
+### Troubleshooting Installation Issues
+
+Some users may encounter dependency or environment related issues while installing DeepChem. Below are some common problems and recommended solutions.
+
+#### RDKit Installation Issue
+
+DeepChem depends on RDKit which may fail to install correctly in some environments when using pip.
+
+Recommended solution:
+
+```bash
+conda install -c conda-forge rdkit
+```
+
 ### Nightly build version
+
 The nightly version is built by the HEAD of DeepChem. It can be installed using
 
 ```bash
