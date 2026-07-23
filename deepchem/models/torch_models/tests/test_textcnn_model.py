@@ -261,3 +261,135 @@ def test_textcnn_compare_with_tf_impl():
                   'rb') as f:
             tf_outputs = pickle.load(f)
         assert np.allclose(torch_outputs, tf_outputs, rtol=1e-5, atol=1e-6)
+
+
+@pytest.mark.torch
+def test_textcnn_empty_and_short_smiles():
+    """Test TextCNN behavior with empty and very short SMILES strings.
+    
+    This test verifies that the model handles edge cases gracefully:
+    - Empty strings
+    - Single atom SMILES ("C")
+    - Minimal molecules ("CC")
+    """
+    n_tasks = 1
+    seq_length = 50
+
+    model = TextCNNModel(n_tasks,
+                         char_dict=default_dict,
+                         seq_length=seq_length,
+                         mode="classification")
+
+    # Test single atom SMILES - should work
+    single_atom_smiles = "C"
+    seq = model.smiles_to_seq(single_atom_smiles)
+    assert seq is not None
+    assert len(seq) == seq_length
+    # First element is 0 (start token), second should be 'C' mapping
+    assert seq[0] == 0
+    assert seq[1] == default_dict['C']
+
+    # Test minimal molecule - should work
+    minimal_smiles = "CC"
+    seq = model.smiles_to_seq(minimal_smiles)
+    assert seq is not None
+    assert len(seq) == seq_length
+    assert seq[1] == default_dict['C']
+    assert seq[2] == default_dict['C']
+
+    # Test empty string - should produce only padding
+    empty_smiles = ""
+    seq = model.smiles_to_seq(empty_smiles)
+    assert seq is not None
+    assert len(seq) == seq_length
+    # First element is start token (0), rest should be padding ('_')
+    assert seq[0] == 0
+    for i in range(1, seq_length):
+        assert seq[i] == default_dict['_']
+
+    # Test batch processing with short SMILES
+    short_smiles_batch = ["C", "CC", "CCC"]
+    seqs = model.smiles_to_seq_batch(short_smiles_batch)
+    assert seqs.shape == (3, seq_length)
+
+
+@pytest.mark.torch
+def test_textcnn_long_sequences():
+    """Test TextCNN with extremely long SMILES sequences.
+    
+    This test verifies behavior when SMILES strings exceed the seq_length:
+    - Sequences at exactly seq_length boundary
+    - Sequences exceeding seq_length (should be truncated)
+    """
+    n_tasks = 1
+    seq_length = 20  # Short seq_length to test truncation
+
+    model = TextCNNModel(n_tasks,
+                         char_dict=default_dict,
+                         seq_length=seq_length,
+                         mode="classification")
+
+    # Create a SMILES string that's exactly at the boundary
+    # Note: seq_length includes the start token (0), so actual SMILES can be seq_length - 1
+    boundary_smiles = "C" * (seq_length - 1)
+    seq = model.smiles_to_seq(boundary_smiles)
+    assert len(seq) == seq_length
+
+    # Create a very long SMILES string (longer than seq_length)
+    # This tests the truncation/padding behavior
+    long_smiles = "C" * 100  # Much longer than seq_length
+    seq = model.smiles_to_seq(long_smiles)
+    # The sequence should still be seq_length (truncated or handled)
+    assert len(seq) == seq_length
+
+    # Test with build_char_dict on dataset with long SMILES
+    # This verifies the max_length * 1.2 calculation
+    long_smiles_list = ["C" * 50, "C" * 100, "C" * 200]
+    dataset = dc.data.NumpyDataset(X=np.zeros((3, 1)),
+                                   y=np.zeros((3, 1)),
+                                   ids=np.array(long_smiles_list))
+    char_dict, calculated_length = TextCNNModel.build_char_dict(dataset)
+    # Length should be max(200) * 1.2 = 240
+    assert calculated_length == int(200 * 1.2)
+
+
+@pytest.mark.torch
+def test_textcnn_invalid_characters():
+    """Test TextCNN error handling for invalid SMILES characters.
+    
+    This test verifies that ValueError is raised with appropriate message
+    when SMILES contains characters not in the char_dict.
+    """
+    n_tasks = 1
+    seq_length = 50
+
+    model = TextCNNModel(n_tasks,
+                         char_dict=default_dict,
+                         seq_length=seq_length,
+                         mode="classification")
+
+    # Test with invalid Unicode character
+    invalid_unicode_smiles = "C€O"
+    with pytest.raises(ValueError, match="character not found in dict"):
+        model.smiles_to_seq(invalid_unicode_smiles)
+
+    # Test with uncommon symbols not in default_dict
+    invalid_symbol_smiles = "C@#$%O"
+    with pytest.raises(ValueError, match="character not found in dict"):
+        model.smiles_to_seq(invalid_symbol_smiles)
+
+    # Test with lowercase letters not in dict (e.g., 'x', 'y', 'z')
+    invalid_lowercase_smiles = "CxyzO"
+    with pytest.raises(ValueError, match="character not found in dict"):
+        model.smiles_to_seq(invalid_lowercase_smiles)
+
+    # Test batch processing with one invalid SMILES
+    mixed_batch = ["CC", "C€O", "CCC"]
+    with pytest.raises(ValueError, match="character not found in dict"):
+        model.smiles_to_seq_batch(mixed_batch)
+
+    # Verify that valid SMILES with all default_dict characters work
+    valid_smiles = "CC(=O)OC1=CC=CC=C1C(=O)O"  # Aspirin
+    seq = model.smiles_to_seq(valid_smiles)
+    assert seq is not None
+    assert len(seq) == seq_length
