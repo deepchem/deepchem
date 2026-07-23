@@ -64,7 +64,8 @@ try:
     from deepchem.models.torch_models import MoLFormer
     from deepchem.models.torch_models import OneFormer
 except ImportError as e:
-    logger.warning(e)
+    logger.warning(
+        f'Skipped loading some HuggingFace models, missing a dependency. {e}')
 
 # Pytorch models with torch-geometric dependency
 try:
@@ -106,5 +107,7 @@ try:
     from deepchem.models.text_cnn import TextCNNTensorGraph
     from deepchem.models.graph_models import WeaveTensorGraph, DTNNTensorGraph, DAGTensorGraph, GraphConvTensorGraph, MPNNTensorGraph
     from deepchem.models.IRV import TensorflowMultitaskIRVClassifier
-except ModuleNotFoundError:
-    pass
+except ModuleNotFoundError as e:
+    logger.warning(
+        f'Skipped loading some TensorGraph compatibility models, missing a dependency. {e}'
+    )
