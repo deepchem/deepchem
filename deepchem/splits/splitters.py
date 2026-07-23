@@ -1235,13 +1235,13 @@ class ButinaSplitter(Splitter):
         except ModuleNotFoundError:
             raise ImportError("This function requires RDKit to be installed.")
 
-        logger.info("Performing butina clustering with cutoff of", self.cutoff)
+        logger.info("Performing butina clustering with cutoff of %s", self.cutoff)
         mols = []
         for ind, smiles in enumerate(dataset.ids):
             mols.append(Chem.MolFromSmiles(smiles))
         fps = [AllChem.GetMorganFingerprintAsBitVect(x, 2, 1024) for x in mols]
 
-        # calcaulate scaffold sets
+        # calculate scaffold sets
         # (ytz): this is directly copypasta'd from Greg Landrum's clustering example.
         dists = []
         nfps = len(fps)
@@ -1281,7 +1281,7 @@ def _generate_scaffold(smiles: str,
     They are essentially that part of the molecule consisting of
     rings and the linker atoms between them.
 
-    Paramters
+    Parameters
     ---------
     smiles: str
         SMILES
@@ -1483,7 +1483,7 @@ class ScaffoldSplitter(Splitter):
 
     Group  molecules  based on  the Bemis-Murcko scaffold representation, which identifies rings,
     linkers, frameworks (combinations between linkers and rings) and atomic properties  such as
-    atom type, hibridization and bond order in a dataset of molecules. Then split the groups by
+    atom type, hybridization and bond order in a dataset of molecules. Then split the groups by
     the number of molecules in each group in decreasing order.
 
     It is necessary to add the smiles representation in the ids field during the
