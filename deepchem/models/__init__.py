@@ -80,7 +80,7 @@ except Exception as e:
 try:
     from deepchem.models.lightning import DCLightningModule, DCLightningDatasetModule
     from deepchem.models.trainer import DistributedTrainer
-except ModuleNotFoundError as e:
+except Exception as e:
     logger.warning(
         f'Skipped loading modules with pytorch-lightning dependency, missing a dependency. {e}'
     )
@@ -89,7 +89,7 @@ except ModuleNotFoundError as e:
 try:
     from deepchem.models.jax_models import JaxModel
     from deepchem.models.jax_models import PINNModel
-except ModuleNotFoundError as e:
+except Exception as e:
     logger.warning(
         f'Skipped loading some Jax models, missing a dependency. {e}')
 
@@ -106,5 +106,5 @@ try:
     from deepchem.models.text_cnn import TextCNNTensorGraph
     from deepchem.models.graph_models import WeaveTensorGraph, DTNNTensorGraph, DAGTensorGraph, GraphConvTensorGraph, MPNNTensorGraph
     from deepchem.models.IRV import TensorflowMultitaskIRVClassifier
-except ModuleNotFoundError:
+except Exception:
     pass
