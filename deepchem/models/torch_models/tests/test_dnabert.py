@@ -135,8 +135,6 @@ def test_dnabert_load_weights_from_hf_hub():
     old_model_id = id(model.model)
     model.load_from_pretrained(pretrained_model_path, from_hf_checkpoint=True)
     new_model_id = id(model.model)
-    # new model's model attribute is an entirely new model initiated by AutoModel.load_from_pretrained
-    # and hence it should have a different identifier
     assert old_model_id != new_model_id
 
 
@@ -232,7 +230,7 @@ def test_dnabert_overfit_finetuning_classification(pretrained_checkpoint_dir):
                     n_tasks=1,
                     learning_rate=1e-4)
     model.load_from_pretrained(pretrained_checkpoint_dir)
-    model.fit(dataset=dataset, nb_epoch=500)
+    model.fit(dataset=dataset, nb_epoch=600)
     classification_metric = dc.metrics.Metric(dc.metrics.accuracy_score)
     eval_score = model.evaluate(dataset, [classification_metric])
     assert eval_score[classification_metric.name] > 0.9
@@ -257,7 +255,6 @@ def test_dnabert_overfit_finetuning_regression(pretrained_checkpoint_dir):
                     n_tasks=1,
                     learning_rate=1e-4)
     model.load_from_pretrained(pretrained_checkpoint_dir)
-    assert id(model.model) == id(model.model)
     model.fit(dataset=dataset, nb_epoch=500)
     regression_metric = dc.metrics.Metric(dc.metrics.mean_squared_error)
     eval_score = model.evaluate(dataset, [regression_metric])
