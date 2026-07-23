@@ -19,7 +19,6 @@ dependencies:
     - mordred
     - networkx
     - pillow
-    - pubchempy
     - pyGPGO
     - pymatgen<2024  # newer releases need numpy>=1.26; unpinned it makes pip backtrack into source builds
     - simdna
