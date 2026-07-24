@@ -132,7 +132,7 @@ def parse_polymer_rules(rules: List[str]) -> Tuple[List[tuple], float]:
     >>> polymer_info
     [('1', '2', 0.5, 0.5)]
     >>> degree_of_polymerization
-    1.0
+    np.float64(1.0)
 
     Parameters
     ----------

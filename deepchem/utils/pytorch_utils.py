@@ -212,7 +212,7 @@ def gaussian_integral(
     Examples
     --------
     >>> gaussian_integral(5, 1.0)
-    1.0
+    np.float64(1.0)
 
     Parameters
     ----------

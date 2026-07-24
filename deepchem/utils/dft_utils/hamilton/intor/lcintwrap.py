@@ -45,7 +45,7 @@ class LibcintWrapper(object):
     ... ]
     >>> wrap = LibcintWrapper(atombases, True, None)
     >>> wrap.ao_idxs()
-    (0, 6)
+    (np.int32(0), np.int32(6))
 
     """
 
@@ -635,7 +635,7 @@ class SubsetLibcintWrapper(LibcintWrapper):
     >>> wrap = LibcintWrapper(atombases, True, None)
     >>> subset = wrap[1:3]
     >>> subset.ao_idxs()
-    (1, 3)
+    (np.int32(1), np.int32(3))
 
     """
 

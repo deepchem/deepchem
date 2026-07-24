@@ -135,9 +135,9 @@ class AtomicConformationFeaturizer(Featurizer):
     >>> features[0].num_atoms
     11
     >>> sum(features[0].atomic_number == 6)
-    3
+    np.int64(3)
     >>> sum(features[0].atomic_number == 1)
-    8
+    np.int64(8)
     >>> type(features[0].formal_charge)
     <class 'numpy.ndarray'>
     >>> features[0].formal_charge.shape

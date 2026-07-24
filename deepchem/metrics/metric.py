@@ -63,7 +63,7 @@ def normalize_weight_shape(w: Optional[np.ndarray], n_samples: int,
     >>> import numpy as np
     >>> w_out = normalize_weight_shape(None, n_samples=10, n_tasks=1)
     >>> (w_out == np.ones((10, 1))).all()
-    True
+    np.True_
 
     Returns
     -------

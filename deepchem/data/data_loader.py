@@ -472,7 +472,7 @@ class UserCSVLoader(CSVLoader):
     >>> len(dataset)
     2
     >>> dataset.X[0, 0]
-    1
+    np.int64(1)
 
     The difference between `UserCSVLoader` and `CSVLoader` is that our
     descriptors (our features) have already been computed for us, but are spread

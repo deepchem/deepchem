@@ -1501,7 +1501,7 @@ class ScaffoldSplitter(Splitter):
     >>> scaffoldsplitter = dc.splits.ScaffoldSplitter()
     >>> train,test = scaffoldsplitter.train_test_split(dataset)
     >>> train
-    <DiskDataset X.shape: (5,), y.shape: (5,), w.shape: (5,), ids: ['CC(C)Cl' 'CCC(C)CO' 'CCCCCCCO' 'CCCCCCCC(=O)OC' 'C1CCCCCC1'], task_names: [0]>
+    <DiskDataset X.shape: (np.int64(5),), y.shape: (np.int64(5),), w.shape: (np.int64(5),), ids: ['CC(C)Cl' 'CCC(C)CO' 'CCCCCCCO' 'CCCCCCCC(=O)OC' 'C1CCCCCC1'], task_names: [0]>
 
     References
     ----------
