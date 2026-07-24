@@ -203,7 +203,8 @@ class Olmo(HuggingFaceModel):
 
         if self.finetune_strategy in ('lora', 'qlora'):
             peft_task_type = "CAUSAL_LM" if task_type == 'causal_lm' else "SEQ_CLS"
-            model = self.apply_peft(model, peft_task_type)
+            model = self.apply_peft(
+                model, peft_task_type)  # type: ignore[assignment, arg-type]
 
         super().__init__(
             model=model,  # type: ignore[arg-type]
@@ -237,10 +238,14 @@ class Olmo(HuggingFaceModel):
         gc.collect()
         torch.cuda.empty_cache()
 
+        # An explicit quantization_config is used if provided, else build one for QLoRA. Otherwise, no config is passed to from_pretrained.
+        # 4-bit BitsAndBytesConfig when finetune_strategy == 'qlora'.
+        bnb_config = self._quantization_config or self.build_bnb_config()
+
         if self.task == "causal_lm":
             self.model = OlmoForCausalLM.from_pretrained(
                 model_dir,
-                quantization_config=self._quantization_config,
+                quantization_config=bnb_config,
                 torch_dtype=self._torch_dtype,
                 low_cpu_mem_usage=True)
         else:
@@ -252,7 +257,7 @@ class Olmo(HuggingFaceModel):
                 model_dir,
                 num_labels=self.n_tasks,
                 problem_type=problem_type,
-                quantization_config=self._quantization_config,
+                quantization_config=bnb_config,
                 torch_dtype=self._torch_dtype,
                 low_cpu_mem_usage=True)
 
@@ -262,9 +267,7 @@ class Olmo(HuggingFaceModel):
 
         if self._gradient_checkpointing:
             self.model.gradient_checkpointing_enable()
-        if self._quantization_config is None:
-            # bitsandbytes-quantized models are placed on device during
-            # from_pretrained and raise if .to() is called afterwards.
+        if bnb_config is None:
             self.model = self.model.to(self.device)
 
     def build_bnb_config(self) -> Optional[BitsAndBytesConfig]:
@@ -302,8 +305,12 @@ class Olmo(HuggingFaceModel):
         """
         if self.finetune_strategy == 'qlora':
             model = prepare_model_for_kbit_training(
-                model, use_gradient_checkpointing=True)
+                model, use_gradient_checkpointing=self._gradient_checkpointing)
         if self.finetune_strategy in ('lora', 'qlora'):
+            if self._gradient_checkpointing:
+                # Base weights are frozen by LoRA, so no tensor reaching the
+                # checkpointed layers requires grad unless this is called.
+                model.enable_input_require_grads()
             lora_cfg = LoraConfig(
                 r=32,
                 lora_alpha=64,
