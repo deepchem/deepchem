@@ -4,12 +4,15 @@ dependencies:
     - -f https://data.dgl.ai/wheels/torch-2.3/repo.html
     - torchdata<0.8.0
     - dgl==2.2.1
-    - torch==2.3.0+cpu
+    - torch==2.3.0+cpu; python_version >= '3.9'
+    - torch==2.1.0+cpu; python_version < '3.9'
     - torch-geometric
     - lightning
     - pydantic
     - -f https://data.pyg.org/whl/torch-2.3.0+cpu.html
-    - torch-cluster==1.6.3+pt23cpu
+    - -f https://data.pyg.org/whl/torch-2.1.0+cpu.html
+    - torch-cluster==1.6.3+pt23cpu; python_version >= '3.9'
+    - torch-cluster==1.6.3+pt21cpu; python_version < '3.9'
     - git+https://github.com/diffqc/dqclibs.git
     - git+https://gitlab.com/libxc/libxc.git
     - basis-set-exchange

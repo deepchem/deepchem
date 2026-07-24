@@ -13,8 +13,9 @@ else:
 extras = {
     'jax': ['jax==0.4.30', 'jaxlib==0.4.30', 'dm-haiku==0.0.13', 'optax'],
     'torch': [
-        'torch==2.3.0', 'torchvision', 'pytorch-lightning', 'dgl<2.2.1',
-        'dgllife'
+        'torch==2.3.0; python_version >= "3.9"',
+        'torch==2.1.0; python_version < "3.9"', 'torchvision',
+        'pytorch-lightning', 'dgl<2.2.1', 'dgllife'
     ],
     'tensorflow': [
         'tensorflow==2.20.0; python_version >= "3.9"',
