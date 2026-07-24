@@ -26,7 +26,7 @@ def smiles_regression_dataset(tmpdir):
 
 @pytest.mark.hf
 @pytest.mark.parametrize("strategy", ["lora", "qlora"])
-def test_olmo_lora_qlora_applied_at_init(strategy):
+def test_olmo_lora_qlora_at_init(strategy):
     """Test that LoRA/QLoRA adapters are applied at init with the correct trainable parameter structure."""
     from peft import PeftModel
     from deepchem.models.torch_models.olmo import Olmo
