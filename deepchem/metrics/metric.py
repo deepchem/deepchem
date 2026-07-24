@@ -62,7 +62,7 @@ def normalize_weight_shape(w: Optional[np.ndarray], n_samples: int,
     --------
     >>> import numpy as np
     >>> w_out = normalize_weight_shape(None, n_samples=10, n_tasks=1)
-    >>> (w_out == np.ones((10, 1))).all()
+    >>> print((w_out == np.ones((10, 1))).all())
     True
 
     Returns
@@ -70,6 +70,7 @@ def normalize_weight_shape(w: Optional[np.ndarray], n_samples: int,
     w_out: np.ndarray
         Array of shape `(n_samples, n_tasks)`
     """
+    w_out: np.ndarray
     if w is None:
         w_out = np.ones((n_samples, n_tasks))
     elif isinstance(w, np.ndarray):

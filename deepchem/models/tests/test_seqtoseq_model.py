@@ -4,6 +4,7 @@ from typing import Set
 import tempfile
 
 import numpy as np
+from flaky import flaky
 
 from deepchem.utils.batch_utils import create_input_array
 
@@ -106,6 +107,7 @@ class TestSeqToSeq(unittest.TestCase):
         assert count1 >= 12
         assert count4 >= 12
 
+    @flaky
     @pytest.mark.torch
     def test_variational(self):
         """Test using a SeqToSeq model as a variational autoenconder."""

@@ -5,14 +5,17 @@ channels:
 dependencies:
  - pip
  - pip:
-   - numpy==1.24.4
+   - numpy>=2.0; python_version >= '3.9'
+   - numpy<2; python_version < '3.9'
    - h5py
    - -f https://download.pytorch.org/whl/cpu/torch_stable.html
-   - torch==2.2.1+cpu
+   - torch==2.3.0+cpu; python_version >= '3.9'
+   - torch==2.1.0+cpu; python_version < '3.9'
    - git+https://github.com/diffqc/dqclibs.git
    - git+https://gitlab.com/libxc/libxc.git
    - pytest
    - PyYAML
    - yamlloader
    - tqdm
-   - pyscf[all]
+   - pyscf==2.14.0
+   - basis-set-exchange

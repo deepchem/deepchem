@@ -471,7 +471,7 @@ class UserCSVLoader(CSVLoader):
     ...     dataset = loader.create_dataset(tmpfile.name)
     >>> len(dataset)
     2
-    >>> dataset.X[0, 0]
+    >>> print(dataset.X[0, 0])
     1
 
     The difference between `UserCSVLoader` and `CSVLoader` is that our

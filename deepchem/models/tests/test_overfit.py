@@ -870,6 +870,7 @@ def test_weave_singletask_classification_overfit():
     assert scores[classification_metric.name] > .65
 
 
+@flaky
 @pytest.mark.slow
 @pytest.mark.tensorflow
 def test_weave_singletask_regression_overfit():

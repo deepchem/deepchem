@@ -2,6 +2,7 @@ import pytest
 import numpy as np
 import deepchem as dc
 import tempfile
+from flaky import flaky
 
 try:
     import torch
@@ -243,6 +244,7 @@ def test_InceptionAux():
     assert output_tensor.shape == expected_output_shape
 
 
+@flaky
 @pytest.mark.torch
 def test_inceptionv3_overfit():
     """

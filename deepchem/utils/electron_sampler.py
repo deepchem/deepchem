@@ -40,7 +40,7 @@ class ElectronSampler:
       [[3.01522075 2.0024335  3.00887726]]
 
       [[3.00667349 2.02988158 2.99589683]]]]
-    >>> distribution.move()
+    >>> print(distribution.move())
     0.5115
 
     >> print(distribution.x)

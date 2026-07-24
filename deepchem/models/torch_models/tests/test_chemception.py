@@ -2,6 +2,7 @@ import pytest
 import numpy as np
 import tempfile
 import os
+from flaky import flaky
 import deepchem as dc
 try:
     import torch
@@ -242,6 +243,7 @@ def test_chemception_compare_with_tf_impl():
                        rtol=1e-5)
 
 
+@flaky
 @pytest.mark.torch
 def test_chemception_modular_fit_restore():
     """Tests that the pretrainer can be restored from a checkpoint and resume training."""

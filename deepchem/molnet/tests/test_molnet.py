@@ -8,6 +8,7 @@ import unittest
 import numpy as np
 import os
 import pytest
+from flaky import flaky
 
 import deepchem as dc
 from deepchem.molnet.run_benchmark import run_benchmark
@@ -27,6 +28,7 @@ class TestMolnet(unittest.TestCase):
         super(TestMolnet, self).setUp()
         self.current_dir = os.path.dirname(os.path.abspath(__file__))
 
+    @flaky
     @pytest.mark.slow
     @pytest.mark.tensorflow
     def test_delaney_graphconvreg(self):

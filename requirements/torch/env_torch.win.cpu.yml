@@ -5,10 +5,10 @@ dependencies:
     # DGL is no longer supported on windows
     - torchdata<0.8.0
     - dgl<2.2.1
-    - torch==2.2.1+cpu
+    - torch==2.3.0+cpu
     - torch-geometric
     - lightning
     - pydantic
-    - -f https://data.pyg.org/whl/torch-2.2.1+cpu.html
-    - torch-cluster==1.6.3+pt22cpu
+    - -f https://data.pyg.org/whl/torch-2.3.0+cpu.html
+    - torch-cluster==1.6.3+pt23cpu
     - h5py
