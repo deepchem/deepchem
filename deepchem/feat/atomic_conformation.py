@@ -134,10 +134,10 @@ class AtomicConformationFeaturizer(Featurizer):
     >>> features = featurizer.featurize(smiles)
     >>> features[0].num_atoms
     11
-    >>> sum(features[0].atomic_number == 6)
-    np.int64(3)
-    >>> sum(features[0].atomic_number == 1)
-    np.int64(8)
+    >>> print(sum(features[0].atomic_number == 6))
+    3
+    >>> print(sum(features[0].atomic_number == 1))
+    8
     >>> type(features[0].formal_charge)
     <class 'numpy.ndarray'>
     >>> features[0].formal_charge.shape

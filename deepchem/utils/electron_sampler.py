@@ -40,8 +40,8 @@ class ElectronSampler:
       [[3.01522075 2.0024335  3.00887726]]
 
       [[3.00667349 2.02988158 2.99589683]]]]
-    >>> distribution.move()
-    np.float64(0.5115)
+    >>> print(distribution.move())
+    0.5115
 
     >> print(distribution.x)
     [[[[-0.32441754  1.23330263  2.67927645]]

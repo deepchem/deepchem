@@ -317,8 +317,8 @@ def generate_global_features(mol: RDKitMol,
     >>> nonzero_features_indices = global_features.nonzero()[0]
     >>> nonzero_features_indices
     array([1264])
-    >>> global_features[nonzero_features_indices[0]]
-    np.float64(1.0)
+    >>> print(global_features[nonzero_features_indices[0]])
+    1.0
 
     """
     global_features: List[np.ndarray] = []

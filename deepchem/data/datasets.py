@@ -2688,8 +2688,11 @@ class DiskDataset(Dataset):
                         y_shape[0] += shard_y_shape[0]
                         w_shape[0] += shard_w_shape[0]
                     ids_shape[0] += shard_ids_shape[0]
-            return tuple(X_shape), tuple(y_shape), tuple(w_shape), tuple(
-                ids_shape)
+            X_shape_out = tuple(int(v) for v in X_shape)
+            y_shape_out = tuple(int(v) for v in y_shape)
+            w_shape_out = tuple(int(v) for v in w_shape)
+            ids_shape_out = tuple(int(v) for v in ids_shape)
+            return X_shape_out, y_shape_out, w_shape_out, ids_shape_out
         # In absense of shape metadata, fall back to loading data from disk to
         # find shape.
         else:
@@ -2709,8 +2712,11 @@ class DiskDataset(Dataset):
                         y_shape[0] += np.array(y.shape)[0]
                         w_shape[0] += np.array(w.shape)[0]
                     ids_shape[0] += np.array(ids.shape)[0]
-            return tuple(X_shape), tuple(y_shape), tuple(w_shape), tuple(
-                ids_shape)
+            X_shape_out = tuple(int(v) for v in X_shape)
+            y_shape_out = tuple(int(v) for v in y_shape)
+            w_shape_out = tuple(int(v) for v in w_shape)
+            ids_shape_out = tuple(int(v) for v in ids_shape)
+            return X_shape_out, y_shape_out, w_shape_out, ids_shape_out
 
     def get_label_means(self) -> pd.DataFrame:
         """Return pandas series of label means."""
