@@ -25,6 +25,7 @@ dependencies:
     - simdna
     - einops
     - transformers==4.51.3
+    -  triton
     - tokenizers
     - xgboost
     - gensim  # used by mol2vec
