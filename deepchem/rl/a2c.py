@@ -403,7 +403,7 @@ class A2C(object):
             ]
             action = self._select_action_from_outputs(results, False)
             actions.append(action)
-            values.append(float(value))
+            values.append(float(value.item()))
             rewards.append(self._env.step(action))
 
         # Compute an estimate of the reward for the rest of the episode.

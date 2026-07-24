@@ -458,7 +458,7 @@ class KerasModel(Model):
             averaged_batches += 1
             should_log = (current_step % self.log_frequency == 0)
             if should_log:
-                avg_loss = float(avg_loss) / averaged_batches
+                avg_loss = float(tf.reduce_mean(avg_loss)) / averaged_batches
                 logger.info('Ending global_step %d: Average loss %g' %
                             (current_step, avg_loss))
                 if all_losses is not None:
