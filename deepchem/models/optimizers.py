@@ -350,12 +350,22 @@ class AdamW(Optimizer):
             learning_rate = self.learning_rate._create_tf_tensor(global_step)
         else:
             learning_rate = self.learning_rate
-        return tf.keras.optimizers.AdamW(weight_decay=self.weight_decay,
-                                         learning_rate=learning_rate,
-                                         beta_1=self.beta1,
-                                         beta_2=self.beta2,
-                                         epsilon=self.epsilon,
-                                         amsgrad=self.amsgrad)
+        if hasattr(tf.keras.optimizers, 'AdamW'):
+            # Native AdamW (TF>=2.11 for most builds; not present in every
+            # pre-2.16 release, hence the tensorflow_addons fallback below).
+            return tf.keras.optimizers.AdamW(weight_decay=self.weight_decay,
+                                             learning_rate=learning_rate,
+                                             beta_1=self.beta1,
+                                             beta_2=self.beta2,
+                                             epsilon=self.epsilon,
+                                             amsgrad=self.amsgrad)
+        import tensorflow_addons as tfa
+        return tfa.optimizers.AdamW(weight_decay=self.weight_decay,
+                                    learning_rate=learning_rate,
+                                    beta_1=self.beta1,
+                                    beta_2=self.beta2,
+                                    epsilon=self.epsilon,
+                                    amsgrad=self.amsgrad)
 
     def _create_pytorch_optimizer(self, params):
         import torch

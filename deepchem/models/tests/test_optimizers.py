@@ -62,7 +62,10 @@ class TestOptimizers(unittest.TestCase):
         opt = optimizers.AdamW(learning_rate=0.01)
         global_step = tf.Variable(0)
         tfopt = opt._create_tf_optimizer(global_step)
-        assert isinstance(tfopt, tf.keras.optimizers.AdamW)
+        if hasattr(tf.keras.optimizers, 'AdamW'):
+            assert isinstance(tfopt, tf.keras.optimizers.AdamW)
+        else:
+            assert isinstance(tfopt, tfa.optimizers.AdamW)
 
     @pytest.mark.torch
     def test_adamw_pytorch(self):
