@@ -488,7 +488,7 @@ class KerasModel(Model):
 
         # Report final results.
         if averaged_batches > 0:
-            avg_loss = float(avg_loss) / averaged_batches
+            avg_loss = float(tf.reduce_mean(avg_loss)) / averaged_batches
             logger.info('Ending global_step %d: Average loss %g' %
                         (current_step, avg_loss))
             if all_losses is not None:
