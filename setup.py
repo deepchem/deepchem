@@ -18,7 +18,7 @@ extras = {
     ],
     'tensorflow': [
         'tensorflow==2.20.0; python_version >= "3.9"',
-        'tensorflow>=2.12,<2.16; python_version < "3.9"',
+        'tensorflow>=2.14,<2.16; python_version < "3.9"',
         'tf-keras==2.20.1; python_version >= "3.9"',
         'tensorflow_probability==0.25.0; python_version >= "3.9"',
         'tensorflow_probability<0.24; python_version < "3.9"',
