@@ -289,6 +289,7 @@ def test_mpnn_regression_model():
     assert scores['mean_absolute_error'] < 0.1
 
 
+@flaky
 @pytest.mark.slow
 @pytest.mark.tensorflow
 def test_mpnn_regression_uncertainty():

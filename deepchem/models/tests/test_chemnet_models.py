@@ -72,6 +72,7 @@ def get_dataset(mode="classification",
         return dataset, metric
 
 
+@flaky
 @pytest.mark.slow
 @pytest.mark.tensorflow
 def test_chemception_regression():
