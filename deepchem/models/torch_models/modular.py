@@ -190,7 +190,6 @@ class ModularTorchModel(TorchModel):
         avg_loss = 0.0
         last_avg_loss = 0.0
         averaged_batches = 0
-        # FIXME This line is not needed as loss is computed inside the call to loss_func
         loss_fn = loss if loss is not None else self.loss_func
         if variables is None:
             optimizer = self._pytorch_optimizer
