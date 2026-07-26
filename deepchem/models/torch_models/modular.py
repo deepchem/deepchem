@@ -191,8 +191,7 @@ class ModularTorchModel(TorchModel):
         last_avg_loss = 0.0
         averaged_batches = 0
         # FIXME This line is not needed as loss is computed inside the call to loss_func
-        if loss is None:
-            loss = self._loss_fn
+        loss_fn = loss if loss is not None else self.loss_func
         if variables is None:
             optimizer = self._pytorch_optimizer
             lr_schedule = self._lr_schedule
@@ -226,7 +225,7 @@ class ModularTorchModel(TorchModel):
                 inputs = inputs[0]
 
             optimizer.zero_grad()
-            batch_loss = self.loss_func(inputs, labels, weights)
+            batch_loss = loss_fn(inputs, labels, weights)
             batch_loss.backward()
             optimizer.step()
             if lr_schedule is not None:
