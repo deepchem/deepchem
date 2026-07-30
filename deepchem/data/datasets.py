@@ -1244,7 +1244,8 @@ class DiskDataset(Dataset):
     @staticmethod
     def create_dataset(shard_generator: Iterable[Batch],
                        data_dir: Optional[str] = None,
-                       tasks: Optional[ArrayLike] = None) -> "DiskDataset":
+                       tasks: Optional[ArrayLike] = None,
+                       **kwargs) -> "DiskDataset":
         """Creates a new DiskDataset
 
         Parameters
@@ -1256,6 +1257,8 @@ class DiskDataset(Dataset):
             Filename for data directory. Creates a temp directory if none specified.
         tasks: Sequence, optional (default [])
             List of tasks for this dataset.
+        overwrite: bool, optional (default False)
+            Whether to overwrite the directory if it already exists and is non-empty.
 
         Returns
         -------
@@ -1266,6 +1269,10 @@ class DiskDataset(Dataset):
             data_dir = tempfile.mkdtemp()
         elif not os.path.exists(data_dir):
             os.makedirs(data_dir)
+        elif os.listdir(data_dir) and not kwargs.get('overwrite', False):
+            raise ValueError(
+                f"The directory {data_dir} is not empty. To overwrite it, pass overwrite=True."
+            )
 
         metadata_rows = []
         time1 = time.time()
@@ -1433,7 +1440,8 @@ class DiskDataset(Dataset):
 
     def move(self,
              new_data_dir: str,
-             delete_if_exists: Optional[bool] = True) -> None:
+             delete_if_exists: Optional[bool] = True,
+             **kwargs) -> None:
         """Moves dataset to new directory.
 
         Parameters
@@ -1444,6 +1452,8 @@ class DiskDataset(Dataset):
             If this option is set, delete the destination directory if it exists
             before moving. This is set to True by default to be backwards compatible
             with behavior in earlier versions of DeepChem.
+        overwrite: bool, optional (default False)
+            Whether to overwrite the directory if it already exists and is non-empty.
 
         Note
         ----
@@ -1452,8 +1462,13 @@ class DiskDataset(Dataset):
         set `True`), then `new_data_dir` is deleted if it's a pre-existing
         directory.
         """
-        if delete_if_exists and os.path.isdir(new_data_dir):
-            shutil.rmtree(new_data_dir)
+        if os.path.isdir(new_data_dir):
+            if os.listdir(new_data_dir) and not kwargs.get('overwrite', False):
+                raise ValueError(
+                    f"The directory {new_data_dir} is not empty. To overwrite it, pass overwrite=True."
+                )
+            if delete_if_exists:
+                shutil.rmtree(new_data_dir)
         shutil.move(self.data_dir, new_data_dir)
         if delete_if_exists:
             self.data_dir = new_data_dir
@@ -1461,13 +1476,15 @@ class DiskDataset(Dataset):
             self.data_dir = os.path.join(new_data_dir,
                                          os.path.basename(self.data_dir))
 
-    def copy(self, new_data_dir: str) -> "DiskDataset":
+    def copy(self, new_data_dir: str, **kwargs) -> "DiskDataset":
         """Copies dataset to new directory.
 
         Parameters
         ----------
         new_data_dir: str
             The new directory name to copy this to dataset to.
+        overwrite: bool, optional (default False)
+            Whether to overwrite the directory if it already exists and is non-empty.
 
         Returns
         -------
@@ -1480,6 +1497,10 @@ class DiskDataset(Dataset):
         and `self.data_dir` will be deep copied into `new_data_dir`.
         """
         if os.path.isdir(new_data_dir):
+            if os.listdir(new_data_dir) and not kwargs.get('overwrite', False):
+                raise ValueError(
+                    f"The directory {new_data_dir} is not empty. To overwrite it, pass overwrite=True."
+                )
             shutil.rmtree(new_data_dir)
         shutil.copytree(self.data_dir, new_data_dir)
         return DiskDataset(new_data_dir)
@@ -1937,7 +1958,8 @@ class DiskDataset(Dataset):
                    w: Optional[ArrayLike] = None,
                    ids: Optional[ArrayLike] = None,
                    tasks: Optional[ArrayLike] = None,
-                   data_dir: Optional[str] = None) -> "DiskDataset":
+                   data_dir: Optional[str] = None,
+                   **kwargs) -> "DiskDataset":
         """Creates a DiskDataset object from specified Numpy arrays.
 
         Parameters
@@ -1955,6 +1977,8 @@ class DiskDataset(Dataset):
         data_dir: str, optional (default None)
             The directory to write this dataset to. If none is specified, will use
             a temporary directory instead.
+        overwrite: bool, optional (default False)
+            Whether to overwrite the directory if it already exists and is non-empty.
 
         Returns
         -------
@@ -1971,11 +1995,13 @@ class DiskDataset(Dataset):
         return DiskDataset.create_dataset(
             [(dataset.X, dataset.y, dataset.w, dataset.ids)],
             data_dir=data_dir,
-            tasks=tasks)
+            tasks=tasks,
+            **kwargs)
 
     @staticmethod
     def merge(datasets: Iterable["Dataset"],
-              merge_dir: Optional[str] = None) -> "DiskDataset":
+              merge_dir: Optional[str] = None,
+              **kwargs) -> "DiskDataset":
         """Merges provided datasets into a merged dataset.
 
         Parameters
@@ -1984,6 +2010,8 @@ class DiskDataset(Dataset):
             List of datasets to merge.
         merge_dir: str, optional (default None)
             The new directory path to store the merged DiskDataset.
+        overwrite: bool, optional (default False)
+            Whether to overwrite the directory if it already exists and is non-empty.
 
         Returns
         -------
@@ -1993,6 +2021,10 @@ class DiskDataset(Dataset):
         if merge_dir is not None:
             if not os.path.exists(merge_dir):
                 os.makedirs(merge_dir)
+            elif os.listdir(merge_dir) and not kwargs.get('overwrite', False):
+                raise ValueError(
+                    f"The directory {merge_dir} is not empty. To overwrite it, pass overwrite=True."
+                )
         else:
             merge_dir = tempfile.mkdtemp()
 
@@ -2035,7 +2067,8 @@ class DiskDataset(Dataset):
 
         merged_dataset = DiskDataset.create_dataset(generator(),
                                                     data_dir=merge_dir,
-                                                    tasks=merge_tasks)
+                                                    tasks=merge_tasks,
+                                                    **kwargs)
 
         # we must reshard the dataset to have a uniform size
         # choose the smallest shard size
