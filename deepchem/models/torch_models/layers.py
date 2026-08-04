@@ -3185,7 +3185,8 @@ class DTNNEmbedding(nn.Module):
             old = kwargs.pop('initalizer')
             warnings.warn(
                 "The `initalizer` parameter is deprecated; use `initializer` instead.",
-                DeprecationWarning)
+                FutureWarning,
+                stacklevel=2)
             initializer = old
 
         super(DTNNEmbedding, self).__init__(**kwargs)

@@ -1039,6 +1039,29 @@ def test_dtnn_embedding():
 
 
 @pytest.mark.torch
+def test_dtnn_embedding_initalizer_backwards_compat():
+    """DTNNEmbedding accepts the misspelled `initalizer` keyword with a warning.
+
+    The parameter was renamed to `initializer`; the old spelling is accepted
+    for backwards compatibility and emits a FutureWarning.
+    """
+    with pytest.warns(FutureWarning, match="initalizer"):
+        layer = torch_layers.DTNNEmbedding(5, 5, initalizer='xavier_uniform_')
+    assert layer.initializer == 'xavier_uniform_'
+
+
+@pytest.mark.torch
+def test_dtnn_embedding_initalizer_precedence():
+    """When both spellings are passed, `initalizer` wins (it is applied last)."""
+    with pytest.warns(FutureWarning, match="initalizer"):
+        layer = torch_layers.DTNNEmbedding(5,
+                                           5,
+                                           initializer='normal_',
+                                           initalizer='xavier_uniform_')
+    assert layer.initializer == 'xavier_uniform_'
+
+
+@pytest.mark.torch
 def test_dtnn_step():
     """Test invoking the Torch Equivalent of DTNNEmbedding."""
     # Weights and Embeddings from Tensorflow implementation
