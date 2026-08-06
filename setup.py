@@ -13,15 +13,19 @@ else:
 extras = {
     'jax': ['jax==0.4.30', 'jaxlib==0.4.30', 'dm-haiku==0.0.13', 'optax'],
     'torch': [
-        'torch==2.2.1', 'torchvision', 'pytorch-lightning', 'dgl<2.2.1',
-        'dgllife'
+        'torch==2.3.0; python_version >= "3.9"',
+        'torch==2.1.0; python_version < "3.9"', 'torchvision',
+        'pytorch-lightning', 'dgl<2.2.1', 'dgllife'
     ],
     'tensorflow': [
-        'tensorflow',
-        'tensorflow_probability',
-        "tensorflow_addons; python_version < '3.12'",
+        'tensorflow==2.20.0; python_version >= "3.9"',
+        'tensorflow==2.13.1; python_version < "3.9"',
+        'tf-keras==2.20.1; python_version >= "3.9"',
+        'tensorflow_probability==0.25.0; python_version >= "3.9"',
+        'tensorflow_probability<0.24; python_version < "3.9"',
+        'tensorflow_addons; python_version < "3.9"',
     ],
-    'dqc': ['dqc', 'xitorch', 'torch==2.2.1', 'pylibxc2']
+    'dqc': ['dqc', 'xitorch', 'torch==2.3.0', 'pylibxc2']
 }
 
 
@@ -79,7 +83,8 @@ setup(name='deepchem',
       },
       install_requires=[
           'joblib',
-          'numpy<2',
+          'numpy>=2.0; python_version >= "3.9"',
+          'numpy<2; python_version < "3.9"',
           'pandas',
           'scikit-learn',
           'sympy',

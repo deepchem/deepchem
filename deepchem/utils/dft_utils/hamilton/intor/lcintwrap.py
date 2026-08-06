@@ -397,8 +397,8 @@ class LibcintWrapper(object):
             The lower and upper indices of the atomic orbitals.
         """
         shell_idxs = self.shell_idxs
-        return self.full_shell_to_aoloc[
-            shell_idxs[0]], self.full_shell_to_aoloc[shell_idxs[1]]
+        return int(self.full_shell_to_aoloc[shell_idxs[0]]), int(
+            self.full_shell_to_aoloc[shell_idxs[1]])
 
     @memoize_method
     def ao_to_atom(self) -> torch.Tensor:

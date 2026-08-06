@@ -536,7 +536,7 @@ class A2C(object):
             ]
             action: int = self._select_action_from_outputs(results, False)
             actions.append(action)
-            values.append(float(value))
+            values.append(float(value.item()))
             rewards.append(self._env.step(action))
 
         # Compute an estimate of the reward for the rest of the episode.
@@ -593,7 +593,7 @@ class A2C(object):
         # Rearrange the states into the proper set of arrays.
 
         if self._state_is_list:
-            state_arrays: List[List[np.ndarray]] = [
+            state_arrays: List[Any] = [
                 [] for i in range(len(self._env.state_shape))
             ]
             for state in states:

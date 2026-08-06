@@ -296,7 +296,7 @@ class AtomicConvModel(KerasModel):
                     frag2_Nbrs, frag2_Nbrs_Z, frag2_Z_b, complex_X_b,
                     complex_Nbrs, complex_Nbrs_Z, complex_Z_b
                 ]
-                y_b = np.reshape(y_b, newshape=(batch_size, 1))
+                y_b = np.reshape(y_b, (batch_size, 1))
                 yield (inputs, [y_b], [w_b])
 
     def save(self):

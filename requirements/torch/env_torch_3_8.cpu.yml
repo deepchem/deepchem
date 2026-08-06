@@ -1,15 +1,15 @@
 dependencies:
   - pip:
     - -f https://download.pytorch.org/whl/cpu/torch_stable.html
-    - -f https://data.dgl.ai/wheels/torch-2.3/repo.html
+    - -f https://data.dgl.ai/wheels/torch-2.1/repo.html
     - torchdata<0.8.0
     - dgl==2.2.1
-    - torch==2.3.0+cpu
+    - torch==2.1.0+cpu
     - torch-geometric
     - lightning
     - pydantic
-    - -f https://data.pyg.org/whl/torch-2.3.0+cpu.html
-    - torch-cluster==1.6.3+pt23cpu
+    - -f https://data.pyg.org/whl/torch-2.1.0+cpu.html
+    - torch-cluster==1.6.3+pt21cpu
     - git+https://github.com/diffqc/dqclibs.git
     - git+https://gitlab.com/libxc/libxc.git
     - basis-set-exchange

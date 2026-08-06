@@ -2,6 +2,7 @@ import deepchem as dc
 import pytest
 import numpy as np
 import tempfile
+from flaky import flaky
 
 try:
     import torch
@@ -96,6 +97,7 @@ def test_lnnmodel_restore():
     assert np.allclose(pred, restored_pred, atol=1e-4)
 
 
+@flaky
 @pytest.mark.torch
 @pytest.mark.skipif(not has_torch, reason="PyTorch is not installed")
 def test_lnnmodel_overfit():

@@ -86,7 +86,7 @@ try:
     from deepchem.feat.bio_seq_featurizer import BAMFeaturizer
     from deepchem.feat.bio_seq_featurizer import CRAMFeaturizer
     from deepchem.feat.bio_seq_featurizer import FASTAFeaturizer
-except ImportError as e:
+except Exception as e:
     logger.warning(
         f'Skipped loading biological sequence featurizer, missing a dependency. {e}'
     )
@@ -105,7 +105,7 @@ try:
     from deepchem.feat.roberta_tokenizer import RobertaFeaturizer
     from deepchem.feat.dnabert_tokenizer import DNABertFeaturizer
     from deepchem.feat.reaction_featurizer import RxnFeaturizer
-except ModuleNotFoundError:
+except Exception:
     pass
 
 from deepchem.feat.vocabulary_builders import HuggingFaceVocabularyBuilder

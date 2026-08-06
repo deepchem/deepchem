@@ -14,7 +14,14 @@ import pytest
 import tempfile
 from flaky import flaky
 
+try:
+    import pyGPGO  # noqa: F401
+    has_pygpgo = True
+except ModuleNotFoundError:
+    has_pygpgo = False
 
+
+@unittest.skipIf(not has_pygpgo, "pyGPGO is not installed")
 class TestGaussianHyperparamOpt(unittest.TestCase):
     """
     Test Gaussian Hyperparameter Optimization.

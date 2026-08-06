@@ -345,11 +345,19 @@ class AdamW(Optimizer):
         self.amsgrad = amsgrad
 
     def _create_tf_optimizer(self, global_step):
-        import tensorflow_addons as tfa
+        import tensorflow as tf
         if isinstance(self.learning_rate, LearningRateSchedule):
             learning_rate = self.learning_rate._create_tf_tensor(global_step)
         else:
             learning_rate = self.learning_rate
+        if hasattr(tf.keras.optimizers, 'AdamW'):
+            return tf.keras.optimizers.AdamW(weight_decay=self.weight_decay,
+                                             learning_rate=learning_rate,
+                                             beta_1=self.beta1,
+                                             beta_2=self.beta2,
+                                             epsilon=self.epsilon,
+                                             amsgrad=self.amsgrad)
+        import tensorflow_addons as tfa
         return tfa.optimizers.AdamW(weight_decay=self.weight_decay,
                                     learning_rate=learning_rate,
                                     beta_1=self.beta1,

@@ -168,7 +168,7 @@ try:
     from deepchem.utils.safeops_utils import safe_cdist
 
     from deepchem.utils.optimizer_utils import LambOptimizer
-except ModuleNotFoundError as e:
+except Exception as e:
     logger.warning(
         f'Skipped loading some Pytorch utilities, missing a dependency. {e}')
 

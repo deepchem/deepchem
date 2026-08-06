@@ -1,4 +1,5 @@
 import functools
+import inspect
 import numpy as np
 import torch
 import warnings
@@ -7,6 +8,9 @@ from deepchem.utils.differentiation_utils import LinearOperator, MatrixLinearOpe
 from deepchem.utils import ConvergenceWarning, get_np_dtype
 from scipy.sparse.linalg import gmres as scipy_gmres
 from deepchem.utils.differentiation_utils.optimize.rootsolver import broyden1
+
+_GMRES_TOL_KWARG = 'rtol' if 'rtol' in inspect.signature(
+    scipy_gmres).parameters else 'tol'
 
 
 def solve(A: LinearOperator,
@@ -332,9 +336,9 @@ def wrap_gmres(A, B, E=None, M=None, min_eps=1e-9, max_niter=None, **unused):
         for j in range(ncols):
             x, info = scipy_gmres(op,
                                   B_np[i, j, :],
-                                  tol=min_eps,
                                   atol=1e-12,
-                                  maxiter=max_niter)
+                                  maxiter=max_niter,
+                                  **{_GMRES_TOL_KWARG: min_eps})
             if info > 0:
                 msg = "The GMRES iteration does not converge to the desired value "\
                       "(%.3e) after %d iterations" % \

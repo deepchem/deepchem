@@ -1,6 +1,9 @@
 """
 Imports all submodules
 """
+import os
+
+os.environ.setdefault('TF_USE_LEGACY_KERAS', '1')
 
 # If you push the tag, please remove `.dev`
 __version__ = '2.8.1.dev'

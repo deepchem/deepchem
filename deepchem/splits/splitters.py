@@ -1441,7 +1441,7 @@ def _split_fingerprints(fps: List, size1: int,
     indices_in_group: Tuple[List[int], List[int]] = ([0], [])
     remaining_fp = fps[1:]
     remaining_indices = list(range(1, len(fps)))
-    max_similarity_to_group = [
+    max_similarity_to_group: List[Any] = [
         DataStructs.BulkTanimotoSimilarity(fps[0], remaining_fp),
         [0] * len(remaining_fp)
     ]

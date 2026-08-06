@@ -27,7 +27,7 @@ try:
     from deepchem.models.molgan import BasicMolGANModel
     from deepchem.models.text_cnn import TextCNNModel
     from deepchem.models.chemnet_models import Smiles2Vec, ChemCeption
-except ModuleNotFoundError as e:
+except Exception as e:
     logger.warning(
         f'Skipped loading some Tensorflow models, missing a dependency. {e}')
 
@@ -54,7 +54,7 @@ try:
     from deepchem.models.torch_models import ScaledDotProductAttention, SelfAttention
     from deepchem.models.torch_models import GroverReadout
     from deepchem.models.torch_models import WeaveModel, DTNNModel
-except ModuleNotFoundError as e:
+except Exception as e:
     logger.warning(
         f'Skipped loading some PyTorch models, missing a dependency. {e}')
 
@@ -63,7 +63,7 @@ try:
     from deepchem.models.torch_models import Chemberta
     from deepchem.models.torch_models import MoLFormer
     from deepchem.models.torch_models import OneFormer
-except ImportError as e:
+except Exception as e:
     logger.warning(e)
 
 # Pytorch models with torch-geometric dependency
@@ -71,7 +71,7 @@ try:
     # TODO We should clean up DMPNN and remove torch_geometric dependency during import
     from deepchem.models.torch_models import MEGNetModel
     from deepchem.models.torch_models import DMPNN, DMPNNModel, GNNModular, MXMNet
-except ImportError as e:
+except Exception as e:
     logger.warning(
         f'Skipped loading modules with pytorch-geometric dependency, missing a dependency. {e}'
     )
@@ -80,7 +80,7 @@ except ImportError as e:
 try:
     from deepchem.models.lightning import DCLightningModule, DCLightningDatasetModule
     from deepchem.models.trainer import DistributedTrainer
-except ModuleNotFoundError as e:
+except Exception as e:
     logger.warning(
         f'Skipped loading modules with pytorch-lightning dependency, missing a dependency. {e}'
     )
@@ -89,7 +89,7 @@ except ModuleNotFoundError as e:
 try:
     from deepchem.models.jax_models import JaxModel
     from deepchem.models.jax_models import PINNModel
-except ModuleNotFoundError as e:
+except Exception as e:
     logger.warning(
         f'Skipped loading some Jax models, missing a dependency. {e}')
 
@@ -106,5 +106,5 @@ try:
     from deepchem.models.text_cnn import TextCNNTensorGraph
     from deepchem.models.graph_models import WeaveTensorGraph, DTNNTensorGraph, DAGTensorGraph, GraphConvTensorGraph, MPNNTensorGraph
     from deepchem.models.IRV import TensorflowMultitaskIRVClassifier
-except ModuleNotFoundError:
+except Exception:
     pass

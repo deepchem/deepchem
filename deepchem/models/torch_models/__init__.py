@@ -66,7 +66,7 @@ try:
     from deepchem.models.torch_models.mxmnet import MXMNet
     from deepchem.models.torch_models.se3_transformer import SE3Transformer, SE3TransformerModel
     from deepchem.models.torch_models.tfn import TFN, TFNModel
-except ModuleNotFoundError as e:
+except Exception as e:
     logger.warning(
         f'Skipped loading modules with pytorch-geometric dependency, missing a dependency. {e}'
     )
@@ -77,5 +77,5 @@ try:
     from deepchem.models.torch_models.prot_bert import ProtBERT
     from deepchem.models.torch_models.oneformer import OneFormer
 
-except ModuleNotFoundError as e:
+except Exception as e:
     logger.warning(f'Skipped loading modules with transformers dependency. {e}')

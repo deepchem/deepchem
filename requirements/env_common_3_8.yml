@@ -8,7 +8,7 @@ dependencies:
   - pdbfixer
   - pip
   - pip:
-    - numpy==1.24.4
+    - numpy==1.24.3  # numpy>=2.0 dropped Python 3.8 support; this env stays on numpy<2. Pinned to 1.24.3 (not 1.24.4) to satisfy tensorflow==2.13.1's numpy<=1.24.3 constraint.
     - rdkit==2023.09.5
     - pre-commit
     - biopython

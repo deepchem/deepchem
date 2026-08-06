@@ -8,9 +8,9 @@ dependencies:
   - pdbfixer
   - pip
   - pip:
-    - numpy<1.26
+    - numpy>=2.0
     - pymc>=5.10
-    - rdkit==2023.09.5
+    - rdkit==2024.09.1
     - pre-commit
     - biopython
     - dgllife
@@ -20,12 +20,11 @@ dependencies:
     - networkx
     - pillow
     - pubchempy
-    - pyGPGO
-    - pymatgen<2024  # newer releases need numpy>=1.26; unpinned it makes pip backtrack into source builds
+    - pymatgen==2024.8.9
     - simdna
     - transformers==4.51.3
     - tokenizers
     - xgboost
     - gensim  # used by mol2vec
-    - scipy<=1.12.0
+    - scipy>=1.13.0
     - tensorboard

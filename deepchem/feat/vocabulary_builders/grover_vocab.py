@@ -528,7 +528,7 @@ class GroverAtomVocabTokenizer(Featurizer):
     >>> vocab.save(file.name)  # build and save the vocabulary
     >>> atom_tokenizer = GroverAtomVocabTokenizer(file.name)
     >>> mol = Chem.MolFromSmiles('CC(=O)C')
-    >>> atom_tokenizer.featurize([(mol, mol.GetAtomWithIdx(0))])[0]
+    >>> print(atom_tokenizer.featurize([(mol, mol.GetAtomWithIdx(0))])[0])
     2
 
     Parameters
@@ -562,7 +562,7 @@ class GroverBondVocabTokenizer(Featurizer):
     >>> vocab.save(file.name)  # build and save the vocabulary
     >>> bond_tokenizer = GroverBondVocabTokenizer(file.name)
     >>> mol = Chem.MolFromSmiles('CC(=O)C')
-    >>> bond_tokenizer.featurize([(mol, mol.GetBondWithIdx(0))])[0]
+    >>> print(bond_tokenizer.featurize([(mol, mol.GetBondWithIdx(0))])[0])
     2
 
     Parameters
