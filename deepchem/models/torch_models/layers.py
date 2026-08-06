@@ -9492,3 +9492,420 @@ class SpectralConv(nn.Module):
                                  s=x.shape[2:],
                                  dim=tuple(range(2, x.ndim))).real
         return x_out + self.bias
+
+
+# =============================================================================
+# MLIP (Machine Learning Interatomic Potentials) Layers - Phase 2
+# Angular Representations for 3D molecular systems
+# =============================================================================
+
+
+class MLIPPolynomialCutoff(nn.Module):
+    """Polynomial cutoff function for smooth distance-based envelope in MLIP models.
+
+    This implements a polynomial envelope function that smoothly decays to zero
+    at the cutoff distance. The function and its derivatives are continuous,
+    which is essential for computing smooth forces in molecular dynamics.
+
+    The polynomial cutoff is defined as:
+        f(r) = 1 - (p+1)(p+2)/2 * x^p + p(p+2) * x^(p+1) - p(p+1)/2 * x^(p+2)
+
+    where x = r/r_cut and p is the polynomial order.
+
+    This ensures f(0) = 1, f(r_cut) = 0, and f'(r_cut) = 0.
+
+    Parameters
+    ----------
+    cutoff : float
+        The cutoff distance in Angstroms. Beyond this distance, the function
+        returns zero.
+    p : int, optional (default=6)
+        The polynomial order. Higher values give sharper cutoffs.
+        Common values are 5, 6, or 8.
+
+    Examples
+    --------
+    >>> cutoff_fn = MLIPPolynomialCutoff(cutoff=5.0, p=6)
+    >>> distances = torch.tensor([0.0, 2.5, 4.0, 5.0, 6.0])
+    >>> output = cutoff_fn(distances)
+    >>> output.shape
+    torch.Size([5])
+    >>> # At r=0, output should be 1.0
+    >>> # At r=cutoff, output should be 0.0
+    >>> # Beyond cutoff, output should be 0.0
+
+    References
+    ----------
+    .. [1] Behler, J. "Atom-centered symmetry functions for constructing
+           high-dimensional neural network potentials." J. Chem. Phys. 134,
+           074106 (2011).
+    .. [2] Batzner et al. "E(3)-equivariant graph neural networks for
+           data-efficient and accurate interatomic potentials." Nat. Commun.
+           13, 2453 (2022).
+    """
+
+    def __init__(self, cutoff: float, p: int = 6):
+        """Initialize the polynomial cutoff function.
+
+        Parameters
+        ----------
+        cutoff : float
+            The cutoff distance in Angstroms.
+        p : int, optional (default=6)
+            The polynomial order for the envelope function.
+        """
+        super(MLIPPolynomialCutoff, self).__init__()
+        self.cutoff = cutoff
+        self.p = p
+
+        # Precompute polynomial coefficients
+        self.a = -(p + 1) * (p + 2) / 2
+        self.b = p * (p + 2)
+        self.c = -p * (p + 1) / 2
+
+    def forward(self, distances: torch.Tensor) -> torch.Tensor:
+        """Compute the polynomial cutoff envelope for given distances.
+
+        Parameters
+        ----------
+        distances : torch.Tensor
+            Tensor of interatomic distances with arbitrary shape.
+
+        Returns
+        -------
+        torch.Tensor
+            Envelope values with the same shape as input distances.
+            Values are in [0, 1], with 1 at r=0 and 0 at r>=cutoff.
+        """
+        # Normalize distances by cutoff
+        x = distances / self.cutoff
+
+        # Compute polynomial envelope
+        x_p = x.pow(self.p)
+        x_p1 = x_p * x
+        x_p2 = x_p1 * x
+
+        envelope = 1.0 + self.a * x_p + self.b * x_p1 + self.c * x_p2
+
+        # Zero out values beyond cutoff
+        return torch.where(distances < self.cutoff, envelope,
+                           torch.zeros_like(envelope))
+
+    def extra_repr(self) -> str:
+        return f'cutoff={self.cutoff}, p={self.p}'
+
+
+class MLIPSphericalHarmonics(nn.Module):
+    """Real spherical harmonics for angular representations in MLIP models.
+
+    This module computes real (tesseral) spherical harmonics Y_l^m(θ, φ) for
+    encoding angular information in 3D molecular systems. The implementation
+    uses Cartesian coordinates directly for numerical stability and efficiency.
+
+    Spherical harmonics provide a complete orthonormal basis for functions on
+    the sphere and are essential for capturing angular dependencies in
+    interatomic potentials. They are equivariant under rotations, making them
+    ideal for rotationally invariant/equivariant neural networks.
+
+    The output dimension for max_degree L is (L+1)^2, containing all harmonics
+    from l=0 to l=L.
+
+    Parameters
+    ----------
+    max_degree : int
+        Maximum degree L of spherical harmonics to compute.
+        Output will have (L+1)^2 components.
+    normalize : bool, optional (default=True)
+        If True, normalize the input vectors before computing harmonics.
+        This is recommended for most applications.
+
+    Examples
+    --------
+    >>> sh = MLIPSphericalHarmonics(max_degree=2)
+    >>> # Input: batch of 3D vectors (e.g., relative positions)
+    >>> vectors = torch.randn(100, 3)
+    >>> output = sh(vectors)
+    >>> output.shape
+    torch.Size([100, 9])  # (2+1)^2 = 9 components
+
+    >>> # For edge features in a graph
+    >>> edge_vectors = torch.randn(500, 3)  # 500 edges
+    >>> edge_sh = sh(edge_vectors)
+    >>> edge_sh.shape
+    torch.Size([500, 9])
+
+    Notes
+    -----
+    The spherical harmonics are ordered as:
+    l=0: Y_0^0
+    l=1: Y_1^{-1}, Y_1^0, Y_1^1
+    l=2: Y_2^{-2}, Y_2^{-1}, Y_2^0, Y_2^1, Y_2^2
+    ...
+
+    References
+    ----------
+    .. [1] Geiger, M. & Smidt, T. "e3nn: Euclidean Neural Networks."
+           arXiv:2207.09453 (2022).
+    .. [2] Batatia et al. "MACE: Higher Order Equivariant Message Passing
+           Neural Networks for Fast and Accurate Force Fields."
+           NeurIPS 2022.
+    """
+
+    def __init__(self, max_degree: int, normalize: bool = True):
+        """Initialize the spherical harmonics module.
+
+        Parameters
+        ----------
+        max_degree : int
+            Maximum degree L of spherical harmonics.
+        normalize : bool, optional (default=True)
+            Whether to normalize input vectors.
+        """
+        super(MLIPSphericalHarmonics, self).__init__()
+        self.max_degree = max_degree
+        self.normalize = normalize
+        self.output_dim = (max_degree + 1)**2
+
+        # Precompute normalization constants for each (l, m)
+        # Using the convention: sqrt((2l+1)/(4*pi) * (l-|m|)!/(l+|m|)!)
+        norm_constants = []
+        for l in range(max_degree + 1):
+            for m in range(-l, l + 1):
+                norm = self._compute_normalization(l, m)
+                norm_constants.append(norm)
+        self.register_buffer('norm_constants',
+                             torch.tensor(norm_constants, dtype=torch.float32))
+
+    def _compute_normalization(self, l: int, m: int) -> float:
+        """Compute the normalization constant for Y_l^m.
+
+        Parameters
+        ----------
+        l : int
+            Degree of the spherical harmonic.
+        m : int
+            Order of the spherical harmonic.
+
+        Returns
+        -------
+        float
+            Normalization constant.
+        """
+        # Compute (l-|m|)! / (l+|m|)! using log-gamma for numerical stability
+        abs_m = abs(m)
+        factor = 1.0
+        for k in range(l - abs_m + 1, l + abs_m + 1):
+            factor *= k
+        norm = math.sqrt((2 * l + 1) / (4 * math.pi * factor))
+        return norm
+
+    def _compute_associated_legendre(self, l: int, m: int,
+                                     z: torch.Tensor) -> torch.Tensor:
+        """Compute the associated Legendre polynomial P_l^m(z).
+
+        Uses recurrence relations for numerical stability.
+
+        Parameters
+        ----------
+        l : int
+            Degree of the polynomial.
+        m : int
+            Order of the polynomial (non-negative).
+        z : torch.Tensor
+            Input values (typically cos(theta)).
+
+        Returns
+        -------
+        torch.Tensor
+            Associated Legendre polynomial values.
+        """
+        if m > l:
+            return torch.zeros_like(z)
+
+        # Start with P_m^m
+        pmm = torch.ones_like(z)
+        if m > 0:
+            somx2 = torch.sqrt((1 - z) * (1 + z))
+            fact = 1.0
+            for i in range(1, m + 1):
+                pmm = pmm * (-fact) * somx2
+                fact += 2.0
+
+        if l == m:
+            return pmm
+
+        # Compute P_{m+1}^m
+        pmmp1 = z * (2 * m + 1) * pmm
+
+        if l == m + 1:
+            return pmmp1
+
+        # Use recurrence to get P_l^m
+        pll = torch.zeros_like(z)
+        for ll in range(m + 2, l + 1):
+            pll = ((2 * ll - 1) * z * pmmp1 - (ll + m - 1) * pmm) / (ll - m)
+            pmm = pmmp1
+            pmmp1 = pll
+
+        return pll
+
+    def forward(self, vectors: torch.Tensor) -> torch.Tensor:
+        """Compute spherical harmonics for input 3D vectors.
+
+        Parameters
+        ----------
+        vectors : torch.Tensor
+            Input tensor of shape (..., 3) containing 3D vectors.
+            These are typically relative position vectors between atoms.
+
+        Returns
+        -------
+        torch.Tensor
+            Spherical harmonics of shape (..., (max_degree+1)^2).
+        """
+        # Extract Cartesian components
+        x = vectors[..., 0]
+        y = vectors[..., 1]
+        z = vectors[..., 2]
+
+        # Compute r for normalization
+        r = torch.sqrt(x * x + y * y + z * z + 1e-8)
+
+        if self.normalize:
+            x = x / r
+            y = y / r
+            z = z / r
+
+        # Compute spherical coordinates
+        # cos(theta) = z/r (already normalized if normalize=True)
+        cos_theta = z if self.normalize else z / r
+
+        # phi = atan2(y, x)
+        phi = torch.atan2(y, x)
+
+        # Compute all spherical harmonics
+        harmonics = []
+        idx = 0
+
+        for l in range(self.max_degree + 1):
+            for m in range(-l, l + 1):
+                # Get normalization constant
+                norm = self.norm_constants[idx]
+
+                # Compute associated Legendre polynomial
+                plm = self._compute_associated_legendre(l, abs(m), cos_theta)
+
+                # Compute the angular part
+                if m > 0:
+                    # Y_l^m for m > 0: cos(m*phi) * P_l^m
+                    ylm = norm * plm * torch.cos(m * phi) * math.sqrt(2)
+                elif m < 0:
+                    # Y_l^m for m < 0: sin(|m|*phi) * P_l^|m|
+                    ylm = norm * plm * torch.sin(abs(m) * phi) * math.sqrt(2)
+                else:
+                    # Y_l^0: just P_l^0
+                    ylm = norm * plm
+
+                harmonics.append(ylm)
+                idx += 1
+
+        return torch.stack(harmonics, dim=-1)
+
+    def extra_repr(self) -> str:
+        return f'max_degree={self.max_degree}, normalize={self.normalize}, output_dim={self.output_dim}'
+
+
+class MLIPAngularBasis(nn.Module):
+    """Combined angular basis for MLIP models using spherical harmonics and cutoff.
+
+    This module combines spherical harmonics with a polynomial cutoff to create
+    a complete angular basis for encoding 3D geometric information in molecular
+    systems. The cutoff ensures smooth decay of angular features with distance.
+
+    The output features are the product of spherical harmonics and the radial
+    cutoff envelope, providing distance-weighted angular information.
+
+    Parameters
+    ----------
+    max_degree : int
+        Maximum degree L of spherical harmonics.
+    cutoff : float
+        Cutoff distance in Angstroms for the polynomial envelope.
+    cutoff_p : int, optional (default=6)
+        Polynomial order for the cutoff function.
+    normalize : bool, optional (default=True)
+        Whether to normalize input vectors for spherical harmonics.
+
+    Examples
+    --------
+    >>> angular_basis = MLIPAngularBasis(max_degree=2, cutoff=5.0)
+    >>> # Input: relative position vectors and their distances
+    >>> vectors = torch.randn(100, 3)
+    >>> distances = torch.norm(vectors, dim=-1)
+    >>> output = angular_basis(vectors, distances)
+    >>> output.shape
+    torch.Size([100, 9])
+
+    Notes
+    -----
+    This is typically used in conjunction with radial basis functions to create
+    complete geometric features for MLIP models like MACE, NequIP, etc.
+    """
+
+    def __init__(self,
+                 max_degree: int,
+                 cutoff: float,
+                 cutoff_p: int = 6,
+                 normalize: bool = True):
+        """Initialize the angular basis module.
+
+        Parameters
+        ----------
+        max_degree : int
+            Maximum degree of spherical harmonics.
+        cutoff : float
+            Cutoff distance in Angstroms.
+        cutoff_p : int, optional (default=6)
+            Polynomial order for cutoff.
+        normalize : bool, optional (default=True)
+            Whether to normalize vectors.
+        """
+        super(MLIPAngularBasis, self).__init__()
+        self.spherical_harmonics = MLIPSphericalHarmonics(max_degree, normalize)
+        self.cutoff_fn = MLIPPolynomialCutoff(cutoff, cutoff_p)
+        self.max_degree = max_degree
+        self.cutoff = cutoff
+        self.output_dim = (max_degree + 1)**2
+
+    def forward(self,
+                vectors: torch.Tensor,
+                distances: Optional[torch.Tensor] = None) -> torch.Tensor:
+        """Compute angular basis features with distance weighting.
+
+        Parameters
+        ----------
+        vectors : torch.Tensor
+            Input tensor of shape (..., 3) containing 3D vectors.
+        distances : torch.Tensor, optional
+            Precomputed distances of shape (...). If None, computed from vectors.
+
+        Returns
+        -------
+        torch.Tensor
+            Angular basis features of shape (..., (max_degree+1)^2).
+        """
+        # Compute distances if not provided
+        if distances is None:
+            distances = torch.norm(vectors, dim=-1)
+
+        # Compute spherical harmonics
+        sh = self.spherical_harmonics(vectors)
+
+        # Apply cutoff envelope
+        envelope = self.cutoff_fn(distances)
+
+        # Weight spherical harmonics by envelope
+        return sh * envelope.unsqueeze(-1)
+
+    def extra_repr(self) -> str:
+        return f'max_degree={self.max_degree}, cutoff={self.cutoff}, output_dim={self.output_dim}'
