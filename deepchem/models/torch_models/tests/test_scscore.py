@@ -77,3 +77,45 @@ def test_loaded_pretrained_scscore():
     assert np.allclose(
         pred, pretrained_pred,
         atol=1e-04), "Predictions do not match pretrained predictions"
+
+
+@pytest.mark.torch
+def test_scscore_dropout_respects_eval_mode():
+    """ScScore.forward() must disable dropout when the module is in eval mode.
+
+    Regression test for F.dropout() being called without
+    training=self.training, which left dropout active even after
+    model.eval() was called.
+    """
+    import torch
+    from deepchem.models.torch_models.scscore import ScScore
+
+    torch.manual_seed(0)
+    model = ScScore(n_features=32, layer_sizes=[64, 64], dropout=0.5)
+    x = torch.rand(4, 32)
+
+    # Eval mode: dropout must be disabled, so repeated forward passes on
+    # identical input must be exactly reproducible. This does not depend
+    # on random seeding, since with dropout off the forward pass is a
+    # deterministic composition of linear/relu/sigmoid ops.
+    model.eval()
+    eval_out1 = model(x)
+    eval_out2 = model(x)
+    assert torch.equal(eval_out1, eval_out2), (
+        "ScScore produced different outputs for identical input while in "
+        "eval() mode; dropout is not being disabled during evaluation.")
+
+    # Train mode: dropout must remain active. Two forward passes seeded
+    # differently should not produce identical output. With dropout=0.5
+    # over 64-wide hidden layers, the probability of two independently
+    # sampled dropout masks coinciding is 2**-64, so this is not a flaky
+    # check, and both seeds are fixed for reproducibility across runs.
+    model.train()
+    torch.manual_seed(1)
+    train_out1 = model(x)
+    torch.manual_seed(2)
+    train_out2 = model(x)
+    assert not torch.equal(train_out1, train_out2), (
+        "ScScore produced identical outputs across differently-seeded "
+        "forward passes in train() mode; dropout appears inactive during "
+        "training.")
