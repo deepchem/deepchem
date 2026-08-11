@@ -29,6 +29,7 @@ try:
     from deepchem.data.data_loader import SAMLoader
     from deepchem.data.data_loader import BAMLoader
     from deepchem.data.data_loader import CRAMLoader
+    from deepchem.data.data_loader import GeneformerLoader
 except ImportError as e:
     logger.warning(
         f'Skipped loading biological sequence loaders, missing a dependency. {e}'
