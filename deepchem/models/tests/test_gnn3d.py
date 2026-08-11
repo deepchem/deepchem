@@ -3,6 +3,7 @@ import pytest
 from flaky import flaky
 import torch
 
+
 @pytest.mark.torch
 def test_Net3DLayer():
     import dgl
@@ -228,16 +229,16 @@ def test_infomax3d_load_from_pretrained(tmpdir):
         assert torch.allclose(value, finetune_model_new_state_dict[key])
 
 
-
 from deepchem.models.torch_models.gnn3d import InfoMax3DModular, _PretrainingWrapper
+
 
 def test_infomax3d_pretraining_parameter_registration():
     """
     Test that InfoMax3DModular correctly wraps both 2D and 3D models 
     during pretraining so both sets of parameters are exposed to the optimizer.
     """
-    # 1. Instantiate the model in pretraining mode. 
-    # (Note: If InfoMax3DModular requires specific dummy parameters in this test file, 
+    # 1. Instantiate the model in pretraining mode.
+    # (Note: If InfoMax3DModular requires specific dummy parameters in this test file,
     # copy the instantiation arguments from one of the other pretraining tests above it).
     model = InfoMax3DModular(
         task='pretraining',

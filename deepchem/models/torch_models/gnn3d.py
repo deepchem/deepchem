@@ -15,21 +15,24 @@ from deepchem.utils.graph_utils import fourier_encode_dist
 
 import torch.nn as nn
 
+
 class _PretrainingWrapper(nn.Module):
     """
     Internal wrapper module for InfoMax3DModular pretraining.
     This encapsulates both the 2D and 3D models so that the PyTorch 
     optimizer registers the parameters of both networks.
     """
+
     def __init__(self, model2d, model3d):
         super().__init__()
         self.model2d = model2d
         self.model3d = model3d
 
     def forward(self, *args, **kwargs):
-        # The loss function handles the 3D routing; the default forward 
+        # The loss function handles the 3D routing; the default forward
         # pass just needs to route through the 2D model to maintain the API.
         return self.model2d(*args, **kwargs)
+
 
 class Net3DLayer(nn.Module):
     """
@@ -586,10 +589,8 @@ class InfoMax3DModular(ModularTorchModel):
         """
         if self.task == 'pretraining':
             # Wrap both models so the optimizer registers all parameters
-            return _PretrainingWrapper(
-                self.components['model2d'], 
-                self.components['model3d']
-            )
+            return _PretrainingWrapper(self.components['model2d'],
+                                       self.components['model3d'])
         else:
             return self.components['model2d']
 
