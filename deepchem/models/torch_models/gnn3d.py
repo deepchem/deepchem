@@ -19,8 +19,16 @@ import torch.nn as nn
 class _PretrainingWrapper(nn.Module):
     """
     Internal wrapper module for InfoMax3DModular pretraining.
+
     This encapsulates both the 2D and 3D models so that the PyTorch 
-    optimizer registers the parameters of both networks.
+    optimizer registers the parameters of both networks during contrastive learning.
+
+    Parameters
+    ----------
+    model2d : torch.nn.Module
+        The 2D Graph Neural Network.
+    model3d : torch.nn.Module
+        The 3D Graph Neural Network.
     """
 
     def __init__(self, model2d, model3d):
@@ -29,8 +37,6 @@ class _PretrainingWrapper(nn.Module):
         self.model3d = model3d
 
     def forward(self, *args, **kwargs):
-        # The loss function handles the 3D routing; the default forward
-        # pass just needs to route through the 2D model to maintain the API.
         return self.model2d(*args, **kwargs)
 
 
