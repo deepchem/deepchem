@@ -1,10 +1,16 @@
 from deepchem.models.torch_models.hf_models import HuggingFaceModel
-from transformers import AutoTokenizer, AutoModelForMaskedLM, AutoConfig, AutoModelForSequenceClassification
+
 try:
     import torch
     has_torch = True
-except:
+except ImportError:
     has_torch = False
+
+try:
+    from transformers import AutoTokenizer, AutoModelForMaskedLM, AutoConfig, AutoModelForSequenceClassification
+    has_transformers = True
+except ImportError:
+    has_transformers = False
 
 
 class MoLFormer(HuggingFaceModel):

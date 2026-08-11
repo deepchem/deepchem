@@ -7,8 +7,9 @@ import pytest
 try:
     import torch
     from deepchem.models.torch_models.molformer import MoLFormer
-except ModuleNotFoundError:
-    pass
+    has_torch = True
+except ImportError:
+    has_torch = False
 
 
 @pytest.mark.hf
