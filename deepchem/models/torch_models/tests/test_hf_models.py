@@ -324,7 +324,12 @@ def test_modify_model_keys(tmpdir):
     assert torch.allclose(pretrained_weights, loaded_weights, atol=1e-4)
     assert not any(
         key.startswith("module.") for key in model.model.state_dict().keys())
+import pytest
+from deepchem.models.torch_models import HuggingFaceModel
 
+def test_invalid_model_name():
+    with pytest.raises(ValueError):
+        HuggingFaceModel(model_name="invalid-model-xyz-123")
 
 @pytest.mark.hf
 def test_load_molformer_model_from_hf_checkpoint(tmpdir):
