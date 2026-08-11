@@ -364,3 +364,26 @@ def test_load_molformer_model_from_hf_checkpoint(tmpdir):
                                         from_hf_checkpoint=True)
     assert finetune_model.model.config.problem_type == 'regression'
     assert finetune_model.model.config.num_labels == 1
+
+
+@pytest.mark.hf
+def test_tokenizer_kwargs(hf_tokenizer):
+    """Test that tokenizer_kwargs are correctly passed and respected."""
+    from transformers.models.roberta import RobertaConfig, RobertaForSequenceClassification
+    config = RobertaConfig(vocab_size=hf_tokenizer.vocab_size)
+    model = RobertaForSequenceClassification(config)
+
+    # Test with max_length and truncation
+    tokenizer_kwargs = {'max_length': 5, 'truncation': True}
+    hf_model = HuggingFaceModel(model=model,
+                                tokenizer=hf_tokenizer,
+                                task='classification',
+                                tokenizer_kwargs=tokenizer_kwargs,
+                                device=torch.device('cpu'))
+
+    smiles = ["CN(c1ccccc1)c1ccccc1C(=O)NCC1(O)CCOCC1"]
+    batch = (np.array(smiles), None, None)
+    inputs, _, _ = hf_model._prepare_batch(batch)
+
+    # The input_ids should be truncated to max_length (5)
+    assert inputs['input_ids'].shape[1] == 5
