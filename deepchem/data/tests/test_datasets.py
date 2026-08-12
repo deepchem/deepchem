@@ -908,3 +908,24 @@ class TestDatasets(unittest.TestCase):
         """Test creating a PyTorch Dataset from a DiskDataset."""
         dataset = load_solubility_data()
         _validate_pytorch_dataset(dataset)
+
+def test_disk_dataset_cache_disabled():
+    """Test that setting memory_cache_size=0 disables caching."""
+    X = np.random.rand(10, 5)
+    y = np.random.rand(10, 1)
+    dataset = dc.data.DiskDataset.from_numpy(X, y)
+    dataset2 = dc.data.DiskDataset(dataset.data_dir, memory_cache_size=0)
+    dataset2.get_shard(0)
+    assert dataset2._cached_shards[0] is None
+    assert dataset2._cache_used == 0
+
+
+def test_disk_dataset_cache_enabled():
+    """Test that caching works by default."""
+    X = np.random.rand(10, 5)
+    y = np.random.rand(10, 1)
+    dataset = dc.data.DiskDataset.from_numpy(X, y)
+    dataset2 = dc.data.DiskDataset(dataset.data_dir)
+    dataset2.get_shard(0)
+    assert dataset2._cached_shards[0] is not None
+    assert dataset2._cache_used > 0

@@ -101,6 +101,14 @@ class TestSplitter(unittest.TestCase):
                 else:
                     assert class_ind[s] == split_idx
 
+    def test_random_group_k_fold_split(self):
+        groups = [0, 0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3]
+        dataset = NumpyDataset(X=np.arange(12))
+        splitter = dc.splits.RandomGroupSplitter(groups=groups)
+        # Before the fix this crashed — now it should work
+        folds = splitter.k_fold_split(dataset, 3)
+        self.assertEqual(len(folds), 3)
+
     def test_singletask_random_split(self):
         """
         Test singletask RandomSplitter class.

@@ -33,15 +33,46 @@ which stores its data in :code:`numpy.ndarray` objects.
 
 DiskDataset
 ^^^^^^^^^^^
-The :code:`dc.data.DiskDataset` class allows for the storage of larger
-datasets on disk. Each :code:`DiskDataset` is associated with a
-directory in which it writes its contents to disk. Note that a
-:code:`DiskDataset` can be very large, so some of the utility methods
-to access fields of a :code:`Dataset` can be prohibitively expensive.
+
+The :class:`dc.data.DiskDataset` class allows for the storage of larger
+datasets on disk with on-demand loading.
 
 .. autoclass:: deepchem.data.DiskDataset
-  :members:
-  :inherited-members:
+   :members:
+   :inherited-members:
+
+Caching
+~~~~~~~
+
+``DiskDataset`` maintains an in-memory cache of recently accessed shards
+to improve performance when the same data is accessed multiple times.
+
+**Parameters**
+
+- ``memory_cache_size`` (int, optional):  
+  Maximum size of the in-memory cache in bytes.  
+  **Default:** ``20 * 1024 * 1024`` (20 MB).  
+
+  Set ``memory_cache_size=0`` to **completely disable** caching. This is
+  useful for very large datasets or when working with object-dtype arrays
+  (strings, lists, etc.) where memory estimation can be inaccurate.
+
+**Example**
+
+.. code-block:: python
+
+    import deepchem as dc
+    import numpy as np
+
+    X = np.random.rand(100, 10)
+    y = np.random.rand(100, 1)
+
+    # Caching enabled (default)
+    dataset = dc.data.DiskDataset.from_numpy(X, y)
+
+    # Caching disabled
+    dataset_no_cache = dc.data.DiskDataset.from_numpy(X, y, 
+                       memory_cache_size=0):
 
 ImageDataset
 ^^^^^^^^^^^^
