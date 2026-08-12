@@ -6,6 +6,7 @@ dependencies:
   - openmm
   - mdtraj
   - pdbfixer
+  - openssl>=3.2
   - pip
   - pip:
     - ase
