@@ -3,7 +3,7 @@ from transformers import AutoTokenizer, AutoModelForMaskedLM, AutoConfig, AutoMo
 try:
     import torch
     has_torch = True
-except:
+except ImportError:
     has_torch = False
 
 

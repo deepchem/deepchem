@@ -3,7 +3,7 @@ import torch
 try:
     import torch.utils.tensorboard
     _has_tensorboard = True
-except:
+except ImportError:
     _has_tensorboard = False
 import time
 import logging
