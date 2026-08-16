@@ -98,6 +98,12 @@ SDFLoader
 .. autoclass:: deepchem.data.SDFLoader
   :members: __init__, create_dataset
 
+MaterialsLoader
+^^^^^^^^^^^^^^^
+
+.. autoclass:: deepchem.data.MaterialsLoader
+  :members: __init__, create_dataset
+
 FASTALoader
 ^^^^^^^^^^^
 

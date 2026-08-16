@@ -57,6 +57,7 @@ from deepchem.models.torch_models.layers import ResidueEmbedding
 from deepchem.models.torch_models.layers import PositionalEncoding
 from deepchem.models.torch_models.layers import CosineSchedule
 from deepchem.models.torch_models.layers import BackboneDiffusion
+from deepchem.models.torch_models.nequip import NequIPModel
 
 try:
     from deepchem.models.torch_models.dmpnn import DMPNN, DMPNNModel

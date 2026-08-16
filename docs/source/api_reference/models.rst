@@ -680,6 +680,11 @@ TFNModel
 --------------------
 .. autoclass:: deepchem.models.torch_models.TFNModel
   :members:
+
+NequIPModel
+--------------------
+.. autoclass:: deepchem.models.torch_models.NequIPModel
+  :members:
   
 ChemCeptionLayer
 ----------------
