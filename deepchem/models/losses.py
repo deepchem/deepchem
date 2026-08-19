@@ -140,8 +140,17 @@ class SquaredHingeLoss(Loss):
 
 
 class PoissonLoss(Loss):
-    """The Poisson loss function is defined as the mean of the elements of y_pred - (y_true * log(y_pred) for an input of (y_true, y_pred).
-    Poisson loss is generally used for regression tasks where the data follows the poisson
+    """The Poisson loss function is defined as the mean of the elements of
+    y_pred - (y_true * log(y_pred)) for an input of (y_true, y_pred).
+    Poisson loss is generally used for regression tasks where the data follows
+    the Poisson distribution.
+
+    Notes
+    -----
+    The PyTorch implementation clamps ``output`` to a dtype-aware epsilon floor
+    before taking the logarithm.  This prevents ``log(0) = -inf`` when a
+    predicted count is exactly zero, which would silently produce ``NaN``
+    gradients and corrupt model weights.
     """
 
     def _compute_tf_loss(self, output, labels):
@@ -155,7 +164,10 @@ class PoissonLoss(Loss):
 
         def loss(output, labels):
             output, labels = _make_pytorch_shapes_consistent(output, labels)
-            return torch.mean(output - labels * torch.log(output))
+            # Clamp output to a small positive value to avoid log(0) = -inf
+            # which would propagate NaN through the gradient.
+            eps = torch.finfo(output.dtype).eps
+            return torch.mean(output - labels * torch.log(output.clamp(min=eps)))
 
         return loss
 
@@ -190,6 +202,14 @@ class CategoricalCrossEntropy(Loss):
     The arguments should each have shape (batch_size, classes) or
     (batch_size, tasks, classes), and represent a probability distribution over
     classes.
+
+    Notes
+    -----
+    The PyTorch implementation clamps ``output`` to a dtype-aware epsilon floor
+    before taking the logarithm.  This prevents ``log(0) = -inf`` when a
+    predicted class probability is exactly zero (e.g. due to a saturated
+    softmax), which would silently produce ``NaN`` gradients and corrupt model
+    weights.
     """
 
     def _compute_tf_loss(self, output, labels):
@@ -203,7 +223,10 @@ class CategoricalCrossEntropy(Loss):
 
         def loss(output, labels):
             output, labels = _make_pytorch_shapes_consistent(output, labels)
-            return -torch.sum(labels * torch.log(output), dim=-1)
+            # Clamp output to a small positive value to avoid log(0) = -inf
+            # which would propagate NaN through the gradient.
+            eps = torch.finfo(output.dtype).eps
+            return -torch.sum(labels * torch.log(output.clamp(min=eps)), dim=-1)
 
         return loss
 
