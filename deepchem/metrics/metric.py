@@ -256,12 +256,17 @@ def normalize_prediction_shape(y: np.ndarray,
             all_y_task = []
             for task in range(n_tasks):
                 y_task = y[:, task]
-                if len(np.unique(y_task)) > n_classes:
-                    # Handle continuous class probabilites of positive class for binary
+                valid_labels = np.all(np.isin(y_task, np.arange(n_classes)))
+                if not valid_labels:
+                    # Handle continuous class probabilities of positive class for binary
                     if n_classes > 2:
                         raise ValueError(
                             "Cannot handle continuous probabilities for multiclass problems."
                             "Need a per-class probability")
+                    if np.any((y_task < 0) | (y_task > 1)):
+                        raise ValueError(
+                            "Binary class probabilities must be between 0 and 1."
+                        )
                     # Fill in class 0 probabilities
                     y_task = np.array([1 - y_task, y_task]).T
                     # Add a task dimension to concatenate on

@@ -59,6 +59,14 @@ def test_r2_score():
                       regression_metric.compute_metric(y_true, y_pred))
 
 
+def test_prc_auc_score_with_tied_binary_probabilities():
+    """Test PRC AUC preserves repeated positive-class probabilities."""
+    metric = dc.metrics.Metric(dc.metrics.prc_auc_score)
+    y_true = np.array([0, 1, 0, 1])
+    y_pred = np.array([0.2, 0.8, 0.2, 0.8])
+    assert metric.compute_metric(y_true, y_pred) == 1.0
+
+
 def test_bedroc_score():
     """Test BEDROC."""
     num_actives = 20

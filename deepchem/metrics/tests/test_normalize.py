@@ -1,6 +1,7 @@
 """Test normalization of input."""
 
 import numpy as np
+import pytest
 
 import deepchem as dc
 from deepchem.metrics import to_one_hot
@@ -100,6 +101,28 @@ def test_normalize_1d_classification_binary():
                                        n_classes=2)
     assert y_out.shape == (7, 1, 2)
     assert np.array_equal(expected, y_out)
+
+
+def test_normalize_1d_classification_binary_probabilities():
+    """Tests tied binary probabilities are preserved."""
+    y = np.array([0.2, 0.8, 0.2, 0.8])
+    expected = np.array([[[0.8, 0.2]], [[0.2, 0.8]]] * 2)
+    y_out = normalize_prediction_shape(y,
+                                       mode="classification",
+                                       n_tasks=1,
+                                       n_classes=2)
+    assert y_out.shape == (4, 1, 2)
+    assert np.allclose(expected, y_out)
+
+
+@pytest.mark.parametrize("y", [np.array([-0.1, 0.5]), np.array([0.5, 1.1])])
+def test_normalize_rejects_invalid_binary_probabilities(y):
+    """Tests binary probabilities outside the unit interval are rejected."""
+    with pytest.raises(ValueError, match="between 0 and 1"):
+        normalize_prediction_shape(y,
+                                   mode="classification",
+                                   n_tasks=1,
+                                   n_classes=2)
 
 
 def test_normalize_1d_classification_multiclass():
