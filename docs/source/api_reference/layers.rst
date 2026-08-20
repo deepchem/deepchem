@@ -546,3 +546,23 @@ RFDiffusion Layers
 
 .. autoclass:: deepchem.models.torch_models.layers.BackboneDiffusion
    :members:
+
+RFDiffusion All-Atom Losses
+----------------------------
+
+Loss functions for RFDiffusion All-Atom training once side-chain and/or
+ligand atoms are involved: Frame Aligned Point Error (FAPE), a generic
+dihedral-angle loss usable for side-chain chi angles, a soft ligand
+steric-clash penalty, and a masked all-atom coordinate loss.
+
+.. autofunction:: deepchem.models.torch_models.rfdiffusion_losses.frame_aligned_point_error
+
+.. autofunction:: deepchem.models.torch_models.rfdiffusion_losses.dihedral_angle
+
+.. autofunction:: deepchem.models.torch_models.rfdiffusion_losses.chi_angle_loss
+
+.. autofunction:: deepchem.models.torch_models.rfdiffusion_losses.ligand_clash_loss
+
+.. autofunction:: deepchem.models.torch_models.rfdiffusion_losses.masked_all_atom_l2_loss
+
+.. autofunction:: deepchem.models.torch_models.rfdiffusion_losses.vdw_radii_from_symbols

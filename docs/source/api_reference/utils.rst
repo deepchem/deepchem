@@ -962,3 +962,18 @@ node features for message-passing layers.
 .. autofunction:: deepchem.utils.ProteinMPNN_utils.gather_edges
 .. autofunction:: deepchem.utils.ProteinMPNN_utils.gather_nodes
 .. autofunction:: deepchem.utils.ProteinMPNN_utils.cat_neighbors_nodes
+
+RFDiffusion Ligand Utils
+------------------------
+
+Ligand parsing utilities for RFDiffusion All-Atom conditioning: turns an
+on-disk ligand file into a point cloud plus the atom-type and bond
+features the all-atom network needs, and enumerates graph-automorphism
+atom permutations for symmetric ligands.
+
+.. autoclass:: deepchem.utils.rfdiffusion_ligand.LigandPointCloud
+   :members:
+
+.. autofunction:: deepchem.utils.rfdiffusion_ligand.parse_ligand_file
+
+.. autofunction:: deepchem.utils.rfdiffusion_ligand.find_ligand_automorphisms
