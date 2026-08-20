@@ -91,13 +91,13 @@ class ScScore(nn.Module):
 
         x = F.relu(self.input_layer(inputs))
         if self.dropout > 0.0:
-            x = F.dropout(x, p=self.dropout)
+            x = F.dropout(x, p=self.dropout, training=self.training)
 
         for hidden_layer in self.hidden_layers:
             x = F.relu(hidden_layer(x))
 
             if self.dropout > 0.0:
-                x = F.dropout(x, p=self.dropout)
+                x = F.dropout(x, p=self.dropout, training=self.training)
 
         output = F.sigmoid(self.output_layer(x))
 
