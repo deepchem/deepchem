@@ -303,7 +303,7 @@ Torch Layers
 
 .. autoclass:: deepchem.models.torch_models.layers.SpectralConv
   :members:
-  
+
 .. autoclass:: deepchem.models.torch_models.chemnet_layers.Stem
   :members:
 
@@ -314,7 +314,7 @@ Torch Layers
   :members:
 
 .. autoclass:: deepchem.models.torch_models.fno.FNOBlock
-  :members:  
+  :members:
 
 .. autoclass:: deepchem.models.torch_models.chemnet_layers.InceptionResnetC
   :members:
@@ -545,4 +545,10 @@ RFDiffusion Layers
    :members:
 
 .. autoclass:: deepchem.models.torch_models.layers.BackboneDiffusion
+   :members:
+
+ProteinMPNN Layers
+------------------
+
+.. autoclass:: deepchem.models.torch_models.ProteinMPNN.ProteinFeaturesLayer
    :members:
