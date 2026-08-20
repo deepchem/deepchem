@@ -546,3 +546,38 @@ RFDiffusion Layers
 
 .. autoclass:: deepchem.models.torch_models.layers.BackboneDiffusion
    :members:
+
+RFDiffusion All-Atom Symmetry
+------------------------------
+
+Point-group symmetry utilities for generating symmetric multi-chain
+assemblies: rotation matrices for the cyclic, dihedral, tetrahedral,
+octahedral, and icosahedral point groups, and functions that project a
+set of chain copies onto the symmetric subspace of a group.
+
+.. autofunction:: deepchem.models.torch_models.rfdiffusion_symmetry.cyclic_group
+
+.. autofunction:: deepchem.models.torch_models.rfdiffusion_symmetry.dihedral_group
+
+.. autofunction:: deepchem.models.torch_models.rfdiffusion_symmetry.tetrahedral_group
+
+.. autofunction:: deepchem.models.torch_models.rfdiffusion_symmetry.octahedral_group
+
+.. autofunction:: deepchem.models.torch_models.rfdiffusion_symmetry.icosahedral_group
+
+.. autofunction:: deepchem.models.torch_models.rfdiffusion_symmetry.symmetrize_coords
+
+.. autofunction:: deepchem.models.torch_models.rfdiffusion_symmetry.symmetrize_frames
+
+RFDiffusion All-Atom Conditioning
+------------------------------------
+
+Conditioning modules for target-length awareness and binder design:
+embedding a target chain length, and cross-attention from a generated
+chain onto a frozen partner representation.
+
+.. autoclass:: deepchem.models.torch_models.rfdiffusion_conditioning.LengthConditioning
+   :members:
+
+.. autoclass:: deepchem.models.torch_models.rfdiffusion_conditioning.BinderCrossAttention
+   :members:
