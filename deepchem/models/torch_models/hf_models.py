@@ -151,6 +151,19 @@ class HuggingFaceModel(TorchModel):
             config: Optional[Dict] = None,
             code_revision: Optional[str] = None,
             **kwargs):
+        supported_tasks = {
+            None, 'mlm', 'mtr', 'regression', 'classification',
+            'universal_segmentation'
+        }
+        if task not in supported_tasks:
+            raise ValueError(
+                f"Unsupported task '{task}'. Supported tasks are: "
+                "'mlm', 'mtr', 'regression', 'classification', "
+                "'universal_segmentation', or None.")
+        tokenizer_required_tasks = {'mlm', 'mtr', 'regression', 'classification'}
+        if task in tokenizer_required_tasks and tokenizer is None:
+            raise ValueError(
+                f"`tokenizer` must be provided for task '{task}'.")
         self.task = task
         self.tokenizer = tokenizer
         # Revision of the remote code repo (referenced via the config's
