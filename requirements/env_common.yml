@@ -24,7 +24,7 @@ dependencies:
     - pyGPGO
     - pymatgen<2024  # newer releases need numpy>=1.26; unpinned it makes pip backtrack into source builds
     - simdna
-    - transformers==4.51.3
+    - transformers<=5.14.0
     - tokenizers
     - xgboost
     - gensim  # used by mol2vec
