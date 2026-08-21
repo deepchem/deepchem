@@ -201,3 +201,46 @@ def test_load_freeze_unfreeze():
     assert not np.array_equal(
         example_pretrainer.components['encoder'][0].weight.data.cpu().numpy(),
         example_model.components['encoder'][0].weight.data.cpu().numpy())
+
+@pytest.mark.torch
+def test_fit_respects_custom_loss_argument():
+    """Regression test for https://github.com/deepchem/deepchem/issues/5074
+
+    Ensures that passing a custom `loss` function to fit()/fit_generator()
+    is actually used, rather than being silently ignored in favor of
+    self.loss_func.
+    """
+    np.random.seed(123)
+    torch.manual_seed(10)
+    n_samples = 6
+    n_feat = 3
+    d_hidden = 3
+    n_layers = 1
+    n_tasks = 6
+
+    X = np.random.rand(n_samples, n_feat)
+    y = np.random.rand(n_samples, n_tasks).astype(np.float32)
+    dataset = dc.data.NumpyDataset(X, y)
+
+    example_model = ExampleTorchModel(n_feat, d_hidden, n_layers, n_tasks)
+
+    called_flags = {"custom_loss_called": False, "loss_func_called": False}
+
+    original_loss_func = example_model.loss_func
+
+    def tracking_loss_func(inputs, labels, weights):
+        called_flags["loss_func_called"] = True
+        return original_loss_func(inputs, labels, weights)
+
+    def custom_loss(inputs, labels, weights):
+        called_flags["custom_loss_called"] = True
+        preds = example_model.model(inputs)
+        return (torch.nn.functional.mse_loss(preds, labels[0]) *
+                weights[0]).mean()
+
+    example_model.loss_func = tracking_loss_func
+
+    example_model.fit(dataset, nb_epoch=1, loss=custom_loss)
+
+    assert called_flags["custom_loss_called"] is True
+    assert called_flags["loss_func_called"] is False
