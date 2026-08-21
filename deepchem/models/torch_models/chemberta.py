@@ -8,7 +8,7 @@ from transformers.modeling_utils import PreTrainedModel
 try:
     import torch
     has_torch = True
-except:
+except ImportError:
     has_torch = False
 
 
