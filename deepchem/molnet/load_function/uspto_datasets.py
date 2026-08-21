@@ -165,8 +165,9 @@ def load_uspto(
 
     if featurizer == "plain":
         featurizer = dc.feat.DummyFeaturizer()
-    else:
+    elif featurizer == "RxnFeaturizer":
         featurizer = RxnFeaturizer(tokenizer, sep_reagent=sep_reagent)
+    # Note: If the user passed a custom object, we do nothing and let them use it.
 
     loader = _USPTOLoader(featurizer,
                           splitter,
