@@ -1,11 +1,11 @@
 import pytest
 try:
     import torch
-except:
+except Exception:
     print("torch not available")
 try:
     import pylibxc
-except:
+except Exception:
     print("pylibxc not available")
 
 import numpy as np

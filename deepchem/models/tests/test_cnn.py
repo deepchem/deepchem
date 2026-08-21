@@ -6,7 +6,7 @@ from flaky import flaky
 try:
     import torch  # noqa: F401
     has_torch = True
-except:
+except Exception:
     has_torch = False
 
 

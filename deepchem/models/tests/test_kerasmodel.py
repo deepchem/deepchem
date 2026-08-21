@@ -7,13 +7,13 @@ import pytest
 try:
     import wandb  # noqa: F401
     has_wandb = True
-except:
+except Exception:
     has_wandb = False
 
 try:
     import tensorflow as tf
     has_tensorflow = True
-except:
+except Exception:
     has_tensorflow = False
 
 

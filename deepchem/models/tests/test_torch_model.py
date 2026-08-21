@@ -9,13 +9,13 @@ try:
     import torch
     import torch.nn.functional as F
     has_pytorch = True
-except:
+except Exception:
     has_pytorch = False
 
 try:
     import wandb  # noqa: F401
     has_wandb = True
-except:
+except Exception:
     has_wandb = False
 
 

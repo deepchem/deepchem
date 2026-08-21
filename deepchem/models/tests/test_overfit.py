@@ -14,7 +14,7 @@ try:
     import tensorflow as tf
     from tensorflow.python.framework import test_util  # noqa: F401
     has_tensorflow = True
-except:
+except Exception:
     has_tensorflow = False
 
 import deepchem as dc

@@ -11,7 +11,7 @@ try:
     import torch
     from deepchem.models.torch_models.seqtoseq import SeqToSeq, SeqToSeqModel
     has_torch = True
-except:
+except Exception:
     has_torch = False
 
 # Dataset of SMILES strings for testing SeqToSeq models.

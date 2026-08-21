@@ -7,7 +7,7 @@ try:
     import tensorflow as tf
     from tensorflow.keras.layers import Input, Dense, GRU, Reshape, Softmax
     has_tensorflow = True
-except:
+except Exception:
     has_tensorflow = False
 
 import deepchem as dc

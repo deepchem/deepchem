@@ -196,7 +196,7 @@ def get_atomz(element: Union[str, ZType]) -> ZType:
     elif isinstance(element, torch.Tensor):  # Just return itself.
         try:
             assert element.numel() == 1
-        except:
+        except Exception:
             raise AssertionError("Only 1 element Tensor Allowed.")
         return element
     else:  # float or int | Just return itself.

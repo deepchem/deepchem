@@ -19,6 +19,6 @@ yamlloader
 dgl
 sphinx-copybutton
 sympy
-pysam
+#pysam
 pydantic
 torchdata<0.8.0

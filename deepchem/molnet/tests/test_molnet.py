@@ -14,7 +14,7 @@ from deepchem.molnet.run_benchmark import run_benchmark
 try:
     import torch  # noqa
     has_pytorch = True
-except:
+except Exception:
     has_pytorch = False
 
 

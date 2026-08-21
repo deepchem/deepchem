@@ -13,7 +13,7 @@ try:
     import torch  # noqa: F401
     from deepchem.models import GATModel
     has_torch_and_dgl = True
-except:
+except Exception:
     has_torch_and_dgl = False
 
 
