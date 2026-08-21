@@ -22,4 +22,5 @@ from deepchem.trans.transformers import DataTransforms
 from deepchem.trans.transformers import Transformer
 from deepchem.trans.transformers import FlatteningTransformer
 from deepchem.trans.transformers import RxnSplitTransformer
+from deepchem.trans.transformers import DataTransformer
 from deepchem.trans.duplicate import DuplicateBalancingTransformer

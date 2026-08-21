@@ -5,7 +5,7 @@ import os
 import logging
 import time
 import warnings
-from typing import Any, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import scipy
@@ -2663,3 +2663,128 @@ class RxnSplitTransformer(Transformer):
     def untransform(self, z):
         """Not Implemented."""
         raise NotImplementedError("Cannot untransform the source/target split.")
+
+
+class DataTransformer(Transformer):
+    """Randomly augments images while preserving their original shape.
+
+    Applies a single augmentation type to each image in the dataset with
+    a given probability. All supported transforms preserve the spatial
+    dimensions of the input, so the output array always has the same
+    shape as the input.
+
+    Supported ``transform_type`` values and their ``transform_params``:
+
+    - ``"flip"`` — Mirror the image. Params: ``direction`` ("lr" or "ud").
+    - ``"rotate"`` — Rotate in-place. Params: ``angle`` (degrees).
+    - ``"gaussian_blur"`` — Blur the image. Params: ``sigma`` (float).
+    - ``"shift"`` — Translate the image. Params: ``width``, ``height`` (int).
+    - ``"gaussian_noise"`` — Additive noise. Params: ``mean``, ``std`` (float).
+    - ``"salt_pepper_noise"`` — Impulse noise. Params: ``prob``, ``salt``,
+      ``pepper`` (float).
+    - ``"median_filter"`` — Denoise filter. Params: ``size`` (int).
+
+    Note
+    ----
+    This class requires scipy and Pillow to be installed.
+    """
+
+    def __init__(
+        self,
+        dataset: Optional[Dataset] = None,
+        arguments: Optional[Dict] = None,
+    ):
+        """Initializes DataTransformer.
+
+        Parameters
+        ----------
+        dataset: dc.data.Dataset object, optional (default None)
+            Dataset to be transformed.
+        arguments: Dict, optional (default None)
+            Configuration dictionary with the following keys:
+
+            - ``"transform_type"`` (str): The augmentation to apply.
+            - ``"transform_params"`` (dict): Keyword arguments passed to
+              the underlying transform function.
+            - ``"probability"`` (float): Probability of applying the
+              transform to each image. Default ``1.0``.
+        """
+        self.arguments = arguments if arguments is not None else {
+        }  # assign empty dict if no arguments provided
+        super(DataTransformer, self).__init__(transform_X=True, dataset=dataset)
+
+    def transform_array(
+        self, X: np.ndarray, y: np.ndarray, w: np.ndarray, ids: np.ndarray
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+        """Transforms arrays of images using internal methods.
+
+        Parameters
+        ----------
+        X: np.ndarray
+            Array of features
+        y: np.ndarray
+            Array of labels
+        w: np.ndarray
+            Array of weights.
+        ids: np.ndarray
+            Array of identifiers.
+
+        Returns
+        -------
+        Xtrans: np.ndarray
+            Transformed array of features
+        ytrans: np.ndarray
+            Transformed array of labels
+        wtrans: np.ndarray
+            Transformed array of weights
+        idstrans: np.ndarray
+            Transformed array of ids
+        """
+        X_transformed = []
+
+        # get transformation parameters from arguments dict
+        transform_type = self.arguments.get(
+            "transform_type",
+            "convert2gray")  # default to convert2gray if not specified
+        transform_params = self.arguments.get("transform_params", {})
+        probability = self.arguments.get("probability", 1.0)
+
+        for img in X:
+            data_transformer = DataTransforms(img.copy())
+            # Example transformation: convert to grayscale
+            switcher = np.random.rand()
+            if switcher <= probability:
+                if transform_type == "flip":
+                    transformed_img = data_transformer.flip(**transform_params)
+                elif transform_type == "rotate":
+                    transformed_img = scipy.ndimage.rotate(img,
+                                                           **transform_params,
+                                                           reshape=False)
+                elif transform_type == "gaussian_blur":
+                    transformed_img = data_transformer.gaussian_blur(
+                        **transform_params)
+                elif transform_type == "shift":
+                    transformed_img = data_transformer.shift(**transform_params)
+                elif transform_type == "gaussian_noise":
+                    transformed_img = data_transformer.gaussian_noise(
+                        **transform_params)
+                elif transform_type == "salt_pepper_noise":
+                    transformed_img = data_transformer.salt_pepper_noise(
+                        **transform_params)
+                elif transform_type == "median_filter":
+                    transformed_img = data_transformer.median_filter(
+                        **transform_params)
+                else:
+                    raise ValueError(
+                        f"Unsupported transform_type: {transform_type}")
+            else:
+                transformed_img = img  # do not transform
+
+            X_transformed.append(transformed_img)
+        X_transformed = np.array(X_transformed)
+        return X_transformed, y, w, ids
+
+    def untransform(self, z):
+        """Not Implemented."""
+        raise NotImplementedError(
+            "Cannot untransform datasets with DataTransformer.")
