@@ -124,3 +124,4 @@ To listen in, please email X.Y@gmail.com, where X=bharath and Y=ramsundar to int
    development_guide/coding
    development_guide/ci
    development_guide/infra
+   development_guide/custom_models
