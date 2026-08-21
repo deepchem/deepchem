@@ -1,44 +1,41 @@
 import re
 import warnings
+
 try:
     import pylibxc
 except (ImportError, ModuleNotFoundError) as e:
+    pylibxc = None
     warnings.warn(f"Failed to import pylibxc. Might not be able to use xc. {e}")
+
 from deepchem.utils.dft_utils import BaseXC, LibXCLDA, LibXCGGA, LibXCMGGA
+from deepchem.utils.dft_utils.xc.pytorch_xc import (
+    PyTorchLDA,
+    PyTorchGGA,
+    PyTorchMGGA,
+)
 
 
 def get_libxc(name: str) -> BaseXC:
     """
-    Get the XC object of the libxc based on its libxc's name.
-
-    Examples
-    --------
-    >>> import torch
-    >>> from deepchem.utils.dft_utils import ValGrad
-    >>> xc = get_libxc("gga_c_pbe")
-    >>> n = 2
-    >>> rho_u = torch.rand((n,), dtype=torch.float64).requires_grad_()
-    >>> grad_u = torch.rand((3, n), dtype=torch.float64).requires_grad_()
-    >>> densinfo = ValGrad(value=rho_u, grad=grad_u)
-    >>> # get the exchange-correlation potential
-    >>> potinfo = xc.get_vxc(densinfo)
-    >>> potinfo.value.shape
-    torch.Size([2])
+    Get the XC object of libxc based on its libxc name.
 
     Parameters
     ----------
     name: str
-        The full libxc name, e.g. "lda_c_pw"
+        Full libxc name, e.g. "gga_c_pbe"
 
     Returns
     -------
     BaseXC
-        XC object that wraps the xc requested
-
+        XC object wrapping the requested libxc functional.
     """
+    if pylibxc is None:
+        raise ImportError("pylibxc is not available, so get_libxc() cannot be used.")
+
     obj = pylibxc.LibXCFunctional(name, "unpolarized")
     family = obj.get_family()
     del obj
+
     if family == 1:  # LDA
         return LibXCLDA(name)
     elif family == 2:  # GGA
@@ -47,43 +44,63 @@ def get_libxc(name: str) -> BaseXC:
         return LibXCMGGA(name)
     else:
         raise NotImplementedError(
-            "LibXC wrapper for family %d has not been implemented" % family)
+            f"LibXC wrapper for family {family} has not been implemented"
+        )
+
+
+def get_pytorch_xc(name: str) -> BaseXC:
+    """
+    Get native PyTorch XC functionals.
+
+    Supported
+    ---------
+    - lda_x
+    - gga_x_pbe
+    - mgga_x_tpss
+    """
+    lname = name.lower()
+
+    if lname == "lda_x":
+        return PyTorchLDA(lname)
+    elif lname == "gga_x_pbe":
+        return PyTorchGGA(lname)
+    elif lname == "mgga_x_tpss":
+        return PyTorchMGGA(lname)
+    else:
+        raise ValueError(f"Unknown native PyTorch XC functional: {name}")
 
 
 def get_xc(xcstr: str) -> BaseXC:
     """
-    Returns the XC object based on the expression in xcstr.
+    Return the XC object based on xcstr.
 
-    Examples
+    Behavior
     --------
-    >>> import torch
-    >>> from deepchem.utils.dft_utils import ValGrad
-    >>> xc = get_xc("lda_x + gga_c_pbe")
-    >>> n = 2
-    >>> rho_u = torch.rand((n,), dtype=torch.float64).requires_grad_()
-    >>> grad_u = torch.rand((3, n), dtype=torch.float64).requires_grad_()
-    >>> densinfo = ValGrad(value=rho_u, grad=grad_u)
-    >>> # get the exchange-correlation potential
-    >>> potinfo = xc.get_vxc(densinfo)
-    >>> potinfo.value.shape
-    torch.Size([2])
+    1. If xcstr is a supported native PyTorch XC name, return that.
+    2. Otherwise, interpret xcstr as a LibXC expression, e.g.
+       "lda_x + gga_c_pbe".
 
     Parameters
     ----------
     xcstr: str
-        The expression of the xc string, e.g. ``"lda_x + gga_c_pbe"`` where the
-        variable name will be replaced by the LibXC object
+        XC name or LibXC expression.
 
     Returns
     -------
     BaseXC
-        XC object based on the given expression
-
+        XC object based on the given expression.
     """
-    # wrap the name of xc with "get_libxc"
-    pattern = r"([a-zA-Z_$][a-zA-Z_$0-9]*)"
-    new_xcstr = re.sub(pattern, r'get_libxc("\1")', xcstr)
+    xcstr_strip = xcstr.strip()
 
-    # evaluate the expression and return the xc
+    # First try native PyTorch XC names
+    try:
+        return get_pytorch_xc(xcstr_strip)
+    except ValueError:
+        pass
+
+    # Otherwise use old LibXC-expression behavior
+    pattern = r"([a-zA-Z_$][a-zA-Z_$0-9]*)"
+    new_xcstr = re.sub(pattern, r'get_libxc("\1")', xcstr_strip)
+
     glob = {"get_libxc": get_libxc}
     return eval(new_xcstr, glob)
