@@ -242,7 +242,7 @@ We would advise all users to use conda environment, following below-
 
 .. code-block:: bash
 
-    conda create --name deepchem python=3.10
+    conda create --name deepchem python=3.11
     conda activate deepchem
     pip install -e .
 

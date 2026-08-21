@@ -112,8 +112,8 @@ DeepChem has a number of "soft" requirements.
 |                                |               |                                                   |
 +--------------------------------+---------------+---------------------------------------------------+
 | `TensorFlow`_                  | 2.15          | :code:`dc.models`                                 |
-|                                |               | `deepchem>=2.4.0` depends on TensorFlow v2(2.3.x) |
-|                                |               | `deepchem<2.4.0` depends on TensorFlow v1(>=1.14) |
+|                                |               | `deepchem>=2.4.0` supports TensorFlow v2(2.3.x)   |
+|                                |               | `deepchem<2.4.0` supports TensorFlow v1(>=1.14)   |
 +--------------------------------+---------------+---------------------------------------------------+
 | `Tensorflow Probability`_      | 0.23.x        | :code:`dc.rl`                                     |
 |                                |               |                                                   |
