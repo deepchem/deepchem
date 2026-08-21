@@ -4,6 +4,7 @@ Feature calculations.
 import inspect
 import logging
 import numpy as np
+from rdkit import Chem
 from typing import Any, Dict, Iterable, Optional, Tuple, Union, cast
 
 from deepchem.utils import get_print_threshold
@@ -568,39 +569,37 @@ class UserDefinedFeaturizer(Featurizer):
 
 
 class DummyFeaturizer(Featurizer):
-    """Class that implements a no-op featurization.
-    This is useful when the raw dataset has to be used without featurizing the
-    examples. The Molnet loader requires a featurizer input and such datasets
-    can be used in their original form by passing the raw featurizer.
-
-    Examples
-    --------
-    >>> import deepchem as dc
-    >>> smi_map = [["N#C[S-].O=C(CBr)c1ccc(C(F)(F)F)cc1>CCO.[K+]", "N#CSCC(=O)c1ccc(C(F)(F)F)cc1"], ["C1COCCN1.FCC(Br)c1cccc(Br)n1>CCN(C(C)C)C(C)C.CN(C)C=O.O", "FCC(c1cccc(Br)n1)N1CCOCC1"]]
-    >>> Featurizer = dc.feat.DummyFeaturizer()
-    >>> smi_feat = Featurizer.featurize(smi_map)
-    >>> smi_feat
-    array([['N#C[S-].O=C(CBr)c1ccc(C(F)(F)F)cc1>CCO.[K+]',
-            'N#CSCC(=O)c1ccc(C(F)(F)F)cc1'],
-           ['C1COCCN1.FCC(Br)c1cccc(Br)n1>CCN(C(C)C)C(C)C.CN(C)C=O.O',
-            'FCC(c1cccc(Br)n1)N1CCOCC1']], dtype='<U55')
+    """Class that implements a no-op featurization (with optional canonicalization).
+    Example: 
+    >>> Featurizer = dc.feat.DummyFeaturizer(canonicalize=True)
+    >>> Featurizer.featurize(["C(C(=O)O)N", "OC(=O)CN"])
+        array(['NCC(=O)O', 'NCC(=O)O'], dtype='<U10')
     """
 
-    def featurize(self,
-                  datapoints: Iterable[Any],
-                  log_every_n: int = 1000,
-                  **kwargs) -> np.ndarray:
-        """Passes through dataset, and returns the datapoint.
-
-        Parameters
-        ----
-        datapoints: Iterable[Any]
-            A sequence of objects that you'd like to featurize.
-
-        Returns
-        ----
-        datapoints: np.ndarray
-            A numpy array containing a featurized representation of
-            the datapoints.
+    def __init__(self, canonicalize: bool = False):
         """
-        return np.asarray(datapoints)
+        Parameters
+        ----------
+        canonicalize: bool, default False
+            If True, canonicalize SMILES strings using RDKit.
+        """
+        self.canonicalize = canonicalize
+
+    def featurize(self, datapoints: Iterable[Any], log_every_n: int = 1000, **kwargs) -> np.ndarray:
+                  
+        """Optionally canonicalizes SMILES, otherwise returns data as-is."""
+        if self.canonicalize:
+            processed = []
+            for point in datapoints:
+                if isinstance(point, str):
+                    mol = Chem.MolFromSmiles(point)
+                    if mol is not None:
+                        canon = Chem.MolToSmiles(mol, canonical=True)
+                        processed.append(canon)
+                    else:
+                        processed.append(point)  # fallback if parsing fails
+                else:
+                    processed.append(point)
+            return np.asarray(processed)
+        else:
+            return np.asarray(datapoints)
