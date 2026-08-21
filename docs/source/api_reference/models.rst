@@ -756,6 +756,11 @@ MoLFormer
 .. autoclass:: deepchem.models.torch_models.molformer.MoLFormer
   :members:
 
+Olmo
+---------
+.. autoclass:: deepchem.models.torch_models.olmo.Olmo
+  :members:
+
 ProtBERT
 ---------
 

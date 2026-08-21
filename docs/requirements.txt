@@ -22,3 +22,5 @@ sympy
 pysam
 pydantic
 torchdata<0.8.0
+accelerate>=0.26.0
+bitsandbytes

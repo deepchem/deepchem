@@ -149,7 +149,12 @@ DeepChem has a number of "soft" requirements.
 | `basis-set-exchange`_          | latest        | :code:`deepchem.utils.dft_utils.api.loadbasis`    |
 |                                |               |                                                   |
 +--------------------------------+---------------+---------------------------------------------------+
-
+| `bitsandbytes`_                | latest        | :code:`dc.models.torch_models.olmo`          |
+|                                |               |                                                   |
++--------------------------------+---------------+---------------------------------------------------+
+| `accelerate`_                  | 0.26.0        | :code:`dc.models.torch_models.olmo`    |
+|                                |               |                                                   |
++--------------------------------+---------------+---------------------------------------------------+
 
 .. _`joblib`: https://pypi.python.org/pypi/joblib
 .. _`NumPy`: https://numpy.org/
@@ -189,3 +194,5 @@ DeepChem has a number of "soft" requirements.
 .. _`pylibxc`: https://gitlab.com/libxc/libxc/
 .. _`dqclibs`: https://github.com/diffqc/dqclibs
 .. _`basis-set-exchange`: https://www.basissetexchange.org/
+.. _`bitsandbytes`: https://github.com/TimDettmers/bitsandbytes
+.. _`accelerate`: https://github.com/huggingface/accelerate
