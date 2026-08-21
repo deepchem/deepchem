@@ -108,4 +108,6 @@ env.yml
 .python-version
 **/*.ipynb_checkpoints/
 
-.database/
+.database/dc-env/
+*.pdb
+*.sdf
