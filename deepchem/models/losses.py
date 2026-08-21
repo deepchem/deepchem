@@ -184,6 +184,84 @@ class BinaryCrossEntropy(Loss):
         return loss
 
 
+class FocalLoss(Loss):
+    """The Focal loss function for binary classification.
+
+    Focal loss was introduced in _[1] to address class imbalance by
+    down-weighting easy (well-classified) examples and focusing training on
+    hard examples. It modifies BinaryCrossEntropy with a modulating factor
+    (1 - p_t)^gamma, where p_t is the model's estimated probability for the
+    true class.
+
+    When gamma=0, Focal loss is equivalent to standard sigmoid
+    cross-entropy. Higher gamma values increasingly suppress easy examples.
+    alpha provides an optional per-class weighting to further address
+    imbalance.
+
+    The 'output' argument should contain logits, and all elements of
+    'labels' should equal 0 or 1.
+
+    Parameters
+    ----------
+    gamma : float, optional (default=2.0)
+        Focusing parameter. Higher values reduce the loss contribution from
+        easy examples. gamma=0 recovers standard BinaryCrossEntropy.
+    alpha : float, optional (default=0.25)
+        Weighting factor for the positive class in [0, 1]. Set to None to
+        disable class weighting.
+
+    Examples
+    --------
+    >>> import torch
+    >>> output = torch.tensor([0.8, -0.5, 1.2, -1.0])
+    >>> labels = torch.tensor([1.0, 0.0, 1.0, 0.0])
+    >>> focal = FocalLoss(gamma=2.0, alpha=0.25)
+    >>> loss_fn = focal._create_pytorch_loss()
+    >>> loss = loss_fn(output, labels)
+
+    References
+    ----------
+    .. [1] Lin, T.-Y. et al. Focal Loss for Dense Object Detection.
+       Preprint at https://doi.org/10.48550/arXiv.1708.02002 (2017).
+    """
+
+    def __init__(self, gamma: float = 2.0, alpha: float = 0.25) -> None:
+        self.gamma = gamma
+        self.alpha = alpha
+
+    def _compute_tf_loss(self, output, labels):
+        import tensorflow as tf
+        output, labels = _make_tf_shapes_consistent(output, labels)
+        output, labels = _ensure_float(output, labels)
+        probs = tf.nn.sigmoid(output)
+        p_t = probs * labels + (1.0 - probs) * (1.0 - labels)
+        bce = tf.nn.sigmoid_cross_entropy_with_logits(labels, output)
+        focal = tf.pow(1.0 - p_t, self.gamma) * bce
+        if self.alpha is not None:
+            alpha_t = self.alpha * labels + (1.0 - self.alpha) * (1.0 - labels)
+            focal = alpha_t * focal
+        return focal
+
+    def _create_pytorch_loss(self):
+        import torch
+        gamma = self.gamma
+        alpha = self.alpha
+
+        def loss(output, labels):
+            output, labels = _make_pytorch_shapes_consistent(output, labels)
+            probs = torch.sigmoid(output)
+            p_t = probs * labels + (1.0 - probs) * (1.0 - labels)
+            bce = torch.nn.functional.binary_cross_entropy_with_logits(
+                output, labels, reduction='none')
+            focal = (1.0 - p_t).pow(gamma) * bce
+            if alpha is not None:
+                alpha_t = alpha * labels + (1.0 - alpha) * (1.0 - labels)
+                focal = alpha_t * focal
+            return focal
+
+        return loss
+
+
 class CategoricalCrossEntropy(Loss):
     """The cross entropy between two probability distributions.
 
@@ -1456,9 +1534,6 @@ class NTXentMultiplePositives(Loss):
             batch_size, metric_dim = z1.size()
             z2 = z2.view(batch_size, -1,
                          metric_dim)  # [batch_size, num_conformers, metric_dim]
-            z2 = z2.view(batch_size, -1,
-                         metric_dim)  # [batch_size, num_conformers, metric_dim]
-
             sim_matrix = torch.einsum(
                 'ik,juk->iju', z1,
                 z2)  # [batch_size, batch_size, num_conformers]
