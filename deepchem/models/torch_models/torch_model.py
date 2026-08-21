@@ -252,11 +252,17 @@ class TorchModel(Model):
             self._loss_outputs = None
             self._variance_outputs = None
             self._other_outputs = None
+            self._other_output_indices = {}
         else:
             self._prediction_outputs = []
             self._loss_outputs = []
             self._variance_outputs = []
             self._other_outputs = []
+            # Map each non-standard output type to the indices declaring it,
+            # so predict() can return only the types the caller asked for.
+            # Keeping just the flat list above meant the requested type
+            # strings were discarded and every other output was returned.
+            self._other_output_indices: Dict[str, List[int]] = {}
             for i, type in enumerate(output_types):
                 if type == 'prediction':
                     self._prediction_outputs.append(i)
@@ -266,6 +272,7 @@ class TorchModel(Model):
                     self._variance_outputs.append(i)
                 else:
                     self._other_outputs.append(i)
+                    self._other_output_indices.setdefault(type, []).append(i)
             if len(self._loss_outputs) == 0:
                 self._loss_outputs = self._prediction_outputs
         self._built = False
@@ -544,6 +551,34 @@ class TorchModel(Model):
                         loss=loss,
                         callbacks=callbacks)
 
+    def _select_other_outputs(self,
+                              other_output_types: OneOrMany[str]) -> List[int]:
+        """Indices of the outputs whose declared type was requested.
+
+        ``other_output_types`` used to act as a boolean flag: any truthy
+        value returned every output with a non-standard type, whatever
+        types were actually asked for. This resolves the requested types
+        against the ones declared in ``output_types``.
+        """
+        if isinstance(other_output_types, str):
+            requested = [other_output_types]
+        else:
+            requested = list(other_output_types)
+
+        unknown = [t for t in requested if t not in self._other_output_indices]
+        if unknown:
+            available = sorted(self._other_output_indices)
+            raise ValueError(
+                'Unknown output type(s) %s. This model declares the other '
+                'output type(s) %s in its output_types.' % (unknown, available))
+
+        indices: List[int] = []
+        for t in requested:
+            for i in self._other_output_indices[t]:
+                if i not in indices:
+                    indices.append(i)
+        return sorted(indices)
+
     def _predict(self, generator: Iterable[Tuple[Any, Any, Any]],
                  transformers: List[Transformer], uncertainty: bool,
                  other_output_types: Optional[OneOrMany[str]]):
@@ -615,7 +650,7 @@ class TorchModel(Model):
                         variances[i].append(t)
             access_values = []
             if other_output_types:
-                access_values += self._other_outputs
+                access_values += self._select_other_outputs(other_output_types)
             elif self._prediction_outputs is not None:
                 access_values += self._prediction_outputs
 
