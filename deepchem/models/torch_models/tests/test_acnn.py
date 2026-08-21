@@ -147,3 +147,50 @@ def test_atomic_convolution_model_variable():
     preds = atomic_convnet.predict(train)
     assert preds.shape == (1, 1)
     assert np.count_nonzero(preds) > 0
+
+
+@pytest.mark.torch
+def test_atomic_convolution_module_eval_dropout():
+    """AtomicConv must not apply dropout once the module is in eval mode."""
+    import torch
+    from deepchem.models.torch_models.layers import AtomicConv
+
+    frag1_num_atoms = 4
+    frag2_num_atoms = 6
+    max_num_neighbors = 3
+    batch_size = 2
+
+    acm = AtomicConv(n_tasks=1,
+                     frag1_num_atoms=frag1_num_atoms,
+                     frag2_num_atoms=frag2_num_atoms,
+                     complex_num_atoms=frag1_num_atoms + frag2_num_atoms,
+                     max_num_neighbors=max_num_neighbors,
+                     batch_size=batch_size,
+                     layer_sizes=[10],
+                     dropouts=0.5)
+
+    def _frag(num_atoms):
+        coords = torch.rand(batch_size, num_atoms, 3)
+        nbrs = torch.randint(num_atoms,
+                             size=(batch_size, num_atoms, max_num_neighbors))
+        nbrs_z = torch.randint(1,
+                               10,
+                               size=(batch_size, num_atoms, max_num_neighbors))
+        return coords, nbrs, nbrs_z
+
+    frag1 = _frag(frag1_num_atoms)
+    frag2 = _frag(frag2_num_atoms)
+    complex_ = _frag(frag1_num_atoms + frag2_num_atoms)
+    inputs = [
+        frag1[0], frag1[1], frag1[2], None, frag2[0], frag2[1], frag2[2], None,
+        complex_[0], complex_[1], complex_[2]
+    ]
+
+    acm.eval()
+    with torch.no_grad():
+        first = acm(inputs)[0]
+        second = acm(inputs)[0]
+
+    assert torch.equal(
+        first,
+        second), "eval() output must be deterministic, dropout is still active"
