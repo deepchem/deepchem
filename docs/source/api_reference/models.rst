@@ -39,6 +39,19 @@ GBDTModel
 .. autoclass:: deepchem.models.GBDTModel
   :members:
 
+Symbolic Regression Models
+==========================
+
+Symbolic regression discovers interpretable mathematical expressions that fit
+data using evolutionary search. Unlike black-box models, the output is a
+human-readable equation.
+
+SymbolicRegressionModel
+-----------------------
+
+.. autoclass:: deepchem.models.SymbolicRegressionModel
+  :members:
+
 
 Deep Learning Infrastructure
 ============================
