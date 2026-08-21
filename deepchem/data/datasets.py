@@ -525,7 +525,7 @@ class Dataset(object):
         """
         try:
             import tensorflow as tf
-        except:
+        except ImportError:
             raise ImportError(
                 "This method requires TensorFlow to be installed.")
 
@@ -998,7 +998,7 @@ class NumpyDataset(Dataset):
         """
         try:
             from deepchem.data.pytorch_datasets import _TorchNumpyDataset
-        except:
+        except ImportError:
             raise ImportError("This method requires PyTorch to be installed.")
 
         pytorch_ds = _TorchNumpyDataset(numpy_dataset=self,
@@ -1922,7 +1922,7 @@ class DiskDataset(Dataset):
         """
         try:
             from deepchem.data.pytorch_datasets import _TorchDiskDataset
-        except:
+        except ImportError:
             raise ImportError("This method requires PyTorch to be installed.")
 
         pytorch_ds = _TorchDiskDataset(disk_dataset=self,
@@ -3011,7 +3011,7 @@ class ImageDataset(Dataset):
         """
         try:
             from deepchem.data.pytorch_datasets import _TorchImageDataset
-        except:
+        except ValueError:
             raise ValueError("This method requires PyTorch to be installed.")
 
         pytorch_ds = _TorchImageDataset(image_dataset=self,
