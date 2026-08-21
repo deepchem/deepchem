@@ -52,10 +52,14 @@ class Featurizer(object):
                 features.append(self._featurize(point, **kwargs))
             except:
                 logger.warning(
-                    "Failed to featurize datapoint %d. Appending empty array")
+                    "Failed to featurize datapoint %d. Appending empty array" %
+                    i)
                 features.append(np.array([]))
-
-        return np.asarray(features)
+        try:
+            return np.asarray(features)
+        except ValueError as e:
+            logger.warning(f'Exception occurred:{e}')
+            return np.asarray(features, dtype=object)
 
     def __call__(self, datapoints: Iterable[Any], **kwargs):
         """Calculate features for datapoints.
