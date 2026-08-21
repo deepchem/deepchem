@@ -7,7 +7,7 @@ from deepchem.molnet.load_function.molnet_loader import TransformerGenerator, _M
 from deepchem.data import Dataset
 from typing import List, Optional, Tuple, Union
 
-BBBP_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/BBBP.csv"
+BBBP_URL = "https://deepchemdata.s3.us-west-1.amazonaws.com/datasets/BBBP.csv"
 BBBP_TASKS = ["p_np"]
 
 

@@ -7,7 +7,7 @@ from deepchem.molnet.load_function.molnet_loader import TransformerGenerator, _M
 from deepchem.data import Dataset
 from typing import List, Optional, Tuple, Union
 
-THERMOSOL_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/thermosol.csv"
+THERMOSOL_URL = "https://deepchemdata.s3.us-west-1.amazonaws.com/datasets/thermosol.csv"
 THERMOSOL_TASKS = ["target"]  # Task is solubility in pH 7.4 buffer
 
 

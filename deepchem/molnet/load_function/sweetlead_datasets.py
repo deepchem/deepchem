@@ -7,7 +7,7 @@ from deepchem.molnet.load_function.molnet_loader import TransformerGenerator, _M
 from deepchem.data import Dataset
 from typing import List, Optional, Tuple, Union
 
-SWEETLEAD_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/sweet.csv.gz"
+SWEETLEAD_URL = "https://deepchemdata.s3.us-west-1.amazonaws.com/datasets/sweet.csv.gz"
 SWEETLEAD_TASKS = ["task"]
 
 

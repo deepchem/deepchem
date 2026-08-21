@@ -7,7 +7,7 @@ from deepchem.molnet.load_function.molnet_loader import TransformerGenerator, _M
 from deepchem.data import Dataset
 from typing import List, Optional, Tuple, Union
 
-ZINC15_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/"
+ZINC15_URL = "https://deepchemdata.s3.us-west-1.amazonaws.com/datasets/"
 ZINC15_TASKS = ['mwt', 'logp', 'reactive']
 
 

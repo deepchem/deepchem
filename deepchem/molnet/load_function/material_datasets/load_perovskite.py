@@ -7,7 +7,7 @@ from deepchem.molnet.load_function.molnet_loader import TransformerGenerator, _M
 from deepchem.data import Dataset
 from typing import List, Optional, Tuple, Union
 
-PEROVSKITE_URL = 'https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/perovskite.tar.gz'
+PEROVSKITE_URL = 'https://deepchemdata.s3.us-west-1.amazonaws.com/datasets/perovskite.tar.gz'
 PEROVSKITE_TASKS = ['formation_energy']
 
 

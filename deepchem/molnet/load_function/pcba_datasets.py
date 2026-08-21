@@ -7,7 +7,7 @@ from deepchem.molnet.load_function.molnet_loader import TransformerGenerator, _M
 from deepchem.data import Dataset
 from typing import List, Optional, Tuple, Union
 
-PCBA_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/%s"
+PCBA_URL = "https://deepchemdata.s3.us-west-1.amazonaws.com/datasets/%s"
 PCBA_TASKS = [
     'PCBA-1030', 'PCBA-1379', 'PCBA-1452', 'PCBA-1454', 'PCBA-1457',
     'PCBA-1458', 'PCBA-1460', 'PCBA-1461', 'PCBA-1468', 'PCBA-1469',

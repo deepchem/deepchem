@@ -7,7 +7,7 @@ from deepchem.molnet.load_function.molnet_loader import TransformerGenerator, _M
 from deepchem.data import Dataset
 from typing import List, Optional, Tuple, Union
 
-HIV_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/HIV.csv"
+HIV_URL = "https://deepchemdata.s3.us-west-1.amazonaws.com/datasets/HIV.csv"
 HIV_TASKS = ["HIV_active"]
 
 

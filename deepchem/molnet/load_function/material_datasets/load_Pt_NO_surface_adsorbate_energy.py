@@ -8,7 +8,7 @@ from deepchem.molnet.load_function.molnet_loader import TransformerGenerator, _M
 from deepchem.data import Dataset
 from typing import List, Optional, Tuple, Union
 
-PLATINUM_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/Platinum_adsorption.tar.gz"
+PLATINUM_URL = "https://deepchemdata.s3.us-west-1.amazonaws.com/datasets/Platinum_adsorption.tar.gz"
 PLATINUM_TASKS = ["Formation Energy"]
 PRIMITIVE_CELL = {
     "lattice": [[2.818528, 0.0, 0.0], [-1.409264, 2.440917, 0.0],

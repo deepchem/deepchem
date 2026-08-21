@@ -7,7 +7,7 @@ from deepchem.molnet.load_function.molnet_loader import TransformerGenerator, _M
 from deepchem.data import Dataset
 from typing import List, Optional, Tuple, Union
 
-DELANEY_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/delaney-processed.csv"
+DELANEY_URL = "https://deepchemdata.s3.us-west-1.amazonaws.com/datasets/delaney-processed.csv"
 DELANEY_TASKS = ['measured log solubility in mols per litre']
 
 

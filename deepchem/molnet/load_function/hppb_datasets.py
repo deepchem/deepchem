@@ -8,7 +8,7 @@ from deepchem.data import Dataset
 from deepchem.utils import remove_missing_entries
 from typing import List, Optional, Tuple, Union
 
-HPPB_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/hppb.csv"
+HPPB_URL = "https://deepchemdata.s3.us-west-1.amazonaws.com/datasets/hppb.csv"
 HPPB_TASKS = ["target"]  # Task is solubility in pH 7.4 buffer
 
 

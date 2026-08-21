@@ -7,7 +7,7 @@ from deepchem.molnet.load_function.molnet_loader import TransformerGenerator, _M
 from deepchem.data import Dataset
 from typing import List, Optional, Tuple, Union
 
-CHEMBL25_URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/chembl_25.csv.gz"
+CHEMBL25_URL = "https://deepchemdata.s3.us-west-1.amazonaws.com/datasets/chembl_25.csv.gz"
 CHEMBL25_TASKS = [
     "MolWt", "HeavyAtomMolWt", "MolLogP", "MolMR", "TPSA", "LabuteASA",
     "HeavyAtomCount", "NHOHCount", "NOCount", "NumHAcceptors", "NumHDonors",
