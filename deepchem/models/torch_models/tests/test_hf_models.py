@@ -11,6 +11,16 @@ except ModuleNotFoundError:
     pass
 
 
+class DummyTokenizer:
+
+    def __call__(self, smiles, padding=True, return_tensors="pt"):
+        batch_size = len(smiles)
+        return {
+            "input_ids": torch.ones((batch_size, 4), dtype=torch.long),
+            "attention_mask": torch.ones((batch_size, 4), dtype=torch.long)
+        }
+
+
 @pytest.fixture
 def hf_tokenizer(tmpdir):
     filepath = os.path.join(tmpdir, 'smiles.txt')
@@ -266,6 +276,69 @@ def test_fill_mask_fidelity(tmpdir, hf_tokenizer):
 
             # Test 3. Check that the infilling went to the right spot
             assert filled['sequence'].startswith(f'<s>{filled["token_str"]}')
+
+@pytest.mark.hf
+def test_prepare_batch_regression_labels_are_float():
+    from transformers.models.roberta import (RobertaConfig,
+                                             RobertaForSequenceClassification)
+
+    config = RobertaConfig(vocab_size=100, problem_type='regression', num_labels=1)
+    model = RobertaForSequenceClassification(config)
+    hf_model = HuggingFaceModel(model=model,
+                                tokenizer=DummyTokenizer(),
+                                task='regression',
+                                device=torch.device('cpu'))
+
+    batch = ((np.array(["CCO", "CCC"], dtype=object),),
+             (np.array([[1.5], [2.5]], dtype=np.float32),), np.ones((2, 1)))
+    inputs, labels, _ = hf_model._prepare_batch(batch)
+
+    assert labels is not None
+    assert labels.dtype == torch.float32
+    assert inputs["labels"] is not None
+    assert inputs["labels"].dtype == torch.float32
+
+
+@pytest.mark.hf
+def test_prepare_batch_classification_labels_are_long():
+    from transformers.models.roberta import (RobertaConfig,
+                                             RobertaForSequenceClassification)
+
+    config = RobertaConfig(vocab_size=100, num_labels=2)
+    model = RobertaForSequenceClassification(config)
+    hf_model = HuggingFaceModel(model=model,
+                                tokenizer=DummyTokenizer(),
+                                task='classification',
+                                device=torch.device('cpu'))
+
+    batch = ((np.array(["CCO", "CCC"], dtype=object),),
+             (np.array([[1], [0]], dtype=np.int64),), np.ones((2, 1)))
+    inputs, labels, _ = hf_model._prepare_batch(batch)
+
+    assert labels is not None
+    assert labels.dtype == torch.int64
+    assert inputs["labels"] is not None
+    assert inputs["labels"].dtype == torch.int64
+
+
+@pytest.mark.hf
+def test_prepare_batch_prediction_allows_none_labels():
+    from transformers.models.roberta import (RobertaConfig,
+                                             RobertaForSequenceClassification)
+
+    config = RobertaConfig(vocab_size=100, problem_type='regression', num_labels=1)
+    model = RobertaForSequenceClassification(config)
+    hf_model = HuggingFaceModel(model=model,
+                                tokenizer=DummyTokenizer(),
+                                task='regression',
+                                device=torch.device('cpu'))
+
+    batch = ((np.array(["CCO", "CCC"], dtype=object),), None, np.ones((2, 1)))
+    inputs, labels, _ = hf_model._prepare_batch(batch)
+
+    assert labels is None
+    assert inputs["labels"] is None
+    assert torch.equal(inputs["input_ids"], torch.ones((2, 4), dtype=torch.long))
 
 
 @pytest.mark.hf
