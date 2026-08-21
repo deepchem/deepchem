@@ -10,7 +10,7 @@ try:
     import torch  # noqa: F401
     from deepchem.models import LCNNModel
     has_pytorch_and_dgl = True
-except:
+except Exception:
     has_pytorch_and_dgl = False
 
 URL = "https://deepchemdata.s3-us-west-1.amazonaws.com/featurized_datasets/lcnn_data_feature.tar.gz"

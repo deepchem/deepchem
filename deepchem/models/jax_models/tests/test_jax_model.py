@@ -11,7 +11,7 @@ try:
     import optax
     from deepchem.models import JaxModel
     has_haiku_and_optax = True
-except:
+except Exception:
     has_haiku_and_optax = False
 
 

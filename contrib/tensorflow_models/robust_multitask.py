@@ -8,7 +8,7 @@ import tensorflow as tf
 
 try:
   from collections.abc import Sequence as SequenceCollection
-except:
+except Exception:
   from collections import Sequence as SequenceCollection
 
 from deepchem.nn import model_ops

@@ -6,27 +6,27 @@ import pytest
 try:
     import tensorflow as tf
     has_tensorflow = True
-except:
+except Exception:
     has_tensorflow = False
 
 try:
     import tensorflow_addons as tfa
     has_tensorflow_addons = True
-except:
+except Exception:
     has_tensorflow_addons = False
 
 try:
     import torch
     from deepchem.utils.optimizer_utils import LambOptimizer
     has_pytorch = True
-except:
+except Exception:
     has_pytorch = False
 
 try:
     import jax  # noqa: F401
     import optax
     has_jax = True
-except:
+except Exception:
     has_jax = False
 
 

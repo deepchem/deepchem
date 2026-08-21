@@ -7,7 +7,7 @@ try:
     from tensorflow.keras import activations
     from deepchem.models.layers import MolGANConvolutionLayer, MolGANMultiConvolutionLayer, MolGANAggregationLayer, MolGANEncoderLayer
     has_tensorflow = True
-except:
+except Exception:
     has_tensorflow = False
 
 

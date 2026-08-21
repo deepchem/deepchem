@@ -9,7 +9,7 @@ try:
     from jax import random
     import numpy as np
     has_jax = True
-except:
+except Exception:
     has_jax = False
 
 

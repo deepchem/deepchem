@@ -4902,7 +4902,7 @@ try:
 
             return x_j
 
-except:
+except Exception:
     pass
 
 
