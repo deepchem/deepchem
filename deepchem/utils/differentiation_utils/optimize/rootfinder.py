@@ -13,8 +13,8 @@ from deepchem.utils import TensorNonTensorSeparator
 __all__ = ["equilibrium", "rootfinder", "minimize"]
 
 _RF_METHODS = {
-    "broyden1": broyden1,
-    "broyden2": broyden2,
+    "broyden1": broyden1,  # type: ignore
+    "broyden2": broyden2,  # type: ignore
     "linearmixing": linearmixing,
 }
 

@@ -39,7 +39,7 @@ class TestOptimizers(unittest.TestCase):
         opt = optimizers.Adam(learning_rate=0.01)
         global_step = tf.Variable(0)
         tfopt = opt._create_tf_optimizer(global_step)
-        assert isinstance(tfopt, tf.keras.optimizers.legacy.Adam)
+        assert isinstance(tfopt, tf.keras.optimizers.Adam)
 
     @pytest.mark.torch
     def test_adam_pytorch(self):
@@ -101,7 +101,13 @@ class TestOptimizers(unittest.TestCase):
         opt = optimizers.AdaGrad(learning_rate=0.01)
         global_step = tf.Variable(0)
         tfopt = opt._create_tf_optimizer(global_step)
-        assert isinstance(tfopt, tf.keras.optimizers.legacy.Adagrad)
+        print(f"DEBUG: type(tfopt)={type(tfopt)}")
+        print(
+            f"DEBUG: tf.keras.optimizers.Adagrad={tf.keras.optimizers.Adagrad}")
+        print(
+            f"DEBUG: isinstance={isinstance(tfopt, tf.keras.optimizers.Adagrad)}"
+        )
+        assert isinstance(tfopt, tf.keras.optimizers.Adagrad)
 
     @pytest.mark.torch
     def test_adagrad_pytorch(self):
@@ -124,7 +130,7 @@ class TestOptimizers(unittest.TestCase):
         opt = optimizers.RMSProp(learning_rate=0.01)
         global_step = tf.Variable(0)
         tfopt = opt._create_tf_optimizer(global_step)
-        assert isinstance(tfopt, tf.keras.optimizers.legacy.RMSprop)
+        assert isinstance(tfopt, tf.keras.optimizers.RMSprop)
 
     @pytest.mark.torch
     def test_rmsprop_pytorch(self):
@@ -147,7 +153,7 @@ class TestOptimizers(unittest.TestCase):
         opt = optimizers.GradientDescent(learning_rate=0.01)
         global_step = tf.Variable(0)
         tfopt = opt._create_tf_optimizer(global_step)
-        assert isinstance(tfopt, tf.keras.optimizers.legacy.SGD)
+        assert isinstance(tfopt, tf.keras.optimizers.SGD)
 
     @pytest.mark.torch
     def test_gradient_descent_pytorch(self):
