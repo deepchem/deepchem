@@ -1019,9 +1019,12 @@ class TorchModel(Model):
             os.makedirs(model_dir)
 
         # Save the checkpoint to a file.
-
+        model_state={
+            k: v.contiguous() if hasattr(v, "contiguous") else v
+            for k, v in self.model.state_dict().items()
+        }
         data = {
-            'model_state_dict': self.model.state_dict(),
+            'model_state_dict': model_state,
             'optimizer_state_dict': self._pytorch_optimizer.state_dict(),
             'global_step': self._global_step
         }
