@@ -529,3 +529,79 @@ def test_torch_compile():
     model_output = np.argmax(model_output, axis=2)
 
     assert np.all(model_output == y)
+
+
+@pytest.mark.torch
+def test_other_output_types_selects_by_type():
+    """other_output_types should return only the requested types.
+
+    Regression test for #2072. The requested type strings used to be
+    discarded: every output whose type was not 'prediction', 'loss' or
+    'variance' went into one flat list, and passing any truthy value for
+    other_output_types returned all of them. Asking for 'embedding' and
+    asking for 'attention' produced identical output.
+    """
+
+    class TwoExtraOutputs(torch.nn.Module):
+        """Emits a prediction plus two distinguishable extra outputs."""
+
+        def __init__(self):
+            super(TwoExtraOutputs, self).__init__()
+            self.layer = torch.nn.Linear(2, 1)
+
+        def forward(self, x):
+            pred = torch.sigmoid(self.layer(x))
+            embedding = torch.ones_like(x)      # all 1s
+            attention = torch.ones_like(x) * 2  # all 2s
+            return pred, embedding, attention
+
+    X = np.random.rand(6, 2).astype(np.float32)
+    dataset = dc.data.NumpyDataset(X, np.zeros((6, 1), dtype=np.float32))
+    model = dc.models.TorchModel(
+        TwoExtraOutputs(),
+        dc.models.losses.SigmoidCrossEntropy(),
+        output_types=['prediction', 'embedding', 'attention'])
+
+    emb = model.predict(dataset, other_output_types=['embedding'])
+    att = model.predict(dataset, other_output_types=['attention'])
+
+    # Each request returns exactly one output, and they are different.
+    assert np.allclose(np.asarray(emb), 1.0), \
+        "asking for 'embedding' should return the all-ones output"
+    assert np.allclose(np.asarray(att), 2.0), \
+        "asking for 'attention' should return the all-twos output"
+
+    # Asking for both returns both, in declaration order.
+    both = model.predict(dataset,
+                         other_output_types=['embedding', 'attention'])
+    assert len(both) == 2
+    assert np.allclose(np.asarray(both[0]), 1.0)
+    assert np.allclose(np.asarray(both[1]), 2.0)
+
+    # A single string is accepted as well as a list.
+    assert np.allclose(np.asarray(model.predict(dataset,
+                                                other_output_types='attention')),
+                       2.0)
+
+
+@pytest.mark.torch
+def test_other_output_types_rejects_unknown_type():
+    """An undeclared output type should say so, and name what is available."""
+
+    class OneExtraOutput(torch.nn.Module):
+
+        def __init__(self):
+            super(OneExtraOutput, self).__init__()
+            self.layer = torch.nn.Linear(2, 1)
+
+        def forward(self, x):
+            return torch.sigmoid(self.layer(x)), torch.ones_like(x)
+
+    X = np.random.rand(4, 2).astype(np.float32)
+    dataset = dc.data.NumpyDataset(X, np.zeros((4, 1), dtype=np.float32))
+    model = dc.models.TorchModel(OneExtraOutput(),
+                                 dc.models.losses.SigmoidCrossEntropy(),
+                                 output_types=['prediction', 'embedding'])
+
+    with pytest.raises(ValueError, match='attention'):
+        model.predict(dataset, other_output_types=['attention'])
