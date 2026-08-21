@@ -908,3 +908,64 @@ class TestDatasets(unittest.TestCase):
         """Test creating a PyTorch Dataset from a DiskDataset."""
         dataset = load_solubility_data()
         _validate_pytorch_dataset(dataset)
+
+    def test_disk_dataset_overwrite(self):
+        """Test that DiskDataset respects the overwrite flag."""
+        import tempfile
+        import shutil
+        import numpy as np
+
+        data_dir = tempfile.mkdtemp()
+        try:
+            # Create a non-empty directory
+            with open(os.path.join(data_dir, "existing_file.txt"), "w") as f:
+                f.write("test")
+            
+            X = np.random.rand(10, 10)
+            
+            # Check that saving without overwrite raises an error
+            with self.assertRaises(ValueError):
+                dc.data.DiskDataset.from_numpy(X, data_dir=data_dir)
+            
+            # Check that saving with overwrite succeeds
+            dataset = dc.data.DiskDataset.from_numpy(X, data_dir=data_dir, overwrite=True)
+            
+            # Create a new non-empty directory for testing copy
+            data_dir2 = tempfile.mkdtemp()
+            with open(os.path.join(data_dir2, "existing_file.txt"), "w") as f:
+                f.write("test")
+                
+            with self.assertRaises(ValueError):
+                dataset.copy(data_dir2)
+                
+            dataset.copy(data_dir2, overwrite=True)
+
+            # Create a new non-empty directory for testing merge
+            data_dir3 = tempfile.mkdtemp()
+            with open(os.path.join(data_dir3, "existing_file.txt"), "w") as f:
+                f.write("test")
+                
+            with self.assertRaises(ValueError):
+                dc.data.DiskDataset.merge([dataset], merge_dir=data_dir3)
+                
+            dc.data.DiskDataset.merge([dataset], merge_dir=data_dir3, overwrite=True)
+
+            # Create a new non-empty directory for testing move
+            data_dir4 = tempfile.mkdtemp()
+            with open(os.path.join(data_dir4, "existing_file.txt"), "w") as f:
+                f.write("test")
+                
+            with self.assertRaises(ValueError):
+                dataset.move(data_dir4)
+                
+            dataset.move(data_dir4, overwrite=True)
+            
+        finally:
+            if os.path.exists(data_dir):
+                shutil.rmtree(data_dir)
+            if 'data_dir2' in locals() and os.path.exists(data_dir2):
+                shutil.rmtree(data_dir2)
+            if 'data_dir3' in locals() and os.path.exists(data_dir3):
+                shutil.rmtree(data_dir3)
+            if 'data_dir4' in locals() and os.path.exists(data_dir4):
+                shutil.rmtree(data_dir4)
