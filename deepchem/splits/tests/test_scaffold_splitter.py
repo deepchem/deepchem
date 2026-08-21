@@ -1,10 +1,31 @@
 import unittest
 
 import deepchem as dc
+import numpy as np
 from deepchem.splits.splitters import ScaffoldSplitter
 
 
 class TestScaffoldSplitter(unittest.TestCase):
+
+    @staticmethod
+    def _make_dataset():
+        smiles = np.array([
+            "c1ccccc1",
+            "Cc1ccccc1",
+            "Oc1ccccc1",
+            "Nc1ccccc1",
+            "c1ccncc1",
+            "c1ncccc1",
+            "c1cnccc1",
+            "C1CCCCC1",
+            "C1CCCC1",
+            "C1CCNCC1",
+            "c1ccc2ccccc2c1",
+            "c1ccc2ncccc2c1",
+        ])
+        X = np.zeros((len(smiles), 1))
+        y = np.zeros((len(smiles), 1))
+        return dc.data.NumpyDataset(X=X, y=y, ids=smiles)
 
     def test_scaffolds(self):
         tox21_tasks, tox21_datasets, transformers = \
@@ -34,3 +55,30 @@ class TestScaffoldSplitter(unittest.TestCase):
         invalid_smiles = r's1cc(nc1\[NH]=C(\N)N)C'
         scaffold = _generate_scaffold(invalid_smiles)
         self.assertIsNone(scaffold)
+
+    def test_shuffle_false_keeps_existing_behavior(self):
+        dataset = self._make_dataset()
+        splitter = ScaffoldSplitter()
+
+        split_default = splitter.split(dataset, seed=7)
+        split_explicit_false = splitter.split(dataset, seed=7, shuffle=False)
+
+        self.assertEqual(split_default, split_explicit_false)
+
+    def test_shuffle_true_is_deterministic_with_seed(self):
+        dataset = self._make_dataset()
+        splitter = ScaffoldSplitter()
+
+        split_a = splitter.split(dataset, seed=7, shuffle=True)
+        split_b = splitter.split(dataset, seed=7, shuffle=True)
+
+        self.assertEqual(split_a, split_b)
+
+    def test_shuffle_flag_changes_split_order(self):
+        dataset = self._make_dataset()
+        splitter = ScaffoldSplitter()
+
+        split_unshuffled = splitter.split(dataset, seed=7, shuffle=False)
+        split_shuffled = splitter.split(dataset, seed=7, shuffle=True)
+
+        self.assertNotEqual(split_unshuffled, split_shuffled)
