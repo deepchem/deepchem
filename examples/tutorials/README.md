@@ -1,7 +1,7 @@
 # DeepChem Step-by-Step Tutorial
 
 In this tutorial series, you'll learn how to use DeepChem to solve interesting
-and challenging problems in the life sciences. The tutorial acts as a introduction
+and challenging problems in the life sciences. The tutorial acts as an introduction
 to DeepChem as well as application of DeepChem to a wide array of problems
 across domains like molecular machine learning,
 quantum chemistry, bioinformatics and material science. This tutorial series is

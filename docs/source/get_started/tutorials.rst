@@ -186,7 +186,7 @@ by just calling :code:`evaluate` method.
 More Tutorials
 --------------
 
-DeepChem maintains `an extensive collection of addition tutorials`_ that are meant to
+DeepChem maintains `an extensive collection of additional tutorials`_ that are meant to
 be run on `Google Colab`_, an online platform that allows you to execute Jupyter notebooks.
 Once you've finished this introductory tutorial, we recommend working through these more involved tutorials.
 
@@ -195,5 +195,5 @@ Once you've finished this introductory tutorial, we recommend working through th
 .. _`XGBoost`: https://xgboost.readthedocs.io/en/latest/
 .. _`PyTorch`: https://pytorch.org/
 .. _`JAX`: https://github.com/google/jax
-.. _`an extensive collection of addition tutorials`: https://github.com/deepchem/deepchem/tree/master/examples/tutorials	
+.. _`an extensive collection of additional tutorials`: https://github.com/deepchem/deepchem/tree/master/examples/tutorials	
 .. _`Google Colab`: https://colab.research.google.com/
