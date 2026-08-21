@@ -546,3 +546,84 @@ RFDiffusion Layers
 
 .. autoclass:: deepchem.models.torch_models.layers.BackboneDiffusion
    :members:
+
+.. autoclass:: deepchem.models.torch_models.rfdiffusion_multitrack.RFDiffusionMultiTrackDenoiser
+   :members:
+
+.. autofunction:: deepchem.models.torch_models.rfdiffusion_multitrack.backbone_coords_from_frames
+
+.. autofunction:: deepchem.models.torch_models.rfdiffusion_multitrack.sample_noisy_frames
+
+.. autofunction:: deepchem.models.torch_models.rfdiffusion_multitrack.translation_posterior_step
+
+.. autofunction:: deepchem.models.torch_models.rfdiffusion_multitrack.so3_x0_reverse_step
+
+.. autofunction:: deepchem.models.torch_models.rfdiffusion_multitrack.multitrack_frame_loss
+
+RFDiffusion All-Atom Losses
+----------------------------
+
+Loss functions for RFDiffusion All-Atom training once side-chain and/or
+ligand atoms are involved: Frame Aligned Point Error (FAPE), a generic
+dihedral-angle loss usable for side-chain chi angles, a soft ligand
+steric-clash penalty, and a masked all-atom coordinate loss.
+
+.. autofunction:: deepchem.models.torch_models.rfdiffusion_losses.frame_aligned_point_error
+
+.. autofunction:: deepchem.models.torch_models.rfdiffusion_losses.dihedral_angle
+
+.. autofunction:: deepchem.models.torch_models.rfdiffusion_losses.chi_angle_loss
+
+.. autofunction:: deepchem.models.torch_models.rfdiffusion_losses.ligand_clash_loss
+
+.. autofunction:: deepchem.models.torch_models.rfdiffusion_losses.masked_all_atom_l2_loss
+
+.. autofunction:: deepchem.models.torch_models.rfdiffusion_losses.vdw_radii_from_symbols
+
+RFDiffusion All-Atom Symmetry
+------------------------------
+
+Point-group symmetry utilities for generating symmetric multi-chain
+assemblies: rotation matrices for the cyclic, dihedral, tetrahedral,
+octahedral, and icosahedral point groups, and functions that project a
+set of chain copies onto the symmetric subspace of a group.
+
+.. autofunction:: deepchem.models.torch_models.rfdiffusion_symmetry.cyclic_group
+
+.. autofunction:: deepchem.models.torch_models.rfdiffusion_symmetry.dihedral_group
+
+.. autofunction:: deepchem.models.torch_models.rfdiffusion_symmetry.tetrahedral_group
+
+.. autofunction:: deepchem.models.torch_models.rfdiffusion_symmetry.octahedral_group
+
+.. autofunction:: deepchem.models.torch_models.rfdiffusion_symmetry.icosahedral_group
+
+.. autofunction:: deepchem.models.torch_models.rfdiffusion_symmetry.symmetrize_coords
+
+.. autofunction:: deepchem.models.torch_models.rfdiffusion_symmetry.symmetrize_frames
+
+RFDiffusion All-Atom Conditioning
+------------------------------------
+
+Conditioning modules for target-length awareness and binder design:
+embedding a target chain length, and cross-attention from a generated
+chain onto a frozen partner representation.
+
+.. autoclass:: deepchem.models.torch_models.rfdiffusion_conditioning.LengthConditioning
+   :members:
+
+.. autoclass:: deepchem.models.torch_models.rfdiffusion_conditioning.BinderCrossAttention
+   :members:
+
+RFDiffusion All-Atom Denoiser
+--------------------------------
+
+The ligand-conditioned denoiser behind ``RFDiffusionAA``: embeds a fixed
+ligand's atoms and cross-attends them into the protein backbone
+denoiser at every step.
+
+.. autoclass:: deepchem.models.torch_models.rfdiffusion_aa.LigandContextEmbedding
+   :members:
+
+.. autoclass:: deepchem.models.torch_models.rfdiffusion_aa.RFDiffusionAADenoiser
+   :members:

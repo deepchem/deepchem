@@ -26,11 +26,17 @@ def _make_dataset(n=6, length=20):
 
 
 def _small_model(**kw):
+    # embed_dim/num_layers keep the 'transformer' baseline cheap;
+    # pair_dim/num_blocks/pair_num_heads do the same for the default
+    # 'multitrack' architecture, so this helper stays fast either way.
     defaults = dict(embed_dim=32,
                     num_layers=1,
                     num_heads=4,
                     num_diffusion_steps=10,
-                    batch_size=2)
+                    batch_size=2,
+                    pair_dim=8,
+                    num_blocks=1,
+                    pair_num_heads=2)
     defaults.update(kw)
     return RFDiffusionModel(**defaults)
 
@@ -128,3 +134,135 @@ class TestRFDiffusionModel:
         loss_before = model.fit(ds, nb_epoch=1)
         loss_after = model.fit(ds, nb_epoch=5)
         assert loss_after <= loss_before * 1.5  # some decrease expected
+
+    def test_invalid_architecture_raises(self):
+        with pytest.raises(ValueError):
+            RFDiffusionModel(architecture='not-a-real-architecture')
+
+
+def _small_multitrack_model(**kw):
+    defaults = dict(architecture='multitrack',
+                    embed_dim=16,
+                    pair_dim=8,
+                    num_blocks=1,
+                    num_heads=2,
+                    pair_num_heads=2,
+                    num_diffusion_steps=10,
+                    batch_size=2)
+    defaults.update(kw)
+    return RFDiffusionModel(**defaults)
+
+
+@pytest.mark.torch
+@requires_dc
+class TestRFDiffusionModelMultiTrack:
+    """Tests for architecture='multitrack', the real RFdiffusion network."""
+
+    def test_fit_returns_loss(self):
+        model = _small_multitrack_model()
+        ds = _make_dataset()
+        loss = model.fit(ds, nb_epoch=1)
+        assert isinstance(loss, float)
+        assert np.isfinite(loss)
+
+    def test_generate_shape_and_finite(self):
+        model = _small_multitrack_model()
+        samples = model.generate(num_samples=2, seq_length=10)
+        assert samples.shape == (2, 10, 9)
+        assert np.isfinite(samples).all()
+
+    def test_generate_after_fit(self):
+        model = _small_multitrack_model()
+        model.fit(_make_dataset(), nb_epoch=1)
+        samples = model.generate(num_samples=2, seq_length=12)
+        assert samples.shape == (2, 12, 9)
+        assert np.isfinite(samples).all()
+
+    def test_fit_variable_length(self):
+        model = _small_multitrack_model()
+        proteins = [
+            np.random.randn(np.random.randint(5, 15), 9).astype(np.float32)
+            for _ in range(4)
+        ]
+        X = np.empty(4, dtype=object)
+        for i, p in enumerate(proteins):
+            X[i] = p
+        ds = dc.data.NumpyDataset(X=X, y=np.zeros((4, 1), dtype=np.float32))
+        loss = model.fit(ds, nb_epoch=1)
+        assert np.isfinite(loss)
+
+    def test_motif_conditioning_holds_positions_fixed(self):
+        model = _small_multitrack_model()
+        seq_length = 12
+        mask = np.zeros(seq_length, dtype=bool)
+        mask[4:8] = True
+        reference = np.random.randn(seq_length, 3, 3).astype(np.float32)
+        samples = model.generate(num_samples=1,
+                                 seq_length=seq_length,
+                                 motif_mask=mask,
+                                 motif_coords=reference)
+        assert samples.shape == (1, seq_length, 9)
+        assert np.isfinite(samples).all()
+
+    def test_motif_conditioning_requires_multitrack(self):
+        model = _small_transformer_model()
+        mask = np.zeros(10, dtype=bool)
+        reference = np.zeros((10, 3, 3), dtype=np.float32)
+        with pytest.raises(ValueError):
+            model.generate(seq_length=10,
+                           motif_mask=mask,
+                           motif_coords=reference)
+
+    def test_motif_mask_without_coords_raises(self):
+        model = _small_multitrack_model()
+        mask = np.zeros(10, dtype=bool)
+        with pytest.raises(ValueError):
+            model.generate(seq_length=10, motif_mask=mask)
+
+    def test_motif_mask_shape_mismatch_raises(self):
+        model = _small_multitrack_model()
+        mask = np.zeros(5, dtype=bool)  # wrong length for seq_length=10
+        reference = np.zeros((10, 3, 3), dtype=np.float32)
+        with pytest.raises(ValueError):
+            model.generate(seq_length=10,
+                           motif_mask=mask,
+                           motif_coords=reference)
+
+    def test_save_and_reload(self, tmp_path):
+        model = _small_multitrack_model()
+        model.fit(_make_dataset(), nb_epoch=1)
+        model.save_checkpoint(model_dir=str(tmp_path))
+
+        model2 = _small_multitrack_model()
+        model2.restore(model_dir=str(tmp_path))
+        assert model2._train_std == model._train_std
+
+
+def _small_transformer_model(**kw):
+    defaults = dict(architecture='transformer',
+                    embed_dim=32,
+                    num_layers=1,
+                    num_heads=4,
+                    num_diffusion_steps=10,
+                    batch_size=2)
+    defaults.update(kw)
+    return RFDiffusionModel(**defaults)
+
+
+@pytest.mark.torch
+@requires_dc
+class TestRFDiffusionModelTransformerBaseline:
+    """Standalone coverage for architecture='transformer', now that it is
+    no longer the default exercised implicitly by _small_model()."""
+
+    def test_fit_returns_loss(self):
+        model = _small_transformer_model()
+        loss = model.fit(_make_dataset(), nb_epoch=1)
+        assert isinstance(loss, float)
+        assert np.isfinite(loss)
+
+    def test_generate_shape_and_finite(self):
+        model = _small_transformer_model()
+        samples = model.generate(num_samples=2, seq_length=10)
+        assert samples.shape == (2, 10, 9)
+        assert np.isfinite(samples).all()

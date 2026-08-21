@@ -52,6 +52,7 @@ try:
     from deepchem.models.torch_models import PositionalEncoding
     from deepchem.models.torch_models import CosineSchedule
     from deepchem.models.torch_models import BackboneDiffusion
+    from deepchem.models.torch_models import RFDiffusionMultiTrackDenoiser
     from deepchem.models.torch_models import RFDiffusionModel
     from deepchem.models.torch_models import ScaledDotProductAttention, SelfAttention
     from deepchem.models.torch_models import GroverReadout

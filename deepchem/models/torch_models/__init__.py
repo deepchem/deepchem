@@ -57,6 +57,7 @@ from deepchem.models.torch_models.layers import ResidueEmbedding
 from deepchem.models.torch_models.layers import PositionalEncoding
 from deepchem.models.torch_models.layers import CosineSchedule
 from deepchem.models.torch_models.layers import BackboneDiffusion
+from deepchem.models.torch_models.rfdiffusion_multitrack import RFDiffusionMultiTrackDenoiser
 from deepchem.models.torch_models.rfdiffusion import RFDiffusionModel
 
 try:

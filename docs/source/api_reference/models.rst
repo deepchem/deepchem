@@ -780,6 +780,12 @@ RFDiffusionModel
 .. autoclass:: deepchem.models.torch_models.rfdiffusion.RFDiffusionModel
   :members:
 
+RFDiffusionAA
+-------------
+
+.. autoclass:: deepchem.models.torch_models.rfdiffusion_aa.RFDiffusionAA
+  :members:
+
 Trainer
 =======
 
