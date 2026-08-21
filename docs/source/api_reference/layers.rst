@@ -136,6 +136,12 @@ Torch Layers
 .. autoclass:: deepchem.models.torch_models.layers.ScaleNorm
   :members:
 
+.. autoclass:: deepchem.models.torch_models.layers.ActNorm
+  :members:
+
+.. autoclass:: deepchem.models.torch_models.layers.FourierBlock1D
+  :members:
+
 .. autoclass:: deepchem.models.torch_models.layers.MATEncoderLayer
   :members:
 
