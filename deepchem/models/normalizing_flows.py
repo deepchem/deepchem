@@ -197,7 +197,7 @@ class NormalizingFlowModel(KerasModel):
 
         """
 
-        @tf.function(experimental_relax_shapes=True)
+        @tf.function(reduce_retracing=True)
         def apply_gradient_for_batch(inputs, labels, weights, loss):
             with tf.GradientTape() as tape:
                 tape.watch(self.flow.trainable_variables)
