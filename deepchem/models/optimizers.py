@@ -195,7 +195,8 @@ class Adam(Optimizer):
                  beta1: float = 0.9,
                  beta2: float = 0.999,
                  epsilon: float = 1e-08,
-                 weight_decay: float = 0):
+                 weight_decay: float = 0,
+                 legacy: bool = True):
         """Construct an Adam optimizer.
 
         Parameters
@@ -210,12 +211,15 @@ class Adam(Optimizer):
             a parameter of the Adam algorithm
         weight_decay: float
             L2 penalty - a parameter of the Adam algorithm
+        legacy: bool
+            if True, use the legacy Adam optimizer
         """
         super(Adam, self).__init__(learning_rate)
         self.beta1 = beta1
         self.beta2 = beta2
         self.epsilon = epsilon
         self.weight_decay = weight_decay
+        self.legacy = legacy
 
     def _create_tf_optimizer(self, global_step):
         import tensorflow as tf
@@ -223,10 +227,16 @@ class Adam(Optimizer):
             learning_rate = self.learning_rate._create_tf_tensor(global_step)
         else:
             learning_rate = self.learning_rate
-        return tf.keras.optimizers.legacy.Adam(learning_rate=learning_rate,
-                                               beta_1=self.beta1,
-                                               beta_2=self.beta2,
-                                               epsilon=self.epsilon)
+        if self.legacy:
+            return tf.keras.optimizers.legacy.Adam(learning_rate=learning_rate,
+                                                   beta_1=self.beta1,
+                                                   beta_2=self.beta2,
+                                                   epsilon=self.epsilon)
+        else:
+            return tf.keras.optimizers.Adam(learning_rate=learning_rate,
+                                            beta_1=self.beta1,
+                                            beta_2=self.beta2,
+                                            epsilon=self.epsilon)
 
     def _create_pytorch_optimizer(self, params):
         import torch
