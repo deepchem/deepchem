@@ -109,3 +109,9 @@ env.yml
 **/*.ipynb_checkpoints/
 
 .database/
+
+deepchem_env/
+venv/
+.env/
+__pycache__/
+*.pyc
