@@ -98,7 +98,14 @@ class Chemberta(HuggingFaceModel):
                  config: Dict[Any, Any] = {},
                  **kwargs):
         self.n_tasks = n_tasks
-        tokenizer = RobertaTokenizerFast.from_pretrained(tokenizer_path)
+        def load_tokenizer(path):
+            try:
+                return RobertaTokenizerFast.from_pretrained(path)
+            except Exception:
+                from transformers import RobertaTokenizer
+                return RobertaTokenizer.from_pretrained(path)
+
+        tokenizer = load_tokenizer(tokenizer_path)
         model: PreTrainedModel
         chemberta_config = RobertaConfig(vocab_size=tokenizer.vocab_size,
                                          **config)
