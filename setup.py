@@ -62,8 +62,8 @@ setup(name='deepchem',
           'Programming Language :: Python :: 3.11',
       ],
       license='MIT',
-      description='Deep learning models for drug discovery, \
-        quantum chemistry, and the life sciences.',
+      description='Deep learning models for drug discovery, ' +
+      'quantum chemistry, and the life sciences.',
       keywords=[
           'deepchem',
           'chemistry',
