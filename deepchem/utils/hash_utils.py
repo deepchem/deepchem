@@ -33,7 +33,21 @@ def hash_ecfp(ecfp: str, size: int = 1024) -> int:
     return ecfp_hash
 
 
-def hash_sybyl(sybyl, sybyl_types):
+def hash_sybyl(sybyl: str, sybyl_types: List[str]) -> int:
+    """Returns the index of a Sybyl atom type in the list of Sybyl types.
+
+    Parameters
+    ----------
+    sybyl: str
+        Sybyl atom type string to look up
+    sybyl_types: List[str]
+        List of valid Sybyl atom type strings
+
+    Returns
+    -------
+    int
+        Index of the sybyl type in sybyl_types list
+    """
     return (sybyl_types.index(sybyl))
 
 
