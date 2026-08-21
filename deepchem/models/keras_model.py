@@ -272,16 +272,35 @@ class KerasModel(Model):
         self._checkpoint = tf.train.Checkpoint(optimizer=self._tf_optimizer,
                                                model=self.model)
 
+        # Fix invalid Keras model scope name (Keras 3 compatibility)
+        try:
+            if hasattr(self.model, "_name") or hasattr(self.model, "name"):
+                raw_name = self.model.__class__.__name__
+                safe_name = raw_name.replace("<", "").replace(">", "").replace("_", "")
+                safe_name = safe_name.lstrip("_")  # remove leading underscores
+
+                if hasattr(self.model, "_name"):
+                    self.model._name = safe_name
+                if hasattr(self.model, "name"):
+                    self.model.name = safe_name
+        except Exception:
+            pass
+
     def _create_inputs(self, example_inputs: List) -> None:
         """The first time this is called, create tensors representing the inputs and outputs."""
         if self._inputs_built:
             return
         self._ensure_built()
         self._inputs_built = True
-        if (self.model.inputs is not None) and len(self.model.inputs) > 0:
-            self._input_shapes = [t.shape for t in self.model.inputs]
+        model_inputs = getattr(self.model, "inputs", None)
+
+        if model_inputs is None:
+            model_inputs = getattr(self.model, "input", None)
+
+        if model_inputs is not None:
+            self._input_shapes = [t.shape for t in model_inputs]
             self._input_dtypes = [
-                t.dtype.as_numpy_dtype for t in self.model.inputs
+                t.dtype.as_numpy_dtype for t in model_inputs
             ]
         else:
             self._input_shapes = [(None,) + i.shape[1:] for i in example_inputs]
