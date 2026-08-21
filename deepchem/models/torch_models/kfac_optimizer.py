@@ -378,7 +378,7 @@ class KFACOptimizer(optim.Optimizer):
         v2 = v1 / (self.d_g[m].unsqueeze(1) * self.d_a[m].unsqueeze(0) +
                    damping)
         a = self.Q_g[m] @ v2 @ self.Q_a[m].t()
-        if m.bias is not None:
+        if m.bias is not None and m.bias.grad is not None:
             # we always put gradient w.r.t weight in [0]
             # and w.r.t bias in [1]
             if isinstance(m.weight.grad.detach(), torch.Tensor) and isinstance(

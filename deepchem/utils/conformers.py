@@ -268,7 +268,8 @@ class ConformerGenerator(object):
         new_mol.RemoveAllConformers()
         conf_ids = [conf.GetId() for conf in mol.GetConformers()]
         for i in keep:
-            conf = mol.GetConformer(conf_ids[i])
+            idx = int(i)
+            conf = mol.GetConformer(conf_ids[idx])
             new_mol.AddConformer(conf, assignId=True)
         return new_mol
 
