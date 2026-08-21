@@ -420,7 +420,7 @@ class MolGANConvolutionLayer(tf.keras.layers.Layer):
         Parameters
         ---------
         units: int
-            Dimesion of dense layers used for convolution
+            Dimension of dense layers used for convolution
         activation: function, optional (default=Tanh)
             activation function used across model, default is Tanh
         dropout_rate: float, optional (default=0.0)
@@ -545,7 +545,7 @@ class MolGANAggregationLayer(tf.keras.layers.Layer):
         Parameters
         ---------
         units: int, optional (default=128)
-            Dimesion of dense layers used for aggregation
+            Dimension of dense layers used for aggregation
         activation: function, optional (default=Tanh)
             activation function used across model, default is Tanh
         dropout_rate: float, optional (default=0.0)
@@ -868,7 +868,7 @@ class LSTMStep(tf.keras.layers.Layer):
         input_dim: int
           Dimensionality of input vectors.
         init_fn: str
-          TensorFlow nitialization to use for W.
+          TensorFlow initialization to use for W.
         inner_init_fn: str
           TensorFlow initialization to use for U.
         activation_fn: str
@@ -3404,7 +3404,7 @@ class DAGLayer(tf.keras.layers.Layer):
         Parameters
         ----------
         n_graph_feat: int, optional
-            Number of features for each node(and the whole grah).
+            Number of features for each node(and the whole graph).
         n_atom_feat: int, optional
             Number of features listed per atom.
         max_atoms: int, optional
@@ -3492,7 +3492,7 @@ class DAGLayer(tf.keras.layers.Layer):
         """
         atom_features = inputs[0]
         # each atom corresponds to a graph, which is represented by the `max_atoms*max_atoms` int32 matrix of index
-        # each gragh include `max_atoms` of steps(corresponding to rows) of calculating graph features
+        # each graph include `max_atoms` of steps(corresponding to rows) of calculating graph features
         parents = tf.cast(inputs[1], dtype=tf.int32)
         # target atoms for each step: (batch_size*max_atoms) * max_atoms
         calculation_orders = inputs[2]
@@ -3533,7 +3533,7 @@ class DAGLayer(tf.keras.layers.Layer):
                                            self.b_list, self.activation_fn,
                                            self.dropouts, training)
 
-            # index for targe atoms
+            # index for target atoms
             target_index = tf.stack([tf.range(n_atoms), parents[:, count, 0]],
                                     axis=1)
             target_index = tf.boolean_mask(target_index, mask)
