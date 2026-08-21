@@ -168,7 +168,7 @@ mediums under TSC control (gitter, facebook, blog)
 
 Members of the TSC will meet regularly (over phone or video conferencing)
 to coordinate efforts. Minutes from the TSC meetings will be published publicly on an ongoing basis.
-The current members of the TSC are (alphabetically)
+The current members of the TSC are (listed alphabetically by surname)
 * Peter Eastman
 * Karl Leswing
 * Bharath Ramsundar
