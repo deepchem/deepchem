@@ -43,7 +43,7 @@ try:
 
     has_tensorflow = True
 
-except:
+except Exception:
     has_tensorflow = False
 
 

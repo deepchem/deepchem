@@ -185,7 +185,7 @@ def one_hot_encode(val: Union[int, str],
 
     try:
         one_hot[allowable_set.index(val)] = 1.0  # type: ignore
-    except:
+    except Exception:
         if include_unknown_set:
             # If include_unknown_set is True, set the last index is 1.
             one_hot[-1] = 1.0
@@ -365,7 +365,7 @@ def get_atom_chirality_one_hot(atom: RDKitAtom) -> List[float]:
             one_hot[0] = 1.0
         elif chiral_type == "S":
             one_hot[1] = 1.0
-    except:
+    except Exception:
         pass
     return one_hot
 

@@ -8,7 +8,7 @@ import numpy as np
 try:
     import tensorflow as tf  # noqa: F401
     has_tensorflow = True
-except:
+except Exception:
     has_tensorflow = False
 
 

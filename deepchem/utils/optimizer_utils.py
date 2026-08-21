@@ -2,7 +2,7 @@ import math
 try:
     import torch
     from torch.optim import Optimizer
-except:
+except Exception:
     pass
 from deepchem.utils.typing import Betas2, Params, Callable, Any
 from typing import Optional

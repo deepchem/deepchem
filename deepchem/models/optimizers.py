@@ -4,7 +4,7 @@ import math
 from functools import partial
 try:
     from deepchem.utils.optimizer_utils import LambOptimizer
-except:
+except Exception:
     pass
 from typing import Dict, Union, Optional
 

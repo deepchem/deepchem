@@ -5,7 +5,7 @@ try:
     import jax.numpy as jnp
     from jax import random  # noqa: F401
     import haiku as hk
-except:
+except Exception:
     has_haiku_and_optax = False
 
 

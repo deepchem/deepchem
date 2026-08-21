@@ -8,13 +8,13 @@ from deepchem.utils.evaluate import GeneratorEvaluator
 try:
     import tensorflow as tf  # noqa
     has_tensorflow = True
-except:
+except Exception:
     has_tensorflow = False
 
 try:
     import torch  # noqa
     has_pytorch = True
-except:
+except Exception:
     has_pytorch = False
 
 

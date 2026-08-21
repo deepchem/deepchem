@@ -92,7 +92,7 @@ try:
         def build_model(self):
             return nn.Sequential(self.components['encoder'],
                                  self.components['FF_pt'])
-except:
+except Exception:
     pass
 
 

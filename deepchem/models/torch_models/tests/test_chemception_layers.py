@@ -4,7 +4,7 @@ try:
     import torch
     import deepchem.models.torch_models.chemnet_layers as layers
     has_torch = True
-except:
+except Exception:
     has_torch = False
 
 

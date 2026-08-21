@@ -11,7 +11,7 @@ try:
     from tensorflow import one_hot
     from tensorflow.keras.backend import clear_session as keras_clear_session
     has_tensorflow = True
-except:
+except Exception:
     has_tensorflow = False
 
 

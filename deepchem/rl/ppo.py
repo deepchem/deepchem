@@ -476,7 +476,7 @@ class _Worker(object):
                 self.ppo._value_index].numpy()[0]
             try:
                 final_value = final_value.tolist()[0]
-            except:
+            except Exception:
                 pass
         else:
             final_value = 0.0

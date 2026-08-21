@@ -11,7 +11,7 @@ try:
     from deepchem.models.optimizers import Adam
     from jax import jacrev
     has_haiku_and_optax = True
-except:
+except Exception:
     has_haiku_and_optax = False
 
 

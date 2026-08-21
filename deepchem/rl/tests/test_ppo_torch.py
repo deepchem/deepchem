@@ -10,7 +10,7 @@ try:
     from deepchem.rl.torch_rl import PPO
     from deepchem.models.optimizers import Adam
     has_pytorch = True
-except:
+except Exception:
     has_pytorch = False
 
 

@@ -2,7 +2,7 @@ import logging
 try:
     import jax.numpy as jnp
     import haiku as hk
-except:
+except Exception:
     raise ImportError('These classes require Jax and Haiku to be installed.')
 
 logger = logging.getLogger(__name__)

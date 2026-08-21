@@ -622,7 +622,7 @@ def benchmark_regression(train_dataset,
         try:
             # Remove token for paddings
             atom_number_cases.remove(0)
-        except:
+        except Exception:
             pass
         ANItransformer = deepchem.trans.ANITransformer(
             max_atoms=max_atoms, atom_cases=atom_number_cases)

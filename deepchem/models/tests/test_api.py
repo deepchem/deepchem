@@ -9,7 +9,7 @@ from sklearn.ensemble import RandomForestRegressor
 try:
     import torch  # noqa: F401
     has_pytorch = True
-except:
+except Exception:
     has_pytorch = False
 
 

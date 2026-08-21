@@ -10,7 +10,7 @@ try:
     import tensorflow as tf
     from deepchem.models.graph_models import WeaveModel
     has_tensorflow = True
-except:
+except Exception:
     has_tensorflow = False
 
 
