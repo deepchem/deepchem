@@ -148,40 +148,89 @@ class BaseXC(EditableModule):
                                      d=ValGrad(value=dedn_d, grad=dedg_d))
 
                 elif self.family == 4:
+                    assert densinfo.u.grad is not None
+                    assert densinfo.d.grad is not None
+                    
                     params = (
                         densinfo.u.value,
                         densinfo.d.value,  # type: ignore[assignment]
                         densinfo.u.grad,
-                        densinfo.d.grad,
-                        densinfo.u.lapl,
-                        densinfo.d.lapl,
-                        densinfo.u.kin,
-                        densinfo.d.kin)
+                        densinfo.d.grad)
+                    has_ulapl= densinfo.u.lapl is not None
+                    has_dlapl= densinfo.d.lapl is not None
+                    has_ukin= densinfo.u.kin is not None
+                    has_dkin= densinfo.d.kin is not None
+
+                    if has_ulapl:
+                        params.append(densinfo.u.lapl)
+                    if has_dlapl:
+                        params.append(densinfo.d.lapl)
+                    if has_ukin:
+                        params.append(densinfo.u.kin)
+                    if has_dkin:
+                        params.append(densinfo.d.kin)
+                    
+                    derivs = torch.autograd.grad(
+                        edensity,
+                        params,
+                        create_graph=grad_enabled,
+                        grad_outputs=grad_outputs,
+                        allow_unused=True)
+                    idx=0
+                    dedn_u = derivs[idx]
+                    idx+=1
+                    dedn_d = derivs[idx]
+                    idx+=1
+                    dedg_u = derivs[idx]
+                    idx+=1
+                    dedg_d = derivs[idx]
+                    idx+=1
+                    dedl_u = derivs[idx]
+                    idx+=1
+                    dedl_d = derivs[idx]
+                    idx+=1
+                    dedk_u = derivs[idx]
+                    idx+=1
+                    dedk_d = derivs[idx]
+                    idx+=1
+
                     dedn_u, dedn_d, dedg_u, dedg_d, dedl_u, dedl_d, dedk_u, dedk_d = torch.autograd.grad(
                         edensity,
                         params,
                         create_graph=grad_enabled,
                         grad_outputs=grad_outputs,
                         allow_unused=True)
+                    idx = 0
+                    dedn_u = derivs[idx]; idx += 1
+                    dedn_d = derivs[idx]; idx += 1
+                    dedg_u = derivs[idx]; idx += 1
+                    dedg_d = derivs[idx]; idx += 1
 
-                    # mgga might only use one of either lapl or kin, so we need to change the deriv manually to 0s
-                    dedl_u = dedl_u if dedl_u is not None else torch.zeros_like(
-                        dedn_u)
-                    dedk_u = dedk_u if dedk_u is not None else torch.zeros_like(
-                        dedn_u)
-                    dedl_d = dedl_d if dedl_d is not None else torch.zeros_like(
-                        dedn_d)
-                    dedk_d = dedk_d if dedk_d is not None else torch.zeros_like(
-                        dedn_d)
+                    dedl_u = derivs[idx] if has_ulapl else None
+                    if has_ulapl:
+                        idx += 1
 
-                    return SpinParam(u=ValGrad(value=dedn_u,
-                                               grad=dedg_u,
-                                               lapl=dedl_u,
-                                               kin=dedk_u),
-                                     d=ValGrad(value=dedn_d,
-                                               grad=dedg_d,
-                                               lapl=dedl_d,
-                                               kin=dedk_d))
+                    dedl_d = derivs[idx] if has_dlapl else None
+                    if has_dlapl:
+                        idx += 1
+
+                    dedk_u = derivs[idx] if has_ukin else None
+                    if has_ukin:
+                        idx += 1
+
+                    dedk_d = derivs[idx] if has_dkin else None
+
+                    dedl_u = dedl_u if dedl_u is not None else torch.zeros_like(dedn_u)
+                    dedk_u = dedk_u if dedk_u is not None else torch.zeros_like(dedn_u)
+                    dedl_d = dedl_d if dedl_d is not None else torch.zeros_like(dedn_d)
+                    dedk_d = dedk_d if dedk_d is not None else torch.zeros_like(dedn_d)
+
+                    return SpinParam(
+                        u=ValGrad(value=dedn_u, grad=dedg_u, lapl=dedl_u, kin=dedk_u),
+                        d=ValGrad(value=dedn_d, grad=dedg_d, lapl=dedl_d, kin=dedk_d),
+                    )
+
+        
 
                 else:
                     raise NotImplementedError(
@@ -208,23 +257,35 @@ class BaseXC(EditableModule):
 
                 elif self.family == 4:  # MGGA
                     assert densinfo.grad is not None
-                    assert densinfo.lapl is not None
-                    assert densinfo.kin is not None
-                    dedn, dedg, dedl, dedk = torch.autograd.grad(
-                        edensity, [
-                            densinfo.value, densinfo.grad, densinfo.lapl,
-                            densinfo.kin
-                        ],
+                    params = [densinfo.value, densinfo.grad]
+                    has_lapl = densinfo.lapl is not None
+                    has_kin = densinfo.kin is not None
+                    if has_lapl:
+                        params.append(densinfo.lapl)
+                    if has_kin:
+                        params.append(densinfo.kin)
+                    derivs = torch.autograd.grad(
+                        edensity,
+                        params,
                         create_graph=grad_enabled,
                         grad_outputs=grad_outputs,
                         allow_unused=True)
+                    idx=0
+                    dedn = derivs[idx]
+                    idx+=1
+                    dedg = derivs[idx]
+                    idx+=1
 
-                    # mgga might only use one of either lapl or kin, so we need to change the deriv manually to 0s
+                    dedl= derivs[idx] if has_lapl else None
+                    if has_lapl:
+                        idx+=1
+                    dedk = derivs[idx] if has_kin else None
+                    
                     dedl = dedl if dedl is not None else torch.zeros_like(dedn)
                     dedk = dedk if dedk is not None else torch.zeros_like(dedn)
 
                     return ValGrad(value=dedn, grad=dedg, lapl=dedl, kin=dedk)
-
+    
                 else:
                     raise NotImplementedError(
                         "Default vxc for family %d is not implemented" %
@@ -305,23 +366,24 @@ class BaseXC(EditableModule):
                 assert densinfo.d.grad is not None
                 params.extend([densinfo.u.grad, densinfo.d.grad])
             if self.family >= 3:  # MGGA
-                assert densinfo.u.lapl is not None
-                assert densinfo.d.lapl is not None
-                assert densinfo.u.kin is not None
-                assert densinfo.d.kin is not None
-                params.extend([
-                    densinfo.u.lapl, densinfo.d.lapl, densinfo.u.kin,
-                    densinfo.d.kin
-                ])
+                if densinfo.u.lapl is not None:
+                    params.append(densinfo.u.lapl)
+                if densinfo.d.lapl is not None:
+                    params.append(densinfo.d.lapl)
+                if densinfo.u.kin is not None:
+                    params.append(densinfo.u.kin)
+                if densinfo.d.kin is not None:
+                    params.append(densinfo.d.kin)
         else:
             params = [densinfo.value]
             if self.family >= 2:
                 assert densinfo.grad is not None
                 params.append(densinfo.grad)
             if self.family >= 3:
-                assert densinfo.lapl is not None
-                assert densinfo.kin is not None
-                params.extend([densinfo.lapl, densinfo.kin])
+                if densinfo.lapl is not None:
+                    params.append(densinfo.lapl)
+                if densinfo.kin is not None:
+                    params.append(densinfo.kin)
 
         try:
             # set the params to require grad
