@@ -64,3 +64,17 @@ def test_sampling():
                                    model_dir="./assets/lstm_generator")
     random_gens = generator.sample(3, max_len=10)
     assert len(random_gens) == 3
+
+
+@pytest.mark.torch
+def test_predefined_sampling():
+    from deepchem.models.torch_models.lstm_generator_models import LSTMGenerator
+
+    generator = LSTMGenerator(allow_custom_init_texts=True)
+
+    generator.load_from_pretrained(source_model=LSTMGenerator(),
+                                   model_dir="./assets/lstm_generator")
+    random_gens = generator.sample(3, max_len=10, init_texts="pre")
+    assert len(random_gens) == 3
+    for gen in random_gens:
+        assert gen.startswith("pre")
