@@ -703,6 +703,30 @@ The utilites here are used to create an object that contains information about a
 
 .. autofunction:: deepchem.utils.differentiation_utils.integrate.explicit_rk.mid_point_ivp
 
+Exchange Coorelation Functionals
+--------------------------------
+
+These classes implements many Exchange Coorelation functionals and also acts as
+a superclass for implementing custom Exchange Coorelation functionals.
+
+People can initialise this class by :code:`PyTorchLDA("<functional-name>")` this will initialise
+the correct function in :code:`get_edensityxc` which processes the calculation internally.
+
+Available XC Functionals:
+1. LDA_X
+101. GGA_X_PBE
+
+Note: In this list the numbers on the left are the codes assigned to them in libxc.
+
+.. autoclass:: deepchem.utils.dft_utils.xc.pytorch_xc.PyTorchLDA
+  :members:
+
+.. autoclass:: deepchem.utils.dft_utils.xc.pytorch_xc.PyTorchGGA
+  :members:
+
+.. autoclass:: deepchem.utils.dft_utils.xc.pytorch_xc.PyTorchMGGA
+  :members:
+
 Attribute Utilities
 -------------------
 
