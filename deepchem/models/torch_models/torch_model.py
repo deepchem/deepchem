@@ -1137,6 +1137,39 @@ class TorchModel(Model):
         """Get the number of steps of fitting that have been performed."""
         return self._global_step
 
+    def summary(self, **kwargs):
+        """
+        Print a summary of the model.
+
+        This method uses the `torchinfo` library to display a summary of the
+        underlying PyTorch model, including layer names, output shapes, and the
+        number of parameters.
+
+        It requires `torchinfo` to be installed. (`pip install torchinfo`)
+
+        Parameters
+        ----------
+        **kwargs: dict
+            Additional keyword arguments to pass to `torchinfo.summary`.
+            For example, you can pass `input_size`, `input_data`, or `depth`.
+            If neither `input_size` nor `input_data` is provided, it will attempt
+            to use `torchinfo` without them, which may not work for all models.
+
+        Returns
+        -------
+        None or torchinfo.ModelStatistics
+            Returns the model statistics object if `verbose` is 0, else None.
+        """
+        try:
+            import torchinfo
+        except ImportError:
+            raise ImportError(
+                "The `torchinfo` library is required to use the `summary()` method. "
+                "Please install it using: pip install torchinfo")
+
+        # We pass self.model to torchinfo.summary
+        return torchinfo.summary(self.model, **kwargs)
+
     def _log_scalar_to_tensorboard(self, name: str, value: Any, step: int):
         """Log a scalar value to Tensorboard."""
         self._summary_writer.add_scalar(name, value, step)
