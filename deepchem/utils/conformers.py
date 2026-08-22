@@ -240,7 +240,7 @@ class ConformerGenerator(object):
         rmsd = self.get_conformer_rmsd(mol)
 
         sort = np.argsort(energies)  # sort by increasing energy
-        keep: List[float] = []  # always keep lowest-energy conformer
+        keep: List[int] = []  # always keep lowest-energy conformer
         discard = []
         for i in sort:
             # always keep lowest-energy conformer
