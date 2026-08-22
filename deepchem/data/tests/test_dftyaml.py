@@ -6,7 +6,7 @@ except ModuleNotFoundError:
 import pytest
 
 
-@pytest.mark.dqc
+@pytest.mark.torch
 def test_dftloader():
     inputs = 'deepchem/data/tests/dftdata.yaml'
     k = DFTYamlLoader()

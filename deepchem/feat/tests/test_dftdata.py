@@ -13,7 +13,7 @@ except Exception as e:
     warnings.warn(f"Failed to import DFT dependencies with error: {e}")
 
 
-@pytest.mark.dqc
+@pytest.mark.torch
 def test_entryDM():
     e_type = 'dm'
     true_val = 'deepchem/feat/tests/data/dftHF_output.npy'
@@ -34,7 +34,7 @@ def test_entryDM():
     assert dm0.shape == (57, 57)
 
 
-@pytest.mark.dqc
+@pytest.mark.torch
 def test_entryAE():
     e_type = 'ae'
     true_val = '0.09194410469'

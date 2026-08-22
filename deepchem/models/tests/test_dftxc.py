@@ -9,7 +9,7 @@ import pytest
 import tempfile
 
 
-@pytest.mark.dqc
+@pytest.mark.torch
 def test_dftxc_eval():
     inputs = 'deepchem/models/tests/assets/test_dftxcdata.yaml'
     data = DFTYamlLoader()
@@ -46,7 +46,7 @@ def test_dftxc_eval():
     assert dataset.y[0] != dataset.y[1]
 
 
-@pytest.mark.dqc
+@pytest.mark.torch
 def test_dm():
     inputs = 'deepchem/models/tests/assets/test_dm.yaml'
     data = DFTYamlLoader()
