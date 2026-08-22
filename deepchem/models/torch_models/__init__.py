@@ -58,6 +58,7 @@ from deepchem.models.torch_models.layers import PositionalEncoding
 from deepchem.models.torch_models.layers import CosineSchedule
 from deepchem.models.torch_models.layers import BackboneDiffusion
 from deepchem.models.torch_models.rfdiffusion import RFDiffusionModel
+from deepchem.models.torch_models.nequip import NequIP, NequIPInteractionBlock
 
 try:
     from deepchem.models.torch_models.dmpnn import DMPNN, DMPNNModel
