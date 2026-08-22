@@ -3,6 +3,7 @@ Contains wrapper class for datasets.
 """
 import json
 import os
+import sys
 import csv
 import math
 import random
@@ -26,6 +27,28 @@ from deepchem.utils.data_utils import save_to_disk, load_from_disk, load_image_f
 Batch = Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]
 
 logger = logging.getLogger(__name__)
+
+def _estimate_array_memory(arr: np.ndarray) -> int:
+    """Estimate the actual memory usage of a numpy array in bytes.
+
+    For object dtype arrays, ``ndarray.nbytes`` only reports the size of the
+    pointers (8 bytes each on 64-bit platforms), not the actual objects. This
+    helper uses ``sys.getsizeof`` for a more accurate estimate.
+
+    Parameters
+    ----------
+    arr : np.ndarray
+        The array to measure.
+
+    Returns
+    -------
+    int
+        Estimated memory usage in bytes.
+    """
+    if arr.dtype == object:
+        return sum(sys.getsizeof(x) for x in arr.flat)
+    return arr.nbytes
+
 
 
 def sparsify_features(X: np.ndarray) -> np.ndarray:
@@ -2259,12 +2282,12 @@ class DiskDataset(Dataset):
         # as we can and then stop.
 
         shard = _Shard(X, y, w, ids)
-        shard_size = X.nbytes + ids.nbytes
+        shard_size = _estimate_array_memory(X) + _estimate_array_memory(ids)
         if y is not None:
-            shard_size += y.nbytes
+            shard_size += _estimate_array_memory(y)
         if w is not None:
-            shard_size += w.nbytes
-        if self._cache_used + shard_size < self._memory_cache_size:
+            shard_size += _estimate_array_memory(w)
+        if self._memory_cache_size > 0 and self._cache_used + shard_size < self._memory_cache_size:
             self._cached_shards[i] = shard
             self._cache_used += shard_size
         return (shard.X, shard.y, shard.w, shard.ids)
@@ -2617,7 +2640,10 @@ class DiskDataset(Dataset):
 
     @memory_cache_size.setter
     def memory_cache_size(self, size: int) -> None:
-        """Get the size of the memory cache for this dataset, measured in bytes."""
+        """Set the size of the memory cache for this dataset, measured in bytes.
+
+        Set to 0 to disable caching entirely.
+        """
         self._memory_cache_size = size
         if self._cache_used > size:
             self._cached_shards = None
