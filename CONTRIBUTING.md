@@ -58,12 +58,47 @@ conda activate deepchem
 ```
 
 &nbsp;&nbsp;&nbsp;&nbsp; 2.1. DeepChem provides backend support for deep
-learning using tensorflow, pytorch or jax. By default, the deep learning frameworks
-gets installed in CPU. If GPU support is required, make sure CUDA is installed
-and then install the desired deep learning framework before installing DeepChem:
-- [tensorflow](https://www.tensorflow.org/install)
-- [pytorch](https://pytorch.org/get-started/locally/#start-locally)
-- [jax](https://github.com/google/jax#installation)
+learning using tensorflow, pytorch or jax. Choose whether you will work on CPU
+or GPU before installing DeepChem and install the required framework first. If
+you target GPUs, confirm your CUDA version is compatible with the framework
+release.
+
+- **CPU (default).** Install the CPU-only builds. For example:
+
+  ```bash
+  pip install --upgrade pip
+  pip install tensorflow
+  pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+  pip install "jax[cpu]" -f https://storage.googleapis.com/jax-releases/jax_releases.html
+  ```
+
+  Installing the CPU build first keeps the base environment lightweight
+  and avoids GPU-specific dependencies.
+
+  - **GPU (optional).** DeepChem works with TensorFlow, PyTorch, or JAX GPU
+    builds, but you must install the matching CUDA/CuDNN toolchain before the
+    framework. A typical workflow looks like:
+
+  1. Confirm you have compatible NVIDIA hardware (`nvidia-smi`).
+  2. Install the NVIDIA driver and the CUDA Toolkit version that matches the
+     framework release you plan to use (check the official install guides below
+     for the exact CUDA version).
+  3. Install the GPU framework binary after the toolchain is ready:
+
+     ```bash
+     pip install tensorflow-gpu
+     pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+     pip install "jax[cuda11_cudnn86]" -f https://storage.googleapis.com/jax-releases/jax_releases.html
+     ```
+
+  4. Validate the install (e.g., `python -c "import tensorflow as tf; print(tf.config.list_physical_devices('GPU'))"`). Run a
+     quick DeepChem example that leverages the chosen backend to ensure the
+     framework works end-to-end.
+
+  Always read the official installation guides for the framework you choose:
+  [tensorflow](https://www.tensorflow.org/install),
+  [pytorch](https://pytorch.org/get-started/locally/#start-locally),
+  [jax](https://github.com/google/jax#installation).
 
 3. Install DeepChem in `develop` mode
 
@@ -161,7 +196,7 @@ Included in the responsibilities of the TSC are:
 * Making decisions regarding dependencies of DeepChem, including what those
 dependencies are and how they are bundled with source code and releases
 * Creating new repositories and projects under the deepchem GitHub organization as required
-* Setting overall technical direction for the DeepChem project, including 
+* Setting overall technical direction for the DeepChem project, including
 high-level goals and low-level specifics regarding features and functionality
 * Setting and maintaining appropriate standards for community discourse via the various
 mediums under TSC control (gitter, facebook, blog)
