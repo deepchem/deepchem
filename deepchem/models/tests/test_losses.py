@@ -595,3 +595,63 @@ class TestLosses(unittest.TestCase):
         # Check if the loss is a scalar and non-negative
         assert loss.dim() == 0
         assert loss.item() >= 0
+
+
+class TestNumericalStabilityLosses(unittest.TestCase):
+    """Regression tests for numerical stability of loss functions.
+
+    These tests ensure that loss functions return finite values when inputs
+    contain zeros or other boundary values.  They guard against regressions of
+    the ``log(0) = -inf`` bug that previously affected ``PoissonLoss`` and
+    ``CategoricalCrossEntropy`` in their PyTorch paths.
+    """
+
+    @pytest.mark.torch
+    def test_poisson_loss_zero_output_is_finite(self):
+        """PoissonLoss must return a finite value when output contains 0.
+
+        ``torch.log(0)`` evaluates to ``-inf``, which propagates through the
+        loss and causes ``NaN`` gradients.  The fix clamps ``output`` to a
+        small positive epsilon before calling ``torch.log``.
+        """
+        loss_fn = losses.PoissonLoss()._create_pytorch_loss()
+        output = torch.tensor([0.0, 1.0, 2.0])
+        labels = torch.tensor([1.0, 1.0, 1.0])
+        result = loss_fn(output, labels)
+        assert torch.isfinite(result), (
+            "PoissonLoss returned a non-finite value for zero output, "
+            "indicating a log(0) numerical instability.")
+
+    @pytest.mark.torch
+    def test_categorical_crossentropy_zero_prob_is_finite(self):
+        """CategoricalCrossEntropy must be finite when a predicted prob is 0.
+
+        A saturated softmax can produce exact 0.0 probabilities.  Calling
+        ``torch.log(0)`` in that case returns ``-inf``, which corrupts the
+        loss and all subsequent gradients.
+        """
+        loss_fn = losses.CategoricalCrossEntropy()._create_pytorch_loss()
+        # First class probability is 0, yet it is the true class.
+        output = torch.tensor([[0.0, 0.5, 0.5], [0.33, 0.33, 0.34]])
+        labels = torch.tensor([[1.0, 0.0, 0.0], [0.33, 0.33, 0.34]])
+        result = loss_fn(output, labels)
+        assert torch.all(torch.isfinite(result)), (
+            "CategoricalCrossEntropy returned a non-finite value for a "
+            "zero-probability class, indicating a log(0) instability.")
+
+    @pytest.mark.torch
+    def test_poisson_loss_finite_for_float32_and_float64(self):
+        """PoissonLoss must be finite across float32 and float64 dtypes.
+
+        The epsilon clamp uses ``torch.finfo(output.dtype).eps`` so it is
+        dtype-aware.  This test verifies correctness for both common float
+        dtypes.
+        """
+        loss_fn = losses.PoissonLoss()._create_pytorch_loss()
+        for dtype in (torch.float32, torch.float64):
+            output = torch.tensor([0.0, 0.5, 1.0], dtype=dtype)
+            labels = torch.tensor([1.0, 1.0, 1.0], dtype=dtype)
+            result = loss_fn(output, labels)
+            assert torch.isfinite(result), (
+                "PoissonLoss returned non-finite value for "
+                "dtype={} with zero-valued output.".format(dtype))
