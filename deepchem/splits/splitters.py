@@ -19,13 +19,17 @@ logger = logging.getLogger(__name__)
 
 
 def randomize_arrays(array_list):
-    # assumes that every array is of the same dimension
+    if not array_list:
+        raise ValueError("array_list must not be empty")
+
     num_rows = array_list[0].shape[0]
-    perm = np.random.permutation(num_rows)
-    permuted_arrays = []
+
     for array in array_list:
-        permuted_arrays.append(array[perm])
-    return permuted_arrays
+        if array.shape[0] != num_rows:
+            raise ValueError("All arrays must have the same number of rows")
+
+    perm = np.random.permutation(num_rows)
+    return [array[perm] for array in array_list]
 
 
 class Splitter(object):
@@ -154,6 +158,9 @@ class Splitter(object):
         Tuple[Dataset, Optional[Dataset], Dataset]
             A tuple of train, valid and test datasets as dc.data.Dataset objects.
         """
+        if not np.isclose(frac_train + frac_valid + frac_test, 1.0):
+         raise ValueError("frac_train + frac_valid + frac_test must equal 1.0")
+    
         logger.info("Computing train/valid/test indices")
         train_inds, valid_inds, test_inds = self.split(dataset,
                                                        frac_train=frac_train,
@@ -280,8 +287,10 @@ class Splitter(object):
 
         override_args_info = ''
         for arg_name, default in zip(args_names, args_default_values):
-            if arg_name in self.__dict__:
-                arg_value = self.__dict__[arg_name]
+            arg_value = self.__dict__.get(arg_name)
+            if arg_value is None:
+                continue
+                value = self.__dict__.get(arg_name, None)
                 # validation
                 # skip list
                 if isinstance(arg_value, list):
