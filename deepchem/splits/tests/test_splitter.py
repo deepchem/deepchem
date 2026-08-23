@@ -101,6 +101,74 @@ class TestSplitter(unittest.TestCase):
                 else:
                     assert class_ind[s] == split_idx
 
+    def test_random_group_k_fold_split(self):
+        groups = [0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5]
+        group_splitter = dc.splits.RandomGroupSplitter(groups)
+        dataset = dc.data.NumpyDataset(X=np.arange(12),
+                                       y=np.zeros(12),
+                                       w=np.ones(12),
+                                       ids=np.arange(12))
+
+        K = 3
+        folds = group_splitter.k_fold_split(dataset, K, seed=0)
+
+        self.assertEqual(len(folds), K)
+        cv_ids = set()
+        for train, cv in folds:
+            # each fold holds whole groups only: no group appears in both
+            # the train and cv sets of a fold
+            self.assertEqual(len(cv), 4)
+            self.assertEqual(len(train), 8)
+            cv_groups = set(groups[int(i)] for i in cv.ids)
+            train_groups = set(groups[int(i)] for i in train.ids)
+            self.assertFalse(cv_groups & train_groups)
+            cv_ids.update(cv.ids.tolist())
+        # the cv sets partition the dataset
+        self.assertEqual(cv_ids, set(range(12)))
+
+    def test_random_group_k_fold_split_repro(self):
+        # regression test for issue #3253: k_fold_split used to crash
+        # with an AssertionError on the second fold
+        groups = [0, 0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3]
+        group_splitter = dc.splits.RandomGroupSplitter(groups=groups)
+        dataset = dc.data.NumpyDataset(X=np.arange(12),
+                                       y=np.zeros(12),
+                                       w=np.ones(12),
+                                       ids=np.arange(12))
+        folds = group_splitter.k_fold_split(dataset, 3)
+        self.assertEqual(len(folds), 3)
+        for train, cv in folds:
+            self.assertEqual(len(train) + len(cv), 12)
+
+    def test_random_group_k_fold_split_deterministic(self):
+        groups = [0, 0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3]
+        group_splitter = dc.splits.RandomGroupSplitter(groups)
+        dataset = dc.data.NumpyDataset(X=np.arange(12),
+                                       y=np.zeros(12),
+                                       w=np.ones(12),
+                                       ids=np.arange(12))
+
+        folds_a = group_splitter.k_fold_split(dataset, 3, seed=42)
+        folds_b = group_splitter.k_fold_split(dataset, 3, seed=42)
+
+        for (train_a, cv_a), (train_b, cv_b) in zip(folds_a, folds_b):
+            self.assertEqual(cv_a.ids.tolist(), cv_b.ids.tolist())
+            self.assertEqual(train_a.ids.tolist(), train_b.ids.tolist())
+
+    def test_random_group_splitter_reusable_after_k_fold(self):
+        # k_fold_split must not mutate the splitter's groups
+        groups = [0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5]
+        group_splitter = dc.splits.RandomGroupSplitter(groups)
+        dataset = dc.data.NumpyDataset(X=np.arange(12),
+                                       y=np.zeros(12),
+                                       w=np.ones(12),
+                                       ids=np.arange(12))
+
+        group_splitter.k_fold_split(dataset, 3, seed=0)
+        train, test = group_splitter.train_test_split(
+            dataset, frac_train=0.75, seed=0)
+        self.assertEqual(len(train) + len(test), 12)
+
     def test_singletask_random_split(self):
         """
         Test singletask RandomSplitter class.

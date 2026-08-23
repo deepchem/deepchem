@@ -499,6 +499,52 @@ class RandomGroupSplitter(Splitter):
 
         return train_idxs, valid_idxs, test_idxs
 
+    def k_fold_split(self, dataset, k, directories=None, seed=None, **kwargs):
+        """Group-aware k-fold split.
+
+        The groups are permuted once and each group is assigned to exactly
+        one fold, so that no group is ever split between the train and cv
+        sets of a fold. Overrides the base class ``k_fold_split``, which
+        re-splits the shrinking remaining dataset and is invalid for
+        splitters whose groups refer to the original dataset.
+
+        Parameters
+        ----------
+        dataset: Dataset
+            Dataset to split.
+        k: int
+            Number of folds to split `dataset` into.
+        directories: List[str], optional (default None)
+            Unused, present for compatibility with the base class.
+        seed: int, optional (default None)
+            Random seed to use.
+        **kwargs
+            Unused, present for compatibility with the base class.
+
+        Returns
+        -------
+        List[Tuple[Dataset, Dataset]]
+            List of length k tuples of (train, cv) where `train` and `cv`
+            are both `Dataset`.
+        """
+        group_dict = {}
+        for idx, g in enumerate(self.groups):
+            group_dict.setdefault(g, []).append(idx)
+        groups = list(group_dict.values())
+
+        if seed is not None:
+            np.random.seed(seed)
+        
+        shuffled = np.random.permutation(range(len(groups)))
+
+        folds = []
+        for fold in range(k):
+            fold_groups = shuffled[fold::k]
+            test_inds = sorted(itertools.chain(*(groups[i] for i in fold_groups)))
+            train_inds = sorted(set(range(len(self.groups))) - set(test_inds))
+            folds.append((dataset.select(train_inds), dataset.select(test_inds)))
+        return folds
+
 
 class RandomStratifiedSplitter(Splitter):
     """RandomStratified Splitter class.
