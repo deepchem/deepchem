@@ -512,6 +512,20 @@ The utilites here are used to create an object that contains information about a
 
 .. autofunction:: deepchem.utils.dft_utils.hamilton.intor.gtoft.gto_ft_evaluator
 
+.. autoclass:: deepchem.utils.dft_utils.hamilton.intor.pbcftintor._PBCInt2cFTFunction
+  :members:
+
+.. autoclass:: deepchem.utils.dft_utils.hamilton.intor.pbcftintor.PBCFTIntor
+  :members:
+
+.. autofunction:: deepchem.utils.dft_utils.hamilton.intor.pbcintor._check_and_set_pbc
+
+.. autofunction:: deepchem.utils.dft_utils.hamilton.intor.pbcintor._concat_atm_bas_env
+
+.. autofunction:: deepchem.utils.dft_utils.hamilton.hcgto_pbc.estimate_g_cutoff
+
+.. autofunction:: deepchem.utils.dft_utils.hamilton.hcgto_pbc.get_gcut
+
 .. autoclass:: deepchem.utils.differentiation_utils.editable_module.EditableModule
   :members:
 
