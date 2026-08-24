@@ -6,7 +6,6 @@ import torch
 import numpy as np
 from deepchem.utils import memoize_method
 from deepchem.utils.dft_utils import AtomCGTOBasis, CGTOBasis, Lattice
-from deepchem.utils.dft_utils.hamilton.intor.utils import np2ctypes, int2ctypes, NDIM, CINT
 
 # Terminology:
 # * gauss: one gaussian element (multiple gaussian becomes one shell)
@@ -16,7 +15,7 @@ from deepchem.utils.dft_utils.hamilton.intor.utils import np2ctypes, int2ctypes,
 #       e.g. p-shell is splitted into 3 components for cartesian (x, y, z)
 
 PTR_RINV_ORIG = 4  # from libcint/src/cint_const.h
-
+NDIM = 3
 
 class LibcintWrapper(object):
     """ A class to wrap the libcint environment and parameters for the
@@ -598,12 +597,25 @@ class LibcintWrapper(object):
         int
             The number of atomic orbital at the given shell index.
         """
-        if self.spherical:
-            op = CINT().CINTcgto_spheric
-        else:
-            op = CINT().CINTcgto_cart
         bas = self.atm_bas_env[1]
-        return op(int2ctypes(sh), np2ctypes(bas))
+        if self.spherical:
+            return cintcgto_spheric(sh, bas)
+        else:
+            return cintcgto_cart(sh, bas)
+
+
+ANG_OF = 1
+NCTR_OF = 3
+
+
+def cintcgto_spheric(bas_id, bas):
+    l = bas[bas_id][ANG_OF]
+    return (2 * l + 1) * bas[bas_id][NCTR_OF]
+
+
+def cintcgto_cart(bas_id, bas):
+    l = bas[bas_id][ANG_OF]
+    return (l + 1) * (l + 2) // 2 * bas[bas_id][NCTR_OF]
 
 
 class SubsetLibcintWrapper(LibcintWrapper):

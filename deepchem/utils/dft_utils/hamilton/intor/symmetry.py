@@ -1,7 +1,45 @@
 from abc import abstractmethod
 from typing import Tuple
 import numpy as np
-from deepchem.utils.dft_utils.hamilton.intor.utils import CSYMM, np2ctypes, int2ctypes
+
+
+def fills4(out: np.ndarray, arr: np.ndarray, ni: int, nk: int) -> None:
+    """
+    Fill out the full matrix from the reduced symmetric array (arr) with s4.
+    Symmetry: (ijkl) == (ijlk) == (jilk) == (jikl)
+    out should be initialized with all zeros.
+
+    Parameters
+    ----------
+    out : np.ndarray
+        Output array to fill (modified in place).
+    arr : np.ndarray
+        Reduced symmetric input array.
+    ni : int
+        First dimension.
+    nk : int
+        Second dimension.
+    """
+    out_flat = out.ravel()
+    n2 = nk * nk
+    n3 = ni * n2
+    iarr = 0
+    for i in range(ni):
+        for j in range(i + 1):
+            ij = i * n3 + j * n2
+            ji = j * n3 + i * n2
+            for k in range(nk):
+                for l in range(k + 1):
+                    elmt = arr[iarr]
+                    iarr += 1
+                    if elmt == 0.0:
+                        continue
+                    kl = k * nk + l
+                    lk = l * nk + k
+                    out_flat[ij + kl] = elmt
+                    out_flat[ij + lk] = elmt
+                    out_flat[ji + lk] = elmt
+                    out_flat[ji + kl] = elmt
 
 
 class BaseSymmetry(object):
@@ -214,9 +252,8 @@ class S4Symmetry(BaseSymmetry):
         self.__check_orig_shape(orig_shape)
 
         out = np.zeros(orig_shape, dtype=arr.dtype)
-        fcn = CSYMM().fills4
-        fcn(np2ctypes(out), np2ctypes(arr), int2ctypes(orig_shape[-4]),
-            int2ctypes(orig_shape[-2]))
+        arr_flat = arr.flatten()
+        fills4(out, arr_flat, orig_shape[-4], orig_shape[-2])
         return out
 
     def __check_orig_shape(self, orig_shape: Tuple[int, ...]):

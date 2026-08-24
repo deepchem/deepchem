@@ -2,7 +2,9 @@ from __future__ import annotations
 import torch
 from dataclasses import dataclass
 from typing import Optional, Union, Dict
-from deepchem.utils.dft_utils.hamilton.intor.utils import NDIM
+
+
+NDIM = 3
 
 
 @dataclass
