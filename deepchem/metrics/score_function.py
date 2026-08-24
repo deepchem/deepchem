@@ -166,14 +166,16 @@ def bedroc_score(y_true: np.ndarray, y_pred: np.ndarray, alpha: float = 20.0):
         raise ImportError("This function requires RDKit to be installed.")
 
     # validation
-    assert len(y_true) == len(y_pred), 'Number of examples do not match'
-    assert np.array_equal(np.unique(y_true).astype(int),
-                          [0, 1]), ('Class labels must be binary: %s' %
-                                    np.unique(y_true))
-
-    yt = np.asarray(y_true)
-    yp = np.asarray(y_pred)
-
+    if len(y_true) != len(y_pred):
+        raise ValueError("Number of examples do not match")
+        if not np.array_equal(np.unique(y_true).astype(int), [0, 1]):
+            raise ValueError(f"Class labels must be binary: {np.unique(y_true)}")
+            
+        yt = np.asarray(y_true)
+        yp = np.asarray(y_pred)
+        if yp.ndim < 2 or yp.shape[1] < 2:
+            raise ValueError("y_pred must have at least 2 columns for class probabilities")
+        
     yt = yt.flatten()
     yp = yp[:, 1].flatten()  # Index 1 because one_hot predictions
 
@@ -230,6 +232,7 @@ def concordance_index(y_true: np.ndarray, y_pred: np.ndarray) -> float:
                 else:
                     correct_pairs += true_a > true_b
 
-    assert pairs > 0, 'No pairs for comparision'
+        if pairs == 0:
+         raise ValueError("No pairs for comparison")
 
     return correct_pairs / pairs
