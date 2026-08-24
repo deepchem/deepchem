@@ -661,7 +661,11 @@ class SingletaskStratifiedSplitter(Splitter):
         self.task_number = task_number
 
     # FIXME: Signature of "k_fold_split" incompatible with supertype "Splitter"
-    def k_fold_split(  # type: ignore [override]
+    # The base class k_fold_split returns List[Tuple[Dataset, Dataset]] (train, fold pairs)
+    # but this override returns List[Dataset] (individual fold datasets) intentionally,
+    # to allow the caller to compose folds manually. The # type: ignore is needed
+    # until either the base class signature is updated or this method is renamed.
+    def k_fold_split(  # type: ignore[override]
             self,
             dataset: Dataset,
             k: int,
@@ -670,17 +674,29 @@ class SingletaskStratifiedSplitter(Splitter):
             log_every_n: Optional[int] = None,
             **kwargs) -> List[Dataset]:
         """
-        Splits compounds into k-folds using stratified sampling.
-        Overriding base class k_fold_split.
+        Splits compounds into k stratified folds for cross-validation.
+
+        Unlike the base class ``Splitter.k_fold_split`` which returns a list of
+        ``(train, fold)`` pairs, this override returns a list of k individual
+        fold ``Dataset`` objects. Each fold is stratified on the task specified
+        by ``self.task_number``. To perform cross-validation, iterate over folds
+        and use ``dataset.select()`` to build a complementary train set::
+
+            folds = splitter.k_fold_split(dataset, k=5)
+            for i, fold in enumerate(folds):
+                train_inds = [j for j in range(k) if j != i]
+                train = dc.data.DiskDataset.merge([folds[j] for j in train_inds])
+                # train on `train`, evaluate on `fold`
 
         Parameters
         ----------
         dataset: Dataset
             Dataset to be split.
         k: int
-            Number of folds to split `dataset` into.
+            Number of folds to split ``dataset`` into.
         directories: List[str], optional (default None)
             List of length k filepaths to save the result disk-datasets.
+            If ``None``, temporary directories are used.
         seed: int, optional (default None)
             Random seed to use.
         log_every_n: int, optional (default None)
@@ -688,8 +704,9 @@ class SingletaskStratifiedSplitter(Splitter):
 
         Returns
         -------
-        fold_datasets: List[Dataset]
-            List of dc.data.Dataset objects
+        List[Dataset]
+            A list of k ``dc.data.Dataset`` fold objects. These are individual
+            folds, NOT ``(train, fold)`` pairs like the base class returns.
         """
         logger.info("Computing K-fold split")
         if directories is None:
