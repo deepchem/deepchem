@@ -201,3 +201,35 @@ def test_load_freeze_unfreeze():
     assert not np.array_equal(
         example_pretrainer.components['encoder'][0].weight.data.cpu().numpy(),
         example_model.components['encoder'][0].weight.data.cpu().numpy())
+
+
+@pytest.mark.torch
+def test_modular_custom_loss():
+    """Test that ModularTorchModel uses custom loss function when provided."""
+    import torch
+
+    np.random.seed(123)
+    torch.manual_seed(10)
+    n_samples = 6
+    n_feat = 3
+    d_hidden = 3
+    n_layers = 1
+    n_tasks = 6
+
+    X = np.random.rand(n_samples, n_feat)
+    y = np.zeros((n_samples, n_tasks)).astype(np.float32)
+    dataset = dc.data.NumpyDataset(X, y)
+
+    example_model = ExampleTorchModel(n_feat, d_hidden, n_layers, n_tasks)
+
+    custom_loss_called = False
+
+    def custom_loss(inputs, labels, weights):
+        nonlocal custom_loss_called
+        custom_loss_called = True
+        preds = example_model.components['FF1'](inputs[0])
+        return torch.nn.functional.mse_loss(preds, labels[0])
+
+    example_model.fit(dataset, nb_epoch=1, loss=custom_loss)
+
+    assert custom_loss_called

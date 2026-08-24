@@ -81,9 +81,11 @@ class ModularTorchModel(TorchModel):
 
         self.model = model
         self.components = components
-        # FIXME self.loss_func is an incorrect argument for TorchModel.loss because
-        # it performs more than computing loss
-        super().__init__(self.model, self.loss_func, **kwargs)
+        # ModularTorchModel computes its own loss using self.loss_func which handles the forward pass.
+        # We pass a dummy loss to TorchModel (which expects a loss computing on outputs).
+        # We use a lambda to satisfy the LossFn type hint.
+        super().__init__(self.model, lambda outputs, labels, weights: None,
+                         **kwargs)  # type: ignore
         self.model.to(self.device)
         self.components = {
             k: v.to(self.device) if isinstance(v, nn.Module) else v
@@ -190,9 +192,10 @@ class ModularTorchModel(TorchModel):
         avg_loss = 0.0
         last_avg_loss = 0.0
         averaged_batches = 0
-        # FIXME This line is not needed as loss is computed inside the call to loss_func
         if loss is None:
-            loss = self._loss_fn
+            loss_fn = self.loss_func
+        else:
+            loss_fn = loss
         if variables is None:
             optimizer = self._pytorch_optimizer
             lr_schedule = self._lr_schedule
@@ -226,7 +229,7 @@ class ModularTorchModel(TorchModel):
                 inputs = inputs[0]
 
             optimizer.zero_grad()
-            batch_loss = self.loss_func(inputs, labels, weights)
+            batch_loss = loss_fn(inputs, labels, weights)
             batch_loss.backward()
             optimizer.step()
             if lr_schedule is not None:
