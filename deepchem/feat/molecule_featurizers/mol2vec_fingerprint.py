@@ -156,7 +156,11 @@ class Mol2VecFingerprint(MolecularFeaturizer):
         np.array
 
         """
-        keys = set(model.wv.key_to_index.keys())
+        if hasattr(model.wv, 'key_to_index'):
+            keys = set(model.wv.key_to_index.keys())
+        else:
+            # Fallback for gensim < 4.0
+            keys = set(model.wv.vocab.keys())
         vec = []
         if unseen:
             unseen_vec = model.wv.get_vector(unseen)
