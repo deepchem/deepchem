@@ -42,6 +42,9 @@ class HuggingFaceModel(TorchModel):
     tokenization algorithms and other utilities like data collation, random masking of tokens
     for masked language model training etc.
 
+    Supported tasks are validated at initialization time to make invalid model
+    configurations fail early with clearer errors.
+
 
     Parameters
     ----------
@@ -53,12 +56,19 @@ class HuggingFaceModel(TorchModel):
          - `mtr` - multitask regression - a task used for both pretraining base models and finetuning
          - `regression` - use it for regression tasks, like property prediction
          - `classification` - use it for classification tasks
+         - `universal_segmentation` - use it for segmentation models supported by
+           HuggingFace's `AutoModelForUniversalSegmentation`
+         - `None` - return raw model outputs without applying task-specific handling
 
         When the task is not specified or None, the wrapper returns raw output of the HuggingFaceModel.
         In cases where the HuggingFaceModel is a model without a task specific head, this output will be
         the last hidden states.
-    tokenizer: transformers.tokenization_utils.PreTrainedTokenizer
-        Tokenizer
+    tokenizer: transformers.tokenization_utils.PreTrainedTokenizer, optional
+        Tokenizer used to convert raw inputs into model tokens. This is required
+        for tokenization-dependent tasks such as `mlm`, `mtr`, `regression`, and
+        `classification`. It may be omitted when `task=None` and raw model outputs
+        are used directly, or when task-specific preprocessing does not require a
+        tokenizer.
     config: dict, (optional, default None)
         A dictionary of model configuration parameters that will be passed to the Hugging Face
         `AutoModel` classes via `**kwargs` when loading from the hf_checkpoint. These parameters
