@@ -3,7 +3,9 @@ from abc import abstractmethod, abstractproperty
 import torch
 from typing import List, Union, Optional, Tuple
 from deepchem.utils.differentiation_utils import EditableModule
-from deepchem.utils.dft_utils import BaseHamilton, BaseGrid, SpinParam, ZType, BasisInpType
+from deepchem.utils.dft_utils.hamilton.base_hamilton import BaseHamilton
+from deepchem.utils.dft_utils.grid.base_grid import BaseGrid
+from deepchem.utils.dft_utils.data.datastruct import SpinParam, ZType, BasisInpType
 
 
 class BaseSystem(EditableModule):

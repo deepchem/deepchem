@@ -197,7 +197,7 @@ class Lattice(object):
 
         """
         b = torch.inverse(a.transpose(-2, -1))
-        heights_inv = torch.norm(b, dim=-1).detach().numpy()  # (ndim)
+        heights_inv = torch.norm(b, dim=-1).detach().cpu().numpy()  # (ndim)
         nimgs = (rcut * heights_inv + 1.1).astype(np.int32)  # (ndim)
 
         n1_0 = torch.arange(-nimgs[0],

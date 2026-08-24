@@ -61,88 +61,10 @@ def evl_ft(shortname: str, wrapper: LibcintWrapper,
 
 
 def eval_gto_ft(wrapper: LibcintWrapper, gvgrid: torch.Tensor) -> torch.Tensor:
-    r"""
-    Evaluate the Fourier Transform of Gaussian type orbitals at the given gvgrid.
-
-    The Fourier Transform is defined as:
-
-    $$
-    F(\mathbf{G}) = \int f(\mathbf{r}) e^{-i\mathbf{G}\cdot\mathbf{r}}\ \mathrm{d}\mathbf{r}
-    $$
-
-    The results need to be divided by square root of the orbital normalization.
-
-    Examples
-    --------
-    >>> import torch
-    >>> from deepchem.utils.dft_utils import LibcintWrapper, AtomCGTOBasis, CGTOBasis
-    >>> from deepchem.utils.dft_utils.hamilton.intor.gtoft import eval_gto_ft
-    >>> # Create a simple basis
-    >>> basis = CGTOBasis(angmom=0, alphas=torch.tensor([1.0]),
-    ...                   coeffs=torch.tensor([1.0]), normalized=True)
-    >>> atom = AtomCGTOBasis(atomz=1, bases=[basis],
-    ...                      pos=torch.tensor([0.0, 0.0, 0.0]))
-    >>> wrapper = LibcintWrapper([atom])
-    >>> # Create grid points in reciprocal space
-    >>> gvgrid = torch.tensor([[0.0, 0.0, 0.0], [1.0, 0.0, 0.0]])
-    >>> result = eval_gto_ft(wrapper, gvgrid)
-    >>> result.shape
-    torch.Size([1, 2])
-
-    Parameters
-    ----------
-    wrapper: LibcintWrapper
-        Gaussian basis wrapper to be evaluated.
-    gvgrid: torch.Tensor
-        Tensor with shape `(nggrid, ndim)` where the fourier transformed function
-        is evaluated.
-
-    Returns
-    -------
-    torch.Tensor
-        Tensor with shape `(nao, nggrid)` of the evaluated value.
-
-    """
     return evl_ft("", wrapper, gvgrid)
 
 
 class _EvalGTO_FT(torch.autograd.Function):
-    r"""
-    Autograd function for evaluating the Fourier Transform of Gaussian type orbitals.
-
-    This class implements the forward pass for computing the Fourier transform
-    of Gaussian-type orbitals. The Fourier Transform is defined as:
-
-    $$
-    F(\mathbf{G}) = \int f(\mathbf{r}) e^{-i\mathbf{G}\cdot\mathbf{r}}\ \mathrm{d}\mathbf{r}
-    $$
-
-    Examples
-    --------
-    >>> import torch
-    >>> from deepchem.utils.dft_utils import LibcintWrapper, AtomCGTOBasis, CGTOBasis
-    >>> from deepchem.utils.dft_utils.hamilton.intor.gtoft import _EvalGTO_FT
-    >>> # Create a simple hydrogen atom basis
-    >>> basis = CGTOBasis(angmom=0, alphas=torch.tensor([1.0]),
-    ...                   coeffs=torch.tensor([1.0]), normalized=True)
-    >>> atom = AtomCGTOBasis(atomz=1, bases=[basis],
-    ...                      pos=torch.tensor([0.0, 0.0, 0.0]))
-    >>> wrapper = LibcintWrapper([atom])
-    >>> # Create grid points in reciprocal space
-    >>> gvgrid = torch.tensor([[0.0, 0.0, 0.0], [1.0, 0.0, 0.0]])
-    >>> # Get parameters from wrapper
-    >>> alphas = wrapper.params[0]
-    >>> coeffs = wrapper.params[1]
-    >>> pos = wrapper.params[2]
-    >>> result = _EvalGTO_FT.apply(alphas, coeffs, pos, gvgrid, wrapper, "")
-    >>> result.shape
-    torch.Size([1, 2])
-
-    Note
-    ----
-    This is an internal class. Use :func:`eval_gto_ft` for evaluating GTO Fourier transforms.
-
-    """
 
     @staticmethod
     def forward(
