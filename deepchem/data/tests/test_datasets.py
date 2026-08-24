@@ -429,6 +429,16 @@ def test_get_statistics():
     np.testing.assert_allclose(comp_y_stds, y_stds)
 
 
+def test_get_label_means_and_stds():
+    """Test that get_label_means/get_label_stds return per-task label statistics."""
+    solubility_dataset = load_solubility_data()
+    y = solubility_dataset.y
+    np.testing.assert_allclose(solubility_dataset.get_label_means(),
+                               np.mean(y, axis=0))
+    np.testing.assert_allclose(solubility_dataset.get_label_stds(),
+                               np.std(y, axis=0))
+
+
 def test_disk_iterate_batch_size():
     solubility_dataset = load_solubility_data()
     X, y, _, _ = (solubility_dataset.X, solubility_dataset.y,
