@@ -334,8 +334,14 @@ class KerasModel(Model):
             if True, the samples are processed in order.  If False, a different random
             order is used for each epoch.
         restore: bool
-            if True, restore the model from the most recent checkpoint and continue training
-            from there.  If False, retrain the model from scratch.
+            if True, restore the model from the most recent checkpoint before
+            training and continue training from there.  If False (the default),
+            training continues from the model's current in-memory parameters
+            without reloading a checkpoint.  Note that restore=False does not
+            reinitialize the parameters: if the model has already been trained,
+            calling fit() again continues from the current weights rather than
+            from scratch.  To train from randomly initialized parameters, create
+            a new model instance.
         variables: list of tf.Variable
             the variables to train.  If None (the default), all trainable variables in
             the model are used.
@@ -385,8 +391,14 @@ class KerasModel(Model):
             the frequency at which to write checkpoints, measured in training steps.
             Set this to 0 to disable automatic checkpointing.
         restore: bool
-            if True, restore the model from the most recent checkpoint and continue training
-            from there.  If False, retrain the model from scratch.
+            if True, restore the model from the most recent checkpoint before
+            training and continue training from there.  If False (the default),
+            training continues from the model's current in-memory parameters
+            without reloading a checkpoint.  Note that restore=False does not
+            reinitialize the parameters: if the model has already been trained,
+            calling fit() again continues from the current weights rather than
+            from scratch.  To train from randomly initialized parameters, create
+            a new model instance.
         variables: list of tf.Variable
             the variables to train.  If None (the default), all trainable variables in
             the model are used.

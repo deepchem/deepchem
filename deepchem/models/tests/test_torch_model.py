@@ -197,6 +197,49 @@ def test_fit_restore():
 
 
 @pytest.mark.torch
+def test_fit_no_restore_does_not_reinitialize():
+    """Test that restore=False does not reinitialize the model parameters.
+
+    Regression test for https://github.com/deepchem/deepchem/issues/1491.  With
+    a persistent model object, restore=False does not reload a checkpoint or
+    reset the weights to their initial values; training simply continues from
+    the current in-memory parameters.  This test locks in that intentional
+    behavior (and matches the corrected fit() docstring).
+    """
+    n_data_points = 10
+    n_features = 2
+    X = np.random.rand(n_data_points, n_features)
+    y = (X[:, 0] > X[:, 1]).astype(np.float32)
+    dataset = dc.data.NumpyDataset(X, y)
+
+    pytorch_model = torch.nn.Sequential(torch.nn.Linear(2, 10), torch.nn.ReLU(),
+                                        torch.nn.Linear(10, 1),
+                                        torch.nn.Sigmoid())
+    model = dc.models.TorchModel(pytorch_model,
+                                 dc.models.losses.BinaryCrossEntropy(),
+                                 learning_rate=0.005)
+    model.fit(dataset, nb_epoch=100)
+
+    # Snapshot the trained parameters.
+    trained_params = [p.detach().clone() for p in model.model.parameters()]
+
+    # Calling fit() again with restore=False must not reset the parameters.  A
+    # fit with zero epochs performs no training steps, so the parameters should
+    # be preserved exactly rather than reinitialized to random values.
+    model.fit(dataset, nb_epoch=0, restore=False)
+    preserved_params = [p.detach().clone() for p in model.model.parameters()]
+    for trained, preserved in zip(trained_params, preserved_params):
+        assert torch.equal(trained, preserved)
+
+    # Continuing to train with restore=False updates the existing weights
+    # (continues from where it left off) rather than starting from scratch.
+    model.fit(dataset, nb_epoch=100, restore=False)
+    continued_params = [p.detach().clone() for p in model.model.parameters()]
+    assert any(not torch.equal(trained, continued)
+               for trained, continued in zip(trained_params, continued_params))
+
+
+@pytest.mark.torch
 def test_uncertainty():
     """Test estimating uncertainty a TorchModel."""
     n_samples = 30
