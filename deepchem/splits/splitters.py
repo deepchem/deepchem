@@ -1235,7 +1235,8 @@ class ButinaSplitter(Splitter):
         except ModuleNotFoundError:
             raise ImportError("This function requires RDKit to be installed.")
 
-        logger.info("Performing butina clustering with cutoff of", self.cutoff)
+        logger.info("Performing butina clustering with cutoff of %s",
+                    self.cutoff)
         mols = []
         for ind, smiles in enumerate(dataset.ids):
             mols.append(Chem.MolFromSmiles(smiles))
