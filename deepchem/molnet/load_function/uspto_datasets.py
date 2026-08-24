@@ -163,10 +163,13 @@ def load_uspto(
     tokenizer = RobertaTokenizerFast.from_pretrained(
         "seyonec/PubChem10M_SMILES_BPE_450k")
 
-    if featurizer == "plain":
-        featurizer = dc.feat.DummyFeaturizer()
-    else:
+    if isinstance(featurizer, str):
+        if featurizer == "plain":
+            featurizer = dc.feat.DummyFeaturizer()
+    elif featurizer == "RxnFeaturizer":
         featurizer = RxnFeaturizer(tokenizer, sep_reagent=sep_reagent)
+    else:
+        raise ValueError(f"Unknown featurizer: {featurizer}")
 
     loader = _USPTOLoader(featurizer,
                           splitter,
