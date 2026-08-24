@@ -966,6 +966,55 @@ class NumpyDataset(Dataset):
         ids = self.ids[indices]
         return NumpyDataset(X, y, w, ids)
 
+    def train_test_split(
+        self,
+        test_size: float = 0.2,
+        seed: Optional[int] = None
+        ) -> Tuple["NumpyDataset", "NumpyDataset"]:
+        """Split the dataset into train and test datasets.
+
+        Parameters
+        ----------
+        test_size: float, default 0.2
+        Fraction of the dataset to include in the test split.
+        seed: int, optional
+        Random seed for reproducibility.
+
+        Returns
+        -------
+        Tuple[NumpyDataset, NumpyDataset]
+        train_dataset, test_dataset
+        """
+
+        if not 0 < test_size < 1:
+            raise ValueError("test_size must be between 0 and 1")
+
+        if seed is not None:
+            np.random.seed(seed)
+
+        n_samples = len(self)
+        indices = np.random.permutation(n_samples)
+
+        split_index = int(n_samples * (1 - test_size))
+
+        train_indices = indices[:split_index]
+        test_indices = indices[split_index:]
+
+        train_dataset = NumpyDataset(
+            self._X[train_indices],
+            self._y[train_indices] if self._y is not None else None,
+            self._w[train_indices] if self._w is not None else None,
+            self._ids[train_indices] if self._ids is not None else None
+        )
+
+        test_dataset = NumpyDataset(
+            self._X[test_indices],
+            self._y[test_indices] if self._y is not None else None,
+            self._w[test_indices] if self._w is not None else None,
+            self._ids[test_indices] if self._ids is not None else None
+        )
+
+        return train_dataset, test_dataset
     def make_pytorch_dataset(self,
                              epochs: int = 1,
                              deterministic: bool = False,
