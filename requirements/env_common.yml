@@ -15,6 +15,7 @@ dependencies:
     - pre-commit
     - biopython
     - dgllife
+    - hyperopt
     - lightgbm
     - matminer
     - mordred

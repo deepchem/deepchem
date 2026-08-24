@@ -37,4 +37,24 @@ Gaussian Process Hyperparameter Optimization
 .. autoclass:: deepchem.hyper.GaussianProcessHyperparamOpt
   :members:
 
+Random Hyperparameter Optimization
+----------------------------------
+
+This class performs a random search over the specified hyperparameter
+space, sampling hyperparameter combinations at random.
+
+.. autoclass:: deepchem.hyper.RandomHyperparamOpt
+  :members:
+
+Hyperopt Hyperparameter Optimization
+------------------------------------
+
+This class uses the `hyperopt <https://github.com/hyperopt/hyperopt>`_
+library to perform a guided (Bayesian) search over the hyperparameter
+space using the Tree-structured Parzen Estimator (TPE) algorithm. It
+requires hyperopt to be installed.
+
+.. autoclass:: deepchem.hyper.HyperoptHyperparamOpt
+  :members:
+
 
