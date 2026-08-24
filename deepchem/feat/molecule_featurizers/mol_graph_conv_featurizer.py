@@ -190,9 +190,7 @@ class MolGraphConvFeaturizer(MolecularFeaturizer):
         ) > 1, "More than one atom should be present in the molecule for this featurizer to work."
         if 'mol' in kwargs:
             datapoint = kwargs.get("mol")
-            raise DeprecationWarning(
-                'Mol is being phased out as a parameter, please pass "datapoint" instead.'
-            )
+            warnings.warn('Mol is being phased out as a parameter, please pass "datapoint" instead.', DeprecationWarning, stacklevel=2)
 
         if self.use_partial_charge:
             try:
@@ -484,9 +482,7 @@ class PagtnMolGraphFeaturizer(MolecularFeaturizer):
         """
         if 'mol' in kwargs:
             datapoint = kwargs.get("mol")
-            raise DeprecationWarning(
-                'Mol is being phased out as a parameter, please pass "datapoint" instead.'
-            )
+            warnings.warn('Mol is being phased out as a parameter, please pass "datapoint" instead.', DeprecationWarning, stacklevel=2)
 
         node_features = np.asarray([
             self._pagtn_atom_featurizer(atom) for atom in datapoint.GetAtoms()

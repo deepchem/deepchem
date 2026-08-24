@@ -17,6 +17,7 @@ from deepchem.utils.geometry_utils import compute_pairwise_distances
 from deepchem.utils.geometry_utils import subtract_centroid
 
 from typing import Optional, Tuple, Dict
+import warnings
 
 logger = logging.getLogger(__name__)
 
@@ -106,9 +107,7 @@ class ContactCircularFingerprint(ComplexFeaturizer):
         """
         if 'complex' in kwargs:
             datapoint = kwargs.get("complex")
-            raise DeprecationWarning(
-                'Complex is being phased out as a parameter, please pass "datapoint" instead.'
-            )
+            warnings.warn('Complex is being phased out as a parameter, please pass "datapoint" instead.', DeprecationWarning, stacklevel=2)
 
         try:
             fragments = load_complex(datapoint, add_hydrogens=False)

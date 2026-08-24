@@ -4,6 +4,7 @@ from deepchem.utils.typing import PymatgenStructure
 from deepchem.feat import MaterialStructureFeaturizer
 from deepchem.utils.data_utils import pad_array
 from typing import Any
+import warnings
 
 
 class SineCoulombMatrix(MaterialStructureFeaturizer):
@@ -85,9 +86,7 @@ class SineCoulombMatrix(MaterialStructureFeaturizer):
         """
         if 'struct' in kwargs and datapoint is None:
             datapoint = kwargs.get("struct")
-            raise DeprecationWarning(
-                'Struct is being phased out as a parameter, please pass "datapoint" instead.'
-            )
+            warnings.warn('Struct is being phased out as a parameter, please pass "datapoint" instead.', DeprecationWarning, stacklevel=2)
 
         if self.scm is None:
             try:

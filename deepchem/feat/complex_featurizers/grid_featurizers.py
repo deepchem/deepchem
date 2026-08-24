@@ -20,6 +20,7 @@ from deepchem.utils.geometry_utils import subtract_centroid
 from deepchem.utils.fragment_utils import get_partial_charge
 from deepchem.utils.fragment_utils import reduce_molecular_complex_to_contacts
 from typing import List, Tuple, Optional
+import warnings
 
 logger = logging.getLogger(__name__)
 
@@ -92,9 +93,7 @@ class ChargeVoxelizer(ComplexFeaturizer):
         """
         if 'complex' in kwargs:
             datapoint = kwargs.get("complex")
-            raise DeprecationWarning(
-                'Complex is being phased out as a parameter, please pass "datapoint" instead.'
-            )
+            warnings.warn('Complex is being phased out as a parameter, please pass "datapoint" instead.', DeprecationWarning, stacklevel=2)
 
         try:
             fragments = rdkit_utils.load_complex(datapoint, add_hydrogens=False)
@@ -186,9 +185,7 @@ class SaltBridgeVoxelizer(ComplexFeaturizer):
         """
         if 'complex' in kwargs:
             datapoint = kwargs.get("complex")
-            raise DeprecationWarning(
-                'Complex is being phased out as a parameter, please pass "datapoint" instead.'
-            )
+            warnings.warn('Complex is being phased out as a parameter, please pass "datapoint" instead.', DeprecationWarning, stacklevel=2)
 
         try:
             fragments = rdkit_utils.load_complex(datapoint, add_hydrogens=False)
@@ -281,9 +278,7 @@ class CationPiVoxelizer(ComplexFeaturizer):
         """
         if 'complex' in kwargs:
             datapoint = kwargs.get("complex")
-            raise DeprecationWarning(
-                'Complex is being phased out as a parameter, please pass "datapoint" instead.'
-            )
+            warnings.warn('Complex is being phased out as a parameter, please pass "datapoint" instead.', DeprecationWarning, stacklevel=2)
 
         try:
             fragments = rdkit_utils.load_complex(datapoint, add_hydrogens=False)
@@ -378,9 +373,7 @@ class PiStackVoxelizer(ComplexFeaturizer):
         """
         if 'complex' in kwargs:
             datapoint = kwargs.get("complex")
-            raise DeprecationWarning(
-                'Complex is being phased out as a parameter, please pass "datapoint" instead.'
-            )
+            warnings.warn('Complex is being phased out as a parameter, please pass "datapoint" instead.', DeprecationWarning, stacklevel=2)
 
         try:
             fragments = rdkit_utils.load_complex(datapoint, add_hydrogens=False)
@@ -495,9 +488,7 @@ class HydrogenBondCounter(ComplexFeaturizer):
         """
         if 'complex' in kwargs:
             datapoint = kwargs.get("complex")
-            raise DeprecationWarning(
-                'Complex is being phased out as a parameter, please pass "datapoint" instead.'
-            )
+            warnings.warn('Complex is being phased out as a parameter, please pass "datapoint" instead.', DeprecationWarning, stacklevel=2)
         try:
             fragments = rdkit_utils.load_complex(datapoint, add_hydrogens=False)
 
@@ -606,9 +597,7 @@ class HydrogenBondVoxelizer(ComplexFeaturizer):
         """
         if 'complex' in kwargs:
             datapoint = kwargs.get("complex")
-            raise DeprecationWarning(
-                'Complex is being phased out as a parameter, please pass "datapoint" instead.'
-            )
+            warnings.warn('Complex is being phased out as a parameter, please pass "datapoint" instead.', DeprecationWarning, stacklevel=2)
         try:
             fragments = rdkit_utils.load_complex(datapoint, add_hydrogens=False)
 

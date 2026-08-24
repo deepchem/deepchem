@@ -4,6 +4,7 @@ from deepchem.utils.typing import RDKitMol, RDKitAtom
 import numpy as np
 from typing import Tuple, Any
 from dataclasses import dataclass
+import warnings
 
 
 @dataclass
@@ -228,9 +229,7 @@ class MATFeaturizer(MolecularFeaturizer):
         """
         if 'mol' in kwargs:
             datapoint = kwargs.get("mol")
-            raise DeprecationWarning(
-                'Mol is being phased out as a parameter, please pass "datapoint" instead.'
-            )
+            warnings.warn('Mol is being phased out as a parameter, please pass "datapoint" instead.', DeprecationWarning, stacklevel=2)
         from rdkit import Chem
 
         datapoint = self.construct_mol(datapoint)

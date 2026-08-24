@@ -9,6 +9,7 @@ from deepchem.utils.data_utils import download_url, get_data_dir
 from deepchem.utils.typing import PymatgenStructure
 from deepchem.feat import MaterialStructureFeaturizer
 from deepchem.feat.graph_data import GraphData
+import warnings
 
 ATOM_INIT_JSON_URL = 'https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/atom_init.json'
 
@@ -108,9 +109,7 @@ class CGCNNFeaturizer(MaterialStructureFeaturizer):
         """
         if 'struct' in kwargs and datapoint is None:
             datapoint = kwargs.get("struct")
-            raise DeprecationWarning(
-                'Struct is being phased out as a parameter, please pass "datapoint" instead.'
-            )
+            warnings.warn('Struct is being phased out as a parameter, please pass "datapoint" instead.', DeprecationWarning, stacklevel=2)
 
         node_features = self._get_node_features(datapoint)
         edge_index, edge_features = self._get_edge_features_and_index(datapoint)
