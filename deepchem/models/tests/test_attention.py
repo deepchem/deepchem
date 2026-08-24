@@ -5,10 +5,13 @@ try:
 except ModuleNotFoundError:
     pass
 
+from deepchem.models.torch_models.attention import ScaledDotProductAttention as SDPA
+from deepchem.models.torch_models.attention import SelfAttention as SA
+
 
 @pytest.mark.torch
 def testScaledDotProductAttention():
-    from deepchem.models import ScaledDotProductAttention as SDPA
+    #from deepchem.models import ScaledDotProductAttention as SDPA
     attn = SDPA()
     x = torch.ones(2, 5)
     # Linear layers for making query, key, value
@@ -23,7 +26,7 @@ def testScaledDotProductAttention():
 
 @pytest.mark.torch
 def testSelfAttention():
-    from deepchem.models import SelfAttention as SA
+    #from deepchem.models import SelfAttention as SA
     n, in_feature, out_feature = 10, 4, 8
     attn = SA(in_feature, out_feature, hidden_size=16)
     x = torch.randn((n, in_feature))

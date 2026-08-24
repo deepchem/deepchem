@@ -1,57 +1,95 @@
+
+#New Changes below
+
 import math
-from typing import Optional
+from typing import Optional, Tuple
+
 try:
     import torch
     import torch.nn as nn
+    import torch.nn.functional as F
 except ModuleNotFoundError:
     raise ImportError("These classes require PyTorch to be installed")
 
 
 class ScaledDotProductAttention(nn.Module):
-    """The Scaled Dot Production Attention operation from `Attention Is All You Need <https://arxiv.org/abs/1706.03762>_` paper.
+    """Scaled Dot-Product Attention from `Attention Is All You Need`_.
 
-    Example
-    -------
-    >>> from deepchem.models import ScaledDotProductAttention as SDPA
-    >>> attn = SDPA()
+    .. _Attention Is All You Need: https://arxiv.org/abs/1706.03762
+
+    Examples
+    --------
+    >>> import torch
+    >>> import torch.nn as nn
+    >>> from deepchem.models.attention import ScaledDotProductAttention
+    >>> attn = ScaledDotProductAttention()
     >>> x = torch.ones(1, 5)
-    >>> # Linear layers for making query, key, value
-    >>> Q, K, V = nn.Parameter(torch.ones(5)), nn.Parameter(torch.ones(5)), nn.Parameter(torch.ones(5))
+    >>> Q = nn.Parameter(torch.ones(5))
+    >>> K = nn.Parameter(torch.ones(5))
+    >>> V = nn.Parameter(torch.ones(5))
     >>> query, key, value = Q * x, K * x, V * x
     >>> x_out, attn_score = attn(query, key, value)
     """
 
     def __init__(self):
-        self.epsilon = -1e9
-        super(ScaledDotProductAttention, self).__init__()
+        super().__init__()
 
-    def forward(self,
-                query: torch.Tensor,
-                key: torch.Tensor,
-                value: torch.Tensor,
-                mask: Optional[torch.Tensor] = None,
-                dropout: Optional[nn.Dropout] = None):
+    @staticmethod
+    def _safe_fill_value(tensor: torch.Tensor) -> float:
+        """Returns a dtype-safe large negative value for attention masking.
+
+        Parameters
+        ----------
+        tensor: torch.Tensor
+            The scores tensor whose dtype determines the safe minimum.
+
+        Returns
+        -------
+        float
+            Half of the minimum finite value for the tensor's dtype,
+            safe for fp16, bf16, and fp32.
         """
+        return torch.finfo(tensor.dtype).min / 2
+
+    def forward(
+        self,
+        query: torch.Tensor,
+        key: torch.Tensor,
+        value: torch.Tensor,
+        mask: Optional[torch.Tensor] = None,
+        dropout: Optional[nn.Dropout] = None,
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Compute scaled dot-product attention.
+
         Parameters
         ----------
         query: torch.Tensor
-            Query tensor for attention
+            Query tensor of shape (..., seq_len, d_k).
         key: torch.Tensor
-            Key tensor for attention
+            Key tensor of shape (..., seq_len, d_k).
         value: torch.Tensor
-            Value tensor for attention
-        mask: torch.Tensor (optional)
-            Mask to apply during attention computation
-        dropout: nn.Dropout (optional)
-            Dropout layer for attention output
+            Value tensor of shape (..., seq_len, d_v).
+        mask: torch.Tensor, optional
+            Boolean mask of shape (..., seq_len, seq_len).
+            Positions where mask == 0 are blocked from attending.
+        dropout: nn.Dropout, optional
+            Dropout applied to attention weights after softmax.
+
+        Returns
+        -------
+        output: torch.Tensor
+            Context vector of shape (..., seq_len, d_v).
+        p_attn: torch.Tensor
+            Attention weight matrix of shape (..., seq_len, seq_len).
         """
         d_k = query.size(-1)
         scores = torch.matmul(query, key.transpose(-2, -1)) / math.sqrt(d_k)
 
         if mask is not None:
-            scores = scores.masked_fill(mask == 0, self.epsilon)
+            scores = scores.masked_fill(mask == 0, self._safe_fill_value(scores))
 
         p_attn = scores.softmax(dim=-1)
+
         if dropout is not None:
             p_attn = dropout(p_attn)
 
@@ -59,51 +97,61 @@ class ScaledDotProductAttention(nn.Module):
 
 
 class SelfAttention(nn.Module):
-    """SelfAttention Layer
+    """Self-Attention layer.
 
-    Given $X\in \mathbb{R}^{n \times in_feature}$, the attention is calculated by: $a=softmax(W_2tanh(W_1X))$, where
-    $W_1 \in \mathbb{R}^{hidden \times in_feature}$, $W_2 \in \mathbb{R}^{out_feature \times hidden}$.
-    The final output is $y=aX$ where $y \in \mathbb{R}^{n \times out_feature}$.
+    Given :math:`X \\in \\mathbb{R}^{n \\times \\text{in\\_features}}`,
+    computes :math:`a = \\text{softmax}(W_2 \\tanh(W_1 X))` and returns
+    :math:`y = aX \\in \\mathbb{R}^{\\text{out\\_features} \\times \\text{in\\_features}}`.
 
     Parameters
     ----------
     in_features: int
-        Dimension of input features
+        Dimensionality of input token features.
     out_features: int
-        Dimension of output features
-    hidden_size: int
-        Dimension of hidden layer
+        Number of attention heads / output feature dimension.
+    hidden_size: int, optional (default 128)
+        Dimensionality of the intermediate tanh projection.
+
+    Examples
+    --------
+    >>> import torch
+    >>> from deepchem.models.attention import SelfAttention
+    >>> layer = SelfAttention(in_features=16, out_features=8, hidden_size=32)
+    >>> X = torch.randn(10, 16)
+    >>> embedding, attn = layer(X)
+    >>> embedding.shape
+    torch.Size([8, 16])
+    >>> attn.shape
+    torch.Size([8, 10])
     """
 
-    def __init__(self, in_features, out_features, hidden_size=128):
-        super(SelfAttention, self).__init__()
-        self.w1 = torch.nn.Parameter(torch.FloatTensor(hidden_size,
-                                                       in_features))
-        self.w2 = torch.nn.Parameter(
-            torch.FloatTensor(out_features, hidden_size))
+    def __init__(self, in_features: int, out_features: int, hidden_size: int = 128):
+        super().__init__()
+        self.w1 = nn.Parameter(torch.FloatTensor(hidden_size, in_features))
+        self.w2 = nn.Parameter(torch.FloatTensor(out_features, hidden_size))
         self.reset_parameters()
 
-    def reset_parameters(self):
+    def reset_parameters(self) -> None:
         nn.init.xavier_normal_(self.w1)
         nn.init.xavier_normal_(self.w2)
 
-    def forward(self, X):
-        """The forward function.
+    def forward(self, X: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Compute self-attention weighted embedding.
 
         Parameters
         ----------
         X: torch.Tensor
-            input feature of shape $\mathbb{R}^{n \times in_feature}$.
+            Input features of shape :math:`(n, \\text{in\\_features})`.
 
         Returns
         -------
         embedding: torch.Tensor
-            The final embedding of shape $\mathbb{R}^{out_features \times in_feature}$
-        attention-matrix: torch.Tensor
-            The attention matrix
+            Attended output of shape :math:`(\\text{out\\_features}, \\text{in\\_features})`.
+        attn: torch.Tensor
+            Attention matrix of shape :math:`(\\text{out\\_features}, n)`.
         """
-        x = torch.tanh(torch.matmul(self.w1, X.transpose(1, 0)))
-        x = torch.matmul(self.w2, x)
-        attn = torch.nn.functional.softmax(x, dim=-1)
-        x = torch.matmul(attn, X)
-        return x, attn
+        x = torch.tanh(F.linear(X, self.w1))
+        x = F.linear(x, self.w2)
+        attn = F.softmax(x.transpose(0, 1), dim=-1)
+        embedding = torch.matmul(attn, X)
+        return embedding, attn
