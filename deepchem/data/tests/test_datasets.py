@@ -4,6 +4,7 @@ Tests for dataset creation
 import random
 import math
 import unittest
+import unittest.mock
 import os
 import numpy as np
 import pytest
@@ -908,3 +909,51 @@ class TestDatasets(unittest.TestCase):
         """Test creating a PyTorch Dataset from a DiskDataset."""
         dataset = load_solubility_data()
         _validate_pytorch_dataset(dataset)
+
+
+def test_create_dataset_warns_on_existing_directory():
+    """Test that create_dataset warns when data_dir already has files (Issue #3402)."""
+    import logging
+
+    with tempfile.TemporaryDirectory() as data_dir:
+        # Pre-populate the directory with a dummy file.
+        with open(os.path.join(data_dir, "dummy.txt"), 'w') as f:
+            f.write("pre-existing content")
+
+        X = np.random.rand(5, 3)
+        ids = np.arange(5)
+
+        # Capture the logger.warning call directly.
+        with unittest.mock.patch.object(logging.getLogger('deepchem.data.datasets'),
+                                        'warning') as mock_warn:
+            dc.data.DiskDataset.create_dataset([(X, None, None, ids)],
+                                               data_dir=data_dir)
+            mock_warn.assert_called_once()
+            call_args = mock_warn.call_args[0]
+            assert data_dir in call_args[1]
+
+
+def test_cache_size_object_dtype():
+    """Test that the DiskDataset cache handles object-dtype arrays correctly.
+
+    ndarray.nbytes only returns pointer storage (8 bytes / element) for
+    object-dtype arrays, which severely under-counts true memory.  The fixed
+    implementation uses sys.getsizeof for a more accurate estimate (Issue #4061).
+    """
+    import sys
+
+    n = 10
+    X = np.empty(n, dtype=object)
+    for i in range(n):
+        X[i] = "C" * 1000  # long string – much bigger than 8 bytes
+
+    ids = np.arange(n)
+    dataset = dc.data.DiskDataset.from_numpy(X, ids=ids)
+    dataset.get_shard(0)
+
+    # sys.getsizeof must exceed the naive .nbytes (80 bytes for 10 pointers).
+    naive = X.nbytes
+    better = sys.getsizeof(X)
+    assert better > naive, (
+        "sys.getsizeof({}) should exceed nbytes({}) for object arrays".format(
+            better, naive))

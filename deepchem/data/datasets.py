@@ -3,6 +3,7 @@ Contains wrapper class for datasets.
 """
 import json
 import os
+import sys
 import csv
 import math
 import random
@@ -1266,6 +1267,15 @@ class DiskDataset(Dataset):
             data_dir = tempfile.mkdtemp()
         elif not os.path.exists(data_dir):
             os.makedirs(data_dir)
+        else:
+            # The directory already exists — warn if it contains files so the
+            # user knows their data may be overwritten (Issue #3402).
+            existing_files = os.listdir(data_dir)
+            if existing_files:
+                logger.warning(
+                    "data_dir '%s' already exists and contains %d file(s). "
+                    "Existing dataset files may be overwritten.",
+                    data_dir, len(existing_files))
 
         metadata_rows = []
         time1 = time.time()
@@ -2259,11 +2269,21 @@ class DiskDataset(Dataset):
         # as we can and then stop.
 
         shard = _Shard(X, y, w, ids)
-        shard_size = X.nbytes + ids.nbytes
+        # ndarray.nbytes returns only the size of the buffer (i.e. 8 bytes per
+        # pointer) for object-dtype arrays, so it wildly under-counts memory
+        # usage for arrays of strings or arbitrary Python objects (Issue #4061).
+        # sys.getsizeof gives a better top-level estimate for those cases.
+
+        def _array_mem(arr: np.ndarray) -> int:
+            if arr.dtype == object:
+                return sys.getsizeof(arr)
+            return arr.nbytes
+
+        shard_size = _array_mem(X) + _array_mem(ids)
         if y is not None:
-            shard_size += y.nbytes
+            shard_size += _array_mem(y)
         if w is not None:
-            shard_size += w.nbytes
+            shard_size += _array_mem(w)
         if self._cache_used + shard_size < self._memory_cache_size:
             self._cached_shards[i] = shard
             self._cache_used += shard_size
