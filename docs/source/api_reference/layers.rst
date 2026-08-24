@@ -355,7 +355,7 @@ Flow Layers
 Grover Layers
 ^^^^^^^^^^^^^
 
-The following layers are used for implementing GROVER model as described in the paper `<Self-Supervised  Graph Transformer on Large-Scale Molecular Data <https://drug.ai.tencent.com/publications/GROVER.pdf>_`
+The following layers are used for implementing GROVER model as described in the paper `Self-Supervised Graph Transformer on Large-Scale Molecular Data <https://drug.ai.tencent.com/publications/GROVER.pdf>`_
 
 .. autoclass:: deepchem.models.torch_models.grover_layers.GroverMPNEncoder
   :members:
@@ -487,7 +487,7 @@ InceptionV3 Layers
 .. autoclass:: deepchem.models.torch_models.inception_v3.InceptionA
    :members:
 
-.. autoclass:: ddeepchem.models.torch_models.inception_v3.InceptionB
+.. autoclass:: deepchem.models.torch_models.inception_v3.InceptionB
    :members:
 
 .. autoclass:: deepchem.models.torch_models.inception_v3.InceptionC
