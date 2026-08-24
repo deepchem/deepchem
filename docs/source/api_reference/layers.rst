@@ -546,3 +546,16 @@ RFDiffusion Layers
 
 .. autoclass:: deepchem.models.torch_models.layers.BackboneDiffusion
    :members:
+
+.. autoclass:: deepchem.models.torch_models.rfdiffusion_multitrack.RFDiffusionMultiTrackDenoiser
+   :members:
+
+.. autofunction:: deepchem.models.torch_models.rfdiffusion_multitrack.backbone_coords_from_frames
+
+.. autofunction:: deepchem.models.torch_models.rfdiffusion_multitrack.sample_noisy_frames
+
+.. autofunction:: deepchem.models.torch_models.rfdiffusion_multitrack.translation_posterior_step
+
+.. autofunction:: deepchem.models.torch_models.rfdiffusion_multitrack.so3_x0_reverse_step
+
+.. autofunction:: deepchem.models.torch_models.rfdiffusion_multitrack.multitrack_frame_loss
