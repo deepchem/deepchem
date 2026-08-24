@@ -129,6 +129,10 @@ from deepchem.utils.voxel_utils import voxelize
 
 from deepchem.utils.sequence_utils import hhblits
 from deepchem.utils.sequence_utils import hhsearch
+from deepchem.utils.alphafold_utils import AlphaFoldStructure
+from deepchem.utils.alphafold_utils import AlphaFoldStructureMetadata
+from deepchem.utils.alphafold_utils import download_alphafold_structure
+from deepchem.utils.alphafold_utils import get_alphafold_structure_metadata
 
 from deepchem.utils.poly_wd_graph_utils import handle_hydrogen
 from deepchem.utils.poly_wd_graph_utils import make_polymer_mol

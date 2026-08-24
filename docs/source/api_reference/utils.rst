@@ -125,6 +125,19 @@ Genomic Utilities
 
 .. autofunction:: deepchem.utils.sequence_utils.MSA_to_dataset
 
+Protein Structure Utilities
+---------------------------
+
+.. autoclass:: deepchem.utils.alphafold_utils.AlphaFoldStructureMetadata
+  :members:
+
+.. autoclass:: deepchem.utils.alphafold_utils.AlphaFoldStructure
+  :members:
+
+.. autofunction:: deepchem.utils.alphafold_utils.get_alphafold_structure_metadata
+
+.. autofunction:: deepchem.utils.alphafold_utils.download_alphafold_structure
+
 
 Geometry Utilities
 ------------------
