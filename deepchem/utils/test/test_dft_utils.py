@@ -1,12 +1,15 @@
 import pytest
 try:
     import torch
-except:
-    print("torch not available")
+    has_torch = True
+except ImportError:
+    has_torch = False
+
 try:
     import pylibxc
-except:
-    print("pylibxc not available")
+    has_pylibxc = True
+except ImportError:
+    has_pylibxc = False
 
 import numpy as np
 from typing import Union
