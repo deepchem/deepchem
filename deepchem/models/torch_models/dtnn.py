@@ -119,7 +119,10 @@ class DTNN(nn.Module):
             output_activation=self.output_activation)
 
         # get Final Linear Layer
-        self.linear = nn.LazyLinear(self.n_tasks)
+        self.linear = self.linear = nn.Linear(self.n_tasks, self.n_tasks)
+
+        #Ensuring dropout is included within the constructor
+        self.dropout_layer = nn.Dropout(self.dropout)
 
     def forward(self, inputs: List[torch.Tensor]):
         """
@@ -138,14 +141,14 @@ class DTNN(nn.Module):
         dtnn_embedding = self.dtnn_embedding(inputs[0])
 
         for i in range(self.n_steps):
-            dtnn_embedding = nn.Dropout(self.dropout)(dtnn_embedding)
+            dtnn_embedding = self.dropout_layer(dtnn_embedding)
             dtnn_embedding = self.dtnn_step[i](
                 [dtnn_embedding, inputs[1], inputs[3], inputs[4]])
 
-        dtnn_step = nn.Dropout(self.dropout)(dtnn_embedding)
+        dtnn_step = self.dropout_layer(dtnn_embedding)
         dtnn_gather = self.dtnn_gather([dtnn_step, inputs[2]])
 
-        dtnn_gather = nn.Dropout(self.dropout)(dtnn_gather)
+        dtnn_gather = self.dropout_layer(dtnn_gather)
         output = self.linear(dtnn_gather)
         return output
 

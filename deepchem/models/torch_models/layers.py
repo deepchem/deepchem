@@ -23,6 +23,11 @@ try:
 except ModuleNotFoundError:
     pass
 
+try:
+    from torch_scatter import scatter
+except ModuleNotFoundError:
+    pass
+
 from deepchem.utils.typing import OneOrMany, ActivationFn, ArrayLike
 from deepchem.utils.pytorch_utils import get_activation, segment_sum, unsorted_segment_sum, unsorted_segment_max
 from torch.nn import init as initializers
@@ -4001,7 +4006,7 @@ class DTNNGather(nn.Module):
         output = torch.matmul(output, self.W_list[-1]) + self.b_list[-1]
         if self.output_activation:
             output = self.activation_fn(output)
-        return scatter(output, atom_membership)
+        return scatter(output, atom_membership, dim=0)
 
 
 class EdgeNetwork(nn.Module):

@@ -10,7 +10,7 @@ from deepchem.utils import batch_coulomb_matrix_features
 
 try:
     import torch
-    from deepchem.models.torch_models import DTNN, DTNNModel
+    from deepchem.models.torch_models.dtnn import DTNN, DTNNModel
 except ModuleNotFoundError:
     pass
 
