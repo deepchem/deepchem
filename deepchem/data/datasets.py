@@ -1433,7 +1433,7 @@ class DiskDataset(Dataset):
 
     def move(self,
              new_data_dir: str,
-             delete_if_exists: Optional[bool] = True) -> None:
+             delete_if_exists: bool = True) -> None:
         """Moves dataset to new directory.
 
         Parameters
@@ -1452,8 +1452,16 @@ class DiskDataset(Dataset):
         set `True`), then `new_data_dir` is deleted if it's a pre-existing
         directory.
         """
-        if delete_if_exists and os.path.isdir(new_data_dir):
-            shutil.rmtree(new_data_dir)
+        
+        if os.path.isdir(new_data_dir):
+            if delete_if_exists:
+                shutil.rmtree(new_data_dir)
+            else:
+                raise ValueError(
+                    f"Destination directory '{new_data_dir}' already exists. "
+                    "Use delete_if_exists=True to overwrite the existing directory."
+                )
+            
         shutil.move(self.data_dir, new_data_dir)
         if delete_if_exists:
             self.data_dir = new_data_dir
