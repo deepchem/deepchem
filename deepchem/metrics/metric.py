@@ -397,7 +397,7 @@ def to_one_hot(y: np.ndarray, n_classes: int = 2) -> np.ndarray:
         raise ValueError("y has more than n_class unique elements.")
     N = np.shape(y)[0]
     y_hot = np.zeros((N, n_classes))
-    y_hot[np.arange(N), y.astype(np.int64)] = 1
+    y_hot[np.arange(N), y.astype(np.int64).ravel()] = 1
     return y_hot
 
 
