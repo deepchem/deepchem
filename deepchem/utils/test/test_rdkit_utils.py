@@ -36,6 +36,84 @@ class TestRdkitUtil(unittest.TestCase):
                 self.assertIsInstance(mol_rdk, Mol)
                 self.assertEqual(mol_xyz.shape, (num_atoms, 3))
 
+    def test_load_molecule_single_sdf_returns_tuple(self):
+        # Test that single-molecule SDF returns tuple (backward compatibility)
+        result = rdkit_utils.load_molecule(
+            self.ligand_file, add_hydrogens=False, calc_charges=False)
+        self.assertIsInstance(result, tuple)
+        self.assertEqual(len(result), 2)
+        xyz, mol = result
+        self.assertIsInstance(xyz, np.ndarray)
+        self.assertEqual(xyz.ndim, 2)
+        self.assertEqual(xyz.shape[1], 3)
+
+    def test_load_molecule_multi_sdf_returns_list(self):
+        # Test that multi-molecule SDF returns list (bug fix)
+        from rdkit import Chem
+        from rdkit.Chem import AllChem
+
+        with tempfile.TemporaryDirectory() as tmp:
+            # Create multi-molecule SDF file
+            multi_sdf = os.path.join(tmp, 'multi.sdf')
+            writer = Chem.SDWriter(multi_sdf)
+
+            # Add 3 molecules
+            mol1 = Chem.MolFromSmiles('CC')  # Ethane
+            AllChem.EmbedMolecule(mol1, randomSeed=42)
+            writer.write(mol1)
+
+            mol2 = Chem.MolFromSmiles('C=C')  # Ethene
+            AllChem.EmbedMolecule(mol2, randomSeed=42)
+            writer.write(mol2)
+
+            mol3 = Chem.MolFromSmiles('C#C')  # Acetylene
+            AllChem.EmbedMolecule(mol3, randomSeed=42)
+            writer.write(mol3)
+
+            writer.close()
+
+            # Load and verify
+            result = rdkit_utils.load_molecule(
+                multi_sdf, add_hydrogens=False, calc_charges=False)
+
+            self.assertIsInstance(result, list)
+            self.assertEqual(len(result), 3)
+
+            # Check each molecule
+            for i, (xyz, mol) in enumerate(result):
+                self.assertIsInstance(xyz, np.ndarray)
+                self.assertEqual(xyz.ndim, 2)
+                self.assertEqual(xyz.shape[1], 3)
+                self.assertGreater(mol.GetNumAtoms(), 0)
+
+    def test_load_molecule_multi_sdf_processes_all(self):
+        # Verify all molecules in multi-molecule SDF are processed
+        from rdkit import Chem
+        from rdkit.Chem import AllChem
+
+        with tempfile.TemporaryDirectory() as tmp:
+            multi_sdf = os.path.join(tmp, 'multi_process.sdf')
+            writer = Chem.SDWriter(multi_sdf)
+
+            expected_molecules = []
+            for smiles in ['C', 'CC', 'CCC', 'CCCC', 'CCCCC']:
+                mol = Chem.MolFromSmiles(smiles)
+                AllChem.EmbedMolecule(mol, randomSeed=42)
+                expected_molecules.append(mol.GetNumAtoms())
+                writer.write(mol)
+
+            writer.close()
+
+            result = rdkit_utils.load_molecule(
+                multi_sdf, add_hydrogens=False, calc_charges=False)
+
+            self.assertIsInstance(result, list)
+            self.assertEqual(len(result), len(expected_molecules))
+
+            # Verify correct number of atoms in each
+            for (xyz, mol), expected_atoms in zip(result, expected_molecules):
+                self.assertEqual(mol.GetNumAtoms(), expected_atoms)
+
     def test_get_xyz_from_mol(self):
         current_dir = os.path.dirname(os.path.realpath(__file__))
         ligand_file = os.path.join(current_dir,
