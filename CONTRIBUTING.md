@@ -65,19 +65,19 @@ and then install the desired deep learning framework before installing DeepChem:
 - [pytorch](https://pytorch.org/get-started/locally/#start-locally)
 - [jax](https://github.com/google/jax#installation)
 
-3. Install DeepChem in `develop` mode
+3. Install DeepChem in editable mode
 
 ```bash
-python setup.py develop
+pip install -e .
 ```
 
-This mode will symlink the Python files from current local source tree into
-the Python install. Hence, if you modify a Python file, you do not need to
-reinstall DeepChem again and again.
+This mode will make the Python files from the current local source tree
+available in the Python environment. Hence, if you modify a Python file, you do
+not need to reinstall DeepChem again and again.
 
 In case you need to reinstall, uninstall DeepChem first by running
 `pip uninstall deepchem` until you see `Warning: Skipping deepchem
-as it is not installed`; run `python setup.py clean` and install in `develop` mode again.
+as it is not installed`; then run `pip install -e .` again.
 
 Some other tips:
 - Every contribution must pass the unit tests. Some tests are
