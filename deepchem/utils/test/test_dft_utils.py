@@ -1957,3 +1957,158 @@ def test_evl_ft_error():
     with pytest.raises(NotImplementedError,
                        match="FT evaluation for 'ip' is not implemented"):
         evl_ft("ip", wrapper, gvgrid)
+
+
+@pytest.mark.torch
+def test_estimate_g_cutoff():
+    """Test estimate_g_cutoff function from hcgto_pbc module."""
+    import torch
+    from deepchem.utils.dft_utils.hamilton.hcgto_pbc import estimate_g_cutoff
+
+    # Test with simple tensor values
+    precision = 1e-8
+    coeffs = torch.tensor([1.0, 0.5])
+    alphas = torch.tensor([0.5, 1.0])
+
+    gcut = estimate_g_cutoff(precision, coeffs, alphas)
+    assert isinstance(gcut, float)
+    assert gcut > 0
+
+    # Test with single values
+    coeffs_single = torch.tensor([1.0])
+    alphas_single = torch.tensor([1.0])
+
+    gcut_single = estimate_g_cutoff(precision, coeffs_single, alphas_single)
+    assert isinstance(gcut_single, float)
+    assert gcut_single > 0
+
+
+@pytest.mark.torch
+def test_get_gcut():
+    """Test get_gcut function from hcgto_pbc module."""
+    import torch
+    from deepchem.utils.dft_utils import AtomCGTOBasis, LibcintWrapper, loadbasis
+    from deepchem.utils.dft_utils.hamilton.hcgto_pbc import get_gcut
+
+    # Create test data similar to other tests
+    dtype = torch.double
+    pos = torch.tensor([0.0, 0.0, 0.0], dtype=dtype)
+    atomz = 1
+    basis = loadbasis("%d:%s" % (atomz, "STO-3G"),
+                      dtype=dtype,
+                      requires_grad=False)
+    atombasis = AtomCGTOBasis(atomz=atomz, bases=basis, pos=pos)
+    wrapper = LibcintWrapper([atombasis], spherical=True)
+
+    # Test with single wrapper and min reduction (default)
+    precision = 1e-8
+    gcut_min = get_gcut(precision, [wrapper], reduce="min")
+    assert isinstance(gcut_min, float)
+    assert gcut_min > 0
+
+    # Test with max reduction
+    gcut_max = get_gcut(precision, [wrapper], reduce="max")
+    assert isinstance(gcut_max, float)
+    assert gcut_max > 0
+
+    # Test with multiple wrappers (same wrapper twice)
+    wrappers = [wrapper, wrapper]
+    gcut_multi_min = get_gcut(precision, wrappers, reduce="min")
+    gcut_multi_max = get_gcut(precision, wrappers, reduce="max")
+
+    # Since both wrappers are identical, min and max should be equal
+    assert abs(gcut_multi_min - gcut_multi_max) < 1e-10
+
+    # Test with unknown reduction strategy (should raise ValueError)
+    # Only raises error when there are multiple wrappers
+    try:
+        get_gcut(precision, [wrapper, wrapper], reduce="unknown")
+        assert False, "Should have raised ValueError"
+    except ValueError as e:
+        assert "Unknown reduce" in str(e)
+
+
+@pytest.mark.torch
+def test__check_and_set_pbc():
+    """Test _check_and_set_pbc private function."""
+    import torch
+    from deepchem.utils.dft_utils.hamilton.intor.pbcintor import _check_and_set_pbc
+    from deepchem.utils.dft_utils import AtomCGTOBasis, LibcintWrapper, loadbasis
+    from deepchem.utils.dft_utils.hamilton.intor.lattice import Lattice
+
+    # Create a shared lattice
+    a = torch.tensor([[2.0, 0.0, 0.0], [0.0, 2.0, 0.0], [0.0, 0.0, 2.0]],
+                     dtype=torch.float64)
+    lattice = Lattice(a)
+
+    # Create two atoms with shared basis
+    pos1 = torch.tensor([0.0, 0.0, 0.0], dtype=torch.float64)
+    pos2 = torch.tensor([1.0, 0.0, 0.0], dtype=torch.float64)
+    basis = loadbasis("1:STO-3G", dtype=torch.float64, requires_grad=False)
+    atom1 = AtomCGTOBasis(atomz=1, bases=basis, pos=pos1)
+    atom2 = AtomCGTOBasis(atomz=1, bases=basis, pos=pos2)
+
+    # Create a single wrapper and get subsets (ensures same parent)
+    combined_wrapper = LibcintWrapper([atom1, atom2],
+                                      spherical=True,
+                                      lattice=lattice)
+    wrapper = combined_wrapper[:1]  # First atom
+    other_wrapper = combined_wrapper[1:]  # Second atom
+
+    # Test with other is None
+    result1 = _check_and_set_pbc(wrapper, None)
+    assert result1 is wrapper
+
+    # Test with compatible other (same lattice)
+    result2 = _check_and_set_pbc(wrapper, other_wrapper)
+    assert result2 is other_wrapper
+    assert result2.lattice is wrapper.lattice
+
+    # Test with incompatible lattice (should raise AssertionError)
+    a_diff = torch.tensor([[3.0, 0.0, 0.0], [0.0, 3.0, 0.0], [0.0, 0.0, 3.0]],
+                          dtype=torch.float64)
+    lattice_diff = Lattice(a_diff)
+    wrapper_diff = LibcintWrapper([atom2], spherical=True, lattice=lattice_diff)
+    try:
+        _check_and_set_pbc(wrapper, wrapper_diff)
+        assert False, "Should have raised AssertionError"
+    except AssertionError:
+        pass  # Expected
+
+
+@pytest.mark.torch
+def test__concat_atm_bas_env():
+    """Test _concat_atm_bas_env private function."""
+    import torch
+    import numpy as np
+    from deepchem.utils.dft_utils.hamilton.intor.pbcintor import _concat_atm_bas_env
+    from deepchem.utils.dft_utils import AtomCGTOBasis, LibcintWrapper, loadbasis
+
+    pos1 = torch.tensor([0.0, 0.0, 0.0], dtype=torch.float64)
+    pos2 = torch.tensor([1.5, 0.0, 0.0], dtype=torch.float64)
+    basis = loadbasis("1:STO-3G", dtype=torch.float64, requires_grad=False)
+    atom1 = AtomCGTOBasis(atomz=1, bases=basis, pos=pos1)
+    atom2 = AtomCGTOBasis(atomz=1, bases=basis, pos=pos2)
+
+    wrapper1 = LibcintWrapper([atom1], spherical=True, lattice=None)
+    wrapper2 = LibcintWrapper([atom2], spherical=True, lattice=None)
+
+    atm, bas, env, ao_loc = _concat_atm_bas_env(wrapper1, wrapper2)
+
+    assert atm.shape == (2, 6)
+    assert bas.shape == (2, 8)
+    assert env.shape == (60,)
+    assert ao_loc.shape == (3,)
+
+    assert atm[0, 0] == 1  # atomic number (H)
+    assert atm[1, 0] == 1  # atomic number (H)
+
+    assert bas[0, 0] == 0  # atom index for first shell
+    assert bas[1, 0] == 1  # atom index for second shell (offset applied)
+
+    assert np.array_equal(ao_loc, np.array([0, 1, 2], dtype=np.int32))
+
+    atm3, bas3, env3, ao_loc3 = _concat_atm_bas_env(wrapper1, wrapper2,
+                                                    wrapper1)
+    assert atm3.shape == (3, 6)
+    assert bas3.shape == (3, 8)
