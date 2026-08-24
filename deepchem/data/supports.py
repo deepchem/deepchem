@@ -116,6 +116,8 @@ def get_task_test(dataset, n_episodes, n_test, task, log_every_n=50):
         Number of episodes to sample test sets for.
     n_test: int
         Number of compounds per test set.
+    task: int
+        Index of the task to select.
     log_every_n: int, optional
         Prints every log_every_n supports sampled.
     """
@@ -169,7 +171,7 @@ def get_single_task_support(dataset, n_pos, n_neg, task, replace=True):
 
     Parameters
     ----------
-    datasets: dc.data.Dataset
+    dataset: dc.data.Dataset
         Dataset from which supports are sampled.
     n_pos: int
         Number of positive samples in support.
@@ -193,7 +195,7 @@ def get_task_support(dataset, n_episodes, n_pos, n_neg, task, log_every_n=50):
 
     Parameters
     ----------
-    datasets: dc.data.Dataset
+    dataset: dc.data.Dataset
         Dataset from which supports are sampled.
     n_episodes: int
         Number of episodes for which supports have to be sampled from this task.
@@ -264,8 +266,6 @@ class EpisodeGenerator(object):
             Number of samples in test set.
         n_episodes_per_task: int
             Number of (support, task) pairs to sample per task.
-        replace: bool
-            Whether to use sampling with or without replacement.
         """
         time_start = time.time()
         self.tasks = range(len(dataset.get_task_names()))
