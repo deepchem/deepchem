@@ -5,6 +5,7 @@ from deepchem.feat.base_classes import MolecularFeaturizer
 from deepchem.utils.typing import OneOrMany
 
 from typing import Optional
+import warnings
 
 logger = logging.getLogger(__name__)
 
@@ -143,8 +144,8 @@ class MolGanFeaturizer(MolecularFeaturizer):
             raise ImportError("This method requires RDKit to be installed.")
         if 'mol' in kwargs:
             datapoint = kwargs.get("mol")
-            raise DeprecationWarning(
-                'Mol is being phased out as a parameter, please pass "datapoint" instead.'
+            warnings.warn(
+                'Mol is being phased out as a parameter, please pass "datapoint" instead.', DeprecationWarning
             )
 
         if self.kekulize:

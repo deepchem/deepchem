@@ -3,6 +3,7 @@ import numpy as np
 from deepchem.utils.typing import PymatgenComposition
 from deepchem.feat import MaterialCompositionFeaturizer
 from typing import Any
+import warnings
 
 
 class ElementPropertyFingerprint(MaterialCompositionFeaturizer):
@@ -77,8 +78,8 @@ class ElementPropertyFingerprint(MaterialCompositionFeaturizer):
         """
         if 'composition' in kwargs and datapoint is None:
             datapoint = kwargs.get("composition")
-            raise DeprecationWarning(
-                'Composition is being phased out as a parameter, please pass "datapoint" instead.'
+            warnings.warn(
+                'Composition is being phased out as a parameter, please pass "datapoint" instead.', DeprecationWarning
             )
 
         if self.ep_featurizer is None:

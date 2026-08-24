@@ -5,6 +5,7 @@ import numpy as np
 
 from deepchem.feat.base_classes import MolecularFeaturizer
 from deepchem.utils.typing import RDKitMol
+import warnings
 
 
 class AtomicCoordinates(MolecularFeaturizer):
@@ -63,8 +64,8 @@ class AtomicCoordinates(MolecularFeaturizer):
             raise ImportError("This class requires RDKit to be installed.")
         if 'mol' in kwargs:
             datapoint = kwargs.get("mol")
-            raise DeprecationWarning(
-                'Mol is being phased out as a parameter, please pass "datapoint" instead.'
+            warnings.warn(
+                'Mol is being phased out as a parameter, please pass "datapoint" instead.', DeprecationWarning
             )
 
         # Check whether num_confs >=1 or not

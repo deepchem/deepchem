@@ -6,6 +6,7 @@ from rdkit.Chem import AllChem
 from deepchem.utils import download_url, get_data_dir, untargz_file
 from deepchem.utils.typing import RDKitMol
 from deepchem.feat.base_classes import MolecularFeaturizer
+import warnings
 
 DEFAULT_PRETRAINED_MODEL_URL = 'https://deepchemdata.s3-us-west-1.amazonaws.com/trained_models/mol2vec_model_300dim.tar.gz'
 
@@ -194,8 +195,8 @@ class Mol2VecFingerprint(MolecularFeaturizer):
         """
         if 'mol' in kwargs:
             datapoint = kwargs.get("mol")
-            raise DeprecationWarning(
-                'Mol is being phased out as a parameter, please pass "datapoint" instead.'
+            warnings.warn(
+                'Mol is being phased out as a parameter, please pass "datapoint" instead.', DeprecationWarning
             )
         sentence = self.mol2alt_sentence(datapoint, self.radius)
         feature = self.sentences2vec([sentence], self.model,

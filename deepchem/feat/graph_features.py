@@ -9,6 +9,7 @@ import logging
 from typing import Optional, List, Tuple, Union, Iterable
 from deepchem.utils.typing import RDKitMol, RDKitAtom
 from deepchem.utils.molecule_feature_utils import one_hot_encode
+import warnings
 
 
 def one_of_k_encoding(x, allowable_set):
@@ -801,8 +802,8 @@ class ConvMolFeaturizer(MolecularFeaturizer):
         """
         if 'molecules' in kwargs and datapoints is None:
             datapoints = kwargs.get("molecules")
-            raise DeprecationWarning(
-                'Molecules is being phased out as a parameter, please pass "datapoints" instead.'
+            warnings.warn(
+                'Molecules is being phased out as a parameter, please pass "datapoints" instead.', DeprecationWarning
             )
 
         features = super(ConvMolFeaturizer, self).featurize(datapoints,
