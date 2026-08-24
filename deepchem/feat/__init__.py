@@ -41,6 +41,7 @@ from deepchem.feat.molecule_featurizers import RawFeaturizer
 from deepchem.feat.molecule_featurizers import RDKitDescriptors
 from deepchem.feat.molecule_featurizers import SmilesToImage
 from deepchem.feat.molecule_featurizers import SmilesToSeq, create_char_to_idx
+from deepchem.feat.molecule_featurizers import IUPACFeaturizer
 from deepchem.feat.molecule_featurizers import MATFeaturizer
 from deepchem.feat.molecule_featurizers import DMPNNFeaturizer
 from deepchem.feat.molecule_featurizers import GroverFeaturizer
