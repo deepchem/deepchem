@@ -98,7 +98,7 @@ class ProtBERT(HuggingFaceModel):
            The task defines the type of learning task in the model. The supported tasks are
            - `mlm` - masked language modeling commonly used in pretraining
            - `classification` - use it for classification tasks
-           - `feature_extractor` - use it along side the predict_embedding() method to extract features from a protein sequence
+           - `feature_extractor` - use it along side the predict_embeddings() method to extract features from a protein sequence
        model_path: str
            Path to the HuggingFace model
            - 'Rostlab/prot_bert' - Pretrained on Uniref100 dataset
