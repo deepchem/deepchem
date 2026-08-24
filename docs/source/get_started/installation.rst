@@ -33,7 +33,8 @@ For using models with tensorflow dependencies, you install using
 
 .. code-block:: bash
 
-    pip install --pre deepchem[tensorflow]
+    pip install typeguard==2.13.3
+    pip install deepchem[tensorflow]
 
 For using models with Pytorch dependencies, you install using
 
