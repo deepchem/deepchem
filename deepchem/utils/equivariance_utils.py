@@ -2096,7 +2096,7 @@ class SO3(LieGroup):
     q_dim: int = 1
 
     def __init__(self, alpha: float = 0.2):
-        """Initialize the :math:`\mathrm{SO}(3)` group.
+        r"""Initialize the :math:`\mathrm{SO}(3)` group.
 
         Parameters
         ----------
@@ -2177,7 +2177,7 @@ class SO3(LieGroup):
         device: torch.device = torch.device("cpu"),
         dtype: torch.dtype = torch.float32,
     ) -> torch.Tensor:
-        """Sample random rotations from :math:`\mathrm{SO}(3)`.
+        r"""Sample random rotations from :math:`\mathrm{SO}(3)`.
 
         Rotations are sampled by drawing random unit quaternions and
         converting them to axis–angle form.
@@ -2221,7 +2221,7 @@ class SO3(LieGroup):
         n_samples: int,
         **kwargs,
     ):
-        """Lift points in :math:`\mathbb{R}^3` to :math:`\mathrm{SO}(3)` elements.
+        r"""Lift points in :math:`\mathbb{R}^3` to :math:`\mathrm{SO}(3)` elements.
 
         Each point is lifted by aligning a reference axis with the direction
         of the point and composing with samples from the stabilizer subgroup.
@@ -2365,7 +2365,7 @@ class SE3(SO3):
     q_dim: int = 0
 
     def __init__(self, alpha: float = 0.2, per_point: bool = True):
-        """Initialize the :math:`\mathrm{SE}(3)` group.
+        r"""Initialize the :math:`\mathrm{SE}(3)` group.
 
         Parameters
         ----------
