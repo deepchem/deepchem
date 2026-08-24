@@ -80,9 +80,9 @@ class SCF_QCCalc(BaseQCCalc):
         Parameters
         ----------
         dm0: Optional[Union[str, torch.Tensor, SpinParam[torch.Tensor]]]
-            Initial density matrix. If it is a string, it can be
-            "1e" to use the 1-electron Hamiltonian to generate the
-            initial density matrix.
+            Initial density matrix. If it is a string, it can be:
+            - "1e": use the 1-electron Hamiltonian to generate the initial density matrix.
+            - "gwh": use the Generalized Wolfsberg-Helmholtz approximation using the overlap matrix.
         eigen_options: Optional[Dict[str, Any]]
             Options for the diagonalization (i.e. eigendecomposition).
         fwd_options: Optional[Dict[str, Any]]
@@ -135,8 +135,38 @@ class SCF_QCCalc(BaseQCCalc):
                 dm = self._get_zero_dm()
                 scp0 = self._engine.dm2scp(dm)
                 dm = self._engine.scp2dm(scp0)
+            elif dm0 == "gwh":
+                # 1. Retrieve the core quantum matrices from the Hamiltonian
+                h = self.get_system().get_hamiltonian()
+                s_mat = h.get_overlap().fullmatrix()
+                h_core = h.get_kinnucl().fullmatrix()
+
+                # 2. Extract the diagonal elements H_ii (handles batched dimensions: ..., N)
+                diag_h = torch.diagonal(h_core, dim1=-2, dim2=-1)
+
+                # 3. Reshape for broadcasting to create the (H_ii + H_jj) matrix
+                diag_h_col = diag_h.unsqueeze(-1)  # Shape: (..., N, 1)
+                diag_h_row = diag_h_col.transpose(-2, -1)  # Shape: (..., 1, N)
+                sum_diags = diag_h_col + diag_h_row  # Shape: (..., N, N)
+
+                # 4. Apply the GWH approximation formula
+                fock_gwh = 0.875 * s_mat * sum_diags
+
+                # 5. Strictly enforce F_ii = H_ii on the diagonal
+                fock_gwh = fock_gwh.diagonal_scatter(diag_h, dim1=-2, dim2=-1)
+
+                # 6. Convert the initial Fock matrix to a Density Matrix
+                if self._polarized:
+                    # For polarized/unrestricted engines, provide a spin-resolved SCP tensor
+                    scp0 = torch.stack((fock_gwh, fock_gwh), dim=0)
+                else:
+                    scp0 = fock_gwh
+                
+                dm = self._engine.scp2dm(scp0)
             else:
-                raise RuntimeError("Unknown dm0: %s" % dm0)
+                raise RuntimeError(
+                    "Unknown dm0: %s. Allowed values are: None, '1e', 'gwh'." % dm0
+                )
         else:
             dm = SpinParam.apply_fcn(lambda dm0: dm0.detach(), dm0)
 
