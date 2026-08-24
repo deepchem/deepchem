@@ -98,7 +98,7 @@ class HingeLoss(Loss):
     """The hinge loss function.
 
     The 'output' argument should contain logits, and all elements of 'labels'
-    should equal 0 or 1.
+    should equal -1 or 1.
     """
 
     def _compute_tf_loss(self, output, labels):
