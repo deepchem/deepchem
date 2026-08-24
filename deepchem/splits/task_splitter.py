@@ -2,6 +2,7 @@
 Contains an abstract base class that supports chemically aware data splits.
 """
 import numpy as np
+import logging
 from deepchem.data import NumpyDataset
 from deepchem.splits import Splitter
 
@@ -13,7 +14,7 @@ def merge_fold_datasets(fold_datasets):
     assumes that each dataset contains the same datapoints, listed in the same
     ordering.
     """
-    if not len(fold_datasets):
+    if not fold_datasets:
         return None
 
     # All datasets share features and identifiers by assumption.
@@ -62,7 +63,8 @@ class TaskSplitter(Splitter):
         frac_test: float, optional
             Proportion of tasks to be put into test. Rounded to nearest int.
         """
-        np.testing.assert_almost_equal(frac_train + frac_valid + frac_test, 1)
+        if not np.isclose(frac_train + frac_valid + frac_test, 1.0):
+            raise ValueError("frac_train + frac_valid + frac_test must equal 1.0")
         n_tasks = len(dataset.get_task_names())
         n_train = int(np.round(frac_train * n_tasks))
         n_valid = int(np.round(frac_valid * n_tasks))
@@ -90,8 +92,10 @@ class TaskSplitter(Splitter):
         """
         n_tasks = len(dataset.get_task_names())
         n_per_fold = int(np.round(n_tasks / float(K)))
+
+        logger = logging.getLogger(__name__)
         if K * n_per_fold != n_tasks:
-            print("Assigning extra tasks to last fold due to uneven split")
+            logger.warning("Assigning extra tasks to last fold due to uneven split")
 
         X, y, w, ids = dataset.X, dataset.y, dataset.w, dataset.ids
 
