@@ -4196,6 +4196,7 @@ class WeaveLayer(nn.Module):
                  init_: str = 'xavier_uniform_',
                  activation: str = 'relu',
                  batch_normalize: bool = True,
+                 device=None,
                  **kwargs):
         """
     Parameters
@@ -4248,9 +4249,9 @@ class WeaveLayer(nn.Module):
         # Construct internal trainable weights
         init = getattr(initializers, self.init)
         # Weight matrix and bias matrix required to compute new atom layer from the previous atom layer
-        self.W_AA: torch.Tensor = init(
-            torch.empty(self.n_atom_input_feat, self.n_hidden_AA))
-        self.b_AA: torch.Tensor = torch.zeros((self.n_hidden_AA,))
+        self.W_AA: torch.Tensor =  nn.Parameter(init(
+            torch.empty(self.n_atom_input_feat, self.n_hidden_AA)))
+        self.b_AA: torch.Tensor = nn.Parameter(torch.zeros((self.n_hidden_AA,)))
         self.AA_bn: nn.BatchNorm1d = nn.BatchNorm1d(
             num_features=self.n_hidden_AA,
             eps=1e-3,
@@ -4259,9 +4260,9 @@ class WeaveLayer(nn.Module):
             track_running_stats=True)
 
         # Weight matrix and bias matrix required to compute new atom layer from the previous pair layer
-        self.W_PA: torch.Tensor = init(
-            torch.empty(self.n_pair_input_feat, self.n_hidden_PA))
-        self.b_PA: torch.Tensor = torch.zeros((self.n_hidden_PA,))
+        self.W_PA: torch.Tensor =  nn.Parameter(init(
+            torch.empty(self.n_pair_input_feat, self.n_hidden_PA)))
+        self.b_PA: torch.Tensor = nn.Parameter(torch.zeros((self.n_hidden_PA,)))
         self.PA_bn: nn.BatchNorm1d = nn.BatchNorm1d(
             num_features=self.n_hidden_PA,
             eps=1e-3,
@@ -4269,9 +4270,9 @@ class WeaveLayer(nn.Module):
             affine=True,
             track_running_stats=True)
 
-        self.W_A: torch.Tensor = init(
-            torch.empty(self.n_hidden_A, self.n_atom_output_feat))
-        self.b_A: torch.Tensor = torch.zeros((self.n_atom_output_feat,))
+        self.W_A: torch.Tensor =  nn.Parameter(init(
+            torch.empty(self.n_hidden_A, self.n_atom_output_feat)))
+        self.b_A: torch.Tensor = nn.Parameter(torch.zeros((self.n_atom_output_feat,)))
         self.A_bn: nn.BatchNorm1d = nn.BatchNorm1d(
             num_features=self.n_atom_output_feat,
             eps=1e-3,
@@ -4281,9 +4282,9 @@ class WeaveLayer(nn.Module):
 
         if self.update_pair:
             # Weight matrix and bias matrix required to compute new pair layer from the previous atom layer
-            self.W_AP: torch.Tensor = init(
-                torch.empty(self.n_atom_input_feat * 2, self.n_hidden_AP))
-            self.b_AP: torch.Tensor = torch.zeros((self.n_hidden_AP,))
+            self.W_AP: torch.Tensor =  nn.Parameter(init(
+                torch.empty(self.n_atom_input_feat * 2, self.n_hidden_AP)))
+            self.b_AP: torch.Tensor = nn.Parameter(torch.zeros((self.n_hidden_AP,)))
             self.AP_bn: nn.BatchNorm1d = nn.BatchNorm1d(
                 num_features=self.n_hidden_AP,
                 eps=1e-3,
@@ -4291,9 +4292,9 @@ class WeaveLayer(nn.Module):
                 affine=True,
                 track_running_stats=True)
             # Weight matrix and bias matrix required to compute new pair layer from the previous pair layer
-            self.W_PP: torch.Tensor = init(
-                torch.empty(self.n_pair_input_feat, self.n_hidden_PP))
-            self.b_PP: torch.Tensor = torch.zeros((self.n_hidden_PP,))
+            self.W_PP: torch.Tensor =  nn.Parameter(init(
+                torch.empty(self.n_pair_input_feat, self.n_hidden_PP)))
+            self.b_PP: torch.Tensor = nn.Parameter(torch.zeros((self.n_hidden_PP,)))
             self.PP_bn: nn.BatchNorm1d = nn.BatchNorm1d(
                 num_features=self.n_hidden_PP,
                 eps=1e-3,
@@ -4301,9 +4302,9 @@ class WeaveLayer(nn.Module):
                 affine=True,
                 track_running_stats=True)
 
-            self.W_P: torch.Tensor = init(
-                torch.empty(self.n_hidden_P, self.n_pair_output_feat))
-            self.b_P: torch.Tensor = torch.zeros((self.n_pair_output_feat,))
+            self.W_P: torch.Tensor =  nn.Parameter(init(
+                torch.empty(self.n_hidden_P, self.n_pair_output_feat)))
+            self.b_P: torch.Tensor = nn.Parameter(torch.zeros((self.n_pair_output_feat,)))
             self.P_bn: nn.BatchNorm1d = nn.BatchNorm1d(
                 num_features=self.n_pair_output_feat,
                 eps=1e-3,
@@ -4346,15 +4347,14 @@ class WeaveLayer(nn.Module):
           P: Pair features tensor of shape `(total num of pairs,bond feature size)`
         """
         # Converting the input to torch tensors
-        atom_features: torch.Tensor = torch.tensor(inputs[0])
-        pair_features: torch.Tensor = torch.tensor(inputs[1])
+        atom_features: torch.Tensor = inputs[0]
+        pair_features: torch.Tensor = inputs[1]
 
-        pair_split: torch.Tensor = torch.tensor(inputs[2])
-        atom_to_pair: torch.Tensor = torch.tensor(inputs[3])
-
+        pair_split: torch.Tensor = inputs[2]
+        atom_to_pair: torch.Tensor = inputs[3]
         activation = self.activation_fn
-
         # AA is a tensor with shape[total_num_atoms,n_hidden_AA]
+        # print(f"device of W_AA: {self.W_AA.device}")    
         AA: torch.Tensor = torch.matmul(atom_features.type(torch.float32),
                                         self.W_AA) + self.b_AA
         if self.batch_normalize:
@@ -4494,6 +4494,7 @@ class WeaveGather(nn.Module):
                  compress_post_gaussian_expansion: bool = False,
                  init_: str = 'xavier_uniform_',
                  activation: str = 'tanh',
+                 device: Optional[torch.device] = None,
                  **kwargs):
         """
         Parameters
@@ -4528,9 +4529,9 @@ class WeaveGather(nn.Module):
 
         if self.compress_post_gaussian_expansion:
             init = getattr(initializers, self.init)
-            self.W: torch.Tensor = init(
-                torch.empty([self.n_input * 11, self.n_input]))
-            self.b: torch.Tensor = torch.zeros((self.n_input,))
+            self.W: torch.Tensor =  nn.Parameter(init(
+                torch.empty([self.n_input * 11, self.n_input])))
+            self.b: torch.Tensor = nn.Parameter(torch.zeros((self.n_input,)))
         self.built = True
 
     def __repr__(self):
@@ -4560,9 +4561,9 @@ class WeaveGather(nn.Module):
             Each entry in this list is of shape `(self.n_inputs,)`
 
         """
-        outputs: torch.Tensor = torch.tensor(inputs[0])
-        atom_split: torch.Tensor = torch.tensor(inputs[1])
-
+        outputs: torch.Tensor = inputs[0]
+        atom_split: torch.Tensor = inputs[1]
+        
         if self.gaussian_expand:
             outputs = self.gaussian_histogram(outputs)
 
@@ -4631,16 +4632,16 @@ class WeaveGather(nn.Module):
                                                            (1.645, 0.283)]
 
         distributions: List[dist.Normal] = [
-            dist.Normal(torch.tensor(p[0]), torch.tensor(p[1]))
+            dist.Normal(torch.tensor(p[0],device=x.device), torch.tensor(p[1],device=x.device))
             for p in gaussian_memberships
         ]
         dist_max: List[torch.Tensor] = [
             distributions[i].log_prob(torch.tensor(
-                gaussian_memberships[i][0])).exp() for i in range(11)
+                gaussian_memberships[i][0],device=x.device)).exp() for i in range(11)
         ]
 
         outputs: List[torch.Tensor] = [
-            distributions[i].log_prob(torch.tensor(x)).exp() / dist_max[i]
+            distributions[i].log_prob(x).exp() / dist_max[i]
             for i in range(11)
         ]
         output: torch.Tensor = torch.stack(outputs, dim=2)
