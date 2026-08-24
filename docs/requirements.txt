@@ -22,3 +22,5 @@ sympy
 pysam
 pydantic
 torchdata<0.8.0
+einops
+triton

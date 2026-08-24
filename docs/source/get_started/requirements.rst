@@ -149,6 +149,14 @@ DeepChem has a number of "soft" requirements.
 | `basis-set-exchange`_          | latest        | :code:`deepchem.utils.dft_utils.api.loadbasis`    |
 |                                |               |                                                   |
 +--------------------------------+---------------+---------------------------------------------------+
+| `einops`_                      | latest        | :code:`dc.models.torch_models.dnabert`            |
+|                                |               | (used by DNABERT-2 custom HuggingFace model)      |
+|                                |               |                                                   |
++--------------------------------+---------------+---------------------------------------------------+
+| `Triton`_                      | latest        | :code:`dc.models.torch_models.dnabert`            |
+|                                |               | (Flash Attention kernel for DNABERT-2)            |
+|                                |               |                                                   |
++--------------------------------+---------------+---------------------------------------------------+
 
 
 .. _`joblib`: https://pypi.python.org/pypi/joblib
@@ -189,3 +197,5 @@ DeepChem has a number of "soft" requirements.
 .. _`pylibxc`: https://gitlab.com/libxc/libxc/
 .. _`dqclibs`: https://github.com/diffqc/dqclibs
 .. _`basis-set-exchange`: https://www.basissetexchange.org/
+.. _`einops`: https://github.com/arogozhnikov/einops
+.. _`Triton`: https://triton-lang.org/

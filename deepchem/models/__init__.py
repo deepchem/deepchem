@@ -65,6 +65,7 @@ try:
     from deepchem.models.torch_models import Chemberta
     from deepchem.models.torch_models import MoLFormer
     from deepchem.models.torch_models import OneFormer
+    from deepchem.models.torch_models import Dnabert
 except ImportError as e:
     logger.warning(e)
 
