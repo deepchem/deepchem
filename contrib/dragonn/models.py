@@ -17,6 +17,7 @@ from keras.layers.core import (Activation, Dense, Flatten,
                                 TimeDistributedDense)
 from keras.layers.recurrent import GRU
 from keras.callbacks import EarlyStopping
+from deepchem.utils.data_utils import UniversalNamedTemporaryFile
 
 
 #class SequenceDNN(Model):
@@ -412,7 +413,7 @@ class gkmSVM(Model):
     test_fname = "%s.test.fa" % self.prefix
     self.encode_sequence_into_fasta_file(X, test_fname)
     # test gkmsvm
-    temp_ofp = tempfile.NamedTemporaryFile()
+    temp_ofp = UniversalNamedTemporaryFile()
     threads_option = '-T %s' % (str(self.threads))
     command = ' '.join([
         'gkmpredict', test_fname, self.model_file, temp_ofp.name, threads_option

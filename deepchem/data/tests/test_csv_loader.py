@@ -1,10 +1,11 @@
 import os
 import tempfile
 import deepchem as dc
+from deepchem.utils.data_utils import UniversalNamedTemporaryFile
 
 
 def test_load_singleton_csv():
-    fin = tempfile.NamedTemporaryFile(mode='w', delete=False)
+    fin = UniversalNamedTemporaryFile(mode='w', delete=False)
     fin.write("smiles,endpoint\nc1ccccc1,1")
     fin.close()
     featurizer = dc.feat.CircularFingerprint(size=1024)

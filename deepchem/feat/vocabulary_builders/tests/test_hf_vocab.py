@@ -1,6 +1,7 @@
 import json
 import tempfile
 from deepchem.feat.vocabulary_builders.hf_vocab import HuggingFaceVocabularyBuilder
+from deepchem.utils.data_utils import UniversalNamedTemporaryFile
 
 
 def testHuggingFaceVocabularyBuilder():
@@ -9,7 +10,7 @@ def testHuggingFaceVocabularyBuilder():
 
     corpus = """hello world"""
 
-    corpus_file = tempfile.NamedTemporaryFile()
+    corpus_file = UniversalNamedTemporaryFile()
     with open(corpus_file.name, 'w') as fp:
         fp.write(corpus)
 
@@ -23,7 +24,7 @@ def testHuggingFaceVocabularyBuilder():
     vb.tokenizer.pre_tokenizer = Whitespace()
     vb.build([corpus_file.name])
 
-    vocab_file = tempfile.NamedTemporaryFile()
+    vocab_file = UniversalNamedTemporaryFile()
     vb.save(vocab_file.name)
 
     # Load vocabulary and do a basic sanity check on the vocabulary

@@ -5,6 +5,7 @@ import gzip
 import pickle
 import tempfile
 from multiprocessing import Process, Event
+from deepchem.utils.data_utils import UniversalNamedTemporaryFile
 
 try:
     import torch  # noqa: F401
@@ -92,7 +93,7 @@ def hold_lock(mutexfile, ready_event):
 
 @pytest.mark.torch
 def test_mutex_blocks_across_processes():
-    with tempfile.NamedTemporaryFile(delete=False) as tmp:
+    with UniversalNamedTemporaryFile(delete=False) as tmp:
         tmpfile = tmp.name
 
     ready_event = Event()

@@ -9,6 +9,7 @@ from deepchem.data import Dataset
 from deepchem.feat.base_classes import Featurizer
 from deepchem.utils.typing import RDKitMol, RDKitAtom, RDKitBond
 from deepchem.feat.vocabulary_builders.vocabulary_builder import VocabularyBuilder
+from deepchem.utils.data_utils import UniversalNamedTemporaryFile
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +46,7 @@ class GroverAtomVocabularyBuilder(VocabularyBuilder):
     >>> import tempfile
     >>> import deepchem as dc
     >>> from rdkit import Chem
-    >>> file = tempfile.NamedTemporaryFile()
+    >>> file = UniversalNamedTemporaryFile()
     >>> dataset = dc.data.NumpyDataset(X=[['CCC'], ['CC(=O)C']])
     >>> vocab = GroverAtomVocabularyBuilder()
     >>> vocab.build(dataset)
@@ -289,7 +290,7 @@ class GroverBondVocabularyBuilder(VocabularyBuilder):
     >>> import tempfile
     >>> import deepchem as dc
     >>> from rdkit import Chem
-    >>> file = tempfile.NamedTemporaryFile()
+    >>> file = UniversalNamedTemporaryFile()
     >>> dataset = dc.data.NumpyDataset(X=[['CCC']])
     >>> vocab = GroverBondVocabularyBuilder()
     >>> vocab.build(dataset)
@@ -521,7 +522,7 @@ class GroverAtomVocabTokenizer(Featurizer):
     >>> import tempfile
     >>> import deepchem as dc
     >>> from deepchem.feat.vocabulary_builders.grover_vocab import GroverAtomVocabularyBuilder
-    >>> file = tempfile.NamedTemporaryFile()
+    >>> file = UniversalNamedTemporaryFile()
     >>> dataset = dc.data.NumpyDataset(X=[['CC(=O)C'], ['CCC']])
     >>> vocab = GroverAtomVocabularyBuilder()
     >>> vocab.build(dataset)
@@ -555,7 +556,7 @@ class GroverBondVocabTokenizer(Featurizer):
     >>> import tempfile
     >>> import deepchem as dc
     >>> from deepchem.feat.vocabulary_builders.grover_vocab import GroverBondVocabularyBuilder
-    >>> file = tempfile.NamedTemporaryFile()
+    >>> file = UniversalNamedTemporaryFile()
     >>> dataset = dc.data.NumpyDataset(X=[['CC(=O)C'], ['CCC']])
     >>> vocab = GroverBondVocabularyBuilder()
     >>> vocab.build(dataset)
