@@ -128,7 +128,12 @@ class EquivariantGraphFeaturizer(MolecularFeaturizer):
             A tuple of node features (np.ndarray) and positions (np.ndarray).
         """
         atom_features = []
-        positions: np.ndarray[Any, Any] = np.empty((0, 2), dtype=np.float64)
+        conf = mol.GetConformer()
+        coords = []
+        for i in range(mol.GetNumAtoms()):
+            pos = conf.GetAtomPosition(i)
+            coords.append([pos.x, pos.y, pos.z])
+        positions = np.array(coords, dtype=np.float32)
 
         for atom in mol.GetAtoms():
             atomic_number = atom.GetAtomicNum()
@@ -136,13 +141,6 @@ class EquivariantGraphFeaturizer(MolecularFeaturizer):
                                     [1, 6, 7, 8, 9])  # H, C, N, O, F
             additional_features = [atomic_number]
             atom_features.append(one_hot + additional_features)
-
-            conf = mol.GetConformer()
-            coords = []
-            for i in range(mol.GetNumAtoms()):
-                pos = conf.GetAtomPosition(i)
-                coords.append([pos.x, pos.y, pos.z])
-            positions = np.array(coords)
 
         return atom_features, positions
 

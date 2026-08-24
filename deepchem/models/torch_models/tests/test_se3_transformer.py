@@ -1099,3 +1099,28 @@ def test_se3_transformer_save_restore():
 
     # Ensure predictions before and after restoring are close
     assert np.allclose(pred_before_restore, pred_after_restore, atol=1e-05)
+
+
+@pytest.mark.torch
+def test_se3_transformer_model_fit_predict():
+    """Smoke test: SE3TransformerModel trains and predicts on a tiny dataset."""
+    import deepchem as dc
+    from rdkit import Chem
+    import numpy as np
+    from deepchem.models.torch_models import SE3TransformerModel
+
+    smiles = ["CCO", "CCC"]
+    featurizer = dc.feat.EquivariantGraphFeaturizer(fully_connected=False, embeded=True)
+    mols = [Chem.MolFromSmiles(s) for s in smiles]
+    graphs = [featurizer.featurize([m])[0] for m in mols]
+    dataset = dc.data.NumpyDataset(X=graphs, y=np.array([[1.0], [0.0]]))
+
+    model = SE3TransformerModel(
+        num_layers=1, atom_feature_size=6, num_workers=0,
+        num_channels=8, num_degrees=2, edge_dim=4, pooling='avg',
+        n_heads=1, batch_size=2)
+
+    # Check that it runs without crashing
+    model.fit(dataset, nb_epoch=1)
+    preds = model.predict(dataset)
+    assert preds.shape == (2, 1)
