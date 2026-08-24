@@ -101,7 +101,7 @@ class GroverFeaturizer(MolecularFeaturizer):
         basic_match = sum(mol.GetSubstructMatches(basic), ())
         ring_info = mol.GetRingInfo()
         features = features + \
-                   one_hot_encode(atom.GetImplicitValence(), [0, 1, 2, 3, 4, 5, 6], include_unknown_set=True) + \
+                   one_hot_encode(atom.GetValence(Chem.ValenceType.IMPLICIT), [0, 1, 2, 3, 4, 5, 6], include_unknown_set=True) + \
                    [atom_idx in hydrogen_acceptor_match] + \
                    [atom_idx in hydrogen_donor_match] + \
                    [atom_idx in acidic_match] + \

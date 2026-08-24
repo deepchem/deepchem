@@ -484,7 +484,7 @@ def get_atom_implicit_valence_one_hot(
         If `include_unknown_set` is True, the length is `len(allowable_set) + 1`.
 
     """
-    return one_hot_encode(atom.GetImplicitValence(), allowable_set,
+    return one_hot_encode(atom.GetValence(Chem.ValenceType.IMPLICIT), allowable_set,
                           include_unknown_set)
 
 
@@ -511,7 +511,7 @@ def get_atom_explicit_valence_one_hot(
         If `include_unknown_set` is True, the length is `len(allowable_set) + 1`.
 
     """
-    return one_hot_encode(atom.GetExplicitValence(), allowable_set,
+    return one_hot_encode(atom.GetValence(Chem.ValenceType.EXPLICIT), allowable_set,
                           include_unknown_set)
 
 
