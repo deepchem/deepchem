@@ -863,6 +863,37 @@ def test_to_str():
                                    ids=np.arange(50))
     ref_str = '<NumpyDataset X.shape: (50, 3), y.shape: (50,), w.shape: (50,), task_names: [0]>'
     assert str(dataset) == ref_str
+    
+
+def test_create_dataset_overwrite_protection():
+    """Test that create_dataset raises ValueError on non-empty dir without overwrite=True.
+
+    Regression test for https://github.com/deepchem/deepchem/issues/3402
+    """
+    X = np.random.rand(5, 3)
+    dataset = dc.data.DiskDataset.from_numpy(X)
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        target = os.path.join(tmpdir, "mydata")
+
+        # First save to empty dir — should succeed
+        dc.data.DiskDataset.create_dataset(
+            [(dataset.X, dataset.y, dataset.w, dataset.ids)],
+            data_dir=target,
+            overwrite=False)
+
+        # Second save to same non-empty dir — should raise
+        with pytest.raises(ValueError, match="already contains files"):
+            dc.data.DiskDataset.create_dataset(
+                [(dataset.X, dataset.y, dataset.w, dataset.ids)],
+                data_dir=target,
+                overwrite=False)
+
+        # With overwrite=True — should succeed silently
+        dc.data.DiskDataset.create_dataset(
+            [(dataset.X, dataset.y, dataset.w, dataset.ids)],
+            data_dir=target,
+            overwrite=True)
 
 
 class TestDatasets(unittest.TestCase):

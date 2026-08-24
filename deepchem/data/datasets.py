@@ -1244,7 +1244,8 @@ class DiskDataset(Dataset):
     @staticmethod
     def create_dataset(shard_generator: Iterable[Batch],
                        data_dir: Optional[str] = None,
-                       tasks: Optional[ArrayLike] = None) -> "DiskDataset":
+                       tasks: Optional[ArrayLike] = None,
+                       overwrite: bool = False) -> "DiskDataset":
         """Creates a new DiskDataset
 
         Parameters
@@ -1256,16 +1257,33 @@ class DiskDataset(Dataset):
             Filename for data directory. Creates a temp directory if none specified.
         tasks: Sequence, optional (default [])
             List of tasks for this dataset.
+        overwrite: bool, optional (default False)
+            If False and data_dir already contains files, raises a ValueError
+            to prevent accidental data loss. Set to True to allow overwriting.
 
         Returns
         -------
         DiskDataset
             A new `DiskDataset` constructed from the given data
+
+        Raises
+        ------
+        ValueError
+            If data_dir contains existing files and overwrite is False.
         """
         if data_dir is None:
             data_dir = tempfile.mkdtemp()
         elif not os.path.exists(data_dir):
             os.makedirs(data_dir)
+        else:
+            # data_dir exists — check for existing files
+            if not overwrite:
+                existing_files = os.listdir(data_dir)
+                if existing_files:
+                    raise ValueError(
+                        f"Directory '{data_dir}' already contains files: "
+                        f"{existing_files}. To overwrite existing data, "
+                        f"set overwrite=True.")
 
         metadata_rows = []
         time1 = time.time()
