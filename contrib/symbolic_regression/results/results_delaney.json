@@ -1,0 +1,51 @@
+{
+  "dataset": "delaney",
+  "featurizer": "rdkit",
+  "symbolic_regression_deepchem": {
+    "scores": {
+      "test": {
+        "mean-mae_score": 0.9349917082745653,
+        "mean-pearson_r2_score": 0.7315797985896915,
+        "mean-r2_score": 0.7251386362381254,
+        "mean-rms_score": 1.1975499262633695
+      },
+      "train": {  
+        "mean-mae_score": 0.9196764554797893,
+        "mean-pearson_r2_score": 0.6738402106227404,
+        "mean-r2_score": 0.6689602586175175,
+        "mean-rms_score": 1.1992710035608178
+      },
+      "valid": {
+        "mean-mae_score": 0.7454591620130366,
+        "mean-pearson_r2_score": 0.7499042464562768,
+        "mean-r2_score": 0.7420348639495395,
+        "mean-rms_score": 1.0051599082294436
+      }
+    }
+  },
+  "symbolic_regression_pysr": {
+    "scores": {
+      "test": {
+        "mean-mae_score": 0.8371908961534524,
+        "mean-pearson_r2_score": 0.7930831422229735,
+        "mean-r2_score": 0.7878448814501571,
+        "mean-rms_score": 1.0521157863393604
+      },
+      "train": {
+        "mean-mae_score": 0.8187611510093394,
+        "mean-pearson_r2_score": 0.7419699922433867,
+        "mean-r2_score": 0.7222618772112765,
+        "mean-rms_score": 1.0984872339851905
+      },
+      "valid": {
+        "mean-mae_score": 0.6952217201387343,
+        "mean-pearson_r2_score": 0.8013115041461616,
+        "mean-r2_score": 0.7712695275055325,
+        "mean-rms_score": 0.9464913820951342
+      }
+    }
+  },
+  "test_size": 113,
+  "train_size": 902,
+  "valid_size": 113
+}
