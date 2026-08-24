@@ -235,7 +235,6 @@ class CNNModule(nn.Module):
         self.mode = mode
         self.n_classes = n_classes
         self.uncertainty = uncertainty
-        self.mode = mode
         self.layer_filters = layer_filters
         self.residual = residual
 
