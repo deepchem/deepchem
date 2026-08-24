@@ -204,6 +204,35 @@ def test_load_from_hf_checkpoint():
 
 
 @pytest.mark.hf
+def test_generate_api(hf_tokenizer):
+    from transformers.models.gpt2 import GPT2Config, GPT2LMHeadModel
+
+    config = GPT2Config(vocab_size=hf_tokenizer.vocab_size,
+                        n_layer=1,
+                        n_head=1,
+                        n_embd=32,
+                        bos_token_id=hf_tokenizer.bos_token_id,
+                        eos_token_id=hf_tokenizer.eos_token_id,
+                        pad_token_id=hf_tokenizer.pad_token_id)
+    model = GPT2LMHeadModel(config)
+    hf_model = HuggingFaceModel(model=model,
+                                tokenizer=hf_tokenizer,
+                                task='generation',
+                                device=torch.device('cpu'))
+
+    single_output = hf_model.generate("CCO", max_new_tokens=2, do_sample=False)
+    assert isinstance(single_output, str)
+    assert len(single_output) > 0
+
+    batch_output = hf_model.generate(["CCO", "CCN"],
+                                     max_new_tokens=2,
+                                     do_sample=False)
+    assert isinstance(batch_output, list)
+    assert len(batch_output) == 2
+    assert all(isinstance(text, str) and len(text) > 0 for text in batch_output)
+
+
+@pytest.mark.hf
 def test_fill_mask_IO(tmpdir, hf_tokenizer):
     from transformers import (RobertaConfig, RobertaForMaskedLM)
 
