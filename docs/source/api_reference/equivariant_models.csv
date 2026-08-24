@@ -1,0 +1,3 @@
+Model,Reference,Type,Acceptable Featurizers,Backend,Comment
+TFNModel,`ref <https://arxiv.org/abs/1802.08219>`_,Classifier/Regressor,EquivariantGraphFeaturizer ,DGL/Pytorch,
+SE3TransformerModel,`ref <https://arxiv.org/abs/2006.10503>`_,Classifier/Regressor,EquivariantGraphFeaturizer,DGL/Pytorch,
