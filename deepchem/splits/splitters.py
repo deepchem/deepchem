@@ -775,7 +775,7 @@ class SingletaskStratifiedSplitter(Splitter):
 
         # Append remaining examples to train
         if sortidx.shape[0] > 0:
-            np.hstack([train_idx, sortidx])
+            train_idx = np.hstack([train_idx, sortidx])
 
         return (train_idx, valid_idx, test_idx)
 
