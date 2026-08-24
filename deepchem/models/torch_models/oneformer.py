@@ -223,7 +223,8 @@ class OneFormer(HuggingFaceModel):
                       variables: Optional[Union[List[torch.nn.Parameter],
                                                 torch.nn.ParameterList]] = None,
                       loss: Optional[LossFn] = None,
-                      callbacks: Union[Callable, List[Callable]] = [],
+                      callbacks: Optional[Union[Callable,
+                                                List[Callable]]] = None,
                       all_losses: Optional[List[float]] = None) -> float:
         """Train this model on data from a generator.
 
@@ -265,7 +266,9 @@ class OneFormer(HuggingFaceModel):
         Support must be added to return the embeddings to the user, so that it can
         be used for other downstream applications.
         """
-        if not isinstance(callbacks, SequenceCollection):
+        if callbacks is None:
+            callbacks = []
+        elif not isinstance(callbacks, SequenceCollection):
             callbacks = [callbacks]
         self._ensure_built()
         self.model.train()

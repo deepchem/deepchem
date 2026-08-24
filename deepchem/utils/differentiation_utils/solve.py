@@ -129,7 +129,7 @@ class solve_torchfcn(torch.autograd.Function):
     @staticmethod
     def forward(ctx, A, B, E, M, method, fwd_options, bck_options, na,
                 *all_params):
-        """Forward calculation of the solve function.
+        r"""Forward calculation of the solve function.
 
         Parameters
         ----------

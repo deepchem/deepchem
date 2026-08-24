@@ -1,4 +1,4 @@
-from typing import Dict, Any, Tuple
+from typing import Dict, Any, Tuple, Optional
 from deepchem.models.torch_models.hf_models import HuggingFaceModel
 from transformers.models.roberta.modeling_roberta import (
     RobertaConfig, RobertaForMaskedLM, RobertaForSequenceClassification)
@@ -95,8 +95,10 @@ class Chemberta(HuggingFaceModel):
                  task: str,
                  tokenizer_path: str = 'seyonec/PubChem10M_SMILES_BPE_60k',
                  n_tasks: int = 1,
-                 config: Dict[Any, Any] = {},
+                 config: Optional[Dict[Any, Any]] = None,
                  **kwargs):
+        if config is None:
+            config = {}
         self.n_tasks = n_tasks
         tokenizer = RobertaTokenizerFast.from_pretrained(tokenizer_path)
         model: PreTrainedModel

@@ -215,7 +215,7 @@ class JaxModel(Model):
             nb_epochs: int = 10,
             deterministic: bool = False,
             loss: Optional[Union[Loss, LossFn]] = None,
-            callbacks: Union[Callable, List[Callable]] = [],
+            callbacks: Optional[Union[Callable, List[Callable]]] = None,
             all_losses: Optional[List[float]] = None) -> float:
         """Train this model on a dataset.
         Parameters
@@ -269,8 +269,10 @@ class JaxModel(Model):
     def fit_generator(self,
                       generator: Iterable[Tuple[Any, Any, Any]],
                       loss: Optional[Union[Loss, LossFn]] = None,
-                      callbacks: Union[Callable, List[Callable]] = [],
+                      callbacks: Optional[Union[Callable, List[Callable]]] = None,
                       all_losses: Optional[List[float]] = None) -> float:
+        if callbacks is None:
+            callbacks = []
         if not isinstance(callbacks, SequenceCollection):
             callbacks = [callbacks]
         self._ensure_built()
@@ -454,7 +456,7 @@ class JaxModel(Model):
     def predict_on_generator(
             self,
             generator: Iterable[Tuple[Any, Any, Any]],
-            transformers: List[Transformer] = [],
+            transformers: Optional[List[Transformer]] = None,
             output_types: Optional[OneOrMany[str]] = None
     ) -> OneOrMany[np.ndarray]:
         """
@@ -463,7 +465,7 @@ class JaxModel(Model):
         generator: generator
             this should generate batches, each represented as a tuple of the form
             (inputs, labels, weights).
-        transformers: List[dc.trans.Transformers]
+        transformers: List[dc.trans.Transformers], optional (default None)
             Transformers that the input data has been transformed by.  The output
             is passed through these transformers to undo the transformations.
         output_types: String or list of Strings
@@ -476,6 +478,8 @@ class JaxModel(Model):
             a NumPy array of the model produces a single output, or a list of arrays
             if it produces multiple outputs
         """
+        if transformers is None:
+            transformers = []
         return self._predict(generator, transformers, False, output_types)
 
     def predict_on_batch(

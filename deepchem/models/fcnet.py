@@ -417,7 +417,7 @@ class MultitaskFitTransformRegressor(MultitaskRegressor):
     def __init__(self,
                  n_tasks: int,
                  n_features: int,
-                 fit_transformers: Sequence[dc.trans.Transformer] = [],
+                 fit_transformers: Optional[Sequence[dc.trans.Transformer]] = None,
                  batch_size: int = 50,
                  **kwargs):
         """Create a MultitaskFitTransformRegressor.
@@ -434,6 +434,8 @@ class MultitaskFitTransformRegressor(MultitaskRegressor):
         fit_transformers: list
             List of dc.trans.FitTransformer objects
         """
+        if fit_transformers is None:
+            fit_transformers = []
         self.fit_transformers = fit_transformers
 
         # Run fit transformers on dummy dataset to determine n_features after transformation
@@ -486,7 +488,7 @@ class MultitaskFitTransformRegressor(MultitaskRegressor):
     def predict_on_generator(
             self,
             generator: Iterable[Tuple[Any, Any, Any]],
-            transformers: List[dc.trans.Transformer] = [],
+            transformers: Optional[List[dc.trans.Transformer]] = None,
             output_types: Optional[OneOrMany[str]] = None
     ) -> OneOrMany[np.ndarray]:
 
@@ -497,6 +499,8 @@ class MultitaskFitTransformRegressor(MultitaskRegressor):
                     X_t = transformer.X_transform(X_t)
                 yield ([X_t] + inputs[1:], labels, weights)
 
+        if transformers is None:
+            transformers = []
         return super(MultitaskFitTransformRegressor,
                      self).predict_on_generator(transform_generator(),
                                                 transformers, output_types)

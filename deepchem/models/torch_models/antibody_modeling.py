@@ -129,7 +129,7 @@ class DeepAbLLM(HuggingFaceModel):
                  model_path: str = 'Rostlab/prot_bert',
                  n_tasks: int = 1,
                  is_esm_variant: bool = False,
-                 config: Dict[Any, Any] = {},
+                 config: Optional[Dict[Any, Any]] = None,
                  **kwargs) -> None:
         """
         Parameters
@@ -155,6 +155,8 @@ class DeepAbLLM(HuggingFaceModel):
         model_config: AutoConfig = AutoConfig.from_pretrained(
             pretrained_model_name_or_path=model_path,
             vocab_size=tokenizer.vocab_size)  # type: ignore
+        if config is None:
+            config = {}
         model_config.update(config)  # type: ignore
         self.is_esm_variant: bool = is_esm_variant
         model: Union[AutoModel, AutoModelForMaskedLM]

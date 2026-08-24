@@ -107,7 +107,7 @@ class PINNModel(JaxModel):
     def __init__(self,
                  forward_fn: hk.State,
                  params: hk.Params,
-                 initial_data: dict = {},
+                 initial_data: Optional[dict] = None,
                  output_types: Optional[List[str]] = None,
                  batch_size: int = 100,
                  learning_rate: float = 0.001,
@@ -151,9 +151,8 @@ class PINNModel(JaxModel):
             The frequency at which to log data. Data is logged using
             `logging` by default.
         """
-        warnings.warn(
-            'PinnModel is still in active development and we could change the design of the API in the future.'
-        )
+        if initial_data is None:
+            initial_data = {}
         self.boundary_data = initial_data
         super(PINNModel,
               self).__init__(forward_fn, params, None, output_types, batch_size,
@@ -163,8 +162,10 @@ class PINNModel(JaxModel):
     def fit_generator(self,
                       generator: Iterable[Tuple[Any, Any, Any]],
                       loss: Optional[Union[Loss, LossFn]] = None,
-                      callbacks: Union[Callable, List[Callable]] = [],
+                      callbacks: Optional[Union[Callable, List[Callable]]] = None,
                       all_losses: Optional[List[float]] = None) -> float:
+        if callbacks is None:
+            callbacks = []
         if not isinstance(callbacks, SequenceCollection):
             callbacks = [callbacks]
         self._ensure_built()
