@@ -111,16 +111,15 @@ The full suite of slow tests can be run from the root directory of the source co
 
   pytest -v -m 'slow' deepchem
 
-To test your code locally, you will have to setup a symbolic link to your
-current development directory. To do this, simply run
+To test your code locally, install DeepChem from source in editable mode:
 
 .. code-block:: bash
 
-  python setup.py develop
+  pip install -e .
 
-while installing the package from source. This will let you see changes that you
-make to the source code when you import the package and, in particular, it
-allows you to import the new classes/methods for unit tests.
+This installs the package from your current development directory so changes
+you make to the source code are visible when you import the package. In
+particular, it allows you to import the new classes/methods for unit tests.
 
 Ensure that the tests pass locally! Check this by running
 
