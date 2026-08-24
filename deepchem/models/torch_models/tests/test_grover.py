@@ -132,6 +132,40 @@ def test_grover_finetune_classification(grover_batched_graph):
     assert output[1].shape == (3, 2)
 
 
+def test_grover_finetune_multitask_classification(grover_batched_graph):
+    import torch.nn as nn
+    from deepchem.models.torch_models.grover_layers import GroverEmbedding
+    from deepchem.models.torch_models.readout import GroverReadout
+    from deepchem.models.torch_models.grover import GroverFinetune
+
+    f_atoms, f_bonds, a2b, b2a, b2revb, a2a, a_scope, b_scope, fg_labels = grover_batched_graph.get_components(
+    )
+    additional_features = grover_batched_graph.additional_features
+    inputs = f_atoms, f_bonds, a2b, b2a, b2revb, a_scope, b_scope, a2a
+    components = {}
+    components['embedding'] = GroverEmbedding(node_fdim=f_atoms.shape[1],
+                                              edge_fdim=f_bonds.shape[1])
+    components['readout'] = GroverReadout(rtype="mean", in_features=128)
+    components['mol_atom_from_atom_ffn'] = nn.Linear(
+        in_features=additional_features.shape[1] + 128, out_features=128)
+    components['mol_atom_from_bond_ffn'] = nn.Linear(
+        in_features=additional_features.shape[1] + 128, out_features=128)
+    n_classes = 2
+    n_tasks = 3
+    model = GroverFinetune(**components,
+                           mode='classification',
+                           n_classes=n_classes,
+                           n_tasks=n_tasks,
+                           hidden_size=128)
+    model.training = False
+    output = model((inputs, additional_features))
+    assert len(output) == n_classes
+    # logits for class 1
+    assert output[0].shape == (64, 3, 2)
+    # logits for class 2
+    assert output[1].shape == (64, 3, 2)
+
+
 @pytest.mark.torch
 def test_grover_pretraining_task_overfit(tmpdir):
     import deepchem as dc
