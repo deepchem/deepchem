@@ -148,7 +148,7 @@ class NormalizingFlowModel(KerasModel):
 
         self.flow = self.model.flow  # normalizing flow
 
-        # TODO: Incompability between TF and TFP means that TF doesn't track
+        # TODO: Incompatibility between TF and TFP means that TF doesn't track
         # trainable variables in the flow; must override `_create_gradient_fn`
         # self._variables = self.flow.trainable_variables
 
