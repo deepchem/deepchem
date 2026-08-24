@@ -13,7 +13,7 @@ from deepchem.models.torch_models.torch_model import TorchModel
 class GAN(nn.Module):
     """Builder class for Generative Adversarial Networks.
 
-    A Generative Adversarial Network (GAN) [gan1]_ is a type of generative model. It
+    A Generative Adversarial Network (GAN) [Goodfellow2014]_ is a type of generative model. It
     consists of two parts called the "generator" and the "discriminator". The
     generator takes random noise as input and transforms it into an output that
     (hopefully) resembles the training data. The discriminator takes a set of
@@ -120,10 +120,10 @@ class GAN(nn.Module):
 
     References
     ----------
-    .. [gan1] Goodfellow, Ian, et al. "Generative adversarial nets." Advances in
+    .. [Goodfellow2014] Goodfellow, Ian, et al. "Generative adversarial nets." Advances in
          neural information processing systems. 2014.
 
-    .. [gan2] Arora et al., “Generalization and Equilibrium in Generative
+    .. [Arora2017GAN] Arora et al., “Generalization and Equilibrium in Generative
          Adversarial Nets (GANs)” (https://arxiv.org/abs/1703.00573)
     """
 
@@ -562,7 +562,7 @@ class GANModel(TorchModel):
     get_noise_batch()
 
     This class allows a GAN to have multiple generators and discriminators, a model
-    known as MIX+GAN.  It is described in [2]
+    known as MIX+GAN.  It is described in [Arora2017GAN_Model]_
     This can lead to better models, and is especially useful for reducing mode
     collapse, since different generators can learn different parts of the
     distribution.  To use this technique, simply specify the number of generators
@@ -669,10 +669,10 @@ class GANModel(TorchModel):
 
     References
     ----------
-    .. [1] Goodfellow, Ian, et al. "Generative adversarial nets." Advances in
+    .. [Goodfellow2014_Model] Goodfellow, Ian, et al. "Generative adversarial nets." Advances in
          neural information processing systems. 2014.
 
-    .. [2] Arora et al., “Generalization and Equilibrium in Generative
+    .. [Arora2017GAN_Model] Arora et al., “Generalization and Equilibrium in Generative
          Adversarial Nets (GANs)” (https://arxiv.org/abs/1703.00573)
 
     Notes
@@ -958,7 +958,7 @@ class WGANModel(GANModel):
     """Implements Wasserstein Generative Adversarial Networks.
 
     This class implements Wasserstein Generative Adversarial Networks (WGANs) as
-    described in Arjovsky et al., "Wasserstein GAN" [wgan1]_.
+    described in Arjovsky et al., "Wasserstein GAN" [Arjovsky2017WGAN]_.
     A WGAN is conceptually rather different from a conventional GAN, but in
     practical terms very similar.  It reinterprets the discriminator (often called
     the "critic" in this context) as learning an approximation to the Earth Mover
@@ -975,7 +975,7 @@ class WGANModel(GANModel):
     The theory WGANs are based on requires the discriminator's gradient to be
     bounded.  The original paper achieved this by clipping its weights.  This
     class instead does it by adding a penalty term to the discriminator's loss, as
-    described in [wgan2]_.  This is sometimes found to produce better results.
+    described in [Gulrajani2017WGAN]_.  This is sometimes found to produce better results.
 
     There are a few other practical differences between GANs and WGANs.  In a
     conventional GAN, the discriminator's output must be between 0 and 1 so it can
@@ -1087,12 +1087,12 @@ class WGANModel(GANModel):
 
     References
     ----------
-    .. [wgan1] Arjovsky, Martin, Soumith Chintala, and Léon Bottou.
+    .. [Arjovsky2017WGAN] Arjovsky, Martin, Soumith Chintala, and Léon Bottou.
         "Wasserstein generative adversarial networks."
         International conference on machine learning. PMLR, 2017.
         (https://arxiv.org/abs/1701.07875)
 
-    .. [wgan2] Gulrajani, Ishaan, et al. "Improved training of wasserstein gans."
+    .. [Gulrajani2017WGAN] Gulrajani, Ishaan, et al. "Improved training of wasserstein gans."
         Advances in neural information processing systems 30 (2017).
         (https://arxiv.org/abs/1704.00028)
     """
@@ -1186,7 +1186,7 @@ class GradientPenaltyLayer(nn.Module):
     """Implements the gradient penalty loss term for WGANs.
 
     This class implements the gradient penalty loss term for WGANs as described in
-    Gulrajani et al., "Improved Training of Wasserstein GANs" [wgan2]_.  It is used
+    Gulrajani et al., "Improved Training of Wasserstein GANs" [Gulrajani2017WGAN_Layer]_.  It is used
     internally by WGANModel
 
     Examples
@@ -1272,7 +1272,7 @@ class GradientPenaltyLayer(nn.Module):
 
     References
     ----------
-    .. [wgan2] Gulrajani, Ishaan, et al. "Improved training of wasserstein gans."
+    .. [Gulrajani2017WGAN_Layer] Gulrajani, Ishaan, et al. "Improved training of wasserstein gans."
         Advances in neural information processing systems 30 (2017).
         (https://arxiv.org/abs/1704.00028)
     """

@@ -328,7 +328,7 @@ class LinearMixing(Jacobian):
 
 
 class LowRankMatrix(object):
-    """represents a matrix of `\alpha * I + \sum_n c_n d_n^T`
+    r"""represents a matrix of `\alpha * I + \sum_n c_n d_n^T`
 
     Examples
     --------
@@ -451,7 +451,7 @@ class LowRankMatrix(object):
 
 
 class FullRankMatrix(object):
-    """represents a full rank matrix of `\alpha * I + \sum_n c_n d_n^T`
+    r"""represents a full rank matrix of `\alpha * I + \sum_n c_n d_n^T`
 
     Examples
     --------

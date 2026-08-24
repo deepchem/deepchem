@@ -453,7 +453,7 @@ class ActNorm(Affine):
 
 
 class ClampExp(nn.Module):
-    """
+    r"""
     A non Linearity layer that clamps the input tensor by taking the minimum of the
     exponential of the input multiplied by a lambda parameter and 1.
 

@@ -15,7 +15,7 @@ class MAT(nn.Module):
 
     References
     ----------
-    .. [1] Lukasz Maziarka et al. "Molecule Attention Transformer" Graph Representation Learning workshop and Machine Learning and the Physical Sciences workshop at NeurIPS 2019. 2020. https://arxiv.org/abs/2002.08264
+    .. [MAT_1] Lukasz Maziarka et al. "Molecule Attention Transformer" Graph Representation Learning workshop and Machine Learning and the Physical Sciences workshop at NeurIPS 2019. 2020. https://arxiv.org/abs/2002.08264
 
     Examples
     --------
@@ -179,7 +179,7 @@ class MAT(nn.Module):
 class MATModel(TorchModel):
     """Molecular Attention Transformer.
 
-    This class implements the Molecular Attention Transformer [1]_.
+    This class implements the Molecular Attention Transformer [MATModel_1]_.
     The MATFeaturizer (deepchem.feat.MATFeaturizer) is intended to work with this class.
     The model takes a batch of MATEncodings (from MATFeaturizer) as input, and returns an array of size Nx1, where N is the number of molecules in the batch.
     Each molecule is broken down into its Node Features matrix, adjacency matrix and distance matrix.
@@ -189,7 +189,7 @@ class MATModel(TorchModel):
 
     References
     ----------
-    .. [1] Lukasz Maziarka et al. "Molecule Attention Transformer" Graph Representation Learning workshop and Machine Learning and the Physical Sciences workshop at NeurIPS 2019. 2020. https://arxiv.org/abs/2002.08264
+    .. [MATModel_1] Lukasz Maziarka et al. "Molecule Attention Transformer" Graph Representation Learning workshop and Machine Learning and the Physical Sciences workshop at NeurIPS 2019. 2020. https://arxiv.org/abs/2002.08264
 
     Examples
     --------

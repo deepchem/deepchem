@@ -180,7 +180,7 @@ class BondEncoder(torch.nn.Module):
 
 class PNALayer(nn.Module):
     """
-    Principal Neighbourhood Aggregation Layer (PNA) from [1].
+    Principal Neighbourhood Aggregation Layer (PNA) from [Corso2020PNA]_.
 
     Parameters
     ----------
@@ -217,7 +217,7 @@ class PNALayer(nn.Module):
 
     References
     ----------
-    .. [1] Corso, G., Cavalleri, L., Beaini, D., Liò, P. & Veličković, P. Principal Neighbourhood Aggregation for Graph Nets. Preprint at https://doi.org/10.48550/arXiv.2004.05718 (2020).
+    .. [Corso2020PNA] Corso, G., Cavalleri, L., Beaini, D., Liò, P. & Veličković, P. Principal Neighbourhood Aggregation for Graph Nets. Preprint at https://doi.org/10.48550/arXiv.2004.05718 (2020).
 
     Examples
     --------
@@ -413,7 +413,7 @@ class PNALayer(nn.Module):
 
 class PNAGNN(nn.Module):
     """
-    Principal Neighbourhood Aggregation Graph Neural Network [1]. This defines the message passing layers of the PNA model.
+    Principal Neighbourhood Aggregation Graph Neural Network [Corso2020PNA_GNN]_. This defines the message passing layers of the PNA model.
 
     Parameters
     ----------
@@ -444,7 +444,7 @@ class PNAGNN(nn.Module):
 
     References
     ----------
-    .. [1] Corso, G., Cavalleri, L., Beaini, D., Liò, P. & Veličković, P. Principal Neighbourhood Aggregation for Graph Nets. Preprint at https://doi.org/10.48550/arXiv.2004.05718 (2020).
+    .. [Corso2020PNA_GNN] Corso, G., Cavalleri, L., Beaini, D., Liò, P. & Veličković, P. Principal Neighbourhood Aggregation for Graph Nets. Preprint at https://doi.org/10.48550/arXiv.2004.05718 (2020).
 
     Examples
     --------
@@ -527,7 +527,7 @@ class PNAGNN(nn.Module):
 
 class PNA(nn.Module):
     """
-    Message passing neural network for graph representation learning [1]_.
+    Message passing neural network for graph representation learning [Corso2020PNA_Model]_.
 
     Parameters
     ----------
@@ -566,7 +566,7 @@ class PNA(nn.Module):
 
     References
     ----------
-    .. [1] Corso, G., Cavalleri, L., Beaini, D., Liò, P. & Veličković, P. Principal Neighbourhood Aggregation for Graph Nets. Preprint at https://doi.org/10.48550/arXiv.2004.05718 (2020).
+    .. [Corso2020PNA_Model] Corso, G., Cavalleri, L., Beaini, D., Liò, P. & Veličković, P. Principal Neighbourhood Aggregation for Graph Nets. Preprint at https://doi.org/10.48550/arXiv.2004.05718 (2020).
 
     Examples
     --------

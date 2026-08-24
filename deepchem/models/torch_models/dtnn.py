@@ -18,7 +18,7 @@ class DTNN(nn.Module):
     Then, it iteratively refines the representation of each atom by considering its interactions with neighboring atoms.
     Finally, it predicts the energy of the molecule by summing up the energies of the individual atoms.
 
-    In this class, we establish a sequential model for the Deep Tensor Neural Network (DTNN) [1]_.
+    In this class, we establish a sequential model for the Deep Tensor Neural Network (DTNN) [DTNN_1]_.
 
     Examples
     --------
@@ -47,7 +47,7 @@ class DTNN(nn.Module):
 
     References
     ----------
-    .. [1] Schütt, Kristof T., et al. "Quantum-chemical insights from deep
+    .. [DTNN_1] Schütt, Kristof T., et al. "Quantum-chemical insights from deep
         tensor neural networks." Nature communications 8.1 (2017): 1-8.
 
     """
@@ -158,7 +158,7 @@ class DTNNModel(TorchModel):
     Then, it iteratively refines the representation of each atom by considering its interactions with neighboring atoms.
     Finally, it predicts the energy of the molecule by summing up the energies of the individual atoms.
 
-    This class implements the Deep Tensor Neural Network (DTNN) [1]_.
+    This class implements the Deep Tensor Neural Network (DTNN) [DTNNModel_1]_.
 
     Examples
     --------
@@ -182,7 +182,7 @@ class DTNNModel(TorchModel):
 
     References
     ----------
-    .. [1] Schütt, Kristof T., et al. "Quantum-chemical insights from deep
+    .. [DTNNModel_1] Schütt, Kristof T., et al. "Quantum-chemical insights from deep
         tensor neural networks." Nature communications 8.1 (2017): 1-8.
 
     """

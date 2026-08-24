@@ -102,7 +102,7 @@ class ChemCeptionLayer(nn.Module):
 
     References
     ----------
-    .. [1] Goh et al. "Chemception: A Deep Neural Network with Minimal Chemistry Knowledge Matches
+    .. [and_1] Goh et al. "Chemception: A Deep Neural Network with Minimal Chemistry Knowledge Matches
         the Performance of Expert-developed QSAR/QSPR Models" (https://arxiv.org/abs/1706.06689)
     """
 

@@ -38,10 +38,10 @@ class _GraphConvTorchModel(nn.Module):
     Graph Convolutional Models.
 
     This class implements the graph convolutional model from the
-    following paper [1]_. These graph convolutions start with a per-atom set of
+    following paper [_GraphConvTorchModel_1]_. These graph convolutions start with a per-atom set of
     descriptors for each atom in a molecule, then combine and recombine these
     descriptors over convolutional layers.
-    following [1]_.
+    following [_GraphConvTorchModel_1]_.
 
     All arguments have the same meaning as in GraphConvModel.
 
@@ -70,7 +70,7 @@ class _GraphConvTorchModel(nn.Module):
 
     References
     ----------
-    .. [1] Duvenaud, David K., et al. "Convolutional networks on graphs for learning molecular fingerprints."
+    .. [_GraphConvTorchModel_1] Duvenaud, David K., et al. "Convolutional networks on graphs for learning molecular fingerprints."
         Advances in neural information processing systems. 2015. https://arxiv.org/abs/1509.09292
         """
 
@@ -253,10 +253,10 @@ class GraphConvModel(TorchModel):
     """Graph Convolutional Models.
 
     This class implements the graph convolutional model from the
-    following paper [1]_. These graph convolutions start with a per-atom set of
+    following paper [GraphConvModel_1]_. These graph convolutions start with a per-atom set of
     descriptors for each atom in a molecule, then combine and recombine these
     descriptors over convolutional layers.
-    following [1]_.
+    following [GraphConvModel_1]_.
 
     Example
     --------
@@ -276,7 +276,7 @@ class GraphConvModel(TorchModel):
 
     References
     ----------
-    .. [1] Duvenaud, David K., et al. "Convolutional networks on graphs for
+    .. [GraphConvModel_1] Duvenaud, David K., et al. "Convolutional networks on graphs for
         learning molecular fingerprints." Advances in neural information processing
         systems. 2015.
     """

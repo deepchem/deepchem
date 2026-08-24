@@ -42,7 +42,7 @@ class MPNN(nn.Module):
 
     References
     ----------
-    .. [1] Justin Gilmer, Samuel S. Schoenholz, Patrick F. Riley, Oriol Vinyals, George E. Dahl.
+    .. [MPNN_1] Justin Gilmer, Samuel S. Schoenholz, Patrick F. Riley, Oriol Vinyals, George E. Dahl.
         "Neural Message Passing for Quantum Chemistry." ICML 2017.
 
     Notes
@@ -203,7 +203,7 @@ class MPNNModel(TorchModel):
 
     References
     ----------
-    .. [1] Justin Gilmer, Samuel S. Schoenholz, Patrick F. Riley, Oriol Vinyals, George E. Dahl.
+    .. [MPNNModel_1] Justin Gilmer, Samuel S. Schoenholz, Patrick F. Riley, Oriol Vinyals, George E. Dahl.
         "Neural Message Passing for Quantum Chemistry." ICML 2017.
 
     Notes

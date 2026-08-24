@@ -22,9 +22,9 @@ class RobustMultitaskClassifier(KerasModel):
 
     References
     ----------
-    This technique was introduced in [1]_
+    This technique was introduced in [RobustMultitaskClassifier_1]_
 
-    .. [1] Ramsundar, Bharath, et al. "Is multitask deep learning practical for pharma?." Journal of chemical information and modeling 57.8 (2017): 2068-2076.
+    .. [RobustMultitaskClassifier_1] Ramsundar, Bharath, et al. "Is multitask deep learning practical for pharma?." Journal of chemical information and modeling 57.8 (2017): 2068-2076.
 
     """
 
@@ -215,7 +215,7 @@ class RobustMultitaskRegressor(KerasModel):
 
     References
     ----------
-    .. [1]   Ramsundar, Bharath, et al. "Is multitask deep learning practical for pharma?." Journal of chemical information and modeling 57.8 (2017): 2068-2076.
+    .. [RobustMultitaskRegressor_1]   Ramsundar, Bharath, et al. "Is multitask deep learning practical for pharma?." Journal of chemical information and modeling 57.8 (2017): 2068-2076.
 
     """
 

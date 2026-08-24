@@ -76,7 +76,7 @@ class NormalizingFlowModel(KerasModel):
     a probabilistic model that can both sample from a distribution and
     compute marginal likelihoods, e.g. generative modeling,
     unsupervised learning, or probabilistic inference. For a thorough review
-    of normalizing flows, see [1]_.
+    of normalizing flows, see [NormalizingFlowModel_1]_.
 
     A distribution implements two main operations:
         1. Sampling from the transformed distribution
@@ -96,7 +96,7 @@ class NormalizingFlowModel(KerasModel):
 
     References
     ----------
-    .. [1] Papamakarios, George et al. "Normalizing Flows for Probabilistic Modeling and Inference." (2019). https://arxiv.org/abs/1912.02762.
+    .. [NormalizingFlowModel_1] Papamakarios, George et al. "Normalizing Flows for Probabilistic Modeling and Inference." (2019). https://arxiv.org/abs/1912.02762.
 
     """
 
@@ -239,11 +239,11 @@ class NormalizingFlowLayer(object):
         which is a scaling that conserves the probability "volume" to equal 1.
 
     For examples of customized normalizing flows applied to toy problems,
-    see [1]_.
+    see [NormalizingFlowLayer_1]_.
 
     References
     ----------
-    .. [1] Saund, Brad. "Normalizing Flows." (2020). https://github.com/bsaund/normalizing_flows.
+    .. [NormalizingFlowLayer_1] Saund, Brad. "Normalizing Flows." (2020). https://github.com/bsaund/normalizing_flows.
 
     Notes
     -----

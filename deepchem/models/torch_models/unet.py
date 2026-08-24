@@ -46,7 +46,7 @@ class UNet(nn.Module):
 
     References
     ----------
-    .. [1] Ronneberger, O., Fischer, P., & Brox, T. (2015, May 18). U-NET: Convolutional Networks for Biomedical Image Segmentation. arXiv.org. https://arxiv.org/abs/1505.04597
+    .. [UNet_1] Ronneberger, O., Fischer, P., & Brox, T. (2015, May 18). U-NET: Convolutional Networks for Biomedical Image Segmentation. arXiv.org. https://arxiv.org/abs/1505.04597
     """
 
     def __init__(self, in_channels: int = 3, out_channels: int = 1):
@@ -184,7 +184,7 @@ class UNetModel(TorchModel):
 
     References
     ----------
-    .. [1] Ronneberger, O., Fischer, P., & Brox, T. (2015, May 18). U-NET: Convolutional Networks for Biomedical Image Segmentation. arXiv.org. https://arxiv.org/abs/1505.04597
+    .. [UNetModel_1] Ronneberger, O., Fischer, P., & Brox, T. (2015, May 18). U-NET: Convolutional Networks for Biomedical Image Segmentation. arXiv.org. https://arxiv.org/abs/1505.04597
     """
 
     def __init__(self, in_channels: int = 3, out_channels: int = 1, **kwargs):

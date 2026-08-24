@@ -129,7 +129,7 @@ class solve_torchfcn(torch.autograd.Function):
     @staticmethod
     def forward(ctx, A, B, E, M, method, fwd_options, bck_options, na,
                 *all_params):
-        """Forward calculation of the solve function.
+        r"""Forward calculation of the solve function.
 
         Parameters
         ----------
@@ -269,7 +269,7 @@ class solve_torchfcn(torch.autograd.Function):
 
 # Hidden
 def wrap_gmres(A, B, E=None, M=None, min_eps=1e-9, max_niter=None, **unused):
-    """
+    r"""
     Using SciPy's gmres method to solve the linear equation.
 
     Examples
@@ -349,7 +349,7 @@ def wrap_gmres(A, B, E=None, M=None, min_eps=1e-9, max_niter=None, **unused):
 
 def exactsolve(A: LinearOperator, B: torch.Tensor, E: Union[torch.Tensor, None],
                M: Union[LinearOperator, None]):
-    """
+    r"""
     Solve the linear equation by contructing the full matrix of LinearOperators.
 
     Examples
@@ -404,7 +404,7 @@ def exactsolve(A: LinearOperator, B: torch.Tensor, E: Union[torch.Tensor, None],
 
 
 def solve_ABE(A: torch.Tensor, B: torch.Tensor, E: torch.Tensor):
-    """ Solve the linear equation AX = B - diag(E)X.
+    r""" Solve the linear equation AX = B - diag(E)X.
 
     Examples
     --------

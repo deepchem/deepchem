@@ -33,7 +33,7 @@ class WeaveModel(KerasModel):
     """Implements Google-style Weave Graph Convolutions
 
     This model implements the Weave style graph convolutions
-    from [1]_.
+    from [WeaveModel_1]_.
 
     The biggest difference between WeaveModel style convolutions
     and GraphConvModel style convolutions is that Weave
@@ -43,9 +43,9 @@ class WeaveModel(KerasModel):
     scaling issues, but may possibly allow for better modeling
     of subtle bond effects.
 
-    Note that [1]_ introduces a whole variety of different architectures for
+    Note that [WeaveModel_1]_ introduces a whole variety of different architectures for
     Weave models. The default settings in this class correspond to the W2N2
-    variant from [1]_ which is the most commonly used variant..
+    variant from [WeaveModel_1]_ which is the most commonly used variant..
 
     Examples
     --------
@@ -70,7 +70,7 @@ class WeaveModel(KerasModel):
 
     References
     ----------
-    .. [1] Kearnes, Steven, et al. "Molecular graph convolutions: moving beyond
+    .. [WeaveModel_1] Kearnes, Steven, et al. "Molecular graph convolutions: moving beyond
         fingerprints." Journal of computer-aided molecular design 30.8 (2016):
         595-608.
 
@@ -405,11 +405,11 @@ class WeaveModel(KerasModel):
 class DTNNModel(KerasModel):
     """Deep Tensor Neural Networks
 
-    This class implements deep tensor neural networks as first defined in [1]_
+    This class implements deep tensor neural networks as first defined in [DTNNModel_1]_
 
     References
     ----------
-    .. [1] Schütt, Kristof T., et al. "Quantum-chemical insights from deep
+    .. [DTNNModel_1] Schütt, Kristof T., et al. "Quantum-chemical insights from deep
         tensor neural networks." Nature communications 8.1 (2017): 1-8.
     """
 
@@ -906,15 +906,15 @@ class GraphConvModel(KerasModel):
     """Graph Convolutional Models.
 
     This class implements the graph convolutional model from the
-    following paper [1]_. These graph convolutions start with a per-atom set of
+    following paper [GraphConvModel_1]_. These graph convolutions start with a per-atom set of
     descriptors for each atom in a molecule, then combine and recombine these
     descriptors over convolutional layers.
-    following [1]_.
+    following [GraphConvModel_1]_.
 
 
     References
     ----------
-    .. [1] Duvenaud, David K., et al. "Convolutional networks on graphs for
+    .. [GraphConvModel_1] Duvenaud, David K., et al. "Convolutional networks on graphs for
         learning molecular fingerprints." Advances in neural information processing
         systems. 2015.
     """
@@ -1045,19 +1045,19 @@ class GraphConvModel(KerasModel):
 class MPNNModel(KerasModel):
     """ Message Passing Neural Network,
 
-    Message Passing Neural Networks [1]_ treat graph convolutional
+    Message Passing Neural Networks [MPNNModel_1]_ treat graph convolutional
     operations as an instantiation of a more general message
     passing schem. Recall that message passing in a graph is when
     nodes in a graph send each other "messages" and update their
     internal state as a consequence of these messages.
 
-    Ordering structures in this model are built according to [2]_
+    Ordering structures in this model are built according to [MPNNModel_2]_
 
     References
     ----------
-    .. [1] Justin Gilmer, Samuel S. Schoenholz, Patrick F. Riley, Oriol Vinyals, George E. Dahl.
+    .. [MPNNModel_1] Justin Gilmer, Samuel S. Schoenholz, Patrick F. Riley, Oriol Vinyals, George E. Dahl.
         "Neural Message Passing for Quantum Chemistry." ICML 2017.
-    .. [2] Vinyals, Oriol, Samy Bengio, and Manjunath Kudlur. "Order matters:
+    .. [MPNNModel_2] Vinyals, Oriol, Samy Bengio, and Manjunath Kudlur. "Order matters:
         Sequence to sequence for sets." arXiv preprint arXiv:1511.06391 (2015).
     """
 

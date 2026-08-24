@@ -64,8 +64,8 @@ class OneFormer(HuggingFaceModel):
 
     References
     ----------
-    .. [1] Jain, J., Li, J., Chiu, M., Hassani, A., Orlov, N., & Shi, H. (2022, November 10). OneFormer: One Transformer to rule universal image segmentation. arXiv.org. https://arxiv.org/abs/2211.06220
-    .. [2] https://huggingface.co/shi-labs
+    .. [OneFormer_1] Jain, J., Li, J., Chiu, M., Hassani, A., Orlov, N., & Shi, H. (2022, November 10). OneFormer: One Transformer to rule universal image segmentation. arXiv.org. https://arxiv.org/abs/2211.06220
+    .. [OneFormer_2] https://huggingface.co/shi-labs
     """
 
     def __init__(self,

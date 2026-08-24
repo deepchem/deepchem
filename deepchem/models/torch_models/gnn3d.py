@@ -16,7 +16,7 @@ from deepchem.utils.graph_utils import fourier_encode_dist
 
 class Net3DLayer(nn.Module):
     """
-    Net3DLayer is a single layer of a 3D graph neural network based on the 3D Infomax architecture [1].
+    Net3DLayer is a single layer of a 3D graph neural network based on the 3D Infomax architecture [Staerk2022Net3D]_.
 
     This class expects a DGL graph with node features stored under the name 'feat' and edge features stored under the name 'd' (representing 3D distances). The edge features are updated by the message network and the node features are updated by the update network.
 
@@ -43,7 +43,7 @@ class Net3DLayer(nn.Module):
 
     References
     ----------
-    .. [1] Stärk, H. et al. 3D Infomax improves GNNs for Molecular Property Prediction. Preprint at https://doi.org/10.48550/arXiv.2110.04126 (2022).
+    .. [Staerk2022Net3D] Stärk, H. et al. 3D Infomax improves GNNs for Molecular Property Prediction. Preprint at https://doi.org/10.48550/arXiv.2110.04126 (2022).
 
     Examples
     --------
@@ -157,7 +157,7 @@ class Net3DLayer(nn.Module):
 
 class Net3D(nn.Module):
     """
-    Net3D is a 3D graph neural network that expects a DGL graph input with 3D coordinates stored under the name 'd' and node features stored under the name 'feat'. It is based on the 3D Infomax architecture [1].
+    Net3D is a 3D graph neural network that expects a DGL graph input with 3D coordinates stored under the name 'd' and node features stored under the name 'feat'. It is based on the 3D Infomax architecture [Staerk2022Net3D_Model]_.
 
     Parameters
     ----------
@@ -209,7 +209,7 @@ class Net3D(nn.Module):
 
     References
     ----------
-    .. [1] Stärk, H. et al. 3D Infomax improves GNNs for Molecular Property Prediction. Preprint at https://doi.org/10.48550/arXiv.2110.04126 (2022).
+    .. [Staerk2022Net3D_Model] Stärk, H. et al. 3D Infomax improves GNNs for Molecular Property Prediction. Preprint at https://doi.org/10.48550/arXiv.2110.04126 (2022).
     """
 
     def __init__(self,
@@ -353,7 +353,7 @@ class Net3D(nn.Module):
 
 class InfoMax3DModular(ModularTorchModel):
     """
-    InfoMax3DModular is a modular torch model that uses a 2D PNA model and a 3D Net3D model to maximize the mutual information between their representations. The 2D model can then be used for downstream tasks without the need for 3D coordinates. This is based off the work in [1].
+    InfoMax3DModular is a modular torch model that uses a 2D PNA model and a 3D Net3D model to maximize the mutual information between their representations. The 2D model can then be used for downstream tasks without the need for 3D coordinates. This is based off the work in [Staerk2022Net3D_Modular]_.
 
     This class expects data in featurized by the RDKitConformerFeaturizer. This featurizer produces features of the type Array[Array[List[GraphData]]].
     The outermost array is the dataset array, the second array is the molecule, the list contains the conformers for that molecule and the GraphData object is the featurized graph for that conformer with node_pos_features holding the 3D coordinates.
@@ -417,7 +417,7 @@ class InfoMax3DModular(ModularTorchModel):
 
     References
     ----------
-    .. [1] Stärk, H. et al. 3D Infomax improves GNNs for Molecular Property Prediction. Preprint at https://doi.org/10.48550/arXiv.2110.04126 (2022).
+    .. [Staerk2022Net3D_Modular] Stärk, H. et al. 3D Infomax improves GNNs for Molecular Property Prediction. Preprint at https://doi.org/10.48550/arXiv.2110.04126 (2022).
 
     Examples
     --------

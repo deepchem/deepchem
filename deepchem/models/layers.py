@@ -81,14 +81,14 @@ class InteratomicL2Distances(tf.keras.layers.Layer):
 class GraphConv(tf.keras.layers.Layer):
     """Graph Convolutional Layers
 
-    This layer implements the graph convolution introduced in [1]_.  The graph
+    This layer implements the graph convolution introduced in [GraphConv_1]_.  The graph
     convolution combines per-node feature vectures in a nonlinear fashion with
     the feature vectors for neighboring nodes.  This "blends" information in
     local neighborhoods of a graph.
 
     References
     ----------
-    .. [1] Duvenaud, David K., et al. "Convolutional networks on graphs for learning molecular fingerprints."
+    .. [GraphConv_1] Duvenaud, David K., et al. "Convolutional networks on graphs for learning molecular fingerprints."
         Advances in neural information processing systems. 2015. https://arxiv.org/abs/1509.09292
 
   """
@@ -219,11 +219,11 @@ class GraphPool(tf.keras.layers.Layer):
     This layer does a max-pooling over the feature vectors of atoms in a
     neighborhood. You can think of this layer as analogous to a max-pooling
     layer for 2D convolutions but which operates on graphs instead. This
-    technique is described in [1]_.
+    technique is described in [GraphPool_1]_.
 
     References
     ----------
-    .. [1] Duvenaud, David K., et al. "Convolutional networks on graphs for
+    .. [GraphPool_1] Duvenaud, David K., et al. "Convolutional networks on graphs for
         learning molecular fingerprints." Advances in neural information processing
         systems. 2015. https://arxiv.org/abs/1509.09292
 
@@ -313,7 +313,7 @@ class GraphGather(tf.keras.layers.Layer):
 
     References
     ----------
-    .. [1] Duvenaud, David K., et al. "Convolutional networks on graphs for
+    .. [GraphGather_1] Duvenaud, David K., et al. "Convolutional networks on graphs for
         learning molecular fingerprints." Advances in neural information processing
         systems. 2015. https://arxiv.org/abs/1509.09292
     """
@@ -403,7 +403,7 @@ class MolGANConvolutionLayer(tf.keras.layers.Layer):
 
     References
     ----------
-    .. [1] Nicola De Cao et al. "MolGAN: An implicit generative model
+    .. [MolGANConvolutionLayer_1] Nicola De Cao et al. "MolGAN: An implicit generative model
         for small molecular graphs", https://arxiv.org/abs/1805.11973
     """
 
@@ -529,7 +529,7 @@ class MolGANAggregationLayer(tf.keras.layers.Layer):
 
     References
     ----------
-    .. [1] Nicola De Cao et al. "MolGAN: An implicit generative model
+    .. [MolGANAggregationLayer_1] Nicola De Cao et al. "MolGAN: An implicit generative model
         for small molecular graphs", https://arxiv.org/abs/1805.11973
     """
 
@@ -630,7 +630,7 @@ class MolGANMultiConvolutionLayer(tf.keras.layers.Layer):
 
     References
     ----------
-    .. [1] Nicola De Cao et al. "MolGAN: An implicit generative model
+    .. [MolGANMultiConvolutionLayer_1] Nicola De Cao et al. "MolGAN: An implicit generative model
         for small molecular graphs", https://arxiv.org/abs/1805.11973
     """
 
@@ -751,7 +751,7 @@ class MolGANEncoderLayer(tf.keras.layers.Layer):
 
     References
     ----------
-    .. [1] Nicola De Cao et al. "MolGAN: An implicit generative model
+    .. [MolGANEncoderLayer_1] Nicola De Cao et al. "MolGAN: An implicit generative model
         for small molecular graphs", https://arxiv.org/abs/1805.11973
     """
 
@@ -1048,13 +1048,13 @@ class AttnLSTMEmbedding(tf.keras.layers.Layer):
     metric that allows a network to modify its internal notion of
     distance.
 
-    See references [1]_ [2]_ for more details.
+    See references [AttnLSTMEmbedding_1]_ [AttnLSTMEmbedding_2]_ for more details.
 
     References
     ----------
-    .. [1] Vinyals, Oriol, et al. "Matching networks for one shot learning."
+    .. [AttnLSTMEmbedding_1] Vinyals, Oriol, et al. "Matching networks for one shot learning."
         Advances in neural information processing systems. 2016.
-    .. [2] Vinyals, Oriol, Samy Bengio, and Manjunath Kudlur. "Order matters:
+    .. [AttnLSTMEmbedding_2] Vinyals, Oriol, Samy Bengio, and Manjunath Kudlur. "Order matters:
         Sequence to sequence for sets." arXiv preprint arXiv:1511.06391 (2015).
     """
 
@@ -2634,7 +2634,7 @@ class Highway(tf.keras.layers.Layer):
 
 class WeaveLayer(tf.keras.layers.Layer):
     """This class implements the core Weave convolution from the
-    Google graph convolution paper [1]_
+    Google graph convolution paper [WeaveLayer_1]_
 
     This model contains atom features and bond features
     separately.Here, bond features are also called pair features.
@@ -2725,7 +2725,7 @@ class WeaveLayer(tf.keras.layers.Layer):
 
     References
     ----------
-    .. [1] Kearnes, Steven, et al. "Molecular graph convolutions: moving beyond
+    .. [WeaveLayer_1] Kearnes, Steven, et al. "Molecular graph convolutions: moving beyond
         fingerprints." Journal of computer-aided molecular design 30.8 (2016):
         595-608.
 
@@ -2940,11 +2940,11 @@ class WeaveLayer(tf.keras.layers.Layer):
 class WeaveGather(tf.keras.layers.Layer):
     """Implements the weave-gathering section of weave convolutions.
 
-    Implements the gathering layer from [1]_. The weave gathering layer gathers
+    Implements the gathering layer from [WeaveGather_1]_. The weave gathering layer gathers
     per-atom features to create a molecule-level fingerprint in a weave
     convolutional network. This layer can also performs Gaussian histogram
-    expansion as detailed in [1]_. Note that the gathering function here is
-    simply addition as in [1]_>
+    expansion as detailed in [WeaveGather_1]_. Note that the gathering function here is
+    simply addition as in [WeaveGather_1]_>
 
     Examples
     --------
@@ -2988,7 +2988,7 @@ class WeaveGather(tf.keras.layers.Layer):
 
     References
     ----------
-    .. [1] Kearnes, Steven, et al. "Molecular graph convolutions: moving beyond
+    .. [WeaveGather_1] Kearnes, Steven, et al. "Molecular graph convolutions: moving beyond
         fingerprints." Journal of computer-aided molecular design 30.8 (2016):
         595-608.
 

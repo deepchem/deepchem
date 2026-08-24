@@ -20,9 +20,9 @@ class ProgressiveMultitaskRegressor(KerasModel):
 
     References
     ----------
-    See [1]_ for a full description of the progressive architecture
+    See [ProgressiveMultitaskRegressor_1]_ for a full description of the progressive architecture
 
-    .. [1] Rusu, Andrei A., et al. "Progressive neural networks." arXiv preprint
+    .. [ProgressiveMultitaskRegressor_1] Rusu, Andrei A., et al. "Progressive neural networks." arXiv preprint
         arXiv:1606.04671 (2016).
     """
 
