@@ -7,18 +7,28 @@ from deepchem.feat.molecule_featurizers import MXMNetFeaturizer
 
 try:
     import torch
+    import torch_geometric
     from deepchem.models.torch_models.mxmnet import MXMNet
     has_torch = True
-except:
+    has_pyg_radius = bool(
+        getattr(torch_geometric.typing, 'WITH_TORCH_CLUSTER', False) or
+        getattr(torch_geometric.typing, 'WITH_PYG_LIB', False))
+except Exception:
     has_torch = False
+    has_pyg_radius = False
 
 QM9_TASKS = [
     "mu", "alpha", "homo", "lumo", "gap", "r2", "zpve", "cv", "u0", "u298",
     "h298", "g298"
 ]
 
+_SKIP_REASON = (
+    "MXMNet test requires PyTorch Geometric with torch-cluster or pyg-lib installed."
+)
+
 
 @pytest.mark.torch
+@pytest.mark.skipif(not (has_torch and has_pyg_radius), reason=_SKIP_REASON)
 def test_mxmnet_regression():
     """
     Test MXMNet class for regression
@@ -26,8 +36,7 @@ def test_mxmnet_regression():
     try:
         from torch_geometric.data import Batch
     except ModuleNotFoundError:
-        raise ImportError(
-            "This test requires PyTorch Geometric to be installed.")
+        pytest.skip("This test requires PyTorch Geometric to be installed.")
 
     seed = 123
     torch.backends.cudnn.deterministic = True
