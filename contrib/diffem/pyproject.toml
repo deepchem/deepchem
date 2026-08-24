@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.backends._legacy:_Backend"
+
+[project]
+name = "diffem"
+version = "0.1.0"
+description = "Differentiable Finite Element Method in DeepChem — GSoC Proposal"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "torch>=2.0",
+    "numpy",
+    "scipy",
+    "matplotlib",
+    "deepchem",
+]
+
+[project.optional-dependencies]
+dev = ["pytest"]
