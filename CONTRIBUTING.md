@@ -186,3 +186,6 @@ application will be posted publicly to the DeepChem blog if accepted. Membership
 on the committee will be confirmed after 6 months if you’ve successfully
 implemented some of your proposed projects and demonstrated your ability
 to meet the necessary time commitment.
+ 
+
+[lavanya] (https://github.com/Lavanyaparise)
