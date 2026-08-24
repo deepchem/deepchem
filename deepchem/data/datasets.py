@@ -813,6 +813,12 @@ class NumpyDataset(Dataset):
         Returns four tuples, giving the shape of the X, y, w, and ids arrays.
         """
         return self._X.shape, self._y.shape, self._w.shape, self._ids.shape
+    
+    def get_data_shape(self):
+        """Gets array shape of datapoints in this dataset."""
+        if self._X is None or len(self._X) == 0:
+            raise ValueError("No data in dataset.")
+        return self._X.shape[1:]
 
     def get_task_names(self) -> np.ndarray:
         """Get the names of the tasks associated with this dataset."""
