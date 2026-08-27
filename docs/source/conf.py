@@ -42,6 +42,7 @@ extensions = [
     'sphinx.ext.mathjax',
     'sphinx.ext.autosectionlabel',
     'sphinx_copybutton',
+    'sphinx_rtd_theme',
 ]
 
 # Options for autodoc directives
