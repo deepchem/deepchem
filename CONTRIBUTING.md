@@ -5,7 +5,7 @@
   - [Getting Started](#getting-started)
   - [Pull Request Process](#pull-request-process)
   - [Coding Conventions](#coding-conventions)
-  - [Documentation Conventions](#documentation-conventions)
+  - [Document Conventions](#document-conventions)
 - [The Agreement](#the-agreement)
 - [Deepchem Technical Steering Committee](#deepchem-technical-steering-committee)
 <!-- tocstop -->
@@ -33,7 +33,7 @@ style match our guidelines!
 To develop DeepChem on your machine, we recommend using Anaconda for managing
 packages. If you want to manage multiple builds of DeepChem, you can make use of
 [conda environments](https://conda.io/projects/conda/en/latest/user-guide/concepts/environments.html)
-to maintain seperate Python package environments, each of which can be tied
+to maintain separate Python package environments, each of which can be tied
 to a specific build of DeepChem. Here are some tips to get started:
 
 1. Fork the [DeepChem](https://github.com/deepchem/deepchem/) repository
@@ -44,7 +44,13 @@ git clone https://github.com/YOUR-USERNAME/deepchem.git
 cd deepchem
 ```
 
-&nbsp;&nbsp;&nbsp;&nbsp; 1.1. If you already have DeepChem from source, update it by running
+&nbsp;&nbsp;&nbsp;&nbsp; 1.1. If you haven't already, add the original DeepChem repository as
+the `upstream` remote so you can pull in the latest changes:
+```bash
+git remote add upstream https://github.com/deepchem/deepchem.git
+```
+
+&nbsp;&nbsp;&nbsp;&nbsp; 1.2. If you already have DeepChem from source, update it by running
 ```bash
 git fetch upstream
 git rebase upstream/master
