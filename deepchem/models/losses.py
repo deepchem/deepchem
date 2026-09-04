@@ -155,7 +155,8 @@ class PoissonLoss(Loss):
 
         def loss(output, labels):
             output, labels = _make_pytorch_shapes_consistent(output, labels)
-            return torch.mean(output - labels * torch.log(output))
+            eps = torch.finfo(output.dtype).eps
+            return torch.mean(output - labels * torch.log(output.clamp(min=eps)))
 
         return loss
 
@@ -203,7 +204,8 @@ class CategoricalCrossEntropy(Loss):
 
         def loss(output, labels):
             output, labels = _make_pytorch_shapes_consistent(output, labels)
-            return -torch.sum(labels * torch.log(output), dim=-1)
+            eps = torch.finfo(output.dtype).eps
+            return -torch.sum(labels * torch.log(output.clamp(min=eps)), dim=-1)
 
         return loss
 
