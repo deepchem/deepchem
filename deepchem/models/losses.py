@@ -98,7 +98,7 @@ class HingeLoss(Loss):
     """The hinge loss function.
 
     The 'output' argument should contain logits, and all elements of 'labels'
-    should equal 0 or 1.
+    should equal -1 or 1.
     """
 
     def _compute_tf_loss(self, output, labels):
@@ -155,7 +155,8 @@ class PoissonLoss(Loss):
 
         def loss(output, labels):
             output, labels = _make_pytorch_shapes_consistent(output, labels)
-            return torch.mean(output - labels * torch.log(output))
+            eps = torch.finfo(output.dtype).eps
+            return torch.mean(output - labels * torch.log(output.clamp(min=eps)))
 
         return loss
 
@@ -203,7 +204,8 @@ class CategoricalCrossEntropy(Loss):
 
         def loss(output, labels):
             output, labels = _make_pytorch_shapes_consistent(output, labels)
-            return -torch.sum(labels * torch.log(output), dim=-1)
+            eps = torch.finfo(output.dtype).eps
+            return -torch.sum(labels * torch.log(output.clamp(min=eps)), dim=-1)
 
         return loss
 
