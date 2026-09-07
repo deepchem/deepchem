@@ -590,8 +590,12 @@ class InfoMax3DModular(ModularTorchModel):
             return {'model2d': model2d}
 
     def build_model(self):
-        """
-        Builds the model for training or pretraining.
+        """Build the InfoMax3DModular model. This is the 2D network which is meant to be used for inference.
+
+        Returns
+        -------
+        PNA
+            The 2D PNA model component.
         """
         if self.task == 'pretraining':
             # Wrap both models so the optimizer registers all parameters
