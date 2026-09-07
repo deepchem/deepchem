@@ -231,6 +231,7 @@ def test_infomax3d_load_from_pretrained(tmpdir):
 
 
 
+@pytest.mark.torch
 def test_infomax3d_pretraining_parameter_registration():
     """
     Test that InfoMax3DModular correctly wraps both 2D and 3D models 
