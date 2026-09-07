@@ -232,6 +232,7 @@ def test_infomax3d_load_from_pretrained(tmpdir):
 from deepchem.models.torch_models.gnn3d import InfoMax3DModular, _PretrainingWrapper
 
 
+@pytest.mark.torch
 def test_infomax3d_pretraining_parameter_registration():
     """
     Test that InfoMax3DModular correctly wraps both 2D and 3D models 
