@@ -1,5 +1,6 @@
 import os
 import pytest
+import torch
 import deepchem as dc
 import pandas as pd
 
@@ -64,3 +65,17 @@ def protein_classification_dataset(tmpdir):
                                featurizer=dc.feat.DummyFeaturizer())
     dataset = loader.create_dataset(filepath)
     return dataset
+
+
+@pytest.fixture
+def quantization_config():
+    if not torch.cuda.is_available():
+        # bitsandbytes 4-bit quantization requires a CUDA GPU.
+        return None
+    from transformers import BitsAndBytesConfig
+    return BitsAndBytesConfig(
+        load_in_4bit=True,
+        bnb_4bit_quant_type="nf4",
+        bnb_4bit_use_double_quant=True,
+        bnb_4bit_compute_dtype=torch.float16,
+    )
