@@ -2,6 +2,7 @@ import os
 import pytest
 from flaky import flaky
 import torch
+from deepchem.models.torch_models.gnn3d import InfoMax3DModular, _PretrainingWrapper
 
 
 @pytest.mark.torch
@@ -228,8 +229,6 @@ def test_infomax3d_load_from_pretrained(tmpdir):
     for key, value in pretrain_model_state_dict.items():
         assert torch.allclose(value, finetune_model_new_state_dict[key])
 
-
-from deepchem.models.torch_models.gnn3d import InfoMax3DModular, _PretrainingWrapper
 
 
 def test_infomax3d_pretraining_parameter_registration():

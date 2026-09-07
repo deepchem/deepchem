@@ -5,6 +5,7 @@ import dgl
 import dgl.function as fn
 import torch
 from torch import nn
+import torch.nn as nn
 from torch.nn import functional as F
 
 from deepchem.models.losses import NTXentMultiplePositives
@@ -13,7 +14,6 @@ from deepchem.models.torch_models.layers import MultilayerPerceptron
 from deepchem.models.torch_models.pna_gnn import PNA, AtomEncoder
 from deepchem.utils.graph_utils import fourier_encode_dist
 
-import torch.nn as nn
 
 
 class _PretrainingWrapper(nn.Module):
