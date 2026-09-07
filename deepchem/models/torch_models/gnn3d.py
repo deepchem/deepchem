@@ -5,6 +5,7 @@ import dgl
 import dgl.function as fn
 import torch
 from torch import nn
+import torch.nn as nn
 from torch.nn import functional as F
 
 from deepchem.models.losses import NTXentMultiplePositives
@@ -12,6 +13,31 @@ from deepchem.models.torch_models import ModularTorchModel
 from deepchem.models.torch_models.layers import MultilayerPerceptron
 from deepchem.models.torch_models.pna_gnn import PNA, AtomEncoder
 from deepchem.utils.graph_utils import fourier_encode_dist
+
+
+
+class _PretrainingWrapper(nn.Module):
+    """
+    Internal wrapper module for InfoMax3DModular pretraining.
+
+    This encapsulates both the 2D and 3D models so that the PyTorch 
+    optimizer registers the parameters of both networks during contrastive learning.
+
+    Parameters
+    ----------
+    model2d : torch.nn.Module
+        The 2D Graph Neural Network.
+    model3d : torch.nn.Module
+        The 3D Graph Neural Network.
+    """
+
+    def __init__(self, model2d, model3d):
+        super().__init__()
+        self.model2d = model2d
+        self.model3d = model3d
+
+    def forward(self, *args, **kwargs):
+        return self.model2d(*args, **kwargs)
 
 
 class Net3DLayer(nn.Module):
@@ -564,17 +590,19 @@ class InfoMax3DModular(ModularTorchModel):
             return {'model2d': model2d}
 
     def build_model(self):
-        """
-        Build the InfoMax3DModular model. This is the 2D network which is meant to be used for inference.
+        """Build the InfoMax3DModular model. This is the 2D network which is meant to be used for inference.
 
         Returns
         -------
         PNA
             The 2D PNA model component.
         """
-        # FIXME For pretraining task, both model2d and model3d but the super class
-        # can't handle two models for contrastive learning, hence we pass only model2d
-        return self.components['model2d']
+        if self.task == 'pretraining':
+            # Wrap both models so the optimizer registers all parameters
+            return _PretrainingWrapper(self.components['model2d'],
+                                       self.components['model3d'])
+        else:
+            return self.components['model2d']
 
     def loss_func(self, inputs, labels, weights):
         """

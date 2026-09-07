@@ -1,6 +1,8 @@
 import os
 import pytest
 from flaky import flaky
+import torch
+from deepchem.models.torch_models.gnn3d import InfoMax3DModular, _PretrainingWrapper
 
 
 @pytest.mark.torch
@@ -226,3 +228,37 @@ def test_infomax3d_load_from_pretrained(tmpdir):
     # Finetune model weights should match after loading from pretrained model
     for key, value in pretrain_model_state_dict.items():
         assert torch.allclose(value, finetune_model_new_state_dict[key])
+
+
+
+@pytest.mark.torch
+def test_infomax3d_pretraining_parameter_registration():
+    """
+    Test that InfoMax3DModular correctly wraps both 2D and 3D models 
+    during pretraining so both sets of parameters are exposed to the optimizer.
+    """
+    # 1. Instantiate the model in pretraining mode.
+    # (Note: If InfoMax3DModular requires specific dummy parameters in this test file,
+    # copy the instantiation arguments from one of the other pretraining tests above it).
+    model = InfoMax3DModular(
+        task='pretraining',
+        # ... include any other required dummy arguments used in this test file ...
+    )
+
+    # 2. Verify that our new wrapper is being utilized
+    assert isinstance(model.model, _PretrainingWrapper), \
+        "Model did not use the _PretrainingWrapper for the pretraining task."
+
+    # 3. Extract parameter memory IDs to ensure exact object matching
+    registered_params = {id(p) for p in model.model.parameters()}
+    model2d_params = {id(p) for p in model.components['model2d'].parameters()}
+    model3d_params = {id(p) for p in model.components['model3d'].parameters()}
+
+    # 4. Assert that the 3D model actually has parameters to track
+    assert len(model3d_params) > 0, "The 3D model has no parameters."
+
+    # 5. Assert that ALL parameters from both sub-models are registered to the main wrapper
+    assert model2d_params.issubset(registered_params), \
+        "The 2D parameters are missing from the main computational graph."
+    assert model3d_params.issubset(registered_params), \
+        "The 3D parameters are completely frozen! They are missing from the main computational graph."
