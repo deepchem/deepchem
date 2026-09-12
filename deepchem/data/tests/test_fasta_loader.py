@@ -7,6 +7,12 @@ import unittest
 import deepchem as dc
 from deepchem.feat.molecule_featurizers import OneHotFeaturizer
 
+try:
+    import pysam
+    has_pysam = True
+except ImportError:
+    has_pysam = False
+
 
 class TestFASTALoader(unittest.TestCase):
     """
@@ -37,6 +43,7 @@ class TestFASTALoader(unittest.TestCase):
 
         assert sequences.X.shape == (3, 58, 5)
 
+    @unittest.skipIf(not has_pysam, "pysam is not installed")
     def test_fasta_raw(self):
         input_file = os.path.join(self.current_dir, "example.fasta")
         loader = dc.data.FASTALoader(legacy=False, use_raw_fasta=True)

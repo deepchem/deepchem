@@ -697,6 +697,7 @@ def test_merge():
 @pytest.mark.tensorflow
 def test_make_tf_dataset():
     """Test creating a Tensorflow Iterator from a Dataset."""
+    pytest.importorskip("tensorflow")
     X = np.random.random((100, 5))
     y = np.random.random((100, 1))
     dataset = dc.data.NumpyDataset(X, y)

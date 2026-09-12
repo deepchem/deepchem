@@ -6,7 +6,17 @@ import numpy as np
 
 logger = logging.getLogger(__name__)
 
+try:
+    import pysam
+    has_pysam = True
+except ImportError as e:
+    logger.warning(
+        f'Skipped loading biological sequence featurized, missing a dependency. {e}'
+    )
+    has_pysam = False
 
+
+@unittest.skipIf(not has_pysam, "pysam is not installed")
 class TestPileupFeaturizer(unittest.TestCase):
 
     def setUp(self):
