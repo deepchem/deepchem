@@ -212,6 +212,41 @@ class TestSplitter(unittest.TestCase):
         assert len(valid_data) == 1
         assert len(test_data) == 1
 
+    def test_butina_split_logs_cutoff(self):
+        """Test ButinaSplitter logs its cutoff without a formatting error.
+        
+        Regression test for issue where logger.info() was called with incorrect
+        comma syntax instead of proper string formatting, causing TypeError.
+        """
+        butina_splitter = dc.splits.ButinaSplitter(cutoff=0.5)
+        with self.assertLogs("deepchem.splits.splitters", level="INFO") as logs:
+            butina_splitter.split(load_butina_data())
+
+        log_output = "\n".join(logs.output)
+        self.assertIn(
+            "INFO:deepchem.splits.splitters:Performing butina clustering with cutoff of 0.5",
+            logs.output)
+        self.assertIn("About to sort in scaffold sets", log_output)
+
+    def test_butina_split_logs_cutoff_various_values(self):
+        """Test ButinaSplitter logs correctly with various cutoff values.
+        
+        Ensures the logger string formatting works with different numeric types
+        and values (int, float, edge cases).
+        """
+        test_cutoffs = [0.18, 1.0, 0, 0.999]
+        for cutoff_value in test_cutoffs:
+            with self.subTest(cutoff=cutoff_value):
+                butina_splitter = dc.splits.ButinaSplitter(cutoff=cutoff_value)
+                with self.assertLogs("deepchem.splits.splitters",
+                                     level="INFO") as logs:
+                    butina_splitter.split(load_butina_data())
+                
+                expected_msg = f"Performing butina clustering with cutoff of {cutoff_value}"
+                log_output = "\n".join(logs.output)
+                self.assertIn(expected_msg, log_output,
+                              f"Expected log message with cutoff {cutoff_value}")
+
     def test_k_fold_splitter(self):
         """
         Test that we can 5 fold index wise over 5 points
