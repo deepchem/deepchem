@@ -1105,7 +1105,7 @@ class FASTALoader(DataLoader):
                               sequence: np.ndarray) -> np.ndarray:
                 # Handle empty sequence
                 if sequence is None or len(sequence) <= 0:
-                    return np.array([])
+                    return sequences
                 # Annotate start/stop of sequence
                 if self.auto_add_annotations:
                     sequence = np.insert(sequence, 0, "[CLS]")

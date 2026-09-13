@@ -2,6 +2,7 @@
 Tests that FASTA files can be loaded.
 """
 import os
+import tempfile
 import unittest
 
 import deepchem as dc
@@ -57,5 +58,33 @@ class TestFASTALoader(unittest.TestCase):
         sequences = loader.create_dataset(input_file)
 
         assert sequences.X.shape
+
+    def test_fasta_with_empty_record(self):
+        """Sequences read before an empty record must not be discarded."""
+        content = ">seq0\nAAAA\n>seq1\n>seq2\nCCCC\n"
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            input_file = os.path.join(tmp_dir, "empty_record.fasta")
+            with open(input_file, "w") as f:
+                f.write(content)
+
+            loader = dc.data.FASTALoader(legacy=False)
+            sequences = loader.create_dataset(input_file)
+
+            # seq1 is empty, but seq0 and seq2 must both be returned.
+            assert sequences.X.shape[0] == 2
+
+    def test_fasta_ending_with_empty_record(self):
+        """A trailing header with no sequence must not discard the file."""
+        content = ">seq0\nAAAA\n>seq1\n"
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            input_file = os.path.join(tmp_dir, "trailing_header.fasta")
+            with open(input_file, "w") as f:
+                f.write(content)
+
+            loader = dc.data.FASTALoader(legacy=False)
+            sequences = loader.create_dataset(input_file)
+
+            # seq1 is empty, but seq0 must still be returned.
+            assert sequences.X.shape[0] == 1
 
     # TODO: test with full uniprot file once sharding support is added.
