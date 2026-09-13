@@ -12,6 +12,13 @@ try:
 except:
     has_tensorflow = False
 
+try:
+    import simdna  # noqa: F401
+    from simdna import synthetic  # noqa: F401
+    has_simdna = True
+except ImportError:
+    has_simdna = False
+
 from deepchem.metrics.genomic_metrics import get_motif_scores
 from deepchem.metrics.genomic_metrics import get_pssm_scores
 from deepchem.metrics.genomic_metrics import in_silico_mutagenesis
@@ -24,6 +31,7 @@ class TestGenomicMetrics(unittest.TestCase):
     Tests that genomic metrics work as expected.
     """
 
+    @unittest.skipIf(not has_simdna, "simdna is not installed")
     def test_get_motif_scores(self):
         """Check that motif_scores have correct shape."""
         # Encode motif
@@ -61,6 +69,7 @@ class TestGenomicMetrics(unittest.TestCase):
                                     dc.models.losses.BinaryCrossEntropy())
 
     @pytest.mark.tensorflow
+    @unittest.skipIf(not has_tensorflow, "TensorFlow is not installed")
     def test_in_silico_mutagenesis_shape(self):
         """Test in-silico mutagenesis returns correct shape."""
         # Construct and train SequenceDNN model
@@ -80,6 +89,7 @@ class TestGenomicMetrics(unittest.TestCase):
         self.assertEqual(mutagenesis_scores.shape, (1, 3, 4, 5, 1))
 
     @pytest.mark.tensorflow
+    @unittest.skipIf(not has_tensorflow, "TensorFlow is not installed")
     def test_in_silico_mutagenesis_nonzero(self):
         """Test in-silico mutagenesis returns nonzero output."""
         # Construct and train SequenceDNN model
