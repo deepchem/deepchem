@@ -528,3 +528,21 @@ ChemCeption Layers
 
 .. autoclass:: deepchem.models.torch_models.chemnet_layers.ReductionB
    :members:
+
+RFDiffusion Layers
+------------------
+
+.. autoclass:: deepchem.models.torch_models.layers.SinusoidalTimestepEmbedding
+   :members:
+
+.. autoclass:: deepchem.models.torch_models.layers.ResidueEmbedding
+   :members:
+
+.. autoclass:: deepchem.models.torch_models.layers.PositionalEncoding
+   :members:
+
+.. autoclass:: deepchem.models.torch_models.layers.CosineSchedule
+   :members:
+
+.. autoclass:: deepchem.models.torch_models.layers.BackboneDiffusion
+   :members:

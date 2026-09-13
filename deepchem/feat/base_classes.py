@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 class Featurizer(object):
     """Abstract class for calculating a set of features for a datapoint.
 
-    This class is abstract and cannot be invoked directly. You'll
+    This class is abstract and cannot be invoked directly. You will
     likely only interact with this class if you're a developer. In
     that case, you might want to make a child class which
     implements the `_featurize` method for calculating features for

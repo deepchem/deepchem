@@ -7,7 +7,8 @@ import zipfile
 import time
 import logging
 import warnings
-from typing import List, Optional, Tuple, Any, Sequence, Union, Iterator
+from typing import (TYPE_CHECKING, List, Optional, Tuple, Any, Sequence, Union,
+                    Iterator)
 
 import pandas as pd
 import numpy as np
@@ -28,6 +29,9 @@ try:
     import pysam
 except ImportError:
     pass
+
+if TYPE_CHECKING:
+    from ase import Atoms
 
 logger = logging.getLogger(__name__)
 
@@ -1805,6 +1809,332 @@ class InMemoryLoader(DataLoader):
             ids.append(entry_id)
         X = np.concatenate(features, axis=0)
         return X, np.array(labels), np.array(weights), np.array(ids)
+
+
+class MaterialsLoader(DataLoader):
+    """Creates ``Dataset`` objects from ASE-readable atomistic files.
+
+    This loader streams ``ase.Atoms`` frames from one or more ASE-readable
+    files, featurizes each frame, and stores the results in a ``DiskDataset``.
+    Each frame becomes one datapoint in the output dataset.
+
+    Examples
+    --------
+    >>> import deepchem as dc
+    >>> featurizer = dc.feat.AtomisticRadiusGraphFeaturizer(cutoff=2.5)  # doctest: +SKIP
+    >>> loader = dc.data.MaterialsLoader(tasks=["energy"], featurizer=featurizer)  # doctest: +SKIP
+    >>> dataset = loader.create_dataset("molecule.extxyz")  # doctest: +SKIP
+
+    Notes
+    -----
+    This loader requires ASE to be installed. Plain XYZ files normally contain
+    atomic species and Cartesian positions, so they can be loaded without
+    labels by setting ``tasks=[]``. Extended XYZ files can also contain
+    per-configuration metadata and per-atom properties.
+
+    The semantic task ``"energy"`` expects one scalar value per frame at
+    ``atoms.info[energy_key]``. The semantic task ``"forces"`` expects one
+    Cartesian force vector per atom at ``atoms.arrays[forces_key]``, with shape
+    ``(num_atoms, 3)``. Since structures can have different numbers of atoms,
+    force labels are stored as object-valued, ragged arrays. If a requested key
+    is absent from its expected location, this loader raises ``ValueError``.
+
+    ``tasks`` defines the semantic DeepChem target columns, while
+    ``energy_key`` and ``forces_key`` define the corresponding source fields in
+    each parsed ``ase.Atoms`` frame. The loader does not infer, compute, search
+    for, or convert the units of labels.
+
+    Parameters
+    ----------
+    tasks: List[str]
+        List of task names to extract. Supported values are ``"energy"`` and
+        ``"forces"``.
+    featurizer: Featurizer
+        Featurizer to use for each ``ase.Atoms`` frame.
+    energy_key: str, default "energy"
+        Key to read from ``atoms.info`` for energy labels.
+    forces_key: str, default "forces"
+        Key to read from ``atoms.arrays`` for force labels.
+    log_every_n: int, default 1000
+        Writes a logging statement this often.
+    """
+
+    _ALLOWED_TASKS: Tuple[str, str] = ("energy", "forces")
+
+    def __init__(self,
+                 tasks: List[str],
+                 featurizer: Featurizer,
+                 energy_key: str = "energy",
+                 forces_key: str = "forces",
+                 log_every_n: int = 1000) -> None:
+        """Initializes MaterialsLoader.
+
+        Parameters
+        ----------
+        tasks: List[str]
+            List of task names to extract. Supported values are ``"energy"`` and
+            ``"forces"``.
+        featurizer: Featurizer
+            Featurizer to use to process each ``ase.Atoms`` frame.
+        energy_key: str, optional (default "energy")
+            Key to read from ``atoms.info`` for energy labels.
+        forces_key: str, optional (default "forces")
+            Key to read from ``atoms.arrays`` for force labels.
+        log_every_n: int, optional (default 1000)
+            Writes a logging statement this often.
+        """
+        self._validate_tasks(tasks)
+        super().__init__(tasks=tasks,
+                         featurizer=featurizer,
+                         id_field="id",
+                         log_every_n=log_every_n)
+        self.atoms_field: str = "atoms"
+        self.energy_key: str = energy_key
+        self.forces_key: str = forces_key
+
+    def _validate_tasks(self, tasks: List[str]) -> None:
+        """Validate requested semantic task names.
+
+        Parameters
+        ----------
+        tasks: List[str]
+            Task names requested for the dataset.
+
+        Raises
+        ------
+        ValueError
+            If a task is not ``"energy"`` or ``"forces"``.
+        """
+        invalid_tasks = [
+            task for task in tasks if task not in self._ALLOWED_TASKS
+        ]
+        if invalid_tasks:
+            raise ValueError("Unsupported tasks: %s. Supported tasks are %s." %
+                             (invalid_tasks, list(self._ALLOWED_TASKS)))
+
+    def _process_inputs(self, inputs: OneOrMany[str]) -> List[str]:
+        """Normalize one or more input paths to a list.
+
+        Parameters
+        ----------
+        inputs: OneOrMany[str]
+            One path string or a sequence of path strings.
+
+        Returns
+        -------
+        List[str]
+            Input paths in caller-supplied order.
+
+        Raises
+        ------
+        ValueError
+            If ``inputs`` is not a path string or an iterable containing only
+            path strings.
+        """
+        if isinstance(inputs, str):
+            return [inputs]
+        try:
+            input_paths = list(inputs)
+        except TypeError:
+            raise ValueError(
+                "MaterialsLoader inputs must be a path string or an iterable "
+                "of path strings.")
+        if not all(isinstance(path, str) for path in input_paths):
+            raise ValueError(
+                "MaterialsLoader inputs must contain only path strings.")
+        return input_paths
+
+    def _extract_labels(self, atoms: "Atoms", input_path: str,
+                        frame_index: int) -> np.ndarray:
+        """Extract requested labels from one parsed ASE frame.
+
+        Parameters
+        ----------
+        atoms: ase.Atoms
+            Frame containing the requested task data.
+        input_path: str
+            Source path used to describe label errors.
+        frame_index: int
+            Zero-based frame index within ``input_path``.
+
+        Returns
+        -------
+        np.ndarray
+            Object array containing labels in ``self.tasks`` order.
+
+        Raises
+        ------
+        ValueError
+            If a requested key is missing or a force array does not have shape
+            ``(num_atoms, 3)``.
+        """
+        labels = np.empty((len(self.tasks),), dtype=object)
+        for task_index, task in enumerate(self.tasks):
+            if task == "energy":
+                if self.energy_key not in atoms.info:
+                    raise ValueError(
+                        "Missing requested label for task 'energy' with key "
+                        "'%s' in file '%s' frame %d." %
+                        (self.energy_key, input_path, frame_index))
+                labels[task_index] = atoms.info[self.energy_key]
+            elif task == "forces":
+                if self.forces_key not in atoms.arrays:
+                    raise ValueError(
+                        "Missing requested label for task 'forces' with key "
+                        "'%s' in file '%s' frame %d." %
+                        (self.forces_key, input_path, frame_index))
+                forces = np.asarray(atoms.arrays[self.forces_key],
+                                    dtype=np.float32)
+                if forces.shape != (len(atoms), 3):
+                    raise ValueError(
+                        "Invalid forces shape %s for task 'forces' with key "
+                        "'%s' in file '%s' frame %d. Expected (%d, 3)." %
+                        (forces.shape, self.forces_key, input_path, frame_index,
+                         len(atoms)))
+                labels[task_index] = forces
+        return labels
+
+    def _get_shards(self, input_files: List[str],
+                    shard_size: Optional[int]) -> Iterator[pd.DataFrame]:
+        """Stream ASE frames into raw DataFrame shards.
+
+        Parameters
+        ----------
+        input_files: List[str]
+            ASE-readable files in caller-supplied order.
+        shard_size: int, optional
+            Maximum number of frames per shard. If ``None``, all frames are
+            returned in one shard.
+
+        Yields
+        ------
+        pd.DataFrame
+            A shard with ``atoms`` and ``id`` columns followed by requested
+            semantic task columns in ``self.tasks`` order.
+
+        Raises
+        ------
+        ImportError
+            If ASE is not installed.
+        ValueError
+            If a requested label is missing or malformed.
+        """
+        try:
+            from ase.io import iread
+        except ImportError:
+            raise ImportError("This class requires ASE to be installed.")
+
+        columns = [self.atoms_field, "id"] + self.tasks
+        rows: List[List[Any]] = []
+        for input_path in input_files:
+            for frame_index, atoms in enumerate(iread(input_path, index=":")):
+                row = [atoms, f"{input_path}:{frame_index}"]
+                if self.tasks:
+                    row.extend(
+                        self._extract_labels(atoms, input_path, frame_index))
+                rows.append(row)
+                if shard_size is not None and len(rows) >= shard_size:
+                    yield pd.DataFrame(rows, columns=columns)
+                    rows = []
+
+        if rows:
+            yield pd.DataFrame(rows, columns=columns)
+
+    def _featurize_shard(self,
+                         shard: pd.DataFrame) -> Tuple[np.ndarray, np.ndarray]:
+        """Featurize the ASE frames in a raw shard.
+
+        Parameters
+        ----------
+        shard: pd.DataFrame
+            Raw shard containing ``ase.Atoms`` objects and deterministic IDs.
+
+        Returns
+        -------
+        features: np.ndarray
+            Object array of successfully computed features.
+        valid_inds: np.ndarray
+            Boolean array aligned with input rows. False values identify empty
+            ndarray features; ``create_dataset()`` raises for those rows.
+
+        Raises
+        ------
+        ValueError
+            If the featurizer does not return exactly one result for a frame.
+        """
+        features: List[Any] = []
+        valid_inds = np.ones(len(shard), dtype=bool)
+        for row_index, (atoms, frame_id) in enumerate(
+                zip(shard[self.atoms_field], shard["id"])):
+            if row_index % self.log_every_n == 0:
+                logger.info("Featurizing frame %s", frame_id)
+            frame_features = self.featurizer.featurize(
+                [atoms], log_every_n=self.log_every_n)
+            if len(frame_features) != 1:
+                raise ValueError(
+                    "Featurizer returned %d outputs for frame '%s'. Expected "
+                    "exactly 1." % (len(frame_features), frame_id))
+            feature = frame_features[0]
+            if isinstance(feature, np.ndarray) and feature.size == 0:
+                valid_inds[row_index] = False
+            else:
+                features.append(feature)
+        return np.asarray(features, dtype=object), valid_inds
+
+    def create_dataset(self,
+                       inputs: OneOrMany[str],
+                       data_dir: Optional[str] = None,
+                       shard_size: Optional[int] = 8192) -> DiskDataset:
+        """Creates a ``Dataset`` from ASE-readable input files.
+
+        Parameters
+        ----------
+        inputs: OneOrMany[str]
+            One filename or a list/tuple of filenames understood by ASE.
+            Each ``ase.Atoms`` frame becomes one datapoint in the output
+            dataset.
+        data_dir: str, optional (default None)
+            Directory to store featurized dataset.
+        shard_size: int, optional (default 8192)
+            Number of examples stored in each shard.
+
+        Returns
+        -------
+        DiskDataset
+            A ``DiskDataset`` object containing the featurized atomic frames
+            from ``inputs``.
+        """
+        input_files = self._process_inputs(inputs)
+        logger.info("Loading raw samples now.")
+        logger.info("shard_size: %s" % str(shard_size))
+
+        def shard_generator(
+        ) -> Iterator[Tuple[np.ndarray, Optional[np.ndarray],
+                            Optional[np.ndarray], np.ndarray]]:
+            """Yield featurized, ragged-safe dataset shards."""
+            for shard in self._get_shards(input_files, shard_size):
+                X, valid_inds = self._featurize_shard(shard)
+                if not np.all(valid_inds):
+                    invalid_index = int(np.flatnonzero(~valid_inds)[0])
+                    raise ValueError("Failed to featurize frame '%s'." %
+                                     shard["id"].iloc[invalid_index])
+
+                ids = shard["id"].to_numpy(dtype=object)
+                if not self.tasks:
+                    y: Optional[np.ndarray] = None
+                    w: Optional[np.ndarray] = None
+                else:
+                    y = shard.iloc[:, -len(self.tasks):].to_numpy(dtype=object)
+                    w = np.ones((len(shard), len(self.tasks)), dtype=np.float32)
+                assert len(X) == len(ids)
+                yield X, y, w, ids
+
+        # DiskDataset supports None labels and weights for unlabeled datasets,
+        # although its Batch type alias does not include them.
+        return DiskDataset.create_dataset(
+            shard_generator(),  # type: ignore[arg-type]
+            data_dir=data_dir,
+            tasks=self.tasks)
 
 
 class DFTYamlLoader(DataLoader):

@@ -1,5 +1,6 @@
 import logging
 import time
+import platform
 from collections.abc import Sequence as SequenceCollection
 from typing import (TYPE_CHECKING, Any, Callable, Iterable, List, Optional,
                     Tuple, Union, Dict)
@@ -8,10 +9,11 @@ import numpy as np
 import torch
 from deepchem.models.optimizers import LearningRateSchedule
 from deepchem.models.torch_models import TorchModel
+from deepchem.data import Dataset
 from deepchem.trans import Transformer, undo_transforms
 from deepchem.utils.typing import LossFn, OneOrMany
 from transformers.data.data_collator import DataCollatorForLanguageModeling
-from transformers.models.auto import AutoModel, AutoModelForSequenceClassification, AutoModelForMaskedLM, AutoModelForUniversalSegmentation
+from transformers.models.auto import AutoModel, AutoModelForSequenceClassification, AutoModelForMaskedLM, AutoModelForUniversalSegmentation, AutoModelForCausalLM
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +26,7 @@ class HuggingFaceModel(TorchModel):
     r"""Wrapper class that wraps HuggingFace models as DeepChem models
 
     The class provides a wrapper for wrapping models from HuggingFace
-    ecosystem in DeepChem and training it via DeepChem's api. The reason
+    ecosystem in DeepChem and training it via DeepChem's API. The reason
     for this might be that you might want to do an apples-to-apples comparison
     between HuggingFace from the transformers library and DeepChem library.
 
@@ -62,7 +64,7 @@ class HuggingFaceModel(TorchModel):
         `AutoModel` classes via `**kwargs` when loading from the hf_checkpoint. These parameters
         are typically used to customize the behavior and architecture of the underlying transformer
         model (e.g., number of layers, hidden size, dropout rates, etc.). When loading from pretrained
-        from hf_checkpoint, If any keys in `config` match configuration attributes supported by
+        from hf_checkpoint, if any keys in `config` match configuration attributes supported by
         the specific Hugging Face `AutoModel` being used, they will override the default settings
         for that model.
 
@@ -147,9 +149,15 @@ class HuggingFaceModel(TorchModel):
             tokenizer: 'transformers.tokenization_utils.PreTrainedTokenizer',
             task: Optional[str] = None,
             config: Optional[Dict] = None,
+            code_revision: Optional[str] = None,
             **kwargs):
         self.task = task
         self.tokenizer = tokenizer
+        # Revision of the remote code repo (referenced via the config's
+        # ``auto_map``) to use when reloading a ``trust_remote_code`` model.
+        # Pinning it keeps reloads reproducible and immune to breaking
+        # changes pushed to the Hub repo.
+        self._code_revision = code_revision
         if self.task == 'mlm':
             self.data_collator = DataCollatorForLanguageModeling(
                 tokenizer=tokenizer)
@@ -157,6 +165,11 @@ class HuggingFaceModel(TorchModel):
             self.data_collator = None  # type: ignore
         # Ignoring type. For TorchModel, loss is a required argument but HuggingFace computes
         # loss during the forward iteration, removing the need for a loss function.
+        if self.task == 'causal_lm' and self.tokenizer.pad_token is None:
+            self.tokenizer.pad_token = self.tokenizer.eos_token
+            if hasattr(model, "config") and hasattr(model.config,
+                                                    "eos_token_id"):
+                model.config.pad_token_id = model.config.eos_token_id
         if config:
             self.config = config
         else:
@@ -229,18 +242,37 @@ class HuggingFaceModel(TorchModel):
             # initialise and create a model instance directly without requiring a class instance initialisation step.
             # To use `load_from_pretrained` in DeepChem, we need to follow a two step process
             # of initialising class instance and then loading weights via `load_from_pretrained`.
+            remote_code_kwargs = {}
+            if self._code_revision is not None:
+                remote_code_kwargs['code_revision'] = self._code_revision
             if self.task == 'mlm':
                 self.model = AutoModelForMaskedLM.from_pretrained(
-                    model_dir, trust_remote_code=True, **self.config)
+                    model_dir,
+                    trust_remote_code=True,
+                    **remote_code_kwargs,
+                    **self.config)
             elif self.task in ['mtr', 'regression', 'classification']:
                 self.model = AutoModelForSequenceClassification.from_pretrained(
-                    model_dir, trust_remote_code=True, **self.config)
+                    model_dir,
+                    trust_remote_code=True,
+                    **remote_code_kwargs,
+                    **self.config)
             elif self.task == "universal_segmentation":
                 self.model = AutoModelForUniversalSegmentation.from_pretrained(
-                    model_dir, trust_remote_code=True, **self.config)
+                    model_dir,
+                    trust_remote_code=True,
+                    **remote_code_kwargs,
+                    **self.config)
+            elif self.task == 'causal_lm':
+                self.model = AutoModelForCausalLM.from_pretrained(
+                    model_dir,
+                    trust_remote_code=True,
+                    **remote_code_kwargs,
+                    **self.config)
             else:
                 self.model = AutoModel.from_pretrained(model_dir,
                                                        trust_remote_code=True,
+                                                       **remote_code_kwargs,
                                                        **self.config)
         elif not from_hf_checkpoint:
             checkpoints = sorted(self.get_checkpoints(model_dir))
@@ -305,6 +337,17 @@ class HuggingFaceModel(TorchModel):
                 'input_ids': inputs.to(self.device),
                 'labels': labels.to(self.device),
                 'attention_mask': tokens['attention_mask'].to(self.device),
+            }
+            return inputs, None, w
+        elif self.task == 'causal_lm':
+            input_ids = tokens['input_ids'].to(self.device)
+            attention_mask = tokens['attention_mask'].to(self.device)
+            labels = input_ids.clone()
+            labels[labels == self.tokenizer.pad_token_id] = -100
+            inputs = {
+                'input_ids': input_ids,
+                'attention_mask': attention_mask,
+                'labels': labels
             }
             return inputs, None, w
         elif self.task in ['regression', 'classification', 'mtr']:
@@ -657,3 +700,80 @@ class HuggingFaceModel(TorchModel):
             results.append(text_results)
 
         return results[0] if len(results) == 1 else results
+
+    def generate(self, dataset: Dataset, **kwargs) -> List[str]:
+        """Generate text using HuggingFace's text generation pipeline.
+
+        Parameters
+        ----------
+        dataset : Dataset
+            A dataset in DeepChem format whose X field contains input sequences to
+            condition generation on.
+        **kwargs:
+            Additional keyword arguments to pass to HuggingFace's generate
+            method. Some examples include:
+            - max_length: To control the maximum length of a generated sequence
+            - max_new_tokens: The maximum number of new tokens to generate
+            - min_new_tokens: The minimum number of new tokens to generate.
+            More information about keyword arguments is in this link: https://huggingface.co/docs/transformers/main_classes/text_generation
+
+        Returns
+        -------
+        List[str]
+            A list of generated text sequences corresponding to each input
+            sequence.
+        """
+        self._ensure_built()
+        self.model.eval()
+        original_padding_side = getattr(self.tokenizer, "padding_side", None)
+        original_pad_token = getattr(self.tokenizer, "pad_token", None)
+        original_pad_token_id = getattr(self.model.config, "pad_token_id", None)
+
+        if not hasattr(self.model, 'generate'):
+            raise ValueError(
+                "This HuggingFace model doesn't support text generation.")
+
+        if self.tokenizer.pad_token is None:
+            self.tokenizer.pad_token = self.tokenizer.eos_token
+            self.model.config.pad_token_id = self.model.config.eos_token_id
+
+        if hasattr(self.tokenizer, "padding_side"):
+            self.tokenizer.padding_side = "left"
+        device = self.device
+
+        original_device = next(self.model.parameters()).device
+        if device.type == 'mps':
+            mac_version = int(platform.mac_ver()[0].split('.')[0])
+            if mac_version < 14:
+                # HuggingFace's generate method does not currently support MPS versions less than 14. Move model and inputs to CPU.
+                logger.warning(
+                    "HuggingFace's generate method does not currently support MPS versions less than 14. Moving model and inputs to CPU for generation."
+                )
+                device = torch.device('cpu')
+            else:
+                device = torch.device('mps')
+
+        if next(self.model.parameters()).device != device:
+            self.model.to(device)
+
+        all_outputs = []
+        for (X_batch, _, _,
+             _) in dataset.iterbatches(batch_size=self.batch_size,
+                                       deterministic=True,
+                                       pad_batches=False):
+            encoded = self.tokenizer(X_batch.tolist(),
+                                     padding=True,
+                                     return_tensors="pt")
+            encoded = {k: v.to(device) for k, v in encoded.items()}
+            with torch.no_grad():
+                outputs = self.model.generate(**encoded, **kwargs)
+            decoded_outputs = self.tokenizer.batch_decode(
+                outputs, skip_special_tokens=True)
+            all_outputs.extend(decoded_outputs)
+        if next(self.model.parameters()).device != original_device:
+            self.model.to(original_device)
+        if original_padding_side is not None:
+            self.tokenizer.padding_side = original_padding_side
+        self.tokenizer.pad_token = original_pad_token
+        self.model.config.pad_token_id = original_pad_token_id
+        return all_outputs

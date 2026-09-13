@@ -6,10 +6,9 @@ dependencies:
   - pip:
     - -f https://data.pyg.org/whl/torch-2.2.1+cpu.html
     - dgl
-    - torch-geometric
+    - torch-geometric>=2.3.0
     - lightning
     - pydantic
-    - torch-cluster
     - git+https://github.com/diffqc/dqclibs.git
     - basis-set-exchange
     - pyscf

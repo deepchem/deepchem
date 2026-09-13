@@ -6,9 +6,8 @@ dependencies:
     - torchdata<0.8.0
     - dgl<2.2.1
     - torch==2.2.1+cpu
-    - torch-geometric
+    - torch-geometric>=2.3.0
     - lightning
     - pydantic
     - -f https://data.pyg.org/whl/torch-2.2.1+cpu.html
-    - torch-cluster
     - h5py
