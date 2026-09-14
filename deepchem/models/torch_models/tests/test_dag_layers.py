@@ -162,3 +162,26 @@ def test_DAG_gather_correctness():
     assert torch.allclose(
         dag_outputs[:, 1], expected_outputs,
         atol=1e-6), "Outputs from TF and Torch DAGGather do not match!"
+@pytest.mark.torch
+@pytest.mark.parametrize("init", ["glorot_normal", "xavier_normal"])
+def test_dag_normal_initializers(init):
+    import torch
+    import deepchem as dc
+
+    layer = dc.models.torch_models.DAGLayer(init=init)
+    gather = dc.models.torch_models.DAGGather(init=init)
+
+    assert all(torch.isfinite(w).all() for w in layer.W_layers)
+    assert all(torch.isfinite(w).all() for w in gather.W_layers)
+
+
+@pytest.mark.torch
+def test_dag_invalid_initializer():
+    import pytest
+    import deepchem as dc
+
+    with pytest.raises(ValueError, match="Unsupported init"):
+        dc.models.torch_models.DAGLayer(init="invalid_init")
+
+    with pytest.raises(ValueError, match="Unsupported init"):
+        dc.models.torch_models.DAGGather(init="invalid_init")
