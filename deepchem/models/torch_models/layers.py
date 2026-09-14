@@ -6975,7 +6975,7 @@ class DAGLayer(nn.Module):
             if self.init in ['glorot_uniform', "xavier_uniform"]:
                 nn.init.xavier_uniform_(w)
                 nn.init.zeros_(b)
-            elif self.init == ['glorot_normal', "xavier_normal"]:
+            elif self.init in ['glorot_normal', "xavier_normal"]:
                 nn.init.xavier_normal_(w)
                 nn.init.zeros_(b)
             else:
@@ -7180,7 +7180,7 @@ class DAGGather(nn.Module):
             if self.init in ['glorot_uniform', "xavier_uniform"]:
                 nn.init.xavier_uniform_(w)
                 nn.init.zeros_(b)
-            elif self.init == ['glorot_normal', "xavier_normal"]:
+            elif self.init in ['glorot_normal', "xavier_normal"]:
                 nn.init.xavier_normal_(w)
                 nn.init.zeros_(b)
             else:

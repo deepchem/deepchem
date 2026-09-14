@@ -45,6 +45,36 @@ def test_DAG_layer():
 
 
 @pytest.mark.torch
+@pytest.mark.parametrize("init", ["glorot_normal", "xavier_normal"])
+def test_DAG_layer_normal_initializers(init):
+    """Test that both documented normal initializers are accepted."""
+    layer = dc.models.torch_models.DAGLayer(init=init)
+    assert all(torch.isfinite(weights).all() for weights in layer.W_layers)
+
+
+@pytest.mark.torch
+@pytest.mark.parametrize("init", ["glorot_normal", "xavier_normal"])
+def test_DAG_gather_normal_initializers(init):
+    """Test that both documented normal initializers are accepted."""
+    layer = dc.models.torch_models.DAGGather(init=init)
+    assert all(torch.isfinite(weights).all() for weights in layer.W_layers)
+
+
+@pytest.mark.torch
+def test_DAG_layer_invalid_init():
+    """Test that an unsupported init string still raises ValueError."""
+    with pytest.raises(ValueError):
+        dc.models.torch_models.DAGLayer(init="unsupported")
+
+
+@pytest.mark.torch
+def test_DAG_gather_invalid_init():
+    """Test that an unsupported init string still raises ValueError."""
+    with pytest.raises(ValueError):
+        dc.models.torch_models.DAGGather(init="unsupported")
+
+
+@pytest.mark.torch
 def test_DAG_gather():
     """Test invoking DAGGather."""
     np.random.seed(123)
