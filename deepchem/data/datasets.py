@@ -1542,6 +1542,12 @@ class DiskDataset(Dataset):
                 else:
                     y = np.reshape(y, (len(y),) + y_shape[1:])
                     w = np.reshape(w, (len(w),) + w_shape[1:])
+                if shard_num == 0:
+                    # Preserve dtypes instead of promoting data to float64 when
+                    # concatenating with the initially empty buffers.
+                    X_next = X[:0]
+                    y_next = y[:0]
+                    w_next = w[:0]
                 X_next = np.concatenate([X_next, X], axis=0)
                 y_next = np.concatenate([y_next, y], axis=0)
                 w_next = np.concatenate([w_next, w], axis=0)
