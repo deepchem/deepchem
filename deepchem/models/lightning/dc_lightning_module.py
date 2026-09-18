@@ -140,7 +140,10 @@ class DCLightningModule(L.LightningModule):
         if isinstance(self.dc_model, ModularTorchModel):
             loss = self.dc_model.loss_func(inputs, labels, weights)
         elif isinstance(self.dc_model, TorchModel):
-            outputs = self.pt_model(inputs)
+            if isinstance(inputs, dict):
+                outputs = self.pt_model(**inputs)
+            else:
+                outputs = self.pt_model(inputs)
             if isinstance(outputs, torch.Tensor):
                 outputs = [outputs]
 
@@ -210,10 +213,16 @@ class DCLightningModule(L.LightningModule):
         # Invoke the model.
         if isinstance(inputs, list) and len(inputs) == 1:
             inputs = inputs[0]
-        output_values: Union[torch.Tensor,
-                             List[torch.Tensor]] = self.pt_model(inputs)
+        output_values: Union[torch.Tensor, List[torch.Tensor]]
+        if isinstance(inputs, dict):
+            output_values = self.pt_model(**inputs)
+        else:
+            output_values = self.pt_model(inputs)
         if isinstance(output_values, torch.Tensor):
             output_values = [output_values]
+        elif hasattr(output_values, 'to_tuple'):
+            # Handles HuggingFace ModelOutput objects which subclass OrderedDict and would otherwise iterate over their string keys.
+            output_values = list(output_values.to_tuple())
         output_values_np: List[np.ndarray] = [
             t.detach().cpu().numpy() for t in output_values
         ]
