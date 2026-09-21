@@ -361,6 +361,17 @@ def test_itersamples_disk():
         np.testing.assert_array_equal(sid, ids[i])
 
 
+def test_itersamples_disk_collected():
+    """Test that samples from a DiskDataset are correct when collected first."""
+    X = np.arange(12).reshape(6, 2)
+    dataset = dc.data.DiskDataset.from_numpy(X)
+    samples = list(dataset.itersamples())
+    assert len(samples) == 6
+    for i, (sx, sy, sw, sid) in enumerate(samples):
+        np.testing.assert_array_equal(sx, X[i])
+        np.testing.assert_array_equal(sid, dataset.ids[i])
+
+
 def test_transform_numpy():
     """Test that the transform() method works for NumpyDatasets."""
     num_datapoints = 100
