@@ -614,3 +614,62 @@ class TestSplitter(unittest.TestCase):
             cv_folds[1][1])
         assert len(multitask_dataset) == len(cv_folds[2][0]) + len(
             cv_folds[2][1])
+
+    def test_random_group_k_fold_split(self):
+        """Test RandomGroupSplitter.k_fold_split partitions correctly without group leakage."""
+        groups = [0, 0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3]
+        X = np.arange(12).reshape(-1, 1)
+        y = np.arange(12).reshape(-1, 1)
+        dataset = NumpyDataset(X=X, y=y)
+        k = 3
+        splitter = dc.splits.RandomGroupSplitter(groups=groups)
+        folds = splitter.k_fold_split(dataset, k=k, seed=42)
+        self.assertEqual(len(folds), k)
+        all_cv_indices = []
+        for train_ds, cv_ds in folds:
+            # 1. Total samples across train and cv must equal full dataset
+            self.assertEqual(len(train_ds) + len(cv_ds), len(dataset))
+            # 2. Check that no group is shared between train and cv
+            train_groups = set(np.array(groups)[train_ds.X.flatten()])
+            cv_groups = set(np.array(groups)[cv_ds.X.flatten()])
+            self.assertTrue(
+                train_groups.isdisjoint(cv_groups),
+                f"Group leakage detected! Train: {train_groups}, CV: {cv_groups}"
+            )
+            all_cv_indices.extend(cv_ds.X.flatten().tolist())
+        # 3. Every sample must be evaluated in cv across folds exactly once
+        self.assertEqual(sorted(all_cv_indices), list(range(12)))
+
+    def test_random_group_k_fold_split_disk_dataset(self):
+        """Test RandomGroupSplitter.k_fold_split works cleanly on DiskDataset with explicit directories."""
+        import tempfile
+        groups = ["A", "A", "B", "B", "C", "C", "D", "D"]
+        X = np.arange(8).reshape(-1, 1)
+        dataset = dc.data.DiskDataset.from_numpy(X=X)
+        k = 2
+        with tempfile.TemporaryDirectory() as temp_base:
+            directories = [
+                os.path.join(temp_base, f"dir_{i}") for i in range(2 * k)
+            ]
+            splitter = dc.splits.RandomGroupSplitter(groups=groups)
+            folds = splitter.k_fold_split(dataset,
+                                          k=k,
+                                          directories=directories,
+                                          seed=123)
+            self.assertEqual(len(folds), k)
+            for train_ds, cv_ds in folds:
+                self.assertIsInstance(train_ds, dc.data.DiskDataset)
+                self.assertIsInstance(cv_ds, dc.data.DiskDataset)
+                self.assertEqual(len(train_ds) + len(cv_ds), len(dataset))
+
+    def test_random_group_k_fold_split_invalid_k(self):
+        """Test RandomGroupSplitter.k_fold_split raises ValueError on invalid k values."""
+        groups = [0, 0, 1, 1]  # Only 2 unique groups
+        dataset = NumpyDataset(X=np.arange(4))
+        splitter = dc.splits.RandomGroupSplitter(groups=groups)
+        # k cannot exceed the number of groups
+        with self.assertRaises(ValueError):
+            splitter.k_fold_split(dataset, k=4)
+        # k cannot be less than 2
+        with self.assertRaises(ValueError):
+            splitter.k_fold_split(dataset, k=1)
