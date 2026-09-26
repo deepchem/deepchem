@@ -103,6 +103,64 @@ def test_hf_model_classification(hf_tokenizer, smiles_regression_dataset):
 
 
 @pytest.mark.hf
+def test_hf_model_zero_weight_sample_does_not_affect_training(hf_tokenizer):
+    """Samples with weight=0 must not influence the trained model at all -
+    changing only such a sample's label must produce identical parameters
+    after training.
+    """
+    from transformers import RobertaConfig, RobertaForSequenceClassification
+
+    smiles = [
+        "CCN(CCSC)C(=O)N[C@@](C)(CC)C(F)(F)F",
+        "CC1(C)CN(C(=O)Nc2cc3ccccc3nn2)C[C@@]2(CCOC2)O1",
+        "CCOC(=O)c1ccccc1",
+        "CC(C)Cc1ccc(cc1)C(C)C(=O)O",
+    ]
+    X = np.array(smiles, dtype=object)
+    y_a = np.array([0, 1, 0, 1])
+    # Only the label of the weight=0 sample (index 2) differs from y_a.
+    y_b = np.array([0, 1, 1, 1])
+    w = np.array([1., 1., 0., 1.])
+
+    # Dropout is disabled so the only source of run-to-run difference is the
+    # data itself (the model would otherwise draw different dropout masks
+    # on each training run, which is real, expected variance unrelated to
+    # what this test is checking).
+    config = RobertaConfig(vocab_size=hf_tokenizer.vocab_size,
+                           num_labels=2,
+                           hidden_dropout_prob=0.0,
+                           attention_probs_dropout_prob=0.0)
+
+    def train_one_step(y):
+        torch.manual_seed(0)
+        model = RobertaForSequenceClassification(config)
+        dataset = dc.data.NumpyDataset(X=X, y=y, w=w)
+        hf_model = HuggingFaceModel(model=model,
+                                    task='classification',
+                                    tokenizer=hf_tokenizer,
+                                    device=torch.device('cpu'),
+                                    batch_size=4)
+        hf_model.fit(dataset, nb_epoch=1)
+        return {k: v.clone() for k, v in hf_model.model.state_dict().items()}
+
+    params_a = train_one_step(y_a)
+    params_b = train_one_step(y_b)
+
+    # A tight-but-not-bit-exact tolerance: CPU kernels used by the forward/
+    # backward pass are not perfectly bit-deterministic across separate runs
+    # even with a fixed seed and no threading, so a few 1e-5-level residuals
+    # are expected. The unfixed code (weights ignored) diverges by ~2e-3 on
+    # this same setup - two orders of magnitude larger - so this tolerance
+    # still clearly fails against a regression.
+    max_diff = max((params_a[k] - params_b[k]).abs().max().item()
+                   for k in params_a)
+    assert max_diff < 5e-4, (
+        "Parameters differ by more than expected floating-point noise "
+        f"({max_diff}) after training even though only the label of a "
+        "weight=0 sample changed")
+
+
+@pytest.mark.hf
 def test_load_from_pretrained(tmpdir, hf_tokenizer):
     # Create pretrained model
     from transformers.models.roberta import (RobertaConfig, RobertaForMaskedLM,

@@ -347,6 +347,59 @@ class HuggingFaceModel(TorchModel):
             inputs = {**tokens, 'labels': y}
             return inputs, y, w
 
+    def _weighted_supervised_loss(self, logits: torch.Tensor,
+                                  labels: torch.Tensor,
+                                  weights: Any) -> torch.Tensor:
+        """Per-example supervised loss for regression/classification/mtr,
+        reduced with sample weights so that weight=0 examples do not
+        contribute to the loss or its gradient.
+
+        Parameters
+        ----------
+        logits: torch.Tensor
+            Model output logits, shape (batch, n_tasks) for regression/mtr
+            or (batch, num_labels) for single-label classification.
+        labels: torch.Tensor
+            Targets, as produced by `_prepare_batch` (float for
+            regression/mtr, long class indices for classification).
+        weights: Any
+            The `weights` element of a DeepChem batch tuple - a sequence
+            whose first entry is the per-example (or per-example-per-task)
+            sample weight array.
+
+        Returns
+        -------
+        torch.Tensor
+            A scalar weighted-mean loss.
+        """
+        w = torch.as_tensor(np.asarray(weights[0]),
+                            dtype=torch.float32,
+                            device=self.device)
+        # Collapse any per-task dimension to one weight per example - these
+        # tasks are single-label, so a sample's weight doesn't vary by task.
+        w = w.reshape(w.shape[0], -1)[:, 0]
+
+        if self.task == 'classification':
+            # `labels` carries a trailing task dimension of size 1 (shape
+            # (N, 1)), but cross_entropy expects 1-D class indices (N,).
+            if labels.dim() > 1:
+                labels = labels.reshape(labels.shape[0], -1)[:, 0]
+            per_example_loss = torch.nn.functional.cross_entropy(
+                logits, labels, reduction='none')
+        else:  # regression, mtr
+            per_example_loss = torch.nn.functional.mse_loss(
+                logits, labels, reduction='none')
+            if per_example_loss.dim() > 1:
+                per_example_loss = per_example_loss.mean(dim=1)
+
+        total_weight = w.sum()
+        if total_weight.item() == 0:
+            # Every example in this batch is weighted out; return a
+            # zero loss that still participates in autograd so .backward()
+            # and the optimizer step remain no-ops for this batch.
+            return (per_example_loss * w).sum()
+        return (per_example_loss * w).sum() / total_weight
+
     def fit_generator(self,
                       generator: Iterable[Tuple[Any, Any, Any]],
                       max_checkpoints_to_keep: int = 5,
@@ -432,9 +485,24 @@ class HuggingFaceModel(TorchModel):
             inputs, labels, weights = self._prepare_batch(batch)
 
             optimizer.zero_grad()
-            outputs = self.model(**inputs)
 
-            batch_loss = outputs.get("loss")
+            if weights is not None and self.task in ('regression',
+                                                       'classification',
+                                                       'mtr'):
+                # The model's own loss (outputs["loss"]) is computed
+                # internally from `labels` with a fixed reduction and does
+                # not accept per-example weights, so zero-weighted samples
+                # would still contribute to the gradient. Compute logits
+                # without `labels` and apply the weighting ourselves instead.
+                inputs_no_labels = {
+                    k: v for k, v in inputs.items() if k != 'labels'
+                }
+                outputs = self.model(**inputs_no_labels)
+                batch_loss = self._weighted_supervised_loss(
+                    outputs.get('logits'), labels, weights)
+            else:
+                outputs = self.model(**inputs)
+                batch_loss = outputs.get("loss")
             batch_loss.backward()
             optimizer.step()
             if lr_schedule is not None:
