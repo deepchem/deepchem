@@ -165,7 +165,7 @@ class ScScoreModel(TorchModel):
             raise ValueError(
                 f"Dropout must be between 0.0 and 1.0, but got {dropout}")
 
-        if score_scale < 1:
+        if score_scale <= 1:
             raise ValueError(
                 f"Score scale must be greater than 1, but got {score_scale}")
 
