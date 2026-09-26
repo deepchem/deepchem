@@ -77,3 +77,12 @@ def test_loaded_pretrained_scscore():
     assert np.allclose(
         pred, pretrained_pred,
         atol=1e-04), "Predictions do not match pretrained predictions"
+    
+@pytest.mark.torch
+def test_scscore_invalid_score_scale():
+    from deepchem.models.torch_models.scscore import ScScoreModel
+
+    with pytest.raises(ValueError, match="Score scale must be greater than 1"):
+        ScScoreModel(n_features=1024,
+                     layer_sizes=[300],
+                     score_scale=1)
