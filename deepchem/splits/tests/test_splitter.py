@@ -574,6 +574,21 @@ class TestSplitter(unittest.TestCase):
         assert len(valid_data) == 1
         assert len(test_data) == 1
 
+    def test_random_split_rejects_out_of_range_fractions(self):
+        """RandomSplitter must reject a negative (or >1) fraction even when
+        the three fractions still sum to 1, since Python/NumPy's negative
+        slice-index semantics silently turn it into a different split.
+        """
+        X = np.arange(10)
+        dataset = NumpyDataset(X)
+        splitter = dc.splits.RandomSplitter()
+        with self.assertRaises(ValueError):
+            splitter.split(dataset,
+                           frac_train=-0.1,
+                           frac_valid=0.1,
+                           frac_test=1.0,
+                           seed=42)
+
     def test_random_seed(self):
         """Test that splitters use the random seed correctly."""
         dataset = load_solubility_data()
