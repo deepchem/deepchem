@@ -377,6 +377,11 @@ class RandomSplitter(Splitter):
             A tuple of train indices, valid indices, and test indices.
             Each indices is a numpy array.
         """
+        if any(f < 0 or f > 1 for f in (frac_train, frac_valid, frac_test)):
+            raise ValueError(
+                "frac_train, frac_valid, and frac_test must each be between "
+                f"0 and 1, got frac_train={frac_train}, frac_valid={frac_valid}, "
+                f"frac_test={frac_test}")
         np.testing.assert_almost_equal(frac_train + frac_valid + frac_test, 1.)
         if seed is not None:
             np.random.seed(seed)
