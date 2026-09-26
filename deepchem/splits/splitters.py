@@ -933,6 +933,11 @@ class SpecifiedSplitter(Splitter):
             self.valid_indices = []
         if self.test_indices is None:
             self.test_indices = []
+        overlap = set(self.valid_indices) & set(self.test_indices)
+        if overlap:
+            raise ValueError(
+                "valid_indices and test_indices must be disjoint; "
+                f"overlapping indices: {sorted(overlap)}")
         valid_test = list(self.valid_indices)
         valid_test.extend(self.test_indices)
         for indice in indices:
