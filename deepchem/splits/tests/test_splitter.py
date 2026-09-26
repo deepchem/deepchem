@@ -574,6 +574,18 @@ class TestSplitter(unittest.TestCase):
         assert len(valid_data) == 1
         assert len(test_data) == 1
 
+    def test_specified_split_rejects_overlapping_indices(self):
+        """SpecifiedSplitter must reject valid/test indices that overlap,
+        since that silently puts the same sample in both evaluation splits.
+        """
+        X = np.arange(10).reshape(5, 2)
+        y = np.arange(5)
+        dataset = NumpyDataset(X, y)
+        splitter = dc.splits.SpecifiedSplitter(valid_indices=[1, 2],
+                                               test_indices=[2, 3])
+        with self.assertRaises(ValueError):
+            splitter.train_valid_test_split(dataset)
+
     def test_random_seed(self):
         """Test that splitters use the random seed correctly."""
         dataset = load_solubility_data()
