@@ -601,6 +601,45 @@ class TestSplitter(unittest.TestCase):
         assert len(valid_data) == 1
         assert len(test_data) == 1
 
+    def test_fingerprint_split_with_zero_train_size(self):
+        """
+        A train size that floors to zero must not raise.
+
+        FingerprintSplitter computes train_size = int(frac_train * len(dataset)),
+        which is 0 for a small dataset or a small frac_train. _split_fingerprints
+        guarded the size2 == 0 case but not the symmetric size1 == 0 case, so it
+        reached a division by zero instead of leaving the train group empty.
+        """
+        smiles = ["C", "CC", "CCC", "CCCC", "CCCCC", "CCCCCC", "CCCCCCC"]
+        dataset = NumpyDataset(np.zeros((len(smiles), 2)), ids=smiles)
+        splitter = dc.splits.FingerprintSplitter()
+
+        for frac_train in (0.0, 0.1):
+            with self.subTest(frac_train=frac_train):
+                train, valid, test = splitter.split(dataset,
+                                                    frac_train=frac_train,
+                                                    frac_valid=0.0,
+                                                    frac_test=1.0 - frac_train)
+                assert train == []
+                assert len(valid) + len(test) == len(smiles)
+
+    def test_fingerprint_split_keeps_a_normal_train_size(self):
+        """
+        Control for the case above: a train size that does floor to a positive
+        number must still be split, not short-circuited.
+        """
+        smiles = ["C", "CC", "CCC", "CCCC", "CCCCC", "CCCCCC", "CCCCCCC"]
+        dataset = NumpyDataset(np.zeros((len(smiles), 2)), ids=smiles)
+        splitter = dc.splits.FingerprintSplitter()
+
+        train, valid, test = splitter.split(dataset,
+                                            frac_train=0.5,
+                                            frac_valid=0.25,
+                                            frac_test=0.25)
+        assert len(train) == 3
+        assert len(valid) + len(test) == len(smiles) - 3
+        assert not (set(train) & (set(valid) | set(test)))
+
     def test_fingerprint_k_fold_split(self):
         """
         Test FingerprintSplitter.k_fold_split.

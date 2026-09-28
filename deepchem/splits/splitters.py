@@ -1449,6 +1449,13 @@ def _split_fingerprints(fps: List, size1: int,
     if size2 == 0:
         return ((list(range(len(fps)))), [])
 
+    # Mirror of the check above: nothing may go in the first group, so it
+    # stays empty. Without this, a train size that floors to zero (a small
+    # dataset, or a small frac_train) reached the division below and raised
+    # ZeroDivisionError.
+    if size1 == 0:
+        return ([], list(range(len(fps))))
+
     while len(remaining_fp) > 0:
         # Decide which group to assign a molecule to.
 
