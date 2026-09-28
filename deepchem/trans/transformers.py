@@ -1256,7 +1256,6 @@ def get_cdf_values(array: np.ndarray, bins: int) -> np.ndarray:
     array_t = np.zeros((n_rows, n_cols))
     parts = n_rows / bins
     hist_values = np.zeros(n_rows)
-    sorted_hist_values = np.zeros(n_rows)
     for row in range(n_rows):
         if np.remainder(bins, 2) == 1:
             hist_values[row] = np.floor(np.divide(row, parts)) / (bins - 1)
@@ -1264,8 +1263,8 @@ def get_cdf_values(array: np.ndarray, bins: int) -> np.ndarray:
             hist_values[row] = np.floor(np.divide(row, parts)) / bins
     for col in range(n_cols):
         order = np.argsort(array[:, col], axis=0)
-        sorted_hist_values = hist_values[order]
-        array_t[:, col] = sorted_hist_values
+        # The element with rank i gets the i-th histogram value.
+        array_t[order, col] = hist_values
 
     return array_t
 
