@@ -379,12 +379,26 @@ def load_csv_files(input_files: List[str],
     -------
     Iterator[pd.DataFrame]
         Generator which yields the dataframe which is the same shard size.
+
+    Notes
+    -----
+    Missing values are normalised to the empty string in both the sharded and
+    the unsharded case. Loaders such as :class:`deepchem.data.CSVLoader` detect
+    a missing label by testing for the empty string, so a NaN left in a numeric
+    column would be indistinguishable from a real value and would be trained on
+    with weight 1.
+
     """
     # First line of user-specified CSV *must* be header.
     shard_num = 1
     for input_file in input_files:
         if shard_size is None:
-            yield pd.read_csv(input_file)
+            # Normalise NaN on this branch too, exactly as the sharded branch
+            # below does. Callers detect a missing label by testing y == '', and
+            # that test only runs for an object/unicode column, so leaving NaN
+            # in a float column makes the row trainable with weight 1 against a
+            # NaN target.
+            yield pd.read_csv(input_file).replace(np.nan, str(""), regex=True)
         else:
             logger.info("About to start loading CSV from %s" % input_file)
             for df in pd.read_csv(input_file, chunksize=shard_size):
