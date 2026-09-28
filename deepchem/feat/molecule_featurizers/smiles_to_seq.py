@@ -40,7 +40,11 @@ def create_char_to_idx(filename: str,
         if len(smile) <= max_len:
             char_set.update(set(smile))
 
-    unique_char_list = list(char_set)
+    # Sort the set so the mapping depends only on the data. Iterating a set of
+    # one-character strings gives a different order in every process, because
+    # CPython randomises str hashing per process, which would hand a model
+    # trained with one mapping different token indices than it was trained on.
+    unique_char_list = sorted(char_set)
     unique_char_list += [PAD_TOKEN, OUT_OF_VOCAB_TOKEN]
     char_to_idx = {letter: idx for idx, letter in enumerate(unique_char_list)}
     return char_to_idx
