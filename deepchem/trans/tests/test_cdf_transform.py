@@ -89,3 +89,15 @@ def test_cdf_y_transformer():
     # Check that untransform does the right thing.
     y_restored = cdf_transformer.untransform(y_t)
     assert np.max(y_restored - y) < 1e-5
+
+
+def test_cdf_transform_preserves_order():
+    """Test that each value is mapped to the CDF value of its own rank."""
+    X = np.array([[10.], [30.], [20.], [40.], [0.]])
+    y = np.zeros(5)
+    dataset = dc.data.NumpyDataset(X, y)
+    cdftrans = dc.trans.CDFTransformer(transform_X=True,
+                                       dataset=dataset,
+                                       bins=5)
+    X_t = cdftrans.transform(dataset).X
+    np.testing.assert_allclose(X_t[:, 0], [0.25, 0.75, 0.5, 1., 0.])
