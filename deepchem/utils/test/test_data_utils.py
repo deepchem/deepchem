@@ -4,7 +4,7 @@ import tempfile
 import pandas as pd
 import deepchem as dc
 from rdkit import Chem
-from deepchem.utils.data_utils import load_sdf_files
+from deepchem.utils.data_utils import load_sdf_files, load_csv_files
 from deepchem.molnet.load_function.qm9_datasets import QM9_URL
 
 
@@ -139,3 +139,37 @@ def test_qm9_molecules_charge_neutrality_sanitize_true():
             total_charge = sum(
                 atom.GetFormalCharge() for atom in mol.GetAtoms())
             assert total_charge == 0, f"Molecule {i+1} is not neutral."
+
+
+def _csv_with_missing_value():
+    fin = tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False)
+    fin.write("smiles,endpoint\nc1ccccc1,1\nCCCCCC,\nc1ccncc1,0\n")
+    fin.close()
+    return fin.name
+
+
+def test_load_csv_files_normalizes_missing_values():
+    """A missing value must reach the caller as an empty string in both modes.
+
+    Loaders that consume these frames detect a missing label by testing for the
+    empty string, so normalising NaN is what makes the row maskable. Doing it
+    only on the sharded branch made shard_size change the training set: the
+    default path left a NaN in a float column, which the missing-label check
+    skips because it only runs for object/unicode columns.
+    """
+    path = _csv_with_missing_value()
+    try:
+        unsharded = list(load_csv_files([path], shard_size=None))[0]
+        sharded = pd.concat(list(load_csv_files([path], shard_size=2)))
+        for frame in (unsharded, sharded):
+            values = list(frame["endpoint"])
+            assert len(values) == 3
+            assert not frame["endpoint"].isna().any()
+            # The contract callers rely on is the empty string, not a dtype:
+            # each shard is type-inferred on its own, so a shard without a
+            # missing value stays integral.
+            assert values[1] == ""
+            assert float(values[0]) == 1.0
+            assert float(values[2]) == 0.0
+    finally:
+        os.remove(path)
