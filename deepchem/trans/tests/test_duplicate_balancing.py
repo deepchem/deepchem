@@ -149,3 +149,24 @@ def test_transform_to_directory():
     # Check that we have 6 positives and 7 negatives
     assert np.sum(y_t == 0) == 7
     assert np.sum(y_t == 1) == 6
+
+
+def test_binary_zero_weights_1d():
+    """Test balancing transformer on a dataset with zero-weight samples."""
+    n_samples = 6
+    n_features = 3
+    np.random.seed(123)
+    X = np.random.rand(n_samples, n_features)
+    y = np.array([1, 0, 0, 0, 0, 0])
+    # The last sample has zero weight (e.g. a missing label)
+    w = np.array([1, 1, 1, 1, 1, 0])
+    dataset = dc.data.NumpyDataset(X, y, w)
+
+    duplicator = dc.trans.DuplicateBalancingTransformer(dataset=dataset)
+    # 4 weighted negatives vs 1 positive, so positives are duplicated 4x
+    assert duplicator.duplication_ratio == [1, 4]
+    dataset = duplicator.transform(dataset)
+    y_t, w_t = dataset.y, dataset.w
+    assert np.sum(y_t == 1) == 4
+    # Check that sum of 0s equals sum of 1s in transformed for each task
+    assert np.isclose(np.sum(w_t[y_t == 0]), np.sum(w_t[y_t == 1]))
