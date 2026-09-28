@@ -97,7 +97,9 @@ class DuplicateBalancingTransformer(Transformer):
             raise ValueError("w must be of shape (N,) or (N, n_tasks)")
         self.classes = sorted(np.unique(y))
         # Remove labels with zero weights
-        y = y[w != 0]
+        nonzero = w != 0
+        y = y[nonzero]
+        w = w[nonzero]
         class_weights = []
         # Note that we may have 0 elements of a given class since we remove those
         # labels with zero weight.
