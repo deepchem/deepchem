@@ -1,4 +1,3 @@
-from logging import raiseExceptions
 import os
 import subprocess
 
@@ -58,7 +57,7 @@ def hhblits(dataset_path,
     if data_dir is None:
         data_dir = os.environ['DEEPCHEM_DATA_DIR']
     if len(data_dir) == 0:
-        raiseExceptions(
+        raise ValueError(
             'hhblits requires a database. Please follow the instructions here \
     to download a database: https://github.com/soedinglab/hh-suite/wiki#hh-suite-databases'
         )
@@ -67,7 +66,10 @@ def hhblits(dataset_path,
 
     save_dir = os.path.dirname(os.path.realpath(dataset_path))
 
-    if dataset_file_type == '.fas' or '.fasta':
+    # `in` rather than `== x or 'literal'`: the right-hand side of that `or` is
+    # a truthy string, so the condition was always true and the elif below was
+    # unreachable, which made the '-M first' flag below dead code as well.
+    if dataset_file_type in ('.fas', '.fasta'):
         command = 'hhsearch ' + \
             ' -i ' + os.path.abspath(dataset_path) + \
             ' -d ' + os.path.join(data_dir, database) + \
@@ -76,7 +78,7 @@ def hhblits(dataset_path,
             ' -n ' + str(num_iterations) + \
             ' -e ' + str(evalue) + \
             ' -M first'
-    if dataset_file_type == '.a3m' or '.a2m' or '.hmm':
+    elif dataset_file_type in ('.a3m', '.a2m', '.hmm'):
         command = 'hhsearch ' + \
             ' -i ' + os.path.abspath(dataset_path) + \
             ' -d ' + os.path.join(data_dir, database) + \
@@ -85,7 +87,7 @@ def hhblits(dataset_path,
             ' -n ' + str(num_iterations) + \
             ' -e ' + str(evalue)
     else:
-        raiseExceptions('Unsupported file type')
+        raise ValueError('Unsupported file type: %s' % dataset_file_type)
 
     system_call(command)
 
@@ -143,7 +145,7 @@ def hhsearch(dataset_path,
     if data_dir is None:
         data_dir = os.environ['DEEPCHEM_DATA_DIR']
     if len(data_dir) == 0:
-        raiseExceptions(
+        raise ValueError(
             'hhsearch requires a database. Please follow the instructions here \
             to download a database: https://github.com/soedinglab/hh-suite/wiki#hh-suite-databases'
         )
@@ -152,7 +154,8 @@ def hhsearch(dataset_path,
 
     save_dir = os.path.dirname(os.path.abspath(dataset_path))
 
-    if dataset_file_type == '.fas' or '.fasta':
+    # See hhblits: the old `== x or 'literal'` comparison was always true.
+    if dataset_file_type in ('.fas', '.fasta'):
         command = 'hhsearch ' + \
             ' -i ' + os.path.abspath(dataset_path) + \
             ' -d ' + os.path.join(data_dir, database) + \
@@ -160,7 +163,7 @@ def hhsearch(dataset_path,
             ' -cpu ' + str(num_threads) + \
             ' -e ' + str(evalue) + \
             ' -M first'
-    if dataset_file_type == '.a3m' or '.a2m' or '.hmm':
+    elif dataset_file_type in ('.a3m', '.a2m', '.hmm'):
         command = 'hhsearch ' + \
             ' -i ' + os.path.abspath(dataset_path) + \
             ' -d ' + os.path.join(data_dir, database) + \
@@ -168,7 +171,7 @@ def hhsearch(dataset_path,
             ' -cpu ' + str(num_threads) + \
             ' -e ' + str(evalue)
     else:
-        raiseExceptions('Unsupported file type')
+        raise ValueError('Unsupported file type: %s' % dataset_file_type)
 
     system_call(command)
 
