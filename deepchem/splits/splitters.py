@@ -925,6 +925,13 @@ class SpecifiedSplitter(Splitter):
         Tuple[np.ndarray, np.ndarray, np.ndarray]
             A tuple of train indices, valid indices, and test indices.
             Each indices is a numpy array.
+
+        Raises
+        ------
+        ValueError
+            If any index appears in both ``valid_indices`` and
+            ``test_indices``, which would put the same sample in both
+            evaluation splits.
         """
         num_datapoints = len(dataset)
         indices = np.arange(num_datapoints).tolist()
@@ -933,6 +940,12 @@ class SpecifiedSplitter(Splitter):
             self.valid_indices = []
         if self.test_indices is None:
             self.test_indices = []
+        overlap = set(self.valid_indices) & set(self.test_indices)
+        if overlap:
+            raise ValueError(
+                "valid_indices and test_indices must be disjoint, but the "
+                "following indices appear in both: "
+                f"{sorted(overlap)}")
         valid_test = list(self.valid_indices)
         valid_test.extend(self.test_indices)
         for indice in indices:
