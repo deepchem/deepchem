@@ -83,6 +83,51 @@ def test_bedroc_score():
     np.testing.assert_almost_equal(worst_score, 0.0, 4)
 
 
+def test_bedroc_score_metric_wrapper():
+    """Test BEDROC through the Metric wrapper.
+
+    Regression test: the wrapper one-hot encodes classification labels and
+    must not pass the flattened one-hot array to bedroc_score, which expects
+    one-dimensional binary labels paired with continuous scores.
+    """
+    num_actives = 20
+    num_total = 400
+
+    y_true = np.concatenate(
+        [np.ones(num_actives),
+         np.zeros(num_total - num_actives)])
+
+    # Perfect ranking: every active outranks every inactive
+    scores_best = np.concatenate([
+        np.linspace(0.99, 0.9, num_actives),
+        np.linspace(0.1, 0.01, num_total - num_actives)
+    ])
+    y_pred_best = np.stack([1.0 - scores_best, scores_best], axis=1)
+
+    # Reversed ranking
+    scores_worst = 1.0 - scores_best
+    y_pred_worst = np.stack([1.0 - scores_worst, scores_worst], axis=1)
+
+    metric = dc.metrics.Metric(dc.metrics.bedroc_score)
+    best_score = metric.compute_metric(y_true, y_pred_best)
+    np.testing.assert_almost_equal(best_score, 1.0)
+    worst_score = metric.compute_metric(y_true, y_pred_worst)
+    np.testing.assert_almost_equal(worst_score, 0.0, 4)
+
+    # The wrapper must agree with the direct metric call
+    np.testing.assert_almost_equal(best_score,
+                                   dc.metrics.bedroc_score(y_true, y_pred_best))
+
+    # Multiclass labels are invalid input and must not score silently
+    y_true_3class = np.array([0, 1, 2, 0, 1, 2, 0, 1])
+    y_pred_3class = np.ones((8, 3)) / 3.0
+    np.testing.assert_raises(ValueError,
+                             metric.compute_metric,
+                             y_true_3class,
+                             y_pred_3class,
+                             n_classes=3)
+
+
 def test_concordance_index():
     """Test concordance index."""
 
