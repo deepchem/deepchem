@@ -174,8 +174,14 @@ def bedroc_score(y_true: np.ndarray, y_pred: np.ndarray, alpha: float = 20.0):
     yt = np.asarray(y_true)
     yp = np.asarray(y_pred)
 
+    if yt.ndim == 2:
+        # The Metric wrapper one-hot encodes classification labels
+        if yt.shape[1] != 2 or yp.ndim != 2 or yp.shape[1] != 2:
+            raise ValueError("bedroc_score supports binary classification only")
+        yt = yt[:, 1]
     yt = yt.flatten()
     yp = yp[:, 1].flatten()  # Index 1 because one_hot predictions
+    assert yt.shape == yp.shape
 
     scores = list(zip(yt, yp))
     scores = sorted(scores, key=lambda pair: pair[1], reverse=True)
