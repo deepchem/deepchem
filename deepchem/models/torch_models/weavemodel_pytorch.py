@@ -276,18 +276,11 @@ class Weave(nn.Module):
         List[torch.Tensor]
             Output as per use case : regression/classification
         """
-        input1: List[np.ndarray] = [
-            np.array(inputs[0]),
-            np.array(inputs[1]),
-            np.array(inputs[2]),
-            np.array(inputs[4])
-        ]
+        input1 = [inputs[0], inputs[1], inputs[2], inputs[4]]
         for ind in range(self.n_weave):
             weave_layer_ind_A, weave_layer_ind_P = self.layers[ind](input1)
             input1 = [
-                weave_layer_ind_A, weave_layer_ind_P,
-                np.array(inputs[2]),
-                np.array(inputs[4])
+                weave_layer_ind_A, weave_layer_ind_P, inputs[2], inputs[4]
             ]
 
         dense1: torch.Tensor = self.dense1(weave_layer_ind_A)
