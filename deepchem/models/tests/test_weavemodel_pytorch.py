@@ -79,6 +79,50 @@ def test_compute_features_on_infinity_distance():
 
 
 @pytest.mark.torch
+def test_use_chirality_feature_sizes():
+    """Weave(use_chirality=True) must match WeaveFeaturizer(use_chirality=True)
+    output dimensions (78 atom / 18 pair features), per deepchem#1940."""
+    featurizer = WeaveFeaturizer(use_chirality=True)
+    X = featurizer(["C", "CC"])
+
+    model = WeaveModel(n_tasks=1,
+                       use_chirality=True,
+                       batch_size=2,
+                       mode='classification')
+    atom_feat, pair_feat, _, _, _ = model.compute_features_on_batch(X)
+    assert atom_feat.shape[1] == 78
+    assert pair_feat.shape[1] == 18
+
+    # explicit feature sizes still win over the chirality defaults
+    model = WeaveModel(n_tasks=1,
+                       n_atom_feat=75,
+                       n_pair_feat=14,
+                       use_chirality=True,
+                       batch_size=2,
+                       mode='classification')
+    assert model.model.n_atom_feat == [75, 75]
+    assert model.model.n_pair_feat == [14, 14]
+
+
+@pytest.mark.torch
+def test_weave_chirality_fit():
+    """The original failure: WeaveModel must train on chirality-encoded
+    features without manually passing n_atom_feat/n_pair_feat."""
+    featurizer = WeaveFeaturizer(use_chirality=True)
+    X = featurizer(["C", "CC", "CCC", "CCCC"])
+    y = np.array([1, 0, 1, 0])
+    dataset = NumpyDataset(X, y)
+    # Pin CPU: Weave.forward calls np.array on inputs, which fails for
+    # tensors on mps/cuda (a pre-existing issue separate from #1940).
+    model = WeaveModel(n_tasks=1,
+                       use_chirality=True,
+                       batch_size=4,
+                       mode='classification',
+                       device=torch.device('cpu'))
+    model.fit(dataset, nb_epoch=1)
+
+
+@pytest.mark.torch
 def test_compute_features_on_distance_1():
     """Test that WeaveModel correctly transforms WeaveMol objects into tensors with finite max_pair_distance."""
     featurizer = WeaveFeaturizer(max_pair_distance=1)

@@ -55,8 +55,8 @@ class Weave(nn.Module):
     def __init__(
         self,
         n_tasks: int,
-        n_atom_feat: OneOrMany[int] = 75,
-        n_pair_feat: OneOrMany[int] = 14,
+        n_atom_feat: Optional[OneOrMany[int]] = None,
+        n_pair_feat: Optional[OneOrMany[int]] = None,
         n_hidden: int = 50,
         n_graph_feat: int = 128,
         n_weave: int = 2,
@@ -73,17 +73,19 @@ class Weave(nn.Module):
         mode: str = "classification",
         n_classes: int = 2,
         batch_size: int = 100,
+        use_chirality: bool = False,
     ):
         """
         Parameters
         ----------
         n_tasks: int
             Number of tasks
-        n_atom_feat: int, optional (default 75)
-            Number of features per atom. Note this is 75 by default and should be 78
-            if chirality is used by `WeaveFeaturizer`.
-        n_pair_feat: int, optional (default 14)
-            Number of features per pair of atoms.
+        n_atom_feat: int, optional (default None)
+            Number of features per atom. If None, this is 75, or 78 if
+            `use_chirality` is True, matching `WeaveFeaturizer`.
+        n_pair_feat: int, optional (default None)
+            Number of features per pair of atoms. If None, this is 14, or
+            18 if `use_chirality` is True, matching `WeaveFeaturizer`.
         n_hidden: int, optional (default 50)
             Number of units(convolution depths) in corresponding hidden layer
         n_graph_feat: int, optional (default 128)
@@ -136,11 +138,21 @@ class Weave(nn.Module):
             Number of classes to predict (only used in classification mode)
         batch_size: int (default 100)
             Batch size used by this model for training.
+        use_chirality: bool, optional (default False)
+            If True, the default feature sizes match the output of
+            `WeaveFeaturizer(use_chirality=True)` (78 atom and 18 pair
+            features). Explicit `n_atom_feat`/`n_pair_feat` values
+            always take precedence.
         """
         super(Weave, self).__init__()
         if mode not in ['classification', 'regression']:
             raise ValueError(
                 "mode must be either 'classification' or 'regression'")
+
+        if n_atom_feat is None:
+            n_atom_feat = 78 if use_chirality else 75
+        if n_pair_feat is None:
+            n_pair_feat = 18 if use_chirality else 14
 
         if not isinstance(n_atom_feat, SequenceCollection):
             n_atom_feat = [n_atom_feat] * n_weave
@@ -370,8 +382,8 @@ class WeaveModel(TorchModel):
 
     def __init__(self,
                  n_tasks: int,
-                 n_atom_feat: OneOrMany[int] = 75,
-                 n_pair_feat: OneOrMany[int] = 14,
+                 n_atom_feat: Optional[OneOrMany[int]] = None,
+                 n_pair_feat: Optional[OneOrMany[int]] = None,
                  n_hidden: int = 50,
                  n_graph_feat: int = 128,
                  n_weave: int = 2,
@@ -390,17 +402,19 @@ class WeaveModel(TorchModel):
                  mode: str = "classification",
                  n_classes: int = 2,
                  batch_size: int = 100,
+                 use_chirality: bool = False,
                  **kwargs):
         """
         Parameters
         ----------
         n_tasks: int
             Number of tasks
-        n_atom_feat: int, optional (default 75)
-            Number of features per atom. Note this is 75 by default and should be 78
-            if chirality is used by `WeaveFeaturizer`.
-        n_pair_feat: int, optional (default 14)
-            Number of features per pair of atoms.
+        n_atom_feat: int, optional (default None)
+            Number of features per atom. If None, this is 75, or 78 if
+            `use_chirality` is True, matching `WeaveFeaturizer`.
+        n_pair_feat: int, optional (default None)
+            Number of features per pair of atoms. If None, this is 14, or
+            18 if `use_chirality` is True, matching `WeaveFeaturizer`.
         n_hidden: int, optional (default 50)
             Number of units(convolution depths) in corresponding hidden layer
         n_graph_feat: int, optional (default 128)
@@ -457,12 +471,18 @@ class WeaveModel(TorchModel):
             Number of classes to predict (only used in classification mode)
         batch_size: int (default 100)
             Batch size used by this model for training.
+        use_chirality: bool, optional (default False)
+            If True, the default feature sizes match the output of
+            `WeaveFeaturizer(use_chirality=True)` (78 atom and 18 pair
+            features). Explicit `n_atom_feat`/`n_pair_feat` values
+            always take precedence.
         """
         self.mode: str = mode
         self.model = Weave(
             n_tasks=n_tasks,
             n_atom_feat=n_atom_feat,
             n_pair_feat=n_pair_feat,
+            use_chirality=use_chirality,
             n_hidden=n_hidden,
             n_graph_feat=n_graph_feat,
             n_weave=n_weave,
