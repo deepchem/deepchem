@@ -4248,9 +4248,9 @@ class WeaveLayer(nn.Module):
         # Construct internal trainable weights
         init = getattr(initializers, self.init)
         # Weight matrix and bias matrix required to compute new atom layer from the previous atom layer
-        self.W_AA: torch.Tensor = init(
-            torch.empty(self.n_atom_input_feat, self.n_hidden_AA))
-        self.b_AA: torch.Tensor = torch.zeros((self.n_hidden_AA,))
+        self.W_AA: nn.Parameter = nn.Parameter(
+            init(torch.empty(self.n_atom_input_feat, self.n_hidden_AA)))
+        self.b_AA: nn.Parameter = nn.Parameter(torch.zeros((self.n_hidden_AA,)))
         self.AA_bn: nn.BatchNorm1d = nn.BatchNorm1d(
             num_features=self.n_hidden_AA,
             eps=1e-3,
@@ -4259,9 +4259,9 @@ class WeaveLayer(nn.Module):
             track_running_stats=True)
 
         # Weight matrix and bias matrix required to compute new atom layer from the previous pair layer
-        self.W_PA: torch.Tensor = init(
-            torch.empty(self.n_pair_input_feat, self.n_hidden_PA))
-        self.b_PA: torch.Tensor = torch.zeros((self.n_hidden_PA,))
+        self.W_PA: nn.Parameter = nn.Parameter(
+            init(torch.empty(self.n_pair_input_feat, self.n_hidden_PA)))
+        self.b_PA: nn.Parameter = nn.Parameter(torch.zeros((self.n_hidden_PA,)))
         self.PA_bn: nn.BatchNorm1d = nn.BatchNorm1d(
             num_features=self.n_hidden_PA,
             eps=1e-3,
@@ -4269,9 +4269,10 @@ class WeaveLayer(nn.Module):
             affine=True,
             track_running_stats=True)
 
-        self.W_A: torch.Tensor = init(
-            torch.empty(self.n_hidden_A, self.n_atom_output_feat))
-        self.b_A: torch.Tensor = torch.zeros((self.n_atom_output_feat,))
+        self.W_A: nn.Parameter = nn.Parameter(
+            init(torch.empty(self.n_hidden_A, self.n_atom_output_feat)))
+        self.b_A: nn.Parameter = nn.Parameter(
+            torch.zeros((self.n_atom_output_feat,)))
         self.A_bn: nn.BatchNorm1d = nn.BatchNorm1d(
             num_features=self.n_atom_output_feat,
             eps=1e-3,
@@ -4281,9 +4282,10 @@ class WeaveLayer(nn.Module):
 
         if self.update_pair:
             # Weight matrix and bias matrix required to compute new pair layer from the previous atom layer
-            self.W_AP: torch.Tensor = init(
-                torch.empty(self.n_atom_input_feat * 2, self.n_hidden_AP))
-            self.b_AP: torch.Tensor = torch.zeros((self.n_hidden_AP,))
+            self.W_AP: nn.Parameter = nn.Parameter(
+                init(torch.empty(self.n_atom_input_feat * 2, self.n_hidden_AP)))
+            self.b_AP: nn.Parameter = nn.Parameter(
+                torch.zeros((self.n_hidden_AP,)))
             self.AP_bn: nn.BatchNorm1d = nn.BatchNorm1d(
                 num_features=self.n_hidden_AP,
                 eps=1e-3,
@@ -4291,9 +4293,10 @@ class WeaveLayer(nn.Module):
                 affine=True,
                 track_running_stats=True)
             # Weight matrix and bias matrix required to compute new pair layer from the previous pair layer
-            self.W_PP: torch.Tensor = init(
-                torch.empty(self.n_pair_input_feat, self.n_hidden_PP))
-            self.b_PP: torch.Tensor = torch.zeros((self.n_hidden_PP,))
+            self.W_PP: nn.Parameter = nn.Parameter(
+                init(torch.empty(self.n_pair_input_feat, self.n_hidden_PP)))
+            self.b_PP: nn.Parameter = nn.Parameter(
+                torch.zeros((self.n_hidden_PP,)))
             self.PP_bn: nn.BatchNorm1d = nn.BatchNorm1d(
                 num_features=self.n_hidden_PP,
                 eps=1e-3,
@@ -4301,9 +4304,10 @@ class WeaveLayer(nn.Module):
                 affine=True,
                 track_running_stats=True)
 
-            self.W_P: torch.Tensor = init(
-                torch.empty(self.n_hidden_P, self.n_pair_output_feat))
-            self.b_P: torch.Tensor = torch.zeros((self.n_pair_output_feat,))
+            self.W_P: nn.Parameter = nn.Parameter(
+                init(torch.empty(self.n_hidden_P, self.n_pair_output_feat)))
+            self.b_P: nn.Parameter = nn.Parameter(
+                torch.zeros((self.n_pair_output_feat,)))
             self.P_bn: nn.BatchNorm1d = nn.BatchNorm1d(
                 num_features=self.n_pair_output_feat,
                 eps=1e-3,
@@ -4528,9 +4532,9 @@ class WeaveGather(nn.Module):
 
         if self.compress_post_gaussian_expansion:
             init = getattr(initializers, self.init)
-            self.W: torch.Tensor = init(
-                torch.empty([self.n_input * 11, self.n_input]))
-            self.b: torch.Tensor = torch.zeros((self.n_input,))
+            self.W: nn.Parameter = nn.Parameter(
+                init(torch.empty([self.n_input * 11, self.n_input])))
+            self.b: nn.Parameter = nn.Parameter(torch.zeros((self.n_input,)))
         self.built = True
 
     def __repr__(self):
