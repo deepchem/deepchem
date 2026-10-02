@@ -2,12 +2,57 @@
 Common code for loading MoleculeNet datasets.
 """
 import os
+import re
+import hashlib
 import logging
 import deepchem as dc
 from deepchem.data import Dataset, DiskDataset
 from typing import List, Optional, Tuple, Type, Union
 
 logger = logging.getLogger(__name__)
+
+# Characters which are not allowed (or have special meaning) in file names on
+# common operating systems.
+_UNSAFE_PATH_CHARS = re.compile(r'[<>:"/\\|?*\x00-\x1f]')
+
+
+def _get_safe_directory_name(name: str, max_length: int = 128) -> str:
+    """Convert a string into a name that can safely be used as a directory.
+
+    Names derived from featurizers, splitters or transformers (for example
+    ``str(featurizer)``) can be arbitrarily long or contain characters such
+    as ``/`` or ``:``, which either exceed the file name length limit of the
+    operating system or are not valid in paths. Names which are already safe
+    are returned unchanged, so existing cached datasets are still found.
+    Otherwise, unsafe characters are replaced, the name is truncated and a
+    hash of the full original name is appended so that distinct names map to
+    distinct directories.
+
+    Parameters
+    ----------
+    name: str
+        the name to convert
+    max_length: int, default 128
+        the maximum length of the returned name
+
+    Returns
+    -------
+    str
+        a directory name which is at most ``max_length`` characters long and
+        contains no unsafe characters
+
+    Examples
+    --------
+    >>> _get_safe_directory_name('CircularFingerprint_radius_4_size_1024')
+    'CircularFingerprint_radius_4_size_1024'
+    >>> len(_get_safe_directory_name('a' * 1000))
+    128
+    """
+    if len(name) <= max_length and not _UNSAFE_PATH_CHARS.search(name):
+        return name
+    digest = hashlib.sha256(name.encode('utf-8')).hexdigest()[:16]
+    prefix = _UNSAFE_PATH_CHARS.sub('_', name)[:max_length - len(digest) - 1]
+    return prefix + '_' + digest
 
 
 class TransformerGenerator(object):
@@ -150,13 +195,14 @@ class _MolnetLoader(object):
         """
         # Build the path to the dataset on disk.
 
-        featurizer_name = str(self.featurizer)
-        splitter_name = 'None' if self.splitter is None else str(self.splitter)
+        featurizer_name = _get_safe_directory_name(str(self.featurizer))
+        splitter_name = 'None' if self.splitter is None else _get_safe_directory_name(
+            str(self.splitter))
         save_folder = os.path.join(self.save_dir, name + "-featurized",
                                    featurizer_name, splitter_name)
         if len(self.transformers) > 0:
-            transformer_name = '_'.join(
-                t.get_directory_name() for t in self.transformers)
+            transformer_name = _get_safe_directory_name('_'.join(
+                t.get_directory_name() for t in self.transformers))
             save_folder = os.path.join(save_folder, transformer_name)
 
         # Try to reload cached datasets.
