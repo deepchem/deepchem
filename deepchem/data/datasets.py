@@ -1537,6 +1537,8 @@ class DiskDataset(Dataset):
                 # Note that this means that DiskDataset resharding currently doesn't
                 # work for datasets that aren't regression/classification.
                 if y is None:  # datasets without label
+                    # Keep the existing float64 label and weight buffers for
+                    # unlabeled datasets.
                     y = y_next
                     w = w_next
                 else:
