@@ -10,6 +10,8 @@ from deepchem.utils.noncovalent_utils import compute_pi_stack
 from deepchem.utils.noncovalent_utils import is_cation_pi
 from deepchem.utils.noncovalent_utils import compute_cation_pi
 from deepchem.utils.noncovalent_utils import compute_binding_pocket_cation_pi
+from deepchem.utils.noncovalent_utils import compute_hydrogen_bonds
+from deepchem.utils.geometry_utils import compute_pairwise_distances
 
 
 class TestPiInteractions(unittest.TestCase):
@@ -144,4 +146,38 @@ class TestPiInteractions(unittest.TestCase):
         self.assertEqual(lig_dict, exp_lig_dict)
 
     def test_compute_hydrogen_bonds(self):
-        pass
+        from rdkit import Chem
+        from rdkit.Geometry import Point3D
+
+        def water(oxygen, hydrogen1, hydrogen2):
+            mol = Chem.AddHs(Chem.MolFromSmiles('O'))  # atoms: O, H, H
+            xyz = np.array([oxygen, hydrogen1, hydrogen2], dtype=float)
+            conf = Chem.Conformer(3)
+            for i, pos in enumerate(xyz):
+                conf.SetAtomPosition(i, Point3D(*pos))
+            mol.AddConformer(conf)
+            return xyz, mol
+
+        def hbonds(frag1, frag2, angle_cutoff):
+            distances = compute_pairwise_distances(frag1[0], frag2[0])
+            return compute_hydrogen_bonds(frag1, frag2, distances, [(2.5, 3.3)],
+                                          [angle_cutoff])[0]
+
+        # The acceptor's own hydrogens point away from the donor.
+        acceptor = water((2.9, 0, 0), (3.4, 0.8, 0), (3.4, -0.8, 0))
+        bonding, other = (0.96, 0, 0), (-0.24, 0.93, 0)
+
+        # The bond is found whichever fragment holds the donor and whichever
+        # of its hydrogens makes the bond.
+        for h1, h2 in [(bonding, other), (other, bonding)]:
+            donor = water((0, 0, 0), h1, h2)
+            self.assertEqual(len(hbonds(donor, acceptor, 40.0)), 1)
+            self.assertEqual(len(hbonds(acceptor, donor, 40.0)), 1)
+
+        # Bending the O-H by 20 degrees puts the D-H...A angle about 29
+        # degrees away from linear, so only the looser cutoff accepts it.
+        bend = np.deg2rad(20)
+        bent = (0.96 * np.cos(bend), 0.96 * np.sin(bend), 0)
+        donor = water((0, 0, 0), bent, other)
+        self.assertEqual(hbonds(donor, acceptor, 10.0), [])
+        self.assertEqual(len(hbonds(donor, acceptor, 40.0)), 1)
