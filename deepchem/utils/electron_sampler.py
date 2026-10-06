@@ -147,7 +147,9 @@ class ElectronSampler:
         """
 
         numer = np.sum((-0.5 * ((y - mu)**2) / (sigma**2)), axis=(1, 2, 3))
-        denom = y.shape[-1] * np.sum(np.log(sigma), axis=(1, 2, 3))
+        # sigma may hold one entry per electron, per coordinate or per batch
+        # element, so broadcast it to y before summing its log over every entry.
+        denom = np.sum(np.log(np.broadcast_to(sigma, y.shape)), axis=(1, 2, 3))
         return numer - denom
 
     def gauss_initialize_position(self,

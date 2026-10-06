@@ -3,6 +3,7 @@ Test for electron_sampler.py
 """
 
 import numpy as np
+from scipy.stats import norm
 from deepchem.utils.electron_sampler import ElectronSampler
 
 
@@ -83,3 +84,22 @@ def test_steps():
     assert ((distribution.x[:, 1, :, :] - x1[:, 1, :, :]) != 0).all()
     assert ((distribution.x[:, 2, :, :] - x1[:, 2, :, :]) == 0).all()
     assert np.shape(distribution.sampled_electrons) == (2000, 3, 1, 3)
+
+
+def test_log_prob_sigma_shapes():
+    # sigma can have one entry per electron, one per coordinate or one per
+    # batch element. All of them must give the gaussian log-density, up to the
+    # constant term that log_prob_gaussian leaves out.
+    distribution = ElectronSampler(np.array([[1, 1, 3], [3, 2, 3]]), f)
+    rs = np.random.RandomState(0)
+    batch, n_electrons = 2, 4
+    y = rs.randn(batch, n_electrons, 1, 3)
+    mu = rs.randn(batch, n_electrons, 1, 3)
+    const = -(n_electrons * 3) / 2 * np.log(2 * np.pi)
+    for shape in [(batch, n_electrons, 1, 1), (batch, n_electrons, 1, 3),
+                  (batch, 1, 1, 1)]:
+        sigma = rs.uniform(0.2, 2.0, shape)
+        expected = norm.logpdf(y, mu, np.broadcast_to(
+            sigma, y.shape)).sum(axis=(1, 2, 3)) - const
+        result = distribution.log_prob_gaussian(y, mu, sigma)
+        assert np.allclose(result, expected)
