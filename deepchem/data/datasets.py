@@ -1672,8 +1672,11 @@ class DiskDataset(Dataset):
             if batch_size is None:
                 num_global_batches = num_shards
             else:
-                num_global_batches = math.ceil(dataset.get_shape()[0][0] /
-                                               batch_size)
+                # Count only the requested shards: a torch worker or DDP rank
+                # gets a subset, and sizing by the whole dataset replays shards.
+                n_samples = sum(
+                    dataset._get_shard_shape(i)[0][0] for i in shard_indices)
+                num_global_batches = math.ceil(n_samples / batch_size)
 
             for epoch in range(epochs):
                 if not deterministic:
