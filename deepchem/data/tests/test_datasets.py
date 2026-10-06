@@ -442,6 +442,19 @@ def test_disk_iterate_batch_size():
     assert [3, 3, 3, 1, 3, 3, 3, 1] == batch_sizes
 
 
+def test_disk_iterate_shard_subset():
+    """A subset of shards (one torch worker / DDP rank) yields each sample once."""
+    dataset = dc.data.DiskDataset.from_numpy(np.random.rand(40, 1),
+                                             ids=np.arange(40))
+    dataset.reshard(10)
+    for shards in ([0, 1], [2, 3]):
+        ids = np.concatenate([
+            b[3] for b in dataset._iterbatches_from_shards(shards, batch_size=5)
+        ])
+        expected = np.arange(shards[0] * 10, (shards[-1] + 1) * 10)
+        np.testing.assert_array_equal(np.sort(ids), expected)
+
+
 def test_disk_pad_batches():
     shard_sizes = [21, 11, 41, 21, 51]
     batch_size = 10
