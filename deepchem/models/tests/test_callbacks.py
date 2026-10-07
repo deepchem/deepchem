@@ -9,6 +9,58 @@ except ImportError:
     from io import StringIO
 
 
+class PredictionModel(dc.models.Model):
+    """Model that returns input features as fixed predictions."""
+
+    tensorboard = False
+    wandb_logger = None
+
+    def predict_on_batch(self, X: np.typing.ArrayLike) -> np.ndarray:
+        """Return the supplied predictions."""
+        return np.asarray(X)
+
+
+@pytest.mark.parametrize('n_classes,n_tasks,expected_score', [(2, 1, 1.0),
+                                                              (2, 2, 0.75),
+                                                              (3, 1, 0.75),
+                                                              (3, 2, 0.625)])
+def test_validation_classification(n_classes: int, n_tasks: int,
+                                   expected_score: float) -> None:
+    """Validate binary and multiclass predictions for one or more tasks."""
+    labels = np.array([[0, 1], [1, 2], [2, 0], [1, 2]]) % n_classes
+    predictions = np.array([[0, 0], [1, 2], [0, 0], [1, 1]]) % n_classes
+    probabilities = np.eye(n_classes)[predictions[:, :n_tasks]]
+    dataset = dc.data.NumpyDataset(probabilities, labels[:, :n_tasks])
+    metric = dc.metrics.Metric(dc.metrics.accuracy_score)
+    log = StringIO()
+    kwargs = {'n_classes': n_classes} if n_classes != 2 else {}
+    callback = dc.models.ValidationCallback(dataset,
+                                            1, [metric],
+                                            log,
+                                            save_on_minimum=False,
+                                            **kwargs)
+
+    callback(PredictionModel(), 1)
+
+    assert callback.get_best_score() == pytest.approx(expected_score)
+    assert float(log.getvalue().split('=')[-1]) == pytest.approx(expected_score)
+
+
+def test_validation_regression() -> None:
+    """The class count does not affect regression metrics."""
+    labels = np.array([[0.5], [1.5]])
+    dataset = dc.data.NumpyDataset(labels + 0.25, labels)
+    metric = dc.metrics.Metric(dc.metrics.mean_absolute_error)
+    callback = dc.models.ValidationCallback(dataset,
+                                            1, [metric],
+                                            StringIO(),
+                                            n_classes=3)
+
+    callback(PredictionModel(), 1)
+
+    assert callback.get_best_score() == pytest.approx(0.25)
+
+
 class TestCallbacks(unittest.TestCase):
 
     @pytest.mark.torch
