@@ -11,6 +11,16 @@ class TestOneHotFeaturizer(unittest.TestCase):
     Test OneHotFeaturizer.
     """
 
+    def test_empty_string_preserves_feature_dimension(self):
+        """Empty unpadded strings retain the character vocabulary axis."""
+        for max_length in (None, 0):
+            with self.subTest(max_length=max_length):
+                featurizer = OneHotFeaturizer(charset=['C', 'N'],
+                                              max_length=max_length)
+                features = featurizer.featurize(['', ''])
+                assert features.shape == (2, 0, 3)
+                assert featurizer.untransform(features[0]) == ''
+
     def test_onehot_featurizer_arbitrary(self):
         """
         Test simple one hot encoding for arbitrary string.

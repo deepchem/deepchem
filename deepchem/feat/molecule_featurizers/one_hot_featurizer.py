@@ -124,7 +124,8 @@ class OneHotFeaturizer(Featurizer):
         return np.array([
             one_hot_encode(val, self.charset, include_unknown_set=True)
             for val in string
-        ])
+        ]).reshape(len(string),
+                   len(self.charset) + 1)
 
     def _featurize_mol(self, mol: RDKitMol) -> np.ndarray:
         """Compute one-hot featurization of this molecule.
