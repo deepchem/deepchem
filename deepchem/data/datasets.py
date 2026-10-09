@@ -1669,22 +1669,15 @@ class DiskDataset(Dataset):
             # mp.dummy aliases ThreadPool to Pool
             pool = Pool(1)
 
-            if batch_size is None:
-                num_global_batches = num_shards
-            else:
-                num_global_batches = math.ceil(dataset.get_shape()[0][0] /
-                                               batch_size)
-
             for epoch in range(epochs):
                 if not deterministic:
                     shard_perm = np.random.permutation(num_shards)
                 next_shard = pool.apply_async(dataset.get_shard,
                                               (shard_indices[shard_perm[0]],))
-                cur_global_batch = 0
                 cur_shard = 0
                 carry = None
 
-                while cur_global_batch < num_global_batches:
+                while cur_shard < num_shards:
 
                     X, y, w, ids = next_shard.get()
                     if cur_shard < num_shards - 1:
@@ -1712,8 +1705,6 @@ class DiskDataset(Dataset):
 
                     if n_shard_samples == 0:
                         cur_shard += 1
-                        if batch_size is None:
-                            cur_global_batch += 1
                         continue
 
                     num_local_batches = math.ceil(n_shard_samples /
@@ -1759,7 +1750,6 @@ class DiskDataset(Dataset):
                                                     w_b, ids_b)
 
                             yield X_b, y_b, w_b, ids_b
-                            cur_global_batch += 1
                         cur_local_batch += 1
                     cur_shard += 1
 

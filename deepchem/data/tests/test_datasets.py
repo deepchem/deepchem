@@ -329,6 +329,45 @@ def test_iterbatches():
         assert ids_b.shape == (batch_size,)
 
 
+def test_iterbatches_from_shard_subset():
+    """A restricted shard subset yields only that subset's batches.
+
+    Regression test for
+    https://github.com/deepchem/deepchem/issues/5198: the global batch
+    count was sized from the whole dataset, so iterating a shard subset
+    replayed the last shard and duplicated samples.
+    """
+    with tempfile.TemporaryDirectory() as data_dir:
+        dataset = dc.data.DiskDataset.from_numpy(np.random.rand(40, 1),
+                                                 ids=np.arange(40),
+                                                 data_dir=data_dir)
+        dataset.reshard(10)  # 4 shards of 10 samples
+
+        # Simulate two dataloader workers: worker 0 gets shards [0, 1],
+        # worker 1 gets shards [2, 3].
+        for worker in range(2):
+            shard_indices = list(range(worker * 2, worker * 2 + 2))
+            batches = list(
+                dataset._iterbatches_from_shards(shard_indices,
+                                                 batch_size=5,
+                                                 epochs=1,
+                                                 deterministic=True))
+            assert len(batches) == 4  # 20 samples / 5
+            ids = np.concatenate([b[3] for b in batches])
+            assert len(ids) == 20
+            assert len(set(ids.tolist())) == 20  # no duplicates
+
+        # Full iteration still yields the whole dataset exactly once.
+        all_batches = list(
+            dataset._iterbatches_from_shards(list(range(4)),
+                                             batch_size=5,
+                                             epochs=1,
+                                             deterministic=True))
+        all_ids = np.concatenate([b[3] for b in all_batches])
+        assert len(all_ids) == 40
+        assert set(all_ids.tolist()) == set(range(40))
+
+
 def test_itersamples_numpy():
     """Test that iterating over samples in a NumpyDataset works."""
     num_datapoints = 100
