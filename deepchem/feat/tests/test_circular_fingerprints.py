@@ -74,3 +74,14 @@ class TestCircularFingerprint(unittest.TestCase):
         for fragment_id, value in rval[0].items():
             assert 'count' in value
             assert 'smiles' in value
+
+    def test_circular_fingerprints_eq_hash_counts_based(self):
+        """
+        Test that is_counts_based participates in equality and hashing.
+        """
+        bit_featurizer = CircularFingerprint(size=64, is_counts_based=False)
+        count_featurizer = CircularFingerprint(size=64, is_counts_based=True)
+        assert bit_featurizer != count_featurizer
+        assert hash(bit_featurizer) != hash(count_featurizer)
+        assert len({bit_featurizer, count_featurizer}) == 2
+        assert CircularFingerprint(size=64) == CircularFingerprint(size=64)
