@@ -28,6 +28,24 @@ def test_log_prob():
     assert (move_probability == np.array([-49, -10.5])).all()
 
 
+def test_log_prob_gaussian_sigma_shapes():
+    """log_prob_gaussian must weight sigma by broadcast shape, so every
+    sigma layout the docstring allows gives the same density."""
+    from scipy.stats import norm
+    rs = np.random.RandomState(0)
+    b, n = 2, 4
+    y, mu = rs.randn(b, n, 1, 3), rs.randn(b, n, 1, 3)
+    const = -(n * 3) / 2 * np.log(2 * np.pi)
+    distribution = ElectronSampler(np.zeros((b, 3)), f)
+
+    for shape in [(b, n, 1, 1), (b, n, 1, 3), (b, 1, 1, 1)]:
+        sigma = rs.uniform(0.2, 2.0, shape)
+        truth = norm.logpdf(y, mu, np.broadcast_to(sigma,
+                                                   y.shape)).sum(axis=(1, 2, 3))
+        assert np.allclose(distribution.log_prob_gaussian(y, mu, sigma),
+                           truth - const)
+
+
 def test_steps():
 
     # test for gauss_initialize_position

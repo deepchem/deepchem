@@ -146,8 +146,9 @@ class ElectronSampler:
             Log probability of gaussian distribution, with the shape - (batch_no,).
         """
 
+        sigma = np.broadcast_to(sigma, y.shape)
         numer = np.sum((-0.5 * ((y - mu)**2) / (sigma**2)), axis=(1, 2, 3))
-        denom = y.shape[-1] * np.sum(np.log(sigma), axis=(1, 2, 3))
+        denom = np.sum(np.log(sigma), axis=(1, 2, 3))
         return numer - denom
 
     def gauss_initialize_position(self,
