@@ -144,4 +144,39 @@ class TestPiInteractions(unittest.TestCase):
         self.assertEqual(lig_dict, exp_lig_dict)
 
     def test_compute_hydrogen_bonds(self):
-        pass
+        from rdkit import Chem
+        from rdkit.Geometry import Point3D
+        from deepchem.utils.geometry_utils import compute_pairwise_distances
+        from deepchem.utils.noncovalent_utils import compute_hydrogen_bonds
+
+        def water(oxygen, H1, H2):
+            mol = Chem.AddHs(Chem.MolFromSmiles('O'))
+            xyz = np.array([oxygen, H1, H2], dtype=float)
+            conf = Chem.Conformer(3)
+            for i, p in enumerate(xyz):
+                conf.SetAtomPosition(i, Point3D(*p))
+            mol.AddConformer(conf)
+            return xyz, mol
+
+        def hbonds(f1, f2, angle=40.0):
+            distances = compute_pairwise_distances(f1[0], f2[0])
+            return compute_hydrogen_bonds(f1, f2, distances, [(2.5, 3.3)],
+                                          [angle])[0]
+
+        # Acceptor water with hydrogens pointing away from the donor.
+        acceptor = water((2.9, 0, 0), (3.4, 0.8, 0), (3.4, -0.8, 0))
+        bonding_H, other_H = (0.96, 0, 0), (-0.24, 0.93, 0)
+
+        # The bond must be found regardless of which fragment donates and
+        # which of the donor's hydrogens is the bonding one.
+        for h1, h2 in ((bonding_H, other_H), (other_H, bonding_H)):
+            donor = water((0, 0, 0), h1, h2)
+            self.assertEqual(hbonds(donor, acceptor), [(0, 0)])
+            self.assertEqual(hbonds(acceptor, donor), [(0, 0)])
+
+        # Bending the donor beyond a tight cutoff must suppress the bond.
+        bend = np.radians(12.0)
+        bent_H = (0.96 * np.cos(bend), 0.96 * np.sin(bend), 0)
+        donor = water((0, 0, 0), bent_H, other_H)
+        self.assertEqual(hbonds(donor, acceptor, 10.0), [])
+        self.assertEqual(hbonds(donor, acceptor, 40.0), [(0, 0)])

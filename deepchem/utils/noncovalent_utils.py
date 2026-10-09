@@ -96,7 +96,7 @@ def is_hydrogen_bond(frag1,
         for j, atom in enumerate(frag1_mol.GetAtoms()):
             # If atom is a hydrogen
             if atom.GetAtomicNum() == 1:
-                atom_xyz = frag1_xyz[i]
+                atom_xyz = frag1_xyz[j]
                 dist = np.linalg.norm(atom_xyz - frag1_atom_xyz)
                 # O-H distance is 0.96 A, N-H is 1.01 A. See http://www.science.uwaterloo.ca/~cchieh/cact/c120/bondel.html
                 if dist < 1.3:
@@ -105,8 +105,9 @@ def is_hydrogen_bond(frag1,
         for hydrogen_xyz in hydrogens:
             hydrogen_to_frag2 = frag2_atom_xyz - hydrogen_xyz
             hydrogen_to_frag1 = frag1_atom_xyz - hydrogen_xyz
-            return is_angle_within_cutoff(hydrogen_to_frag2, hydrogen_to_frag1,
-                                          hbond_angle_cutoff)
+            if is_angle_within_cutoff(hydrogen_to_frag2, hydrogen_to_frag1,
+                                      hbond_angle_cutoff):
+                return True
     return False
 
 
@@ -135,7 +136,10 @@ def compute_hbonds_in_range(frag1, frag2, pairwise_distances, hbond_dist_bin,
     contacts = zip(contacts[0], contacts[1])
     hydrogen_bond_contacts = []
     for contact in contacts:
-        if is_hydrogen_bond(frag1, frag2, contact, hbond_angle_cutoff):
+        if is_hydrogen_bond(frag1,
+                            frag2,
+                            contact,
+                            hbond_angle_cutoff=hbond_angle_cutoff):
             hydrogen_bond_contacts.append(contact)
     return hydrogen_bond_contacts
 
