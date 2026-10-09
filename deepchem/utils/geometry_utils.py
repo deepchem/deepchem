@@ -158,7 +158,7 @@ def is_angle_within_cutoff(vector_i: np.ndarray, vector_j: np.ndarray,
         A numpy array of shape (3,)`, where `3` is (x,y,z).
     vector_j: np.ndarray
         A numpy array of shape `(3,)`, where `3` is (x,y,z).
-    cutoff: float
+    angle_cutoff: float
         The deviation from 180 (in degrees)
 
     Returns

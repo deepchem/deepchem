@@ -17,7 +17,7 @@ def collate_dataset_fn(batch_data: List[Tuple[Any, Any, Any, Any]], model):
 
     Parameters
     ----------
-    batch: List[Tuple[Any, Any, Any, Any]]
+    batch_data: List[Tuple[Any, Any, Any, Any]]
         Batch of data from DataLoader containing tuples of (X, y, w, ids).
     model: TorchModel
         DeepChem model instance used for batch processing.
