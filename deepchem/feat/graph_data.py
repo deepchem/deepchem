@@ -269,6 +269,8 @@ class GraphData:
         -------
         subgraph_data : GraphData
             A new GraphData object containing the subgraph induced on `nodes`.
+            If no edges are retained, `edge_index` has shape (2, 0) and
+            any edge features retain their feature dimension.
 
         Example
         -------
@@ -295,17 +297,18 @@ class GraphData:
 
         # Filter and reindex edge indices and edge features
         subgraph_edge_indices = []
-        subgraph_edge_features = []
-        if self.edge_features is not None:
-            for i in range(self.num_edges):
-                src, dest = self.edge_index[:, i]
-                if src in nodes and dest in nodes:
-                    subgraph_edge_indices.append(
-                        (node_mapping[src], node_mapping[dest]))
-                    subgraph_edge_features.append(self.edge_features[i])
+        retained_edge_indices = []
+        for i in range(self.num_edges):
+            src, dest = self.edge_index[:, i]
+            if src in nodes and dest in nodes:
+                subgraph_edge_indices.append(
+                    (node_mapping[src], node_mapping[dest]))
+                retained_edge_indices.append(i)
 
-        subgraph_edge_index = np.array(subgraph_edge_indices, dtype=np.int64).T
-        subgraph_edge_features = np.array(subgraph_edge_features)
+        subgraph_edge_index = np.array(subgraph_edge_indices,
+                                       dtype=np.int64).reshape(-1, 2).T
+        subgraph_edge_features = (self.edge_features[retained_edge_indices]
+                                  if self.edge_features is not None else None)
 
         subgraph_data = GraphData(node_features=subgraph_node_features,
                                   edge_index=subgraph_edge_index,
