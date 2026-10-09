@@ -257,6 +257,49 @@ class TestGraph(unittest.TestCase):
         expected_node_mapping = {0: 0, 1: 1, 2: 2, 4: 3}
         assert node_mapping == expected_node_mapping
 
+    def test_subgraph_without_edge_features(self):
+        node_features = np.arange(10).reshape(5, 2)
+        edge_index = np.array([[0, 1, 2, 3, 4], [1, 2, 3, 4, 0]],
+                              dtype=np.int64)
+        graph_data = GraphData(node_features, edge_index)
+
+        nodes = [0, 1, 2, 4]
+        subgraph, node_mapping = graph_data.subgraph(nodes)
+
+        assert node_mapping == {0: 0, 1: 1, 2: 2, 4: 3}
+        np.testing.assert_array_equal(subgraph.node_features,
+                                      node_features[nodes])
+        np.testing.assert_array_equal(subgraph.edge_index,
+                                      [[0, 1, 3], [1, 2, 0]])
+        assert subgraph.edge_features is None
+
+    def test_subgraph_without_edges(self):
+        node_features = np.arange(6).reshape(3, 2)
+        edge_index = np.array([[0, 1], [1, 2]], dtype=np.int64)
+        edge_features = np.arange(4, dtype=np.float32).reshape(2, 2)
+
+        for features in (None, edge_features):
+            graph_data = GraphData(node_features, edge_index, features)
+            for nodes in ([], [0], [0, 2]):
+                with self.subTest(nodes=nodes,
+                                  edge_features=features is not None):
+                    subgraph, node_mapping = graph_data.subgraph(nodes)
+
+                    assert node_mapping == {
+                        node: index for index, node in enumerate(nodes)
+                    }
+                    np.testing.assert_array_equal(subgraph.node_features,
+                                                  node_features[nodes])
+                    assert subgraph.num_edges == 0
+                    assert subgraph.edge_index.shape == (2, 0)
+                    assert subgraph.edge_index.dtype == np.int64
+                    if features is None:
+                        assert subgraph.edge_features is None
+                    else:
+                        assert subgraph.edge_features.shape == (0, 2)
+                        assert subgraph.edge_features.dtype == features.dtype
+                        assert subgraph.num_edge_features == 2
+
 
 class TestWeightedDirectedGraph(unittest.TestCase):
 
