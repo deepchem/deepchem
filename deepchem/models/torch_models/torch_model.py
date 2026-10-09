@@ -850,7 +850,7 @@ class TorchModel(Model):
         generator: generator
             this should generate batches, each represented as a tuple of the form
             (inputs, labels, weights).
-        metric: list of deepchem.metrics.Metric
+        metrics: list of deepchem.metrics.Metric
             Evaluation metric
         transformers: list of dc.trans.Transformers
             Transformers that the input data has been transformed by.  The output

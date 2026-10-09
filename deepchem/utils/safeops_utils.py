@@ -212,7 +212,7 @@ class _OccNumber(torch.autograd.Function):
             Floor of a
         ceil_a: int
             Ceiling of a
-        nlenght: int
+        nlength: int
             Length of the output
         dtype: torch.dtype
             Data type of the output
