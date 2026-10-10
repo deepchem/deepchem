@@ -161,8 +161,9 @@ class CircularFingerprint(MolecularFeaturizer):
         return fp
 
     def __hash__(self):
-        return hash((self.radius, self.size, self.chiral, self.bonds,
-                     self.features, self.sparse, self.smiles))
+        return hash(
+            (self.radius, self.size, self.chiral, self.bonds, self.features,
+             self.sparse, self.smiles, self.is_counts_based))
 
     def __eq__(self, other):
         if not isinstance(self, other.__class__):
@@ -173,4 +174,5 @@ class CircularFingerprint(MolecularFeaturizer):
                self.bonds == other.bonds and \
                self.features == other.features and \
                self.sparse == other.sparse and \
-               self.smiles == other.smiles
+               self.smiles == other.smiles and \
+               self.is_counts_based == other.is_counts_based
