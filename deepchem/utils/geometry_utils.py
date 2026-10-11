@@ -40,6 +40,12 @@ def angle_between(vector_i: np.ndarray, vector_j: np.ndarray) -> float:
     np.ndarray
         The angle in radians between the two vectors.
 
+    Notes
+    -----
+    The angle is computed as ``arctan2(|u x v|, u . v)`` on the normalized
+    vectors, which stays accurate for nearly parallel or antiparallel vectors
+    in single precision. For zero-length vectors the result is NaN.
+
     Examples
     --------
     >>> print("%0.06f" % angle_between((1, 0, 0), (0, 1, 0)))
@@ -49,15 +55,13 @@ def angle_between(vector_i: np.ndarray, vector_j: np.ndarray) -> float:
     >>> print("%0.06f" % angle_between((1, 0, 0), (-1, 0, 0)))
     3.141593
     """
+
     vector_i_u = unit_vector(vector_i)
     vector_j_u = unit_vector(vector_j)
-    angle = np.arccos(np.dot(vector_i_u, vector_j_u))
-    if np.isnan(angle):
-        if np.allclose(vector_i_u, vector_j_u):
-            return 0.0
-        else:
-            return np.pi
-    return angle
+    # arccos is ill-conditioned near 1 and returns NaN when rounding pushes the
+    # dot product above 1 (common in float32). arctan2 avoids both problems.
+    return np.arctan2(np.linalg.norm(np.cross(vector_i_u, vector_j_u)),
+                      np.dot(vector_i_u, vector_j_u))
 
 
 def generate_random_unit_vector() -> np.ndarray:
