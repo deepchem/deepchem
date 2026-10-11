@@ -247,7 +247,7 @@ def load_molecule(molecule_file,
         If True, add hydrogens via pdbfixer
     calc_charges: bool, optional (default True)
         If True, add charges via rdkit
-    sanitize: bool, optional (default False)
+    sanitize: bool, optional (default True)
         If True, sanitize molecules via rdkit
     is_protein: bool, optional (default False)
         If True`, this molecule is loaded as a protein. This flag will

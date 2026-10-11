@@ -618,7 +618,7 @@ def get_bond_graph_distance_one_hot(
         The return value of `Chem.GetDistanceMatrix(mol)`. The shape is `(num_atoms, num_atoms)`.
     allowable_set: List[int]
         The graph distance types to consider. The default set is `[1, 2, ..., 7]`.
-    include_unknown_set: bool, default False
+    include_unknown_set: bool, default True
         If true, the index of all types not in `allowable_set` is `len(allowable_set)`.
 
     Returns
