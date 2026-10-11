@@ -40,6 +40,37 @@ class TestGeometryUtils(unittest.TestCase):
             self.assertAlmostEqual(angle_between(v1, v1), 0.0)
             self.assertAlmostEqual(angle_between(v1, -v1), np.pi)
 
+    def test_angle_between_nearly_parallel_float32(self):
+        """Regression test for #5211: used to return pi."""
+        x = np.array(
+            [-0.43171852827072144, -1.392874002456665, 0.3115706741809845],
+            dtype=np.float32)
+        y = np.array(
+            [-0.4317198395729065, -1.3927290439605713, 0.3116004765033722],
+            dtype=np.float32)
+        angle = angle_between(x, y)
+        self.assertLess(angle, 1e-3)
+        self.assertAlmostEqual(angle, 4.8891e-05, delta=1e-5)
+
+    def test_angle_between_random_nearly_parallel_float32(self):
+        rng = np.random.default_rng(0)
+        a = rng.normal(size=(1000, 3)).astype(np.float32)
+        for theta in (1e-5, 1e-4):
+            p = np.cross(a, rng.normal(size=(1000, 3)))
+            p /= np.linalg.norm(p, axis=1)[:, None]
+            b = (a + theta * np.linalg.norm(a, axis=1)[:, None] * p).astype(
+                np.float32)
+            angles = np.array([angle_between(u, v) for u, v in zip(a, b)])
+            self.assertTrue(np.all(angles < 1e-3))
+
+    def test_angle_between_basic_cases_dtypes(self):
+        for dtype in (np.float32, np.float64):
+            e1 = np.array([1, 0, 0], dtype=dtype)
+            e2 = np.array([0, 1, 0], dtype=dtype)
+            self.assertAlmostEqual(angle_between(e1, e1), 0.0, places=6)
+            self.assertAlmostEqual(angle_between(e1, e2), np.pi / 2, places=5)
+            self.assertAlmostEqual(angle_between(e1, -e1), np.pi, places=5)
+
     def test_is_angle_within_cutoff(self):
         v1 = np.array([1, 0, 0])
         v2 = np.array([-1, 0, 0])
