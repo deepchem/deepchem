@@ -79,7 +79,7 @@ class ElectronSampler:
             Number of batches of the electron's positions to be initialized.
         x: np.ndarray, optional (default np.ndarray([]))
             Contains the electron's coordinates in a 4D array. The shape of the array should be(batch_no,no_of_electrons,1,3). Can be a 1D empty array, when electron's positions are yet to be initialized.
-        steps: int, optional (default 10)
+        steps: int, optional (default 200)
             The number of MCMC steps to be performed when the moves are called.
         steps_per_update: int (default 10)
             The number of steps after which the parameters of the MCMC gets updated.
