@@ -595,3 +595,23 @@ class TestLosses(unittest.TestCase):
         # Check if the loss is a scalar and non-negative
         assert loss.dim() == 0
         assert loss.item() >= 0
+
+    @pytest.mark.torch
+    def test_poisson_loss_zero_output_no_nan(self):
+        """Test PoissonLoss does not return nan or inf for a zero output."""
+        import torch
+        loss_fn = losses.PoissonLoss()._create_pytorch_loss()
+        output = torch.tensor([0.0, 1.0, 2.0])
+        labels = torch.tensor([1.0, 1.0, 1.0])
+        result = loss_fn(output, labels)
+        assert torch.isfinite(result)
+
+    @pytest.mark.torch
+    def test_categorical_crossentropy_zero_prob_no_nan(self):
+        """Test CategoricalCrossEntropy does not return nan or inf for a zero probability."""
+        import torch
+        loss_fn = losses.CategoricalCrossEntropy()._create_pytorch_loss()
+        output = torch.tensor([[0.0, 0.5, 0.5]])
+        labels = torch.tensor([[1.0, 0.0, 0.0]])
+        result = loss_fn(output, labels)
+        assert torch.all(torch.isfinite(result))
