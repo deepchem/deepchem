@@ -62,8 +62,13 @@ class OneHotFeaturizer(Featurizer):
         If max_length is None, no padding is performed and arbitrary length
         strings are allowed.
         """
+
+        if any(not isinstance(char, str) or len(char) != 1 for char in charset):
+            raise ValueError(
+                "All values in charset must be exactly one character.")
         if len(charset) != len(set(charset)):
             raise ValueError("All values in charset must be unique.")
+
         self.charset = charset
         self.max_length: Optional[int]
         if max_length is not None:
