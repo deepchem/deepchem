@@ -110,3 +110,13 @@ class TestOneHotFeaturizer(unittest.TestCase):
         assert np.allclose(feature[0][4],
                            np.array([0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0]))
         assert "This test case has not yet been written."
+
+    def test_charset_rejects_multi_character_entries(self):
+        """Reject charset entries that contain more than one character."""
+        with self.assertRaisesRegex(ValueError, "one character"):
+            OneHotFeaturizer(charset=['AB', 'C'])
+
+    def test_charset_rejects_empty_entries(self):
+        """Reject empty charset entries."""
+        with self.assertRaisesRegex(ValueError, "one character"):
+            OneHotFeaturizer(charset=['', 'A'])
