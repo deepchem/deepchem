@@ -28,6 +28,31 @@ def randomize_arrays(array_list):
     return permuted_arrays
 
 
+def _validate_fractions(frac_train: float, frac_valid: float,
+                        frac_test: float) -> None:
+    """Validates that split fractions are non-negative and sum to 1.0.
+
+    Parameters
+    ----------
+    frac_train: float
+        Fraction of data to be used for the training split.
+    frac_valid: float
+        Fraction of data for the validation split.
+    frac_test: float
+        Fraction of data for the test split.
+
+    Raises
+    ------
+    ValueError
+        If any of the fractions are negative.
+    """
+    if frac_train < 0 or frac_valid < 0 or frac_test < 0:
+        raise ValueError(
+            f"Split fractions must be non-negative. Received frac_train={frac_train}, "
+            f"frac_valid={frac_valid}, frac_test={frac_test}")
+    np.testing.assert_almost_equal(frac_train + frac_valid + frac_test, 1.)
+
+
 class Splitter(object):
     """Splitters split up Datasets into pieces for training/validation/testing.
 
@@ -154,6 +179,7 @@ class Splitter(object):
         Tuple[Dataset, Optional[Dataset], Dataset]
             A tuple of train, valid and test datasets as dc.data.Dataset objects.
         """
+        _validate_fractions(frac_train, frac_valid, frac_test)
         logger.info("Computing train/valid/test indices")
         train_inds, valid_inds, test_inds = self.split(dataset,
                                                        frac_train=frac_train,
@@ -377,7 +403,7 @@ class RandomSplitter(Splitter):
             A tuple of train indices, valid indices, and test indices.
             Each indices is a numpy array.
         """
-        np.testing.assert_almost_equal(frac_train + frac_valid + frac_test, 1.)
+        _validate_fractions(frac_train, frac_valid, frac_test)
         if seed is not None:
             np.random.seed(seed)
         num_datapoints = len(dataset)
@@ -469,7 +495,7 @@ class RandomGroupSplitter(Splitter):
         """
 
         assert len(self.groups) == dataset.X.shape[0]
-        np.testing.assert_almost_equal(frac_train + frac_valid + frac_test, 1.)
+        _validate_fractions(frac_train, frac_valid, frac_test)
 
         if seed is not None:
             np.random.seed(seed)
@@ -745,7 +771,7 @@ class SingletaskStratifiedSplitter(Splitter):
         # JSG Assert that split fractions can be written as proper fractions over 10.
         # This can be generalized in the future with some common demoninator determination.
         # This will work for 80/20 train/test or 80/10/10 train/valid/test (most use cases).
-        np.testing.assert_equal(frac_train + frac_valid + frac_test, 1.)
+        _validate_fractions(frac_train, frac_valid, frac_test)
         np.testing.assert_equal(
             10 * frac_train + 10 * frac_valid + 10 * frac_test, 10.)
 
@@ -839,7 +865,7 @@ class IndexSplitter(Splitter):
             A tuple of train indices, valid indices, and test indices.
             Each indices is a numpy array.
         """
-        np.testing.assert_almost_equal(frac_train + frac_valid + frac_test, 1.)
+        _validate_fractions(frac_train, frac_valid, frac_test)
         num_datapoints = len(dataset)
         train_cutoff = int(frac_train * num_datapoints)
         valid_cutoff = int((frac_train + frac_valid) * num_datapoints)
@@ -1014,7 +1040,7 @@ class MolecularWeightSplitter(Splitter):
         except ModuleNotFoundError:
             raise ImportError("This function requires RDKit to be installed.")
 
-        np.testing.assert_almost_equal(frac_train + frac_valid + frac_test, 1.)
+        _validate_fractions(frac_train, frac_valid, frac_test)
         if seed is not None:
             np.random.seed(seed)
 
@@ -1100,7 +1126,7 @@ class MaxMinSplitter(Splitter):
         except ModuleNotFoundError:
             raise ImportError("This function requires RDKit to be installed.")
 
-        np.testing.assert_almost_equal(frac_train + frac_valid + frac_test, 1.)
+        _validate_fractions(frac_train, frac_valid, frac_test)
         if seed is None:
             seed = random.randint(0, 2**30)
         np.random.seed(seed)
@@ -1397,6 +1423,8 @@ class FingerprintSplitter(Splitter):
         except ModuleNotFoundError:
             raise ImportError("This function requires RDKit to be installed.")
 
+        _validate_fractions(frac_train, frac_valid, frac_test)
+
         # Compute fingerprints for all molecules.
 
         mols = [Chem.MolFromSmiles(smiles) for smiles in dataset.ids]
@@ -1550,7 +1578,7 @@ class ScaffoldSplitter(Splitter):
             A tuple of train indices, valid indices, and test indices.
             Each indices is a list of integers.
         """
-        np.testing.assert_almost_equal(frac_train + frac_valid + frac_test, 1.)
+        _validate_fractions(frac_train, frac_valid, frac_test)
         scaffold_sets = self.generate_scaffolds(dataset)
 
         train_cutoff = frac_train * len(dataset)
@@ -1681,7 +1709,7 @@ class TimeSplitterPDBbind(Splitter):
         self.years = {}
         for i in range(df.shape[0]):
             self.years[df[0][i]] = int(df[1][i])
-        np.testing.assert_almost_equal(frac_train + frac_valid + frac_test, 1.)
+        _validate_fractions(frac_train, frac_valid, frac_test)
         num_datapoints = len(dataset)
         assert len(self.ids) == num_datapoints
         train_cutoff = int(frac_train * num_datapoints)
