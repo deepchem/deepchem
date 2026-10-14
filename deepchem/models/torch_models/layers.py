@@ -12,8 +12,10 @@ try:
     import torch.nn as nn
     import torch.nn.functional as F
     from deepchem.models.torch_models.flows import Affine
-except ModuleNotFoundError:
-    raise ImportError('These classes require PyTorch to be installed.')
+except ModuleNotFoundError as e:
+    raise ImportError(
+        f'These classes require PyTorch to be installed. Original error: {e}'
+    ) from e
 
 try:
     from torch_geometric.utils import scatter
@@ -1202,7 +1204,7 @@ class GraphNetwork(torch.nn.Module):
             global_features: Tensor,
             batch: Optional[Tensor] = None) -> Tuple[Tensor, Tensor, Tensor]:
         """Output computation for a GraphNetwork
-        
+
         Parameters
         ----------
         node_features: torch.Tensor
@@ -6691,7 +6693,7 @@ class SphericalHarmonics:
 class SE3Attention(nn.Module):
     """
     SE(3) Attention Module with Spherical Harmonics.
-    
+
     This module is designed for 3D atomic or molecular data, using spherical harmonics
     to compute rotationally equivariant attention based on interatomic distances and
     relative positions. It ensures SE(3)-equivariance for both feature and coordinate updates.
@@ -6867,7 +6869,7 @@ class DAGLayer(nn.Module):
     """
     DAG computation layer implemented in PyTorch.
     It is used to compute graph features for each atom with it's neighbors recursively.
-    
+
     Example
     -------
     >>> import numpy as np
@@ -7081,7 +7083,7 @@ class DAGGather(nn.Module):
     """
     DAG vector gathering layer in PyTorch.
     It is used to gather graph features and combine them based on their membership.
-    
+
     Example
     -------
     >>> import numpy as np
@@ -9021,7 +9023,7 @@ class SE3PartialEdgeConv(nn.Module):
     ...    print(tensor.shape)
     torch.Size([4, 32, 1])
     torch.Size([4, 64, 3])
-  
+
 
     References
     ----------
@@ -9364,7 +9366,7 @@ class SpectralConv(nn.Module):
     keeps only a specified number of Fourier modes (for each spatial dimension),
     applies a learned complex multiplication (einsum), and returns to physical space
     via the inverse FFT.
-    
+
     Example
     -------
     >>> import torch
@@ -9378,7 +9380,7 @@ class SpectralConv(nn.Module):
     >>> # Check output shape
     >>> output.shape
     torch.Size([2, 16, 32, 32])
-    >>> 
+    >>>
     >>> # Create a 1D spectral convolution layer
     >>> layer_1d = SpectralConv(in_channels=4, out_channels=8, modes=10, dims=1)
     >>> # Input: batch_size=3, channels=4, sequence_length=64
@@ -9412,7 +9414,7 @@ class SpectralConv(nn.Module):
         -------
         torch.Tensor
             Output tensor of shape (batch_size, out_channels, *spatial_dims).
-            The tensor contains the result of applying spectral convolution 
+            The tensor contains the result of applying spectral convolution
             in the Fourier domain and transforming back to the spatial domain.
         """
         super(SpectralConv, self).__init__()
@@ -9446,7 +9448,7 @@ class SpectralConv(nn.Module):
         ----------
         x: torch.Tensor
             Input tensor of shape (batch, in_channels, *spatial_dims).
-        
+
         Returns
         -------
         torch.Tensor
