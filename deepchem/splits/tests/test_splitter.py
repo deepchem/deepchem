@@ -614,3 +614,46 @@ class TestSplitter(unittest.TestCase):
             cv_folds[1][1])
         assert len(multitask_dataset) == len(cv_folds[2][0]) + len(
             cv_folds[2][1])
+
+    def test_negative_fractions(self):
+        """Test that passing negative split fractions raises ValueError."""
+        dataset = load_solubility_data()
+
+        # Test RandomSplitter
+        random_splitter = dc.splits.RandomSplitter()
+        with self.assertRaises(ValueError):
+            random_splitter.split(dataset,
+                                  frac_train=-0.2,
+                                  frac_valid=0.6,
+                                  frac_test=0.6)
+        with self.assertRaises(ValueError):
+            random_splitter.split(dataset,
+                                  frac_train=0.8,
+                                  frac_valid=-0.1,
+                                  frac_test=0.3)
+        with self.assertRaises(ValueError):
+            random_splitter.split(dataset,
+                                  frac_train=0.8,
+                                  frac_valid=0.3,
+                                  frac_test=-0.1)
+        with self.assertRaises(ValueError):
+            random_splitter.train_valid_test_split(dataset,
+                                                   frac_train=-0.2,
+                                                   frac_valid=0.6,
+                                                   frac_test=0.6)
+
+        # Test IndexSplitter
+        index_splitter = dc.splits.IndexSplitter()
+        with self.assertRaises(ValueError):
+            index_splitter.split(dataset,
+                                 frac_train=-0.2,
+                                 frac_valid=0.6,
+                                 frac_test=0.6)
+
+        # Test ScaffoldSplitter
+        scaffold_splitter = dc.splits.ScaffoldSplitter()
+        with self.assertRaises(ValueError):
+            scaffold_splitter.split(dataset,
+                                    frac_train=-0.2,
+                                    frac_valid=0.6,
+                                    frac_test=0.6)
