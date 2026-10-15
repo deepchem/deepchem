@@ -226,7 +226,7 @@ class LightningTorchModel(Model):
             List of transformers to apply to predictions.
         other_output_types: Optional[OneOrMany[str]], default None
             List of other output types to compute.
-        num_workers: int, default 4
+        num_workers: int, default 0
             Number of workers for DataLoader.
         uncertainty: Optional[bool], default None
             Whether to compute uncertainty estimates.
