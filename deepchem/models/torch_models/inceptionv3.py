@@ -843,7 +843,7 @@ class InceptionV3Model(TorchModel):
         ----------
         dataset: Dataset
             Dataset to be used for training.
-        nb_epoch: int, optional (default 1)
+        nb_epoch: int, optional (default 10)
             Number of epochs to train the model.
         max_checkpoints_to_keep: int, optional
             Number of checkpoints to keep.

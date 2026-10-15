@@ -138,7 +138,7 @@ class ChemCeptionLayer(nn.Module):
             2D Average Pooling layer
         output_layer: nn.Module
             A fully connected layer for regression/classification task
-        mode: str, default regression
+        mode: str, default classification
             The model type, 'classification' or 'regression'.
         n_tasks: int, default 10
             Number of classification or regression tasks
@@ -300,7 +300,7 @@ class ChemCeption(ModularTorchModel):
             Number of classes (used only for classification)
         augment: bool, default False
             Whether to augment images
-        mode: str, default regression
+        mode: str, default classification
             Whether the model is used for regression or classification
         """
         self.img_size = img_size

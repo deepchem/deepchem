@@ -565,7 +565,7 @@ class FerminetModel(TorchModel):
             contains the number of pretraining steps to be performed
         lr : float (default: 0.002)
             contains the learning rate for the model fitting
-        weight_decay: float (default: 0.002)
+        weight_decay: float (default: 0)
             contains the weight_decay for the model fitting
         std: float (default: 0.08)
             The standard deviation for the electron update during training
