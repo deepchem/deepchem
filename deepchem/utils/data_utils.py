@@ -384,7 +384,9 @@ def load_csv_files(input_files: List[str],
     shard_num = 1
     for input_file in input_files:
         if shard_size is None:
-            yield pd.read_csv(input_file)
+            df=pd.read_csv(input_file)
+            df=df.replace(np.nan,str(""),regex=True)
+            yield df
         else:
             logger.info("About to start loading CSV from %s" % input_file)
             for df in pd.read_csv(input_file, chunksize=shard_size):
@@ -419,7 +421,9 @@ def load_json_files(input_files: List[str],
     shard_num = 1
     for input_file in input_files:
         if shard_size is None:
-            yield pd.read_json(input_file, orient='records', lines=True)
+            df=pd.read_json(input_file, orient='records', lines=True)
+            df=df.replace(np.nan,str(""),regex=True)
+            yield df
         else:
             logger.info("About to start loading json from %s." % input_file)
             for df in pd.read_json(input_file,

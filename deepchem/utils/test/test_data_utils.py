@@ -1,4 +1,5 @@
 import os
+import numpy as np
 import unittest
 import tempfile
 import pandas as pd
@@ -9,6 +10,39 @@ from deepchem.molnet.load_function.qm9_datasets import QM9_URL
 
 
 class TestFileLoading(unittest.TestCase):
+
+    def test_load_csv_files_normalizes_missing_values(self):
+      """Missing CSV values should be normalized consistently with sharding."""
+
+      with tempfile.TemporaryDirectory() as tmpdir:
+        path = os.path.join(tmpdir, "test.csv")
+
+        with open(path, "w") as f:
+            f.write(
+                "smiles,label\n"
+                "CCO,1.0\n"
+                "CCC,\n"
+                "CC,0.0\n"
+                "CCCCC,1.0\n"
+            )
+
+        unsharded = next(
+            dc.utils.data_utils.load_csv_files([path], shard_size=None)
+        )
+
+        sharded = pd.concat(
+            dc.utils.data_utils.load_csv_files([path], shard_size=2),
+            ignore_index=True,
+        )
+
+        assert unsharded.equals(sharded)
+
+        assert unsharded["label"].tolist() == [
+            1.0,
+            "",
+            0.0,
+            1.0,
+        ]
 
     def test_load_sdf_files(self):
         current_dir = os.path.dirname(os.path.realpath(__file__))
