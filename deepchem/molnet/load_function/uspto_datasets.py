@@ -9,7 +9,7 @@ from typing import List, Optional, Tuple, Union
 
 import deepchem as dc
 from deepchem.data import Dataset
-from deepchem.molnet.load_function.molnet_loader import TransformerGenerator, _MolnetLoader
+from deepchem.molnet.load_function.molnet_loader import TransformerGenerator, _MolnetLoader, featurizers
 
 try:
     from transformers import RobertaTokenizerFast
@@ -160,13 +160,22 @@ def load_uspto(
         graph logic network." arXiv preprint arXiv:2001.01408 (2020).
     """
 
-    tokenizer = RobertaTokenizerFast.from_pretrained(
-        "seyonec/PubChem10M_SMILES_BPE_450k")
-
-    if featurizer == "plain":
+    if isinstance(featurizer, dc.feat.Featurizer):
+        featurizer = featurizer
+    elif featurizer == "plain":
         featurizer = dc.feat.DummyFeaturizer()
-    else:
+    elif featurizer == "RxnFeaturizer":
+        try:
+            tokenizer = RobertaTokenizerFast.from_pretrained(
+                "seyonec/PubChem10M_SMILES_BPE_450k")
+        except NameError:
+            raise ImportError(
+                "RxnFeaturizer requires transformers to be installed.")
         featurizer = RxnFeaturizer(tokenizer, sep_reagent=sep_reagent)
+    elif isinstance(featurizer, str) and featurizer.lower() in featurizers:
+        featurizer = featurizers[featurizer.lower()]
+    elif isinstance(featurizer, str):
+        raise ValueError(f"Featurizer '{featurizer}' is not recognized.")
 
     loader = _USPTOLoader(featurizer,
                           splitter,
