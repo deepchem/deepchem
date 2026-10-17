@@ -527,14 +527,14 @@ class ProgressiveMultitaskModel(TorchModel):
             variables += list(self.model.adapters[task - 1].parameters())
             variables += list(self.model.alphas[task - 1].parameters())
 
-        self.fit_generator(generator=generator,
-                           max_checkpoints_to_keep=max_checkpoints_to_keep,
-                           checkpoint_interval=checkpoint_interval,
-                           restore=restore,
-                           variables=variables,
-                           loss=loss,
-                           callbacks=callbacks,
-                           all_losses=all_losses)
+        return self.fit_generator(generator=generator,
+                                  max_checkpoints_to_keep=max_checkpoints_to_keep,
+                                  checkpoint_interval=checkpoint_interval,
+                                  restore=restore,
+                                  variables=variables,
+                                  loss=loss,
+                                  callbacks=callbacks,
+                                  all_losses=all_losses)
 
 
 class ProgressiveMultitaskRegressor(ProgressiveMultitaskModel):
