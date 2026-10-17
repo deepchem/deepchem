@@ -230,6 +230,27 @@ def test_progressivemultitask_classification_overfit():
 
 
 @pytest.mark.torch
+def test_progressivemultitask_fit_task_returns_loss():
+    """fit_task documents returning the average loss, so it should not return None."""
+    n_samples = 10
+    n_features = 5
+    n_tasks = 2
+
+    np.random.seed(123)
+    torch.manual_seed(123)
+    X = np.random.rand(n_samples, n_features)
+    y = np.random.rand(n_samples, n_tasks).astype(np.float32)
+    dataset = dc.data.NumpyDataset(X, y)
+
+    model = ProgressiveMultitaskRegressor(n_tasks, n_features,
+                                          layer_sizes=[16])
+
+    loss = model.fit_task(dataset=dataset, task=0, nb_epoch=1)
+    assert loss is not None
+    assert isinstance(float(loss), float)
+
+
+@pytest.mark.torch
 def test_progressivemultitask_reload():
     """Test that the model can be reloaded from disk."""
 
