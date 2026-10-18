@@ -269,6 +269,31 @@ def test_fill_mask_fidelity(tmpdir, hf_tokenizer):
 
 
 @pytest.mark.hf
+@pytest.mark.parametrize('mask_positions', [[], [1, 2]])
+def test_fill_mask_requires_exactly_one_mask(tmpdir, hf_tokenizer,
+                                             mask_positions):
+    from transformers import (RobertaConfig, RobertaForMaskedLM)
+
+    config = RobertaConfig(vocab_size=hf_tokenizer.vocab_size)
+    model = RobertaForMaskedLM(config)
+    hf_model = HuggingFaceModel(model=model,
+                                tokenizer=hf_tokenizer,
+                                task='mlm',
+                                model_dir=tmpdir,
+                                device=torch.device('cpu'))
+    hf_model._ensure_built()
+
+    test_string = "CN(c1ccccc1)c1ccccc1C(=O)NCC1(O)CCOCC1"
+    tokenized_test_string = hf_tokenizer(test_string)
+    for position in mask_positions:
+        tokenized_test_string.input_ids[position] = hf_tokenizer.mask_token_id
+    masked_test_string = hf_tokenizer.decode(tokenized_test_string.input_ids)
+
+    with pytest.raises(ValueError, match='exactly one masked token'):
+        hf_model.fill_mask(masked_test_string)
+
+
+@pytest.mark.hf
 def test_load_from_pretrained_with_diff_task(tmpdir):
     # Tests loading a pretrained model where the weight shape in last layer
     # (the final projection layer) of the pretrained model does not match
