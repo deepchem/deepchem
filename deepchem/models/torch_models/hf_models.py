@@ -308,6 +308,28 @@ class HuggingFaceModel(TorchModel):
                                            strict=False)
 
     def _prepare_batch(self, batch: Tuple[Any, Any, Any]):
+        """Prepare a batch of data for model input.
+
+        Tokenizes the SMILES strings in the batch and formats the inputs
+        for the model's task. For 'mlm', random tokens are masked with the
+        data collator and the masked labels are added to the inputs. For
+        'causal_lm', the input ids are used as labels, with padding tokens
+        ignored. For 'regression', 'classification' and 'mtr', the labels
+        are converted to float or long tensors. All tensors are moved to
+        the model's device.
+
+        Parameters
+        ----------
+        batch: Tuple[Any, Any, Any]
+            A tuple of (X, y, w) from the dataset generator.
+
+        Returns
+        -------
+        Tuple[Any, Any, Any]
+            A tuple of (inputs, labels, weights) ready for the model. For
+            'mlm' and 'causal_lm' the labels are inside ``inputs``, so the
+            returned labels are None.
+        """
         smiles_batch, y, w = batch
         tokens = self.tokenizer(smiles_batch[0].tolist(),
                                 padding=True,
@@ -650,8 +672,12 @@ class HuggingFaceModel(TorchModel):
             mask_token_index = torch.where(
                 encoded_input["input_ids"] == self.tokenizer.mask_token_id)[1]
             # Ensure that the masked token index appears EXACTLY once.
-            assert mask_token_index.numel(
-            ) == 1, f"Sequence has masked indices at: {list(mask_token_index)}. Please ensure that only one position is masked in the sequence."
+            if mask_token_index.numel() != 1:
+                raise ValueError(
+                    "Expected exactly one masked token in the sequence, "
+                    f"but found {mask_token_index.numel()} at positions: "
+                    f"{mask_token_index.tolist()}. "
+                    "Please ensure only one position is masked.")
 
             with torch.no_grad():
                 output = self.model(**encoded_input)
