@@ -1,4 +1,3 @@
-from logging import raiseExceptions
 import os
 import subprocess
 
@@ -58,7 +57,7 @@ def hhblits(dataset_path,
     if data_dir is None:
         data_dir = os.environ['DEEPCHEM_DATA_DIR']
     if len(data_dir) == 0:
-        raiseExceptions(
+        raise ValueError(
             'hhblits requires a database. Please follow the instructions here \
     to download a database: https://github.com/soedinglab/hh-suite/wiki#hh-suite-databases'
         )
@@ -67,7 +66,8 @@ def hhblits(dataset_path,
 
     save_dir = os.path.dirname(os.path.realpath(dataset_path))
 
-    if dataset_file_type == '.fas' or '.fasta':
+    # the old '== x or ...' check was always True, so this branch never ran
+    if dataset_file_type in ('.fas', '.fasta'):
         command = 'hhsearch ' + \
             ' -i ' + os.path.abspath(dataset_path) + \
             ' -d ' + os.path.join(data_dir, database) + \
@@ -76,7 +76,7 @@ def hhblits(dataset_path,
             ' -n ' + str(num_iterations) + \
             ' -e ' + str(evalue) + \
             ' -M first'
-    if dataset_file_type == '.a3m' or '.a2m' or '.hmm':
+    elif dataset_file_type in ('.a3m', '.a2m', '.hmm'):
         command = 'hhsearch ' + \
             ' -i ' + os.path.abspath(dataset_path) + \
             ' -d ' + os.path.join(data_dir, database) + \
@@ -85,7 +85,9 @@ def hhblits(dataset_path,
             ' -n ' + str(num_iterations) + \
             ' -e ' + str(evalue)
     else:
-        raiseExceptions('Unsupported file type')
+        raise ValueError(
+            f"Unsupported file type: '{dataset_file_type}' for '{dataset_path}'. "
+            "Supported types are '.fas', '.fasta', '.a3m', '.a2m' and '.hmm'.")
 
     system_call(command)
 
@@ -143,7 +145,7 @@ def hhsearch(dataset_path,
     if data_dir is None:
         data_dir = os.environ['DEEPCHEM_DATA_DIR']
     if len(data_dir) == 0:
-        raiseExceptions(
+        raise ValueError(
             'hhsearch requires a database. Please follow the instructions here \
             to download a database: https://github.com/soedinglab/hh-suite/wiki#hh-suite-databases'
         )
@@ -152,7 +154,8 @@ def hhsearch(dataset_path,
 
     save_dir = os.path.dirname(os.path.abspath(dataset_path))
 
-    if dataset_file_type == '.fas' or '.fasta':
+    # same fix as hhblits above
+    if dataset_file_type in ('.fas', '.fasta'):
         command = 'hhsearch ' + \
             ' -i ' + os.path.abspath(dataset_path) + \
             ' -d ' + os.path.join(data_dir, database) + \
@@ -160,7 +163,7 @@ def hhsearch(dataset_path,
             ' -cpu ' + str(num_threads) + \
             ' -e ' + str(evalue) + \
             ' -M first'
-    if dataset_file_type == '.a3m' or '.a2m' or '.hmm':
+    elif dataset_file_type in ('.a3m', '.a2m', '.hmm'):
         command = 'hhsearch ' + \
             ' -i ' + os.path.abspath(dataset_path) + \
             ' -d ' + os.path.join(data_dir, database) + \
@@ -168,7 +171,9 @@ def hhsearch(dataset_path,
             ' -cpu ' + str(num_threads) + \
             ' -e ' + str(evalue)
     else:
-        raiseExceptions('Unsupported file type')
+        raise ValueError(
+            f"Unsupported file type: '{dataset_file_type}' for '{dataset_path}'. "
+            "Supported types are '.fas', '.fasta', '.a3m', '.a2m' and '.hmm'.")
 
     system_call(command)
 
