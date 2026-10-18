@@ -66,9 +66,7 @@ def hhblits(dataset_path,
 
     save_dir = os.path.dirname(os.path.realpath(dataset_path))
 
-    # `in` rather than `== x or 'literal'`: the right-hand side of that `or` is
-    # a truthy string, so the condition was always true and the elif below was
-    # unreachable, which made the '-M first' flag below dead code as well.
+    # the old '== x or ...' check was always True, so this branch never ran
     if dataset_file_type in ('.fas', '.fasta'):
         command = 'hhsearch ' + \
             ' -i ' + os.path.abspath(dataset_path) + \
@@ -156,9 +154,7 @@ def hhsearch(dataset_path,
 
     save_dir = os.path.dirname(os.path.abspath(dataset_path))
 
-    # See hhblits above: membership test keeps the FASTA-only '-M first'
-    # branch reachable and lets unsupported extensions fall through to
-    # the ValueError below.
+    # same fix as hhblits above
     if dataset_file_type in ('.fas', '.fasta'):
         command = 'hhsearch ' + \
             ' -i ' + os.path.abspath(dataset_path) + \

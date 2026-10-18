@@ -9,14 +9,10 @@ IS_WINDOWS = platform.system() == 'Windows'
 
 
 class TestSequenceFileTypeValidation(unittest.TestCase):
-    """File-type validation in hhsearch/hhblits, without needing hhsuite.
-
-    The tests below are skipped on Windows because hhsuite is unavailable, and
-    they exercise the alignment end to end. These check the decision that is
-    made *before* any external process is started, so they run everywhere and
-    need no database. system_call is stubbed to capture the command instead of
-    shelling out.
-    """
+    # hhsuite isn't installed everywhere (and never on Windows), so check
+    # the command that *would* run instead of running it. system_call is
+    # stubbed out and we just look at the string.
+    """File-type validation in hhsearch/hhblits, without needing hhsuite."""
 
     def setUp(self):
         self._dir = tempfile.TemporaryDirectory()
@@ -30,7 +26,7 @@ class TestSequenceFileTypeValidation(unittest.TestCase):
         return path
 
     def _command_for(self, name, func='hhsearch'):
-        """Return the command the function would have run, or raise."""
+        # run the function with system_call stubbed, return what it tried to run
         captured = []
         with mock.patch.object(seq_utils, 'system_call', captured.append):
             getattr(seq_utils, func)(self._query(name),
@@ -39,9 +35,7 @@ class TestSequenceFileTypeValidation(unittest.TestCase):
         return captured[0]
 
     def test_fasta_queries_get_the_first_model_only_flag(self):
-        # The '.fasta'/'.fas' branch exists to restrict the search to the first
-        # model. Before the fix its condition was always true, so this flag was
-        # never added to any command.
+        # fasta queries should be restricted to the first model
         for name in ('q.fasta', 'q.fas'):
             with self.subTest(name=name):
                 self.assertIn('-M first', self._command_for(name))
@@ -52,10 +46,9 @@ class TestSequenceFileTypeValidation(unittest.TestCase):
                 self.assertNotIn('-M first', self._command_for(name))
 
     def test_the_two_input_families_are_handled_differently(self):
-        # Both branches used to build the identical string, because the second
-        # always ran and overwrote the first. The query path differs by
-        # construction, so normalise it away and assert the *only* remaining
-        # difference is the flag the first branch exists to add.
+        # used to build the same string for both; the only real difference
+        # should be the -M first flag (query path differs by construction,
+        # so blank it out first)
         from_fasta = self._command_for('q.fasta').replace('q.fasta', 'QUERY')
         from_a3m = self._command_for('q.a3m').replace('q.a3m', 'QUERY')
         self.assertEqual(from_fasta, from_a3m + ' -M first')
@@ -76,9 +69,8 @@ class TestSequenceFileTypeValidation(unittest.TestCase):
                                                             func=func))
 
     def test_an_empty_data_dir_raises_value_error(self):
-        # This used to call logging.raiseExceptions, which is the bool True,
-        # so the intended message surfaced as TypeError: 'bool' object is not
-        # callable.
+        # this used to call logging.raiseExceptions which is just True,
+        # so you got TypeError instead of a useful message
         with self.assertRaises(ValueError) as ctx:
             with mock.patch.object(seq_utils, 'system_call'):
                 seq_utils.hhsearch(self._query('q.fasta'),
