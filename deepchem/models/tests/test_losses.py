@@ -595,3 +595,31 @@ class TestLosses(unittest.TestCase):
         # Check if the loss is a scalar and non-negative
         assert loss.dim() == 0
         assert loss.item() >= 0
+
+# Regression tests for deepchem/deepchem#5099
+# Append these to deepchem/models/tests/test_losses.py
+
+import torch
+
+from deepchem.models.losses import CategoricalCrossEntropy, PoissonLoss
+
+
+def test_poisson_loss_zero_output_no_nan():
+    """PoissonLoss must return a finite value when a predicted count is 0 (#5099)."""
+    loss_fn = PoissonLoss()._create_pytorch_loss()
+    output = torch.tensor([0.0, 1.0, 2.0])
+    labels = torch.tensor([1.0, 1.0, 1.0])
+    result = loss_fn(output, labels)
+    assert torch.isfinite(result), f"PoissonLoss returned non-finite value: {result}"
+
+
+def test_categorical_crossentropy_zero_prob_no_nan():
+    """CategoricalCrossEntropy must return a finite value for a saturated
+    zero-probability true class (#5099)."""
+    loss_fn = CategoricalCrossEntropy()._create_pytorch_loss()
+    output = torch.tensor([[0.0, 0.5, 0.5]])
+    labels = torch.tensor([[1.0, 0.0, 0.0]])
+    result = loss_fn(output, labels)
+    assert torch.all(torch.isfinite(result)), (
+        f"CategoricalCrossEntropy returned non-finite value: {result}"
+    )
