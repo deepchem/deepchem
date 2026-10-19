@@ -13,8 +13,9 @@ def seq_one_hot_encode(sequences, letters: str = 'ATCGN') -> np.ndarray:
 
     Parameters
     ----------
-    sequences: np.ndarray or Iterator[Bio.SeqRecord]
-        Iterable object of genetic sequences
+    sequences: Iterable[str] or Iterable[Bio.SeqRecord]
+        Iterable object of genetic sequences, such as a list, NumPy array,
+        or iterator.
     letters: str, optional (default "ATCGN")
         String with the set of possible letters in the sequences.
 
@@ -33,13 +34,13 @@ def seq_one_hot_encode(sequences, letters: str = 'ATCGN') -> np.ndarray:
     letter_encoder = {l: i for i, l in enumerate(letters)}
     alphabet_length = len(letter_encoder)
 
-    # Peak at the first sequence to get the length of the sequence.
+    # Peek at the first sequence to get the length of the sequence.
     if isinstance(sequences, np.ndarray):
         first_seq = sequences[0]
         tail_seq = sequences[1:]
     else:
-        first_seq = next(sequences)
-        tail_seq = sequences
+        tail_seq = iter(sequences)
+        first_seq = next(tail_seq)
 
     sequence_length = len(first_seq)
     seqs = []
