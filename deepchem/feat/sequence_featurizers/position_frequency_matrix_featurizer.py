@@ -43,14 +43,14 @@ class PFMFeaturizer(Featurizer):
         ----------
         charset: List[str] (default CHARSET)
             A list of strings, where each string is length 1 and unique.
-        max_length: int, optional (default 25)
+        max_length: int, optional (default 100)
             Maximum length of sequences to be featurized.
         """
         if len(charset) != len(set(charset)):
             raise ValueError("All values in charset must be unique.")
         self.charset = charset
         self.max_length = max_length
-        self.ohe = OneHotFeaturizer(charset=CHARSET, max_length=max_length)
+        self.ohe = OneHotFeaturizer(charset=charset, max_length=max_length)
 
     def _featurize(self, datapoint):
         """Featurize a multisequence alignment into a position frequency matrix
