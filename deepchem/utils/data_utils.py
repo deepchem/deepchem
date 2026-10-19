@@ -700,12 +700,53 @@ def remove_missing_entries(dataset):
     Some of the datasets have missing entries that sneak in as zero'd out
     feature vectors. Get rid of them.
     """
-    for i, (X, y, w, ids) in enumerate(dataset.itershards()):
-        available_rows = X.any(axis=1)
-        logger.info("Shard %d has %d missing entries." %
-                    (i, np.count_nonzero(~available_rows)))
-        X = X[available_rows]
-        y = y[available_rows]
-        w = w[available_rows]
-        ids = ids[available_rows]
-        dataset.set_shard(i, X, y, w, ids)
+
+    def _is_present(x):
+        if x is None:
+            return False
+        if isinstance(x, (str, bytes)):
+            return len(x) > 0
+        if isinstance(x, (int, float, np.number)):
+            return not (np.isnan(x) or x == 0)
+        if isinstance(x, np.ndarray):
+            return x.size > 0 and bool(np.any(x))
+        if hasattr(x, '__len__'):
+            return len(x) > 0
+        return bool(x)
+
+    def _compute_available_rows(X):
+        if X.ndim == 1:
+            if X.dtype == object:
+                return np.array([_is_present(x) for x in X], dtype=bool)
+            elif np.issubdtype(X.dtype, np.floating):
+                return (X != 0) & (~np.isnan(X))
+            elif np.issubdtype(X.dtype, np.number):
+                return (X != 0)
+            else:
+                return np.array([_is_present(x) for x in X], dtype=bool)
+        elif X.ndim == 2:
+            return X.any(axis=1)
+        else:
+            return X.any(axis=tuple(range(1, X.ndim)))
+
+    if hasattr(dataset, 'itershards'):
+        for i, (X, y, w, ids) in enumerate(dataset.itershards()):
+            available_rows = _compute_available_rows(X)
+            logger.info("Shard %d has %d missing entries." %
+                        (i, np.count_nonzero(~available_rows)))
+            X = X[available_rows]
+            y = y[available_rows]
+            w = w[available_rows]
+            ids = ids[available_rows]
+            dataset.set_shard(i, X, y, w, ids)
+    else:
+        available_rows = _compute_available_rows(dataset.X)
+        logger.info("Dataset has %d missing entries." %
+                    np.count_nonzero(~available_rows))
+        dataset._X = dataset._X[available_rows]
+        if dataset._y is not None:
+            dataset._y = dataset._y[available_rows]
+        if dataset._w is not None:
+            dataset._w = dataset._w[available_rows]
+        if dataset._ids is not None:
+            dataset._ids = dataset._ids[available_rows]

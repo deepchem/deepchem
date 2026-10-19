@@ -1,10 +1,11 @@
 import os
 import unittest
 import tempfile
+import numpy as np
 import pandas as pd
 import deepchem as dc
 from rdkit import Chem
-from deepchem.utils.data_utils import load_sdf_files
+from deepchem.utils.data_utils import load_sdf_files, remove_missing_entries
 from deepchem.molnet.load_function.qm9_datasets import QM9_URL
 
 
@@ -139,3 +140,66 @@ def test_qm9_molecules_charge_neutrality_sanitize_true():
             total_charge = sum(
                 atom.GetFormalCharge() for atom in mol.GetAtoms())
             assert total_charge == 0, f"Molecule {i+1} is not neutral."
+
+
+class TestRemoveMissingEntries(unittest.TestCase):
+    """Test remove_missing_entries on various array shapes and types."""
+
+    def test_remove_missing_entries_2d(self):
+        """Test on 2D feature array."""
+        X = np.array([[1.0, 0.0], [0.0, 0.0], [0.5, 1.2]])
+        y = np.array([1, 0, 1])
+        w = np.ones(3)
+        ids = np.array(['a', 'b', 'c'])
+        dataset = dc.data.NumpyDataset(X, y, w, ids)
+        remove_missing_entries(dataset)
+        self.assertEqual(len(dataset), 2)
+        self.assertTrue(np.array_equal(dataset.ids, ['a', 'c']))
+
+    def test_remove_missing_entries_1d_raw(self):
+        """Test on 1D object array (e.g. RawFeaturizer)."""
+        X = np.array(['CC', '', None, 'CCC'], dtype=object)
+        y = np.array([1, 0, 0, 1])
+        w = np.ones(4)
+        ids = np.array(['m1', 'm2', 'm3', 'm4'])
+        dataset = dc.data.NumpyDataset(X, y, w, ids)
+        remove_missing_entries(dataset)
+        self.assertEqual(len(dataset), 2)
+        self.assertTrue(np.array_equal(dataset.ids, ['m1', 'm4']))
+
+    def test_remove_missing_entries_1d_numeric(self):
+        """Test on 1D numeric array."""
+        X = np.array([1.5, 0.0, np.nan, 2.5])
+        y = np.array([1, 0, 0, 1])
+        w = np.ones(4)
+        ids = np.array(['n1', 'n2', 'n3', 'n4'])
+        dataset = dc.data.NumpyDataset(X, y, w, ids)
+        remove_missing_entries(dataset)
+        self.assertEqual(len(dataset), 2)
+        self.assertTrue(np.array_equal(dataset.ids, ['n1', 'n4']))
+
+    def test_remove_missing_entries_3d(self):
+        """Test on 3D tensor array."""
+        X = np.zeros((3, 2, 2))
+        X[0, 0, 1] = 1.0
+        X[2, 1, 0] = -0.5
+        y = np.array([1, 0, 1])
+        w = np.ones(3)
+        ids = np.array(['t1', 't2', 't3'])
+        dataset = dc.data.NumpyDataset(X, y, w, ids)
+        remove_missing_entries(dataset)
+        self.assertEqual(len(dataset), 2)
+        self.assertTrue(np.array_equal(dataset.ids, ['t1', 't3']))
+
+    def test_remove_missing_entries_disk_dataset_1d_raw(self):
+        """Test on DiskDataset with 1D raw object array (Fixes #2350)."""
+        X = np.array(['CC', '', None, 'CCC'], dtype=object)
+        y = np.array([1, 0, 0, 1])
+        w = np.ones(4)
+        ids = np.array(['m1', 'm2', 'm3', 'm4'])
+        dataset = dc.data.DiskDataset.from_numpy(X, y, w, ids)
+        remove_missing_entries(dataset)
+        self.assertEqual(len(dataset), 2)
+        self.assertTrue(np.array_equal(dataset.ids, ['m1', 'm4']))
+
+
