@@ -28,13 +28,34 @@ class TestSeq(unittest.TestCase):
         sequences = dc.utils.genomics_utils.seq_one_hot_encode(sequences)
         self.assertEqual(sequences.shape, (3, 5, 4, 1))
 
+    def test_one_hot_iterables(self):
+        expected = np.expand_dims(
+            np.array([
+                [[1, 0], [0, 1], [0, 0]],
+                [[0, 0], [1, 0], [0, 1]],
+            ]), -1)
+        inputs = {
+            "list": ["XY", "YZ"],
+            "tuple": ("XY", "YZ"),
+            "iterator": iter(["XY", "YZ"]),
+            "generator": (seq for seq in ["XY", "YZ"]),
+            "array": np.array(["XY", "YZ"]),
+        }
+        for name, sequences in inputs.items():
+            with self.subTest(input_type=name):
+                encoded = dc.utils.genomics_utils.seq_one_hot_encode(
+                    sequences, letters=LETTERS)
+                np.testing.assert_array_equal(expected, encoded)
+
     def test_one_hot_mismatch(self):
         # One sequence has length longer than others. This should throw a
         # ValueError.
 
-        with self.assertRaises(ValueError):
-            sequences = np.array(["ACGTA", "GATA", "CGCG"])
-            sequences = dc.utils.genomics_utils.seq_one_hot_encode(sequences)
+        for factory in (np.array, list, tuple, iter):
+            with self.subTest(input_type=factory.__name__):
+                with self.assertRaisesRegex(ValueError, "same length"):
+                    sequences = factory(["ACGTA", "GATA", "CGCG"])
+                    dc.utils.genomics_utils.seq_one_hot_encode(sequences)
 
     def test_encode_fasta_sequence(self):
         # Test it's possible to load a sequence with an aribrary alphabet from a fasta file.
