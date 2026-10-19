@@ -111,8 +111,9 @@ def voxelize(get_voxels: Callable[..., Any],
         are hashed using the hash function into `[0, nb_channels)` and
         this channel at the voxel for the given key is incremented by `1`
         for each dictionary entry. If `hash_function is None`, then the
-        value must be a vector of size `(n_channels,)` which is added to
-        the existing channel values at that voxel grid.
+        value can be a vector of size `(nb_channel,)` which is added to
+        the existing channel values at that voxel grid, or a scalar
+        which is added to the first channel.
     feature_list: List, optional (default None)
         List of atom indices or tuples of atom indices. This can only be
         used if `nb_channel==1`. Increments the voxels corresponding to
@@ -150,9 +151,11 @@ def voxelize(get_voxels: Callable[..., Any],
                         feature_tensor[
                             voxel[0], voxel[1], voxel[2],
                             hash_function(features, nb_channel)] += 1.0
-                    else:
+                    elif np.ndim(features) == 0:
                         feature_tensor[voxel[0], voxel[1], voxel[2],
                                        0] += features
+                    else:
+                        feature_tensor[voxel[0], voxel[1], voxel[2]] += features
     elif feature_list is not None:
         for key in feature_list:
             voxels = get_voxels(coordinates, key, box_width, voxel_width)
