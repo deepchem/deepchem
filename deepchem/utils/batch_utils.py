@@ -273,7 +273,7 @@ def create_output_array(sequences: Collection, max_output_length: int,
     ----------
     sequences: Collection
         List of sequences to be converted into output array.
-    max_output_length: bool
+    max_output_length: int
         Maximum length of output sequence that may be generated
     batch_size: int
         Batch size of the output array.
