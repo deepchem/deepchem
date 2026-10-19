@@ -6,6 +6,51 @@ from deepchem.utils import hash_utils
 
 class TestVoxelUtils(unittest.TestCase):
 
+    def test_voxelize_vector_features(self):
+        coordinates = np.array([[0., 0., 0.], [0.1, 0.1, 0.1], [10., 10., 10.]])
+        for feature_type in (list, np.array):
+            with self.subTest(feature_type=feature_type):
+                features = voxel_utils.voxelize(
+                    voxel_utils.convert_atom_to_voxel,
+                    coordinates,
+                    box_width=2,
+                    feature_dict={
+                        0: feature_type([1., 2., 3., 4.]),
+                        1: feature_type([4., 5., 6., 7.]),
+                        2: feature_type([7., 8., 9., 10.]),
+                    },
+                    nb_channel=4,
+                    dtype='float')
+                expected = np.zeros((2, 2, 2, 4))
+                expected[1, 1, 1] = [5., 7., 9., 11.]
+                np.testing.assert_array_equal(features, expected)
+
+    def test_voxelize_atom_pair_vector_features(self):
+        coordinates = (np.array([[0., 0., 0.]]), np.array([[-1., -1., -1.]]))
+        features = voxel_utils.voxelize(voxel_utils.convert_atom_pair_to_voxel,
+                                        coordinates,
+                                        box_width=2,
+                                        feature_dict={(0, 0): [2, 3]},
+                                        nb_channel=2)
+        expected = np.zeros((2, 2, 2, 2))
+        expected[0, 0, 0] = [2, 3]
+        expected[1, 1, 1] = [2, 3]
+        np.testing.assert_array_equal(features, expected)
+
+    def test_voxelize_scalar_features(self):
+        for nb_channel in (1, 4):
+            with self.subTest(nb_channel=nb_channel):
+                features = voxel_utils.voxelize(
+                    voxel_utils.convert_atom_to_voxel,
+                    np.zeros((1, 3)),
+                    box_width=2,
+                    feature_dict={0: 2.5},
+                    nb_channel=nb_channel,
+                    dtype='float')
+                expected = np.zeros((2, 2, 2, nb_channel))
+                expected[1, 1, 1, 0] = 2.5
+                np.testing.assert_array_equal(features, expected)
+
     def test_convert_atom_to_voxel(self):
         N = 5
         coordinates = np.random.rand(N, 3)
