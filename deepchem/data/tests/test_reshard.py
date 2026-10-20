@@ -1,6 +1,7 @@
 import deepchem as dc
 import numpy as np
 import os
+import pytest
 
 
 def test_reshard_with_X():
@@ -11,6 +12,20 @@ def test_reshard_with_X():
     dataset.reshard(shard_size=10)
     assert (dataset.X == X).all()
     assert dataset.get_number_shards() == 10
+
+
+@pytest.mark.parametrize("shard_size", [0, -1])
+def test_reshard_rejects_nonpositive_shard_size(shard_size):
+    """Test that reshard rejects shard sizes that cannot make progress."""
+    X = np.random.rand(10, 2)
+    dataset = dc.data.DiskDataset.from_numpy(X)
+
+    with pytest.raises(ValueError,
+                       match="shard_size must be a positive integer"):
+        dataset.reshard(shard_size=shard_size)
+
+    assert dataset.get_number_shards() == 1
+    assert np.array_equal(dataset.X, X)
 
 
 def test_reshard_with_X_y():

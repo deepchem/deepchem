@@ -1494,7 +1494,12 @@ class DiskDataset(Dataset):
         Parameters
         ----------
         shard_size: int
-            The size of shard.
+            The desired number of samples per shard. Must be positive.
+
+        Raises
+        ------
+        ValueError
+            If `shard_size` is not positive.
 
         Examples
         --------
@@ -1511,6 +1516,9 @@ class DiskDataset(Dataset):
         If this `DiskDataset` is in `legacy_metadata` format, reshard will
         convert this dataset to have non-legacy metadata.
         """
+        if shard_size <= 0:
+            raise ValueError("shard_size must be a positive integer.")
+
         # Create temp directory to store resharded version
         reshard_dir = tempfile.mkdtemp()
         n_shards = self.get_number_shards()
