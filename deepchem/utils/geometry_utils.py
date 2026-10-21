@@ -51,7 +51,11 @@ def angle_between(vector_i: np.ndarray, vector_j: np.ndarray) -> float:
     """
     vector_i_u = unit_vector(vector_i)
     vector_j_u = unit_vector(vector_j)
-    angle = np.arccos(np.dot(vector_i_u, vector_j_u))
+    # Clamp the cosine: float32 rounding can push it slightly outside [-1, 1],
+    # in which case arccos returns NaN and nearly parallel vectors wrongly
+    # resolve to pi (the antiparallel angle) instead of ~0. See #5211.
+    cos_angle = np.clip(np.dot(vector_i_u, vector_j_u), -1.0, 1.0)
+    angle = np.arccos(cos_angle)
     if np.isnan(angle):
         if np.allclose(vector_i_u, vector_j_u):
             return 0.0
