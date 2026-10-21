@@ -80,3 +80,25 @@ class TestGeometryUtils(unittest.TestCase):
         assert new_centroid.shape == (3,)
         np.testing.assert_almost_equal(new_centroid,
                                        np.zeros_like(new_centroid))
+
+
+# Regression test for deepchem/deepchem#5211
+# Append to deepchem/utils/test/test_geometry_utils.py
+
+import numpy as np
+
+from deepchem.utils.geometry_utils import angle_between
+
+
+def test_angle_between_nearly_parallel_float32():
+    """Nearly parallel float32 vectors must not resolve to pi (#5211)."""
+    x = np.array(
+        [-0.43171852827072144, -1.392874002456665, 0.3115706741809845],
+        np.float32,
+    )
+    y = np.array(
+        [-0.4317198395729065, -1.3927290439605713, 0.3116004765033722],
+        np.float32,
+    )
+    angle = angle_between(x, y)
+    assert angle < 1e-3, f"expected near-zero angle, got {angle}"
