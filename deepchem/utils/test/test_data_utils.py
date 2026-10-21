@@ -1,6 +1,8 @@
 import os
 import unittest
 import tempfile
+import tarfile
+import zipfile
 import pandas as pd
 import deepchem as dc
 from rdkit import Chem
@@ -139,3 +141,37 @@ def test_qm9_molecules_charge_neutrality_sanitize_true():
             total_charge = sum(
                 atom.GetFormalCharge() for atom in mol.GetAtoms())
             assert total_charge == 0, f"Molecule {i+1} is not neutral."
+
+
+def _make_archives(tmpdir):
+    content_file = os.path.join(tmpdir, "content.txt")
+    with open(content_file, "w") as f:
+        f.write("deepchem")
+    zip_path = os.path.join(tmpdir, "archive.zip")
+    with zipfile.ZipFile(zip_path, "w") as zf:
+        zf.write(content_file, arcname="content.txt")
+    targz_path = os.path.join(tmpdir, "archive.tar.gz")
+    with tarfile.open(targz_path, "w:gz") as tf:
+        tf.add(content_file, arcname="content.txt")
+    return zip_path, targz_path
+
+
+def test_unzip_and_untargz_with_name():
+    with tempfile.TemporaryDirectory() as tmpdir:
+        zip_path, targz_path = _make_archives(tmpdir)
+        out_dir = os.path.join(tmpdir, "out")
+        dc.utils.data_utils.unzip_file(zip_path, out_dir, name="from_zip")
+        dc.utils.data_utils.untargz_file(targz_path, out_dir, name="from_tar")
+        assert os.path.isfile(os.path.join(out_dir, "from_zip", "content.txt"))
+        assert os.path.isfile(os.path.join(out_dir, "from_tar", "content.txt"))
+
+
+def test_unzip_and_untargz_default_dest_dir(monkeypatch):
+    with tempfile.TemporaryDirectory() as tmpdir:
+        zip_path, targz_path = _make_archives(tmpdir)
+        data_dir = os.path.join(tmpdir, "data_dir")
+        monkeypatch.setenv("DEEPCHEM_DATA_DIR", data_dir)
+        dc.utils.data_utils.unzip_file(zip_path, dest_dir=None, name="z")
+        dc.utils.data_utils.untargz_file(targz_path, name="t")
+        assert os.path.isfile(os.path.join(data_dir, "z", "content.txt"))
+        assert os.path.isfile(os.path.join(data_dir, "t", "content.txt"))
