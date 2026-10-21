@@ -32,6 +32,32 @@ def test_pinns_overfit():
 
 
 @pytest.mark.torch
+def test_pinn_fit_non_cpu_device():
+    """PINNModel.fit must work when TorchModel places the model on a
+    non-CPU device (mps or cuda) while boundary data stays on the CPU."""
+    from deepchem.models.torch_models import PINNModel
+    model = torch.nn.Sequential(torch.nn.Linear(1, 8), torch.nn.Tanh(),
+                                torch.nn.Linear(8, 1))
+    pinn = PINNModel(
+        model=model,
+        pde_fn=lambda u, x: torch.zeros_like(u),
+        boundary_data={
+            'dirichlet': {
+                'points': torch.tensor([[0.0]]),
+                'values': torch.tensor([[0.0]])
+            },
+            'neumann': {
+                'points': torch.tensor([[1.0]], requires_grad=True),
+                'values': torch.tensor([[1.0]])
+            }
+        })
+    dataset = dc.data.NumpyDataset(X=np.array([[0.0], [1.0]]),
+                                   y=np.array([[0.0], [1.0]]))
+    loss = pinn.fit(dataset, nb_epoch=2)
+    assert np.isfinite(loss)
+
+
+@pytest.mark.torch
 def test_pinn_default_model():
     """Test if default model works correctly"""
     from deepchem.models.torch_models import PINNModel
