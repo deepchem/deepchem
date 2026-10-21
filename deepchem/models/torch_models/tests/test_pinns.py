@@ -81,11 +81,13 @@ def test_pinn_custom_eval():
 
     pinn = PINNModel(model=model, eval_fn=custom_eval)
 
-    test_dataset = torch.tensor([[1.0]], dtype=torch.float32)
+    test_dataset = torch.tensor([[1.0]],
+                                dtype=torch.float32,
+                                device=pinn.device)
 
     with torch.no_grad():
-        y_standard = model(test_dataset)
-        y_custom = pinn.predict(test_dataset)
+        y_standard = model(test_dataset).cpu()
+        y_custom = pinn.predict(test_dataset).cpu()
 
     assert np.abs(y_custom - 2 * y_standard.numpy()) < 1e-6
 
@@ -149,8 +151,9 @@ def test_pinn_heat_equation():
                 points = value.get('points')
                 values = value.get('values')
                 if points is not None and values is not None:
-                    pred = model(points)
-                    boundary_loss += torch.mean(torch.square(pred - values))
+                    pred = model(points.to(pinn.device))
+                    boundary_loss += torch.mean(
+                        torch.square(pred - values.to(pinn.device)))
         return 0.5 * data_loss + 0.5 * pde_loss + boundary_loss
 
     def generate_data(n_points: int = 200):
@@ -197,7 +200,7 @@ def test_pinn_heat_equation():
     assert torch.abs(y_pred[-1] -
                      1.0) < 1e-1, "Boundary condition at x=1 not satisfied"
 
-    x_interior = x_test[1:-1].clone().requires_grad_(True)
+    x_interior = x_test[1:-1].clone().to(pinn.device).requires_grad_(True)
     residuals = heat_equation_residual(model, x_interior)
     pde_error = torch.mean(torch.abs(residuals))
     assert pde_error < 1e-2, "PDE residuals are too high"
