@@ -111,7 +111,7 @@ def download_url(url: str,
 
 
 def untargz_file(file: str,
-                 dest_dir: str = get_data_dir(),
+                 dest_dir: Optional[str] = None,
                  name: Optional[str] = None):
     """Untar and unzip a .tar.gz file to disk.
 
@@ -119,20 +119,24 @@ def untargz_file(file: str,
     ----------
     file: str
         The filepath to decompress
-    dest_dir: str
-        The directory to save the file in
-    name: str
-        The file name to save it as.  If omitted, it will use the file name
+    dest_dir: str, optional (default None)
+        The directory to extract the file in. If omitted, the DeepChem data
+        directory is used.
+    name: str, optional (default None)
+        The name of a subdirectory of `dest_dir` to extract it to. If omitted,
+        the contents are extracted directly into `dest_dir`.
     """
-    if name is None:
-        name = file
-    tar = tarfile.open(name)
+    if dest_dir is None:
+        dest_dir = get_data_dir()
+    if name is not None:
+        dest_dir = os.path.join(dest_dir, name)
+    tar = tarfile.open(file)
     tar.extractall(path=dest_dir)
     tar.close()
 
 
 def unzip_file(file: str,
-               dest_dir: str = get_data_dir(),
+               dest_dir: Optional[str] = None,
                name: Optional[str] = None):
     """Unzip a .zip file to disk.
 
@@ -140,15 +144,17 @@ def unzip_file(file: str,
     ----------
     file: str
         The filepath to decompress
-    dest_dir: str
-        The directory to save the file in
-    name: str
-        The directory name to unzip it to.  If omitted, it will use the file name
+    dest_dir: str, optional (default None)
+        The directory to extract the file in. If omitted, the DeepChem data
+        directory is used.
+    name: str, optional (default None)
+        The name of a subdirectory of `dest_dir` to unzip it to. If omitted,
+        the contents are extracted directly into `dest_dir`.
     """
-    if name is None:
-        name = file
     if dest_dir is None:
-        dest_dir = os.path.join(get_data_dir, name)
+        dest_dir = get_data_dir()
+    if name is not None:
+        dest_dir = os.path.join(dest_dir, name)
     with zipfile.ZipFile(file, "r") as zip_ref:
         zip_ref.extractall(dest_dir)
 
