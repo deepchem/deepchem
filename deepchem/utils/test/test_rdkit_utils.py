@@ -36,6 +36,32 @@ class TestRdkitUtil(unittest.TestCase):
                 self.assertIsInstance(mol_rdk, Mol)
                 self.assertEqual(mol_xyz.shape, (num_atoms, 3))
 
+    def test_load_molecule_reads_all_sdf_records(self):
+        from rdkit import Chem
+        from rdkit.Chem import AllChem
+
+        molecules = [Chem.AddHs(Chem.MolFromSmiles(smiles))
+                     for smiles in ("C", "CC")]
+        for molecule in molecules:
+            self.assertEqual(AllChem.EmbedMolecule(molecule, randomSeed=1), 0)
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            sdf_file = os.path.join(temp_dir, "multiple.sdf")
+            with Chem.SDWriter(sdf_file) as writer:
+                for molecule in molecules:
+                    writer.write(molecule)
+
+            loaded = rdkit_utils.load_molecule(sdf_file,
+                                               add_hydrogens=False,
+                                               calc_charges=False,
+                                               sanitize=False)
+
+        self.assertIsInstance(loaded, list)
+        self.assertEqual(len(loaded), 2)
+        self.assertEqual([mol.GetNumAtoms() for _, mol in loaded], [5, 8])
+        for xyz, mol in loaded:
+            self.assertEqual(xyz.shape, (mol.GetNumAtoms(), 3))
+
     def test_get_xyz_from_mol(self):
         current_dir = os.path.dirname(os.path.realpath(__file__))
         ligand_file = os.path.join(current_dir,
