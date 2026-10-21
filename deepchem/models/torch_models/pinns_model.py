@@ -221,7 +221,7 @@ class PINNModel(TorchModel):
 
         x.requires_grad_(True)
         u_pred = self.model(x)
-        residual_loss = torch.tensor(0.0)
+        residual_loss = torch.tensor(0.0, device=self.device)
         for pde, weight in zip(self.pde_fn, self.pde_weights):
             residuals = pde(u_pred, x)
             residual_loss += weight * torch.mean(torch.square(residuals))
@@ -246,10 +246,7 @@ class PINNModel(TorchModel):
             The computed boundary loss.
         """
 
-        if not self.boundary_data:
-            return torch.tensor(0.0)
-
-        boundary_loss = torch.tensor(0.0)
+        boundary_loss = torch.tensor(0.0, device=self.device)
         for key, value in self.boundary_data.items():
             if isinstance(value, dict):
                 points = value.get('points')
@@ -257,6 +254,8 @@ class PINNModel(TorchModel):
                 alpha = value.get('alpha', 1.0)
                 beta = value.get('beta', 1.0)
                 if points is not None and values is not None:
+                    points = points.to(self.device)
+                    values = values.to(self.device)
                     pred = self.model(points)
                     if key.lower() == 'dirichlet':
                         boundary_loss += torch.mean(torch.square(pred - values))
@@ -287,6 +286,8 @@ class PINNModel(TorchModel):
     def _default_eval_fn(self, x: torch.Tensor) -> torch.Tensor:
         """Default evaluation function for inference."""
         with torch.no_grad():
+            if isinstance(x, torch.Tensor):
+                return self.model(x.to(self.device)).to(x.device)
             return self.model(x)
 
     def _prepare_batch(self, batch):

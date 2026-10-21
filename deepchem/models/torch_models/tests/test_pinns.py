@@ -32,6 +32,32 @@ def test_pinns_overfit():
 
 
 @pytest.mark.torch
+def test_pinn_fit_non_cpu_device():
+    """PINNModel.fit must work when TorchModel places the model on a
+    non-CPU device (mps or cuda) while boundary data stays on the CPU."""
+    from deepchem.models.torch_models import PINNModel
+    model = torch.nn.Sequential(torch.nn.Linear(1, 8), torch.nn.Tanh(),
+                                torch.nn.Linear(8, 1))
+    pinn = PINNModel(
+        model=model,
+        pde_fn=lambda u, x: torch.zeros_like(u),
+        boundary_data={
+            'dirichlet': {
+                'points': torch.tensor([[0.0]]),
+                'values': torch.tensor([[0.0]])
+            },
+            'neumann': {
+                'points': torch.tensor([[1.0]], requires_grad=True),
+                'values': torch.tensor([[1.0]])
+            }
+        })
+    dataset = dc.data.NumpyDataset(X=np.array([[0.0], [1.0]]),
+                                   y=np.array([[0.0], [1.0]]))
+    loss = pinn.fit(dataset, nb_epoch=2)
+    assert np.isfinite(loss)
+
+
+@pytest.mark.torch
 def test_pinn_default_model():
     """Test if default model works correctly"""
     from deepchem.models.torch_models import PINNModel
@@ -55,11 +81,13 @@ def test_pinn_custom_eval():
 
     pinn = PINNModel(model=model, eval_fn=custom_eval)
 
-    test_dataset = torch.tensor([[1.0]], dtype=torch.float32)
+    test_dataset = torch.tensor([[1.0]],
+                                dtype=torch.float32,
+                                device=pinn.device)
 
     with torch.no_grad():
-        y_standard = model(test_dataset)
-        y_custom = pinn.predict(test_dataset)
+        y_standard = model(test_dataset).cpu()
+        y_custom = pinn.predict(test_dataset).cpu()
 
     assert np.abs(y_custom - 2 * y_standard.numpy()) < 1e-6
 
@@ -123,8 +151,9 @@ def test_pinn_heat_equation():
                 points = value.get('points')
                 values = value.get('values')
                 if points is not None and values is not None:
-                    pred = model(points)
-                    boundary_loss += torch.mean(torch.square(pred - values))
+                    pred = model(points.to(pinn.device))
+                    boundary_loss += torch.mean(
+                        torch.square(pred - values.to(pinn.device)))
         return 0.5 * data_loss + 0.5 * pde_loss + boundary_loss
 
     def generate_data(n_points: int = 200):
@@ -171,7 +200,7 @@ def test_pinn_heat_equation():
     assert torch.abs(y_pred[-1] -
                      1.0) < 1e-1, "Boundary condition at x=1 not satisfied"
 
-    x_interior = x_test[1:-1].clone().requires_grad_(True)
+    x_interior = x_test[1:-1].clone().to(pinn.device).requires_grad_(True)
     residuals = heat_equation_residual(model, x_interior)
     pde_error = torch.mean(torch.abs(residuals))
     assert pde_error < 1e-2, "PDE residuals are too high"
