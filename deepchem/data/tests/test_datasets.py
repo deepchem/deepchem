@@ -78,6 +78,102 @@ def test_transform_disk():
         np.testing.assert_array_equal(ids, transformed.ids)
 
 
+def _make_multishard_disk_dataset(X, y, w, ids, n_shards=3):
+    """Creates a DiskDataset with the given data split into n_shards shards."""
+    shards = [(X[i], y[i], w[i], ids[i])
+              for i in np.array_split(np.arange(len(ids)), n_shards)]
+    return dc.data.DiskDataset.create_dataset(shards, tasks=[0])
+
+
+@pytest.mark.parametrize("parallel", [False, True])
+def test_transform_disk_without_transforming_X(parallel):
+    """Test that transforming only y or w gives the same result as before."""
+    np.random.seed(123)
+    n_samples = 30
+    X = np.random.rand(n_samples, 5)
+    y = np.random.randint(2, size=(n_samples, 1)).astype(np.float64)
+    w = np.ones((n_samples, 1))
+    ids = np.array(["id%d" % i for i in range(n_samples)])
+    dataset = _make_multishard_disk_dataset(X, y, w, ids)
+    numpy_dataset = dc.data.NumpyDataset(X, y, w, ids)
+    transformers = [
+        dc.trans.NormalizationTransformer(transform_y=True, dataset=dataset),
+        dc.trans.BalancingTransformer(dataset=dataset),
+    ]
+    for transformer in transformers:
+        expected = numpy_dataset.transform(transformer)
+        transformed = dataset.transform(transformer, parallel=parallel)
+        assert transformed.get_number_shards() == dataset.get_number_shards()
+        assert transformed.get_shape() == dataset.get_shape()
+        np.testing.assert_array_equal(transformed.X, X)
+        np.testing.assert_allclose(transformed.y, expected.y)
+        np.testing.assert_allclose(transformed.w, expected.w)
+        np.testing.assert_array_equal(transformed.ids, ids)
+
+
+def test_transform_disk_does_not_load_X(monkeypatch):
+    """Test that transformers which don't transform X never load it from disk."""
+    n_samples = 20
+    X = np.random.rand(n_samples, 5)
+    y = np.random.rand(n_samples, 1)
+    w = np.ones((n_samples, 1))
+    ids = np.arange(n_samples)
+    dataset = _make_multishard_disk_dataset(X, y, w, ids)
+    transformer = dc.trans.NormalizationTransformer(transform_y=True,
+                                                    dataset=dataset)
+
+    loaded_files = []
+    load_from_disk = dc.data.datasets.load_from_disk
+
+    def recording_load_from_disk(filename):
+        loaded_files.append(filename)
+        return load_from_disk(filename)
+
+    monkeypatch.setattr(dc.data.datasets, "load_from_disk",
+                        recording_load_from_disk)
+    transformed = dataset.transform(transformer)
+    assert len(loaded_files) > 0
+    assert not any(f.endswith("-X.npy") for f in loaded_files)
+    monkeypatch.undo()
+    np.testing.assert_array_equal(transformed.X, X)
+
+
+def test_transform_disk_without_transforming_X_object_features():
+    """Test that X arrays of dtype object are copied over unchanged."""
+    n_samples = 6
+    X = np.empty(n_samples, dtype=object)
+    for i in range(n_samples):
+        X[i] = np.arange(i + 1)
+    y = np.random.rand(n_samples, 1)
+    w = np.ones((n_samples, 1))
+    ids = np.arange(n_samples)
+    dataset = _make_multishard_disk_dataset(X, y, w, ids, n_shards=2)
+    transformer = dc.trans.NormalizationTransformer(transform_y=True,
+                                                    dataset=dataset)
+    transformed = dataset.transform(transformer)
+    assert transformed.get_shape()[0] == (n_samples,)
+    for original, new in zip(X, transformed.X):
+        np.testing.assert_array_equal(original, new)
+
+
+class SampleDroppingTransformer(dc.trans.Transformer):
+    """Incorrectly drops samples while claiming not to transform X."""
+
+    def transform_array(self, X, y, w, ids):
+        return (X, y[1:], w[1:], ids[1:])
+
+
+def test_transform_disk_without_transforming_X_changing_samples():
+    """Test that changing the number of samples without transforming X fails."""
+    n_samples = 10
+    dataset = _make_multishard_disk_dataset(np.random.rand(n_samples, 3),
+                                            np.random.rand(n_samples, 1),
+                                            np.ones((n_samples, 1)),
+                                            np.arange(n_samples))
+    with pytest.raises(ValueError, match="number of samples"):
+        dataset.transform(SampleDroppingTransformer(transform_y=True))
+
+
 def test_sparsify_and_densify():
     """Test that sparsify and densify work as inverses."""
     # Test on identity matrix
