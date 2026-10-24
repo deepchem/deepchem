@@ -1859,19 +1859,28 @@ class DiskDataset(Dataset):
             DiskDataset._save_metadata(metadata_df, out_dir, tasks)
             dataset = DiskDataset(out_dir)
         else:
-
-            def generator():
-                for shard_num, row in self.metadata_df.iterrows():
-                    logger.info("Transforming shard %d/%d" %
-                                (shard_num, n_shards))
+            if not os.path.exists(out_dir):
+                os.makedirs(out_dir)
+            metadata_rows = []
+            for shard_num, row in self.metadata_df.iterrows():
+                logger.info("Transforming shard %d/%d" % (shard_num, n_shards))
+                basename = "shard-%d" % shard_num
+                X_file = os.path.join(self.data_dir, row['X'])
+                if DiskDataset._can_reuse_X(transformer, X_file):
+                    y, w, ids = self._load_shard_y_w_ids(row)
+                    metadata_rows.append(
+                        DiskDataset._transform_shard_reusing_X(
+                            transformer, X_file, y, w, ids, out_dir, basename))
+                else:
                     X, y, w, ids = self.get_shard(shard_num)
                     newx, newy, neww, newids = transformer.transform_array(
                         X, y, w, ids)
-                    yield (newx, newy, neww, newids)
-
-            dataset = DiskDataset.create_dataset(generator(),
-                                                 data_dir=out_dir,
-                                                 tasks=tasks)
+                    metadata_rows.append(
+                        DiskDataset.write_data_to_disk(out_dir, basename, newx,
+                                                       newy, neww, newids))
+            metadata_df = DiskDataset._construct_metadata(metadata_rows)
+            DiskDataset._save_metadata(metadata_df, out_dir, tasks)
+            dataset = DiskDataset(out_dir)
         time2 = time.time()
         logger.info("TIMING: transforming took %0.3f s" % (time2 - time1))
         return dataset
@@ -1882,13 +1891,71 @@ class DiskDataset(Dataset):
                          out_dir: str,
                          tasks: np.ndarray) -> List[Optional[str]]:
         """This is called by transform() to transform a single shard."""
-        X = None if X_file is None else np.array(load_from_disk(X_file))
         y = None if y_file is None else np.array(load_from_disk(y_file))
         w = None if w_file is None else np.array(load_from_disk(w_file))
         ids = np.array(load_from_disk(ids_file))
-        X, y, w, ids = transformer.transform_array(X, y, w, ids)
         basename = "shard-%d" % shard_num
+        if DiskDataset._can_reuse_X(transformer, X_file):
+            return DiskDataset._transform_shard_reusing_X(
+                transformer, X_file, y, w, ids, out_dir, basename)
+        X = None if X_file is None else np.array(load_from_disk(X_file))
+        X, y, w, ids = transformer.transform_array(X, y, w, ids)
         return DiskDataset.write_data_to_disk(out_dir, basename, X, y, w, ids)
+
+    @staticmethod
+    def _can_reuse_X(transformer: "dc.trans.Transformer",
+                     X_file: Optional[str]) -> bool:
+        """Whether the X file of a shard can be copied instead of transformed.
+
+        Transformers that don't transform X (for example ones that only
+        normalize labels or rebalance weights) leave the features untouched,
+        so there is no need to load the potentially large feature array.
+        """
+        return (X_file is not None and X_file.endswith('.npy') and
+                not getattr(transformer, 'transform_X', True))
+
+    @staticmethod
+    def _transform_shard_reusing_X(transformer: "dc.trans.Transformer",
+                                   X_file: str, y: Optional[np.ndarray],
+                                   w: Optional[np.ndarray], ids: np.ndarray,
+                                   out_dir: str, basename: str) -> List[Any]:
+        """Transforms y, w and ids of a shard and copies its X file unchanged.
+
+        `transform_array()` is called with `X=None` and the X it returns is
+        ignored, so this must only be used for transformers that don't
+        transform X (see `_can_reuse_X()`).
+        """
+        X_shape = DiskDataset._read_npy_shape(X_file)
+        _, y, w, ids = transformer.transform_array(
+            None,  # type: ignore
+            y,  # type: ignore
+            w,  # type: ignore
+            ids)
+        if len(ids) != X_shape[0]:
+            raise ValueError(
+                "%s has transform_X=False but changed the number of samples "
+                "from %d to %d. Transformers that add or remove samples must "
+                "set transform_X=True." %
+                (transformer.__class__.__name__, X_shape[0], len(ids)))
+        metadata_row = DiskDataset.write_data_to_disk(out_dir, basename, None,
+                                                      y, w, ids)
+        out_X = "%s-X.npy" % basename
+        shutil.copyfile(X_file, os.path.join(out_dir, out_X))
+        # Fill in the X columns, following the _construct_metadata column order.
+        metadata_row[1] = out_X
+        metadata_row[5] = X_shape
+        return metadata_row
+
+    @staticmethod
+    def _read_npy_shape(filename: str) -> Tuple[int, ...]:
+        """Reads the shape of an array stored in a .npy file without loading it."""
+        with open(filename, 'rb') as f:
+            version = np.lib.format.read_magic(f)
+            if version == (1, 0):
+                shape, _, _ = np.lib.format.read_array_header_1_0(f)
+            else:
+                shape, _, _ = np.lib.format.read_array_header_2_0(f)
+        return shape
 
     def make_pytorch_dataset(self,
                              epochs: int = 1,
@@ -2226,7 +2293,41 @@ class DiskDataset(Dataset):
         # We don't, so load it from disk.
         row = self.metadata_df.iloc[i]
         X = np.array(load_from_disk(os.path.join(self.data_dir, row['X'])))
+        y, w, ids = self._load_shard_y_w_ids(row)
 
+        # Try to cache this shard for later use.  Since the normal usage pattern is
+        # a series of passes through the whole dataset, there's no point doing
+        # anything fancy.  It never makes sense to evict another shard from the
+        # cache to make room for this one, because we'll probably want that other
+        # shard again before the next time we want this one.  So just cache as many
+        # as we can and then stop.
+
+        shard = _Shard(X, y, w, ids)
+        shard_size = X.nbytes + ids.nbytes
+        if y is not None:
+            shard_size += y.nbytes
+        if w is not None:
+            shard_size += w.nbytes
+        if self._cache_used + shard_size < self._memory_cache_size:
+            self._cached_shards[i] = shard
+            self._cache_used += shard_size
+        return (shard.X, shard.y, shard.w, shard.ids)
+
+    def _load_shard_y_w_ids(
+        self, row: pd.Series
+    ) -> Tuple[Optional[np.ndarray], Optional[np.ndarray], np.ndarray]:
+        """Loads the labels, weights and ids of a shard from disk.
+
+        Parameters
+        ----------
+        row: pd.Series
+            The row of `self.metadata_df` describing the shard.
+
+        Returns
+        -------
+        Tuple[Optional[np.ndarray], Optional[np.ndarray], np.ndarray]
+            The `(y, w, ids)` arrays of the shard.
+        """
         if row['y'] is not None:
             y: Optional[np.ndarray] = np.array(
                 load_from_disk(os.path.join(self.data_dir, row['y'])))
@@ -2250,24 +2351,7 @@ class DiskDataset(Dataset):
 
         ids = np.array(load_from_disk(os.path.join(self.data_dir, row['ids'])),
                        dtype=object)
-
-        # Try to cache this shard for later use.  Since the normal usage pattern is
-        # a series of passes through the whole dataset, there's no point doing
-        # anything fancy.  It never makes sense to evict another shard from the
-        # cache to make room for this one, because we'll probably want that other
-        # shard again before the next time we want this one.  So just cache as many
-        # as we can and then stop.
-
-        shard = _Shard(X, y, w, ids)
-        shard_size = X.nbytes + ids.nbytes
-        if y is not None:
-            shard_size += y.nbytes
-        if w is not None:
-            shard_size += w.nbytes
-        if self._cache_used + shard_size < self._memory_cache_size:
-            self._cached_shards[i] = shard
-            self._cache_used += shard_size
-        return (shard.X, shard.y, shard.w, shard.ids)
+        return y, w, ids
 
     def get_shard_ids(self, i: int) -> np.ndarray:
         """Retrieves the list of IDs for the i-th shard from disk.
