@@ -19,8 +19,10 @@ except:
     has_torch = False
 
 
-def get_dataset(mode='classification', featurizer='GraphConv', num_tasks=2):
-    data_points = 20
+def get_dataset(mode='classification',
+                featurizer='GraphConv',
+                num_tasks=2,
+                data_points=20):
     if mode == 'classification':
         tasks, all_dataset, transformers = load_bace_classification(
             featurizer, reload=False)
@@ -67,11 +69,11 @@ def test_graph_conv_model():
 
 @pytest.mark.torch
 def test_neural_fingerprint_retrieval():
-    tasks, dataset, _, _ = get_dataset('classification', 'GraphConv')
-
+    tasks, dataset, _, _ = get_dataset('classification',
+                                       'GraphConv',
+                                       data_points=23)
     fp_size = 3
-
-    batch_size = 50
+    batch_size = 10
     model = GraphConvModel(len(tasks),
                            number_input_features=[75, 64],
                            batch_size=batch_size,
@@ -79,9 +81,8 @@ def test_neural_fingerprint_retrieval():
                            mode='classification')
 
     model.fit(dataset, nb_epoch=1)
-    neural_fingerprints = model.predict_embedding(dataset)
-    neural_fingerprints = np.array(neural_fingerprints)[:len(dataset)]
-    assert (len(dataset), fp_size * 2) == neural_fingerprints.shape
+    neural_fingerprints = np.array(model.predict_embedding(dataset))
+    assert neural_fingerprints.shape == (len(dataset), fp_size * 2)
 
 
 @flaky

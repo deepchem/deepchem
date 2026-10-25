@@ -227,6 +227,7 @@ class _GraphConvTorchModel(nn.Module):
             denseact = self.dropouts[-1](denseact)
         neural_fingerprint: torch.Tensor = self.graph_gather(
             [denseact, degree_slice, membership] + deg_adjs)
+        neural_fingerprint = self.trim([neural_fingerprint, n_samples])
         if self.mode == 'classification':
             logits: torch.Tensor = torch.reshape(
                 self.reshape_dense(neural_fingerprint),
