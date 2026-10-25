@@ -236,7 +236,7 @@ class Ferminet(torch.nn.Module):
         return potential.detach()
 
     def calculate_kinetic_energy(self,):
-        """
+        r"""
         Function to calculate the expected kinetic energy term per batch
         It is calculated via:
         \sum_{ri}^{}[(\pdv[]{log|\Psi|}{(ri)})^2 + \pdv[2]{log|\Psi|}{(ri)}]
