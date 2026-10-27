@@ -1145,7 +1145,14 @@ class DiskDataset(Dataset):
     'w_shape')`. `tasks.json` consists of a list of task names for this dataset.
 
     The actual data is stored in `.npy` files (numpy array files) of the form
-    'shard-0-X.npy', 'shard-0-y.npy', etc.
+    'shard-0-X.npy', 'shard-0-y.npy', etc. If the dataset is created with
+    `compressed=True` (see `DiskDataset.create_dataset` and
+    `DiskDataset.from_numpy`), the shard files are instead stored in gzip
+    compressed form, with names of the form 'shard-0-X.npy.gz',
+    'shard-0-y.npy.gz', etc. Compression can reduce the disk space required
+    by large datasets considerably. Compressed and uncompressed datasets
+    are loaded in exactly the same way, so datasets stored in either format
+    remain readable.
 
     The basic structure of `DiskDataset` is quite robust and will likely serve
     you well for datasets up to about 100 GB or larger. However note that
@@ -1244,7 +1251,8 @@ class DiskDataset(Dataset):
     @staticmethod
     def create_dataset(shard_generator: Iterable[Batch],
                        data_dir: Optional[str] = None,
-                       tasks: Optional[ArrayLike] = None) -> "DiskDataset":
+                       tasks: Optional[ArrayLike] = None,
+                       compressed: bool = False) -> "DiskDataset":
         """Creates a new DiskDataset
 
         Parameters
@@ -1256,6 +1264,11 @@ class DiskDataset(Dataset):
             Filename for data directory. Creates a temp directory if none specified.
         tasks: Sequence, optional (default [])
             List of tasks for this dataset.
+        compressed: bool, optional (default False)
+            If True, the shards are stored on disk in gzip compressed form
+            (`.npy.gz` files) instead of uncompressed `.npy` files. This can
+            greatly reduce the disk space required to store the dataset.
+            Compressed datasets are loaded exactly like uncompressed ones.
 
         Returns
         -------
@@ -1277,8 +1290,13 @@ class DiskDataset(Dataset):
                         y.shape[1])
             basename = "shard-%d" % shard_num
             metadata_rows.append(
-                DiskDataset.write_data_to_disk(data_dir, basename, X, y, w,
-                                               ids))
+                DiskDataset.write_data_to_disk(data_dir,
+                                               basename,
+                                               X,
+                                               y,
+                                               w,
+                                               ids,
+                                               compressed=compressed))
         metadata_df = DiskDataset._construct_metadata(metadata_rows)
         DiskDataset._save_metadata(metadata_df, data_dir, tasks)
         time2 = time.time()
@@ -1361,7 +1379,8 @@ class DiskDataset(Dataset):
                            X: Optional[np.ndarray] = None,
                            y: Optional[np.ndarray] = None,
                            w: Optional[np.ndarray] = None,
-                           ids: Optional[np.ndarray] = None) -> List[Any]:
+                           ids: Optional[np.ndarray] = None,
+                           compressed: bool = False) -> List[Any]:
         """Static helper method to write data to disk.
 
         This helper method is used to write a shard of data to disk.
@@ -1380,6 +1399,9 @@ class DiskDataset(Dataset):
             The weights array.
         ids: np.ndarray, optional (default None)
             The identifiers array.
+        compressed: bool, optional (default False)
+            If True, the arrays are written in gzip compressed form, with
+            filenames ending in `.npy.gz` instead of `.npy`.
 
         Returns
         -------
@@ -1388,8 +1410,9 @@ class DiskDataset(Dataset):
             out_X_shape, out_y_shape, out_w_shape]` with filenames of locations to
             disk which these respective arrays were written.
         """
+        extension = ".npy.gz" if compressed else ".npy"
         if X is not None:
-            out_X: Optional[str] = "%s-X.npy" % basename
+            out_X: Optional[str] = "%s-X%s" % (basename, extension)
             save_to_disk(X, os.path.join(data_dir, out_X))  # type: ignore
             out_X_shape: Optional[Tuple[int, ...]] = X.shape
         else:
@@ -1397,7 +1420,7 @@ class DiskDataset(Dataset):
             out_X_shape = None
 
         if y is not None:
-            out_y: Optional[str] = "%s-y.npy" % basename
+            out_y: Optional[str] = "%s-y%s" % (basename, extension)
             save_to_disk(y, os.path.join(data_dir, out_y))  # type: ignore
             out_y_shape: Optional[Tuple[int, ...]] = y.shape
         else:
@@ -1405,7 +1428,7 @@ class DiskDataset(Dataset):
             out_y_shape = None
 
         if w is not None:
-            out_w: Optional[str] = "%s-w.npy" % basename
+            out_w: Optional[str] = "%s-w%s" % (basename, extension)
             save_to_disk(w, os.path.join(data_dir, out_w))  # type: ignore
             out_w_shape: Optional[Tuple[int, ...]] = w.shape
         else:
@@ -1413,7 +1436,7 @@ class DiskDataset(Dataset):
             out_w_shape = None
 
         if ids is not None:
-            out_ids: Optional[str] = "%s-ids.npy" % basename
+            out_ids: Optional[str] = "%s-ids%s" % (basename, extension)
             save_to_disk(ids, os.path.join(data_dir, out_ids))  # type: ignore
             out_ids_shape: Optional[Tuple[int, ...]] = ids.shape
         else:
@@ -1937,7 +1960,8 @@ class DiskDataset(Dataset):
                    w: Optional[ArrayLike] = None,
                    ids: Optional[ArrayLike] = None,
                    tasks: Optional[ArrayLike] = None,
-                   data_dir: Optional[str] = None) -> "DiskDataset":
+                   data_dir: Optional[str] = None,
+                   compressed: bool = False) -> "DiskDataset":
         """Creates a DiskDataset object from specified Numpy arrays.
 
         Parameters
@@ -1955,6 +1979,11 @@ class DiskDataset(Dataset):
         data_dir: str, optional (default None)
             The directory to write this dataset to. If none is specified, will use
             a temporary directory instead.
+        compressed: bool, optional (default False)
+            If True, the shards are stored on disk in gzip compressed form
+            (`.npy.gz` files) instead of uncompressed `.npy` files. This can
+            greatly reduce the disk space required to store the dataset.
+            Compressed datasets are loaded exactly like uncompressed ones.
 
         Returns
         -------
@@ -1971,7 +2000,8 @@ class DiskDataset(Dataset):
         return DiskDataset.create_dataset(
             [(dataset.X, dataset.y, dataset.w, dataset.ids)],
             data_dir=data_dir,
-            tasks=tasks)
+            tasks=tasks,
+            compressed=compressed)
 
     @staticmethod
     def merge(datasets: Iterable["Dataset"],
@@ -2189,8 +2219,14 @@ class DiskDataset(Dataset):
             permutation = np.random.permutation(n)
             X, y, w, ids = (X[permutation], y[permutation], w[permutation],
                             ids[permutation])
-            DiskDataset.write_data_to_disk(self.data_dir, basename, X, y, w,
-                                           ids)
+            DiskDataset.write_data_to_disk(
+                self.data_dir,
+                basename,
+                X,
+                y,
+                w,
+                ids,
+                compressed=self._is_shard_compressed(i))
         # Reset cache
         self._cached_shards = None
 
@@ -2330,6 +2366,25 @@ class DiskDataset(Dataset):
         row = self.metadata_df.iloc[i]
         return np.array(load_from_disk(os.path.join(self.data_dir, row['w'])))
 
+    def _is_shard_compressed(self, shard_num: int) -> bool:
+        """Whether a shard is stored in gzip compressed form.
+
+        Parameters
+        ----------
+        shard_num: int
+            Index of the shard to check.
+
+        Returns
+        -------
+        bool
+            True if the shard's files are `.npy.gz` files, False if they are
+            uncompressed `.npy` files or if the shard does not exist.
+        """
+        if len(self.metadata_df) <= shard_num:
+            return False
+        X_filename = self.metadata_df.iloc[shard_num]['X']
+        return X_filename is not None and str(X_filename).endswith('.npy.gz')
+
     def add_shard(self,
                   X: np.ndarray,
                   y: Optional[np.ndarray] = None,
@@ -2351,9 +2406,15 @@ class DiskDataset(Dataset):
         metadata_rows = self.metadata_df.values.tolist()
         shard_num = len(metadata_rows)
         basename = "shard-%d" % shard_num
+        compressed = shard_num > 0 and self._is_shard_compressed(0)
         metadata_rows.append(
-            DiskDataset.write_data_to_disk(self.data_dir, basename, X, y, w,
-                                           ids))
+            DiskDataset.write_data_to_disk(self.data_dir,
+                                           basename,
+                                           X,
+                                           y,
+                                           w,
+                                           ids,
+                                           compressed=compressed))
         self.metadata_df = DiskDataset._construct_metadata(metadata_rows)
         self.save_to_disk()
 
@@ -2379,7 +2440,14 @@ class DiskDataset(Dataset):
             Identifiers array.
         """
         basename = "shard-%d" % shard_num
-        DiskDataset.write_data_to_disk(self.data_dir, basename, X, y, w, ids)
+        DiskDataset.write_data_to_disk(
+            self.data_dir,
+            basename,
+            X,
+            y,
+            w,
+            ids,
+            compressed=self._is_shard_compressed(shard_num))
         self._cached_shards = None
         self.legacy_metadata = True
 

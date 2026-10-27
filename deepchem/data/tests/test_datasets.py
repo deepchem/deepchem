@@ -548,6 +548,102 @@ def test_disk_iterate_y_w_None():
     np.testing.assert_array_equal(all_ids, test_ids[:total_size])
 
 
+def test_disk_dataset_compressed():
+    """Test round-tripping a DiskDataset stored in compressed form."""
+    shard_sizes = [10, 5]
+    shards = []
+    for sz in shard_sizes:
+        X_b = np.random.randint(0, 2, size=(sz, 100)).astype(np.float32)
+        y_b = np.random.rand(sz, 1)
+        w_b = np.ones_like(y_b)
+        ids_b = np.array(["mol-%d" % i for i in range(sz)])
+        shards.append((X_b, y_b, w_b, ids_b))
+
+    data_dir = tempfile.mkdtemp()
+    dc.data.DiskDataset.create_dataset(shards,
+                                       data_dir=data_dir,
+                                       compressed=True)
+
+    # Shards should be stored as gzip compressed .npy.gz files.
+    for shard_num in range(len(shard_sizes)):
+        for name in ('X', 'y', 'w', 'ids'):
+            filename = os.path.join(data_dir,
+                                    "shard-%d-%s.npy.gz" % (shard_num, name))
+            assert os.path.exists(filename)
+
+    # A dataset loaded fresh from disk should return identical data.
+    loaded = dc.data.DiskDataset(data_dir)
+    assert loaded.get_number_shards() == len(shard_sizes)
+    for shard_num, (X_b, y_b, w_b, ids_b) in enumerate(shards):
+        X, y, w, ids = loaded.get_shard(shard_num)
+        np.testing.assert_array_equal(X_b, X)
+        np.testing.assert_array_equal(y_b, y)
+        np.testing.assert_array_equal(w_b, w)
+        np.testing.assert_array_equal(ids_b, ids)
+
+
+def test_disk_dataset_compressed_from_numpy():
+    """Test DiskDataset.from_numpy() with compression enabled."""
+    # Binary data, like molecular fingerprints, compresses very well.
+    X = np.random.randint(0, 2, size=(200, 2048)).astype(np.float32)
+    y = np.random.rand(200, 1)
+    ids = np.array(["mol-%d" % i for i in range(200)])
+
+    plain_dir = tempfile.mkdtemp()
+    dc.data.DiskDataset.from_numpy(X, y, ids=ids, data_dir=plain_dir)
+    compressed_dir = tempfile.mkdtemp()
+    dataset = dc.data.DiskDataset.from_numpy(X,
+                                             y,
+                                             ids=ids,
+                                             data_dir=compressed_dir,
+                                             compressed=True)
+
+    def shard_bytes(data_dir):
+        return sum(
+            os.path.getsize(os.path.join(data_dir, filename))
+            for filename in os.listdir(data_dir)
+            if filename.startswith("shard"))
+
+    # The default format is unchanged: uncompressed .npy shard files.
+    assert os.path.exists(os.path.join(plain_dir, "shard-0-X.npy"))
+    assert os.path.exists(os.path.join(compressed_dir, "shard-0-X.npy.gz"))
+    assert shard_bytes(compressed_dir) < shard_bytes(plain_dir)
+
+    np.testing.assert_array_equal(X, dataset.X)
+    np.testing.assert_array_equal(y, dataset.y)
+    np.testing.assert_array_equal(ids, dataset.ids)
+
+
+def test_disk_dataset_compressed_add_and_set_shard():
+    """Shards added to or rewritten in a compressed dataset stay compressed."""
+    X = np.random.randint(0, 2, size=(10, 50)).astype(np.float32)
+    y = np.random.rand(10, 1)
+    w = np.ones_like(y)
+    ids = np.array(["mol-%d" % i for i in range(10)])
+    data_dir = tempfile.mkdtemp()
+    dataset = dc.data.DiskDataset.from_numpy(X,
+                                             y,
+                                             w,
+                                             ids,
+                                             data_dir=data_dir,
+                                             compressed=True)
+
+    dataset.add_shard(X, y, w, ids)
+    assert os.path.exists(os.path.join(data_dir, "shard-1-X.npy.gz"))
+    X_shard, y_shard, w_shard, ids_shard = dataset.get_shard(1)
+    np.testing.assert_array_equal(X, X_shard)
+    np.testing.assert_array_equal(y, y_shard)
+    np.testing.assert_array_equal(w, w_shard)
+    np.testing.assert_array_equal(ids, ids_shard)
+
+    X_new = np.flip(X, axis=1)
+    dataset.set_shard(0, X_new, y, w, ids)
+    loaded = dc.data.DiskDataset(data_dir)
+    X_shard, y_shard, w_shard, ids_shard = loaded.get_shard(0)
+    np.testing.assert_array_equal(X_new, X_shard)
+    np.testing.assert_array_equal(ids, ids_shard)
+
+
 def test_disk_iterate_batch():
 
     all_batch_sizes = [None, 32, 17, 11]

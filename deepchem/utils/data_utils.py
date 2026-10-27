@@ -538,12 +538,16 @@ def save_to_disk(dataset: Any, filename: str, compress: int = 3):
     dataset: str
         A data saved
     filename: str
-        Path to save data.
+        Path to save data. If the filename ends with `.npy.gz`, the array
+        is saved in gzip compressed form.
     compress: int, default 3
         The compress option when dumping joblib file.
     """
     if filename.endswith('.joblib'):
         joblib.dump(dataset, filename, compress=compress)
+    elif filename.endswith('.npy.gz'):
+        with gzip.open(filename, 'wb') as fout:
+            np.save(fout, dataset)
     elif filename.endswith('.npy'):
         np.save(filename, dataset)
     else:
@@ -577,6 +581,9 @@ def load_from_disk(filename: str) -> Any:
         df = df.replace(np.nan, str(""), regex=True)
         return df
     elif extension == ".npy":
+        if filename.endswith(".gz"):
+            with gzip.open(filename, "rb") as fin:
+                return np.load(fin, allow_pickle=True)
         return np.load(filename, allow_pickle=True)
     else:
         raise ValueError("Unrecognized filetype for %s" % filename)

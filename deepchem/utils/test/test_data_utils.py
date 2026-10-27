@@ -1,10 +1,12 @@
 import os
 import unittest
 import tempfile
+import numpy as np
 import pandas as pd
 import deepchem as dc
 from rdkit import Chem
-from deepchem.utils.data_utils import load_sdf_files
+from deepchem.utils.data_utils import load_from_disk, load_sdf_files
+from deepchem.utils.data_utils import save_to_disk
 from deepchem.molnet.load_function.qm9_datasets import QM9_URL
 
 
@@ -110,6 +112,29 @@ def test_qm9_molecules_charge_neutrality_sanitize_false():
             total_charge = sum(
                 atom.GetFormalCharge() for atom in mol.GetAtoms())
             assert total_charge == 0, f"Molecule {i+1} is not neutral."
+
+
+class TestSaveLoadNpyGz(unittest.TestCase):
+    """Tests for saving and loading arrays in gzip compressed .npy form."""
+
+    def test_save_load_npy_gz_round_trip(self):
+        array = np.random.randint(0, 2, size=(100, 1000)).astype(np.float32)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            filename = os.path.join(tmpdir, "array.npy.gz")
+            save_to_disk(array, filename)
+            self.assertTrue(os.path.exists(filename))
+            # Binary data should take much less space in compressed form.
+            self.assertLess(os.path.getsize(filename), array.nbytes)
+            loaded = load_from_disk(filename)
+        np.testing.assert_array_equal(array, loaded)
+
+    def test_save_load_npy_round_trip(self):
+        array = np.random.rand(10, 10)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            filename = os.path.join(tmpdir, "array.npy")
+            save_to_disk(array, filename)
+            loaded = load_from_disk(filename)
+        np.testing.assert_array_equal(array, loaded)
 
 
 def test_qm9_molecules_charge_neutrality_sanitize_true():
