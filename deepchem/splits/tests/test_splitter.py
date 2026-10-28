@@ -4,6 +4,7 @@ Tests for splitter objects.
 import os
 import unittest
 import numpy as np
+import pytest
 import deepchem as dc
 from deepchem.data import NumpyDataset
 from deepchem.splits import IndexSplitter
@@ -614,3 +615,32 @@ class TestSplitter(unittest.TestCase):
             cv_folds[1][1])
         assert len(multitask_dataset) == len(cv_folds[2][0]) + len(
             cv_folds[2][1])
+
+
+# Regression test for deepchem/deepchem#5159
+
+
+def test_random_splitter_rejects_invalid_fractions():
+    """Negative or >1 split fractions must raise instead of producing
+    invalid splits (#5159)."""
+    dataset = dc.data.NumpyDataset(np.arange(10))
+    splitter = dc.splits.RandomSplitter()
+    with pytest.raises(ValueError, match="frac_train"):
+        splitter.split(dataset, frac_train=-0.1, frac_valid=0.1, frac_test=1.0, seed=42)
+    with pytest.raises(ValueError, match="frac_valid"):
+        splitter.split(dataset, frac_train=0.8, frac_valid=1.1, frac_test=-0.1, seed=42)
+
+
+def test_shared_validation_covers_other_splitters():
+    """The base-class fraction validation must fire in every splitter
+    that accepts frac_train/frac_valid/frac_test (#5159). IndexSplitter
+    covers the shared path; ButinaSplitter and FingerprintSplitter
+    validate before their RDKit import, so the raise needs no RDKit."""
+    dataset = dc.data.NumpyDataset(np.arange(10))
+    for splitter in (dc.splits.IndexSplitter(), dc.splits.ButinaSplitter(),
+                     dc.splits.FingerprintSplitter()):
+        with pytest.raises(ValueError, match="frac_train"):
+            splitter.split(dataset,
+                           frac_train=-0.1,
+                           frac_valid=0.1,
+                           frac_test=1.0)
