@@ -160,7 +160,7 @@ class JaxModel(Model):
         self.batch_size = batch_size
         self.learning_rate = learning_rate
         if optimizer is None:
-            optimizer = Adam(1e-3)
+            optimizer = Adam(learning_rate)
 
         if not isinstance(optimizer, optax.GradientTransformation):
             self.optimizer = optimizer._create_jax_optimizer()
