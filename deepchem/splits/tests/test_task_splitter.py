@@ -117,3 +117,11 @@ class TestTaskSplitters(unittest.TestCase):
             np.testing.assert_array_equal(train_dataset.y, y[:, train_tasks])
             np.testing.assert_array_equal(train_dataset.w, w[:, train_tasks])
             np.testing.assert_array_equal(train_dataset.X, X)
+
+    def test_k_fold_split_no_empty_fold(self):
+        """Test k-fold-split never leaves the last fold without tasks."""
+        X = np.random.rand(5, 3)
+        y = np.random.rand(5, 6)
+        dataset = dc.data.NumpyDataset(X, y, np.ones((5, 6)))
+        fold_datasets = dc.splits.TaskSplitter().k_fold_split(dataset, 4)
+        assert [fold.y.shape[1] for fold in fold_datasets] == [1, 1, 1, 3]

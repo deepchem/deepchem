@@ -89,7 +89,8 @@ class TaskSplitter(Splitter):
             Number of splits to be made
         """
         n_tasks = len(dataset.get_task_names())
-        n_per_fold = int(np.round(n_tasks / float(K)))
+        # floor, not round: rounding up can leave the last fold with no tasks
+        n_per_fold = n_tasks // K
         if K * n_per_fold != n_tasks:
             print("Assigning extra tasks to last fold due to uneven split")
 
