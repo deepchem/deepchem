@@ -55,9 +55,9 @@ class KFACOptimizer(optim.Optimizer):
             Clipping value for the update of covariance matrix.
         weight_decay: float (default: 0)
             weight decay for the optimizer.
-        Tcov: int (default: 10)
+        TCov: int (default: 10)
             The number of steps to update the covariance matrix.
-        Tinv: int (default: 100)
+        TInv: int (default: 100)
             The number of steps to calculate the inverse of covariance matrix.
         batch_averaged: bool (default: True)
             States whether to use batch averaged covariance matrix.
@@ -302,17 +302,13 @@ class KFACOptimizer(optim.Optimizer):
         eps = 1e-10  # for numerical stability
 
         if self.mean:
-            self.d_a[m], self.Q_a[m] = torch.symeig(self.m_aa[m] -
-                                                    torch.mean(self.m_aa[m]),
-                                                    eigenvectors=True)
-            self.d_g[m], self.Q_g[m] = torch.symeig(self.m_gg[m] -
-                                                    torch.mean(self.m_gg[m]),
-                                                    eigenvectors=True)
+            self.d_a[m], self.Q_a[m] = torch.linalg.eigh(
+                self.m_aa[m] - torch.mean(self.m_aa[m]))
+            self.d_g[m], self.Q_g[m] = torch.linalg.eigh(
+                self.m_gg[m] - torch.mean(self.m_gg[m]))
         else:
-            self.d_a[m], self.Q_a[m] = torch.symeig(self.m_aa[m],
-                                                    eigenvectors=True)
-            self.d_g[m], self.Q_g[m] = torch.symeig(self.m_gg[m],
-                                                    eigenvectors=True)
+            self.d_a[m], self.Q_a[m] = torch.linalg.eigh(self.m_aa[m])
+            self.d_g[m], self.Q_g[m] = torch.linalg.eigh(self.m_gg[m])
 
         self.d_a[m].mul_((self.d_a[m] > eps).float())
         self.d_g[m].mul_((self.d_g[m] > eps).float())
