@@ -299,15 +299,17 @@ class TestOptimizers(unittest.TestCase):
             torch.nn.Linear(20, n_tasks))
         model = dc.models.TorchModel(model,
                                      dc.models.losses.L2Loss(),
-                                     optimizers=optimizers.KFAC(
+                                     optimizer=optimizers.KFAC(
                                          model=model,
                                          learning_rate=0.003,
-                                         Tinv=10))
+                                         TInv=10))
         # Fit trained model
         model.fit(
             dataset,
             nb_epoch=100,
         )
+        from deepchem.models.torch_models.kfac_optimizer import KFACOptimizer
+        assert isinstance(model._pytorch_optimizer, KFACOptimizer)
 
         # Eval model on train
         scores = model.evaluate(dataset, [metric])

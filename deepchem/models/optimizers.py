@@ -776,14 +776,16 @@ class PiecewiseConstantSchedule(LearningRateSchedule):
 class KFAC(Optimizer):
     """The Second order gradient optimiation algorithm which uses an approximation to calculate the inverse of the Fischer matrrix"""
 
-    def __init__(self, **kwargs):
+    def __init__(self,
+                 learning_rate: Union[float, LearningRateSchedule] = 0.001,
+                 **kwargs):
         """
         Parameters:
         -----------
+        learning_rate: float or LearningRateSchedule (default: 0.001)
+            Learning rate for the optimizer.
         model: torch.nn.Module
             The model to be optimized.
-        lr: float (default: 0.001)
-            Learning rate for the optimizer.
         momentum: float (default: 0.9)
             Momentum for the optimizer.
         stat_decay: float (default: 0.95)
@@ -794,24 +796,26 @@ class KFAC(Optimizer):
             Clipping value for the update of covariance matrix.
         weight_decay: float (default: 0)
             weight decay for the optimizer.
-        Tcov: int (default: 10)
+        TCov: int (default: 10)
             The number of steps to update the covariance matrix.
-        Tinv: int (default: 100)
+        TInv: int (default: 100)
             The number of steps to calculate the inverse of covariance matrix.
         batch_averaged: bool (default: True)
             States whether to use batch averaged covariance matrix.
         mean: bool (default: False)
             States whether to use mean centered covariance matrix.
         """
+        super(KFAC, self).__init__(learning_rate)
         self.kwargs = kwargs
 
-    def _create_pytorch_optimizer(self):
+    def _create_pytorch_optimizer(self, params):
+        # params is unused: KFACOptimizer takes the model to hook its layers
         from deepchem.models.torch_models.kfac_optimizer import KFACOptimizer
         if isinstance(self.learning_rate, LearningRateSchedule):
             self.kwargs['lr'] = self.learning_rate.initial_rate
         else:
             self.kwargs['lr'] = self.learning_rate
-        return KFACOptimizer([self.kwargs])
+        return KFACOptimizer(**self.kwargs)
 
 
 class Lamb(Optimizer):
