@@ -614,3 +614,12 @@ class TestSplitter(unittest.TestCase):
             cv_folds[1][1])
         assert len(multitask_dataset) == len(cv_folds[2][0]) + len(
             cv_folds[2][1])
+
+    def test_singletask_stratified_split_integer_indices(self):
+        """SingletaskStratifiedSplitter indices must be usable by NumpyDataset."""
+        dataset = NumpyDataset(np.random.rand(20, 3), np.random.rand(20, 1))
+        splitter = dc.splits.SingletaskStratifiedSplitter()
+        train, valid, test = splitter.split(dataset)
+        assert train.dtype.kind == valid.dtype.kind == test.dtype.kind == 'i'
+        train_data, test_data = splitter.train_test_split(dataset)
+        assert len(train_data) + len(test_data) == 20
