@@ -2801,7 +2801,7 @@ class AtomicConv(nn.Module):
             x = layer(inputs_x)
 
             if dropout > 0:
-                x = F.dropout(x, dropout)
+                x = F.dropout(x, dropout, training=self.training)
 
             if activation_fn is not None:
                 x = activation_fn(x)
