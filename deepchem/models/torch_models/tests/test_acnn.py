@@ -147,3 +147,37 @@ def test_atomic_convolution_model_variable():
     preds = atomic_convnet.predict(train)
     assert preds.shape == (1, 1)
     assert np.count_nonzero(preds) > 0
+
+
+@pytest.mark.torch
+def test_atomic_convolution_model_eval_is_deterministic():
+    """predict() must not apply dropout, so repeated calls agree."""
+    from deepchem.models.torch_models import AtomConvModel
+    N_atoms = 5
+    atomic_convnet = AtomConvModel(n_tasks=1,
+                                   batch_size=1,
+                                   layer_sizes=[64],
+                                   frag1_num_atoms=N_atoms,
+                                   frag2_num_atoms=N_atoms,
+                                   complex_num_atoms=N_atoms * 2,
+                                   dropouts=0.5)
+
+    frag1_coords = np.random.rand(N_atoms, 3)
+    frag1_nbr_list = {i: [] for i in range(N_atoms)}
+    frag1_z = np.random.randint(10, size=(N_atoms))
+    frag2_coords = np.random.rand(N_atoms, 3)
+    frag2_nbr_list = {i: [] for i in range(N_atoms)}
+    frag2_z = np.random.randint(10, size=(N_atoms))
+    system_coords = np.random.rand(2 * N_atoms, 3)
+    system_nbr_list = {i: [] for i in range(2 * N_atoms)}
+    system_z = np.random.randint(10, size=(2 * N_atoms))
+
+    features = np.asarray(
+        [(frag1_coords, frag1_nbr_list, frag1_z, frag2_coords, frag2_nbr_list,
+          frag2_z, system_coords, system_nbr_list, system_z)],
+        dtype=object)
+    dataset = NumpyDataset(features, np.zeros(1))
+
+    preds1 = atomic_convnet.predict(dataset)
+    preds2 = atomic_convnet.predict(dataset)
+    assert np.allclose(preds1, preds2)
