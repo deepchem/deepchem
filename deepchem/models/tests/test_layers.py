@@ -815,18 +815,51 @@ def test_dmpnn_encoder_layer():
     global_features = torch.from_numpy(global_features).float()
 
     layer = torch_layers.DMPNNEncoderLayer(d_hidden=2)
-    assert layer.W_i.__repr__(
-    ) == 'Linear(in_features=147, out_features=2, bias=False)'
-    assert layer.W_h.__repr__(
-    ) == 'Linear(in_features=2, out_features=2, bias=False)'
-    assert layer.W_o.__repr__(
-    ) == 'Linear(in_features=135, out_features=2, bias=True)'
 
     output = layer(atom_features, f_ini_atoms_bonds, atom_to_incoming_bonds,
                    mapping, global_features, molecules_unbatch_key)
-    readout_output = torch.tensor([[0.1116, 0.0470]])
     assert output.shape == torch.Size([1, 2 + 2048])
-    assert torch.allclose(output[0][:2], readout_output, atol=1e-4)
+    # Global features are concatenated after the molecule encoding.
+    assert torch.equal(output[0, 2:], global_features)
+
+
+@pytest.mark.torch
+@pytest.mark.parametrize("depth, expected", [(1, 3.75), (2, 8.75), (3, 13.75),
+                                             (4, 13.75)])
+def test_dmpnn_encoder_layer_message_passing(depth, expected):
+    """Test message passing depth reaches the readout for a 4-atom chain."""
+    atom_features = torch.tensor([[1.], [2.], [3.], [4.]])
+    # Directed bonds 0->1, 1->0, 1->2, 2->1, 2->3, 3->2, plus padding.
+    f_ini_atoms_bonds = torch.tensor([[1., 0.], [2., 0.], [2., 0.], [3., 0.],
+                                      [3., 0.], [4., 0.], [0., 0.]])
+    atom_to_incoming_bonds = torch.tensor([[1, -1], [0, 3], [2, 5], [4, -1]])
+    mapping = torch.tensor([[-1, -1], [3, -1], [0, -1], [5, -1], [2, -1],
+                            [-1, -1], [-1, -1]])
+
+    layer = torch_layers.DMPNNEncoderLayer(use_default_fdim=False,
+                                           atom_fdim=1,
+                                           bond_fdim=1,
+                                           d_hidden=1,
+                                           depth=depth,
+                                           bias=False,
+                                           activation='relu',
+                                           dropout_p=0.0,
+                                           aggregation='mean')
+    with torch.no_grad():
+        layer.W_i.weight.copy_(torch.tensor([[1., 0.]]))
+        layer.W_h.weight.copy_(torch.tensor([[2.]]))
+        layer.W_o.weight.copy_(torch.tensor([[0., 1.]]))
+        layer.W_o.bias.zero_()
+
+    output = layer(atom_features, f_ini_atoms_bonds, atom_to_incoming_bonds,
+                   mapping, torch.empty((0,)), [4])
+
+    assert output.shape == torch.Size([1, 1])
+    assert torch.allclose(output, torch.tensor([[expected]]))
+    if depth == 3:
+        # The readout is (15 + 10w + 5w**2) / 4, with derivative 7.5 at w=2.
+        output.sum().backward()
+        assert torch.allclose(layer.W_h.weight.grad, torch.tensor([[7.5]]))
 
 
 @pytest.mark.torch
