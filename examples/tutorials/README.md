@@ -116,6 +116,7 @@ tutorials discuss about using DeepChem for specific applications.
 
 ### Equivariance
 * [1 Introduction to Equivariance](Introduction_to_Equivariance.ipynb)
+* [2 3D Molecular Equivariance with SE(3)-Transformers](3D_Molecular_Equivariance_with_SE3_Transformers.ipynb)
 
 ### Olfaction
 * [1 Predict Multi-Label Odor Descriptors using OpenPOM](Predict_Multi_Label_Odor_Descriptors_using_OpenPOM.ipynb)
