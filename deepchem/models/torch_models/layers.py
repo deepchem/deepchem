@@ -1305,7 +1305,9 @@ class DMPNNEncoderLayer(nn.Module):
     A message is a sum of **hidden states of bonds coming to the atom (at T depth)**.
 
     .. note::
-     Depth refers to the number of iterations in the message passing phase (here, T iterations). After each iteration, the hidden states of the bonds are updated.
+     Depth includes the initial bond projection and T - 1 recurrent updates.
+     Each update aggregates the preceding hidden states of incoming bonds,
+     excluding the reverse bond.
 
 
     Example:
@@ -1458,7 +1460,8 @@ class DMPNNEncoderLayer(nn.Module):
         d_hidden: int
             Size of hidden layer in the encoder layer.
         depth: int
-            No of message passing steps.
+            Number of message-passing steps, including the initial bond projection.
+            At depth 1, the initial bond states are used directly for atom readout.
         bias: bool
             If ``True``, dense layers will use bias vectors.
         activation: str
@@ -1472,6 +1475,12 @@ class DMPNNEncoderLayer(nn.Module):
             Can choose between 'mean', 'sum', and 'norm'.
         aggregation_norm: Union[int, float]
             Value required if `aggregation` type is 'norm'.
+
+        Notes
+        -----
+        The corrected recurrence uses each learned hidden state in the next step.
+        Checkpoints trained with the previous recurrence at depth >= 3 still load,
+        but their predictions change and should be re-evaluated before use.
         """
         super(DMPNNEncoderLayer, self).__init__()
 
@@ -1594,7 +1603,7 @@ class DMPNNEncoderLayer(nn.Module):
         Steps:
 
         - Get original bond hidden states from concatenation of initial atom and bond features. (``input``)
-        - Get initial messages hidden states. (``message``)
+        - Get initial message hidden states. (``h_message``)
         - Execute message passing step for ``self.depth - 1`` iterations.
         - Get atom hidden states using atom features and message hidden states.
         - Get molecule encodings.
@@ -1623,15 +1632,11 @@ class DMPNNEncoderLayer(nn.Module):
         """
         input: torch.Tensor = self.W_i(
             f_ini_atoms_bonds)  # num_bonds x hidden_size
-        message: torch.Tensor = self.activation(
-            input)  # num_bonds x hidden_size
+        h_message: torch.Tensor = self.activation(input)
 
         for _ in range(1, self.depth):
-            message = message[mapping].sum(1)  # num_bonds x hidden_size
-            h_message: torch.Tensor = input + self.W_h(
-                message)  # num_bonds x hidden_size
-            h_message = self.activation(h_message)  # num_bonds x hidden_size
-            h_message = self.dropout(h_message)  # num_bonds x hidden_size
+            message: torch.Tensor = h_message[mapping].sum(1)
+            h_message = self.dropout(self.activation(input + self.W_h(message)))
 
         # num_atoms x hidden_size
         atoms_hidden_states: torch.Tensor = self._get_updated_atoms_hidden_state(

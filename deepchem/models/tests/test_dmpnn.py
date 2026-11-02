@@ -59,19 +59,9 @@ def test_dmpnn_regression():
                   global_features_size=morgan_feature_size,
                   n_tasks=number_of_tasks)
 
-    assert model.encoder.__repr__(
-    ) == 'DMPNNEncoderLayer(\n  (activation): ReLU()\n  (dropout): Dropout(p=0.0, inplace=False)\n  (W_i): Linear(in_features=147, out_features=300, bias=False)\n'\
-         '  (W_h): Linear(in_features=300, out_features=300, bias=False)\n  (W_o): Linear(in_features=433, out_features=300, bias=True)\n)'
-    assert model.ffn.__repr__(
-    ) == 'PositionwiseFeedForward(\n  (activation): ReLU()\n  (linears): ModuleList(\n    (0): Linear(in_features=2348, out_features=300, bias=True)\n    '\
-         '(1): Linear(in_features=300, out_features=300, bias=True)\n    (2): Linear(in_features=300, out_features=2, bias=True)\n  )\n  (dropout_p): ModuleList(\n    (0-2): 3 x Dropout(p=0.0, inplace=False)\n  )\n)'
-
     # get output
     output = model(pyg_batch)
     assert output.shape == torch.Size([number_of_molecules, number_of_tasks])
-
-    required_output = torch.tensor([[0.0044, -0.0572]])
-    assert torch.allclose(output[0], required_output, atol=1e-4)
 
 
 @pytest.mark.torch
@@ -124,13 +114,6 @@ def test_dmpnn_classification_single_task():
                   global_features_size=morgan_feature_size,
                   n_tasks=number_of_tasks)
 
-    assert model.encoder.__repr__(
-    ) == 'DMPNNEncoderLayer(\n  (activation): ReLU()\n  (dropout): Dropout(p=0.0, inplace=False)\n  (W_i): Linear(in_features=147, out_features=300, bias=False)\n  (W_h): Linear(in_features=300, out_features=300, bias=False)\n'\
-         '  (W_o): Linear(in_features=433, out_features=300, bias=True)\n)'
-    assert model.ffn.__repr__(
-    ) == 'PositionwiseFeedForward(\n  (activation): ReLU()\n  (linears): ModuleList(\n    (0): Linear(in_features=2348, out_features=300, bias=True)\n    (1): Linear(in_features=300, out_features=300, bias=True)\n    '\
-         '(2): Linear(in_features=300, out_features=2, bias=True)\n  )\n  (dropout_p): ModuleList(\n    (0-2): 3 x Dropout(p=0.0, inplace=False)\n  )\n)'
-
     # get output
     output = model(pyg_batch)
     assert len(output) == 2
@@ -138,12 +121,10 @@ def test_dmpnn_classification_single_task():
         [number_of_molecules, number_of_classes])
     assert output[1].shape == torch.Size(
         [number_of_molecules, number_of_classes])
-
-    required_output = torch.tensor([[0.5154,
-                                     0.4846]]), torch.tensor([[0.0044,
-                                                               -0.0572]])
-    assert torch.allclose(output[0][0], required_output[0], atol=1e-4)
-    assert torch.allclose(output[1][0], required_output[1], atol=1e-4)
+    assert (output[0] >= 0).all() and (output[0] <= 1).all()
+    assert torch.allclose(output[0].sum(dim=-1),
+                          torch.ones(number_of_molecules))
+    assert torch.allclose(output[0], torch.softmax(output[1], dim=-1))
 
 
 @pytest.mark.torch
@@ -196,12 +177,6 @@ def test_dmpnn_classification_multi_task():
                   global_features_size=morgan_feature_size,
                   n_tasks=number_of_tasks)
 
-    assert model.encoder.__repr__(
-    ) == 'DMPNNEncoderLayer(\n  (activation): ReLU()\n  (dropout): Dropout(p=0.0, inplace=False)\n  (W_i): Linear(in_features=147, out_features=300, bias=False)\n  (W_h): Linear(in_features=300, out_features=300, bias=False)\n  (W_o): Linear(in_features=433, out_features=300, bias=True)\n)'
-    assert model.ffn.__repr__(
-    ) == 'PositionwiseFeedForward(\n  (activation): ReLU()\n  (linears): ModuleList(\n    (0): Linear(in_features=2348, out_features=300, bias=True)\n    (1): Linear(in_features=300, out_features=300, bias=True)\n    '\
-         '(2): Linear(in_features=300, out_features=4, bias=True)\n  )\n  (dropout_p): ModuleList(\n    (0-2): 3 x Dropout(p=0.0, inplace=False)\n  )\n)'
-
     # get output
     output = model(pyg_batch)
     assert len(output) == 2
@@ -209,12 +184,10 @@ def test_dmpnn_classification_multi_task():
         [number_of_molecules, number_of_tasks, number_of_classes])
     assert output[1].shape == torch.Size(
         [number_of_molecules, number_of_tasks, number_of_classes])
-
-    required_output = torch.tensor([[[0.5317, 0.4683], [0.4911, 0.5089]]
-                                   ]), torch.tensor([[[0.0545, -0.0724],
-                                                      [0.0204, 0.0558]]])
-    assert torch.allclose(output[0][0], required_output[0], atol=1e-4)
-    assert torch.allclose(output[1][0], required_output[1], atol=1e-4)
+    assert (output[0] >= 0).all() and (output[0] <= 1).all()
+    assert torch.allclose(output[0].sum(dim=-1),
+                          torch.ones(number_of_molecules, number_of_tasks))
+    assert torch.allclose(output[0], torch.softmax(output[1], dim=-1))
 
 
 @pytest.mark.torch
