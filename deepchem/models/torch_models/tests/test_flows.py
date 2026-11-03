@@ -179,74 +179,108 @@ def test_normalizing_flow_model():
 @pytest.mark.torch
 def test_normalizing_flow_pytorch():
     """
-  This test aims to evaluate if the normalizingFlow model is being applied
-  correctly. That is if the sampling, and its log_prob, are being computed
-  after performing the transformation layers. Also, if log_prob of an input
-  tensor have consistency with the NormalizingFlow model.
+    Test that NormalizingFlow sampling reports the target density.
 
-  NormalizingFlow:
-    sample:
-      input shape: (samples)
-      output shape: ((samples, dim), (samples))
-
-    log_prob: Method used to learn parameter (optimizing loop)
-      input shape: (samples)
-      output shape: (samples)
-
-  """
+    Single and composed affine transforms are checked against an independent
+    analytic MultivariateNormal oracle, both for densities returned by
+    ``sample`` and for ``log_prob`` evaluated at those samples. The gradient
+    of the reported mean density with respect to each transform's scale is
+    also checked.
+    """
 
     dim = 2
-    samples = 96
-    base_distribution = MultivariateNormal(torch.zeros(dim), torch.eye(dim))
-    tensor = base_distribution.sample(torch.Size((samples, dim)))
-    transformation = [Affine(dim)]
-    model = NormalizingFlow(transformation, base_distribution, dim)
+    n_samples = 64
 
-    # Test sampling method
-    sampling, log_prob_ = model.sample(samples)
+    cases = [
+        ([torch.tensor([0.5, -0.3])], [torch.tensor([0.2, -0.1])]),
+        ([torch.tensor([0.4, -0.2]),
+          torch.tensor([-0.1, 0.25])],
+         [torch.tensor([0.1, 0.3]),
+          torch.tensor([-0.15, 0.05])]),
+    ]
 
-    # Test log_prob method (this method is used when inverse pass)
-    # Output must be a Nth zero array since nothing is being learned yet
-    log_prob = model.log_prob(tensor)
+    for case_index, (scale_params, shifts) in enumerate(cases):
+        transforms = []
+        for scale_param, shift in zip(scale_params, shifts):
+            layer = Affine(dim)
+            with torch.no_grad():
+                layer.scale.copy_(scale_param)
+                layer.shift.copy_(shift)
+            transforms.append(layer)
 
-    # Featurize to assert for tests
-    log_prob_ = log_prob_.detach().numpy()
-    log_prob = log_prob.detach().numpy()
-    zeros = np.zeros((samples,))
+        base_distribution = MultivariateNormal(torch.zeros(dim), torch.eye(dim))
+        model = NormalizingFlow(transforms, base_distribution, dim)
 
-    # Assert errors for sample method
-    assert log_prob_.any()
+        # Independent analytic oracle for the composed affine transform.
+        mean = torch.zeros(dim)
+        std = torch.ones(dim)
+        for scale_param, shift in zip(scale_params, shifts):
+            scale = torch.exp(scale_param)
+            mean = scale * mean + shift
+            std = scale * std
+        oracle = MultivariateNormal(mean, torch.diag(std * std))
 
-    # Assert errors for log_prob method
-    assert np.array_equal(log_prob, zeros)
+        with torch.random.fork_rng(devices=[]):
+            torch.manual_seed(1000 + case_index)
+            samples, log_prob_sample = model.sample(n_samples)
+
+        assert torch.allclose(log_prob_sample,
+                              oracle.log_prob(samples),
+                              atol=1e-5)
+        log_prob_inputs = model.log_prob(samples)
+        assert torch.allclose(log_prob_inputs,
+                              oracle.log_prob(samples),
+                              atol=1e-5)
+
+        log_prob_sample.mean().backward()
+        for layer in transforms:
+            assert torch.allclose(layer.scale.grad,
+                                  torch.full((dim,), -1.0),
+                                  atol=1e-5)
 
 
 @unittest.skipIf(not has_torch, 'torch is not installed')
 @pytest.mark.torch
 def test_RealNVPLayer():
     """
-  This test should evaluate if the transformation its being applied
-  correctly. When computing the logarithm of the determinant jacobian matrix
-  the result must be zero for any distribution when performing the first forward
-  and inverse pass (initialized). This is the expected
-  behavior since nothing is being learned yet.
+    Test a concrete 2D RealNVPLayer against an independent dense-Jacobian
+    oracle.
 
-  input shape: (samples, dim)
-  output shape: (samples, dim)
-
-  """
+    Forward and inverse passes must round-trip, their log-determinants must be
+    negatives of one another, and each reported log-determinant must match the
+    log absolute determinant of the dense autograd Jacobian computed at the
+    same inputs. Fixed nonzero parameters keep the Jacobian from collapsing to
+    the identity.
+    """
 
     dim = 2
-    samples = 96
-    data = MultivariateNormal(torch.zeros(dim), torch.eye(dim))
-    tensor = data.sample(torch.Size((samples, dim)))
+    n_samples = 4
+    hidden_size = 8
 
-    layers = 4
-    hidden_size = 16
-    masks = F.one_hot(torch.tensor([i % 2 for i in range(layers)])).float()
-    layers = nn.ModuleList([RealNVPLayer(mask, hidden_size) for mask in masks])
+    with torch.random.fork_rng(devices=[]):
+        torch.manual_seed(7)
+        mask = torch.tensor([1.0, 0.0])
+        layer = RealNVPLayer(mask, hidden_size)
+        with torch.no_grad():
+            layer.scale.fill_(0.7)
+        torch.manual_seed(11)
+        x = torch.randn(n_samples, dim)
 
-    for layer in layers:
-        _, inverse_log_det_jacobian = layer.inverse(tensor)
-        inverse_log_det_jacobian = inverse_log_det_jacobian.detach().numpy()
-        assert np.any(inverse_log_det_jacobian)
+    y, log_det = layer.forward(x)
+    x_recovered, inverse_log_det = layer.inverse(y)
+
+    assert torch.allclose(x_recovered, x, atol=1e-5)
+    assert torch.allclose(log_det + inverse_log_det,
+                          torch.zeros(n_samples),
+                          atol=1e-5)
+
+    def forward_single(inp):
+        out, _ = layer.forward(inp.unsqueeze(0))
+        return out.squeeze(0)
+
+    for i in range(n_samples):
+        oracle_log_det = torch.log(
+            torch.abs(
+                torch.det(
+                    torch.autograd.functional.jacobian(forward_single, x[i]))))
+        assert torch.allclose(oracle_log_det, log_det[i], atol=1e-5)
