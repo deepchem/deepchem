@@ -729,7 +729,7 @@ class NormalizingFlow(nn.Module):
     def sample(self, n_samples: int) -> Tuple[torch.Tensor, torch.Tensor]:
         """Performs a sampling from the transformed distribution.
         Besides the outputs (sampling), this method returns the logarithm of
-        probability to obtain the outputs at the base distribution.
+        probability to obtain the outputs at the target distribution.
 
         Parameters
         ----------
@@ -741,7 +741,7 @@ class NormalizingFlow(nn.Module):
         sample: tuple
             This tuple contains a two torch.Tensor objects. The first represents
             a sampling of the learned distribution when transformations had been
-            applied. The secong torc.Tensor is the computation of log probabilities
+            applied. The second torch.Tensor is the computation of log probabilities
             of the transformed distribution.
             shape: ((samples, dim), (samples))
 
@@ -750,7 +750,7 @@ class NormalizingFlow(nn.Module):
         log_prob = self.base_distribution.log_prob(outputs)
         for biject in self.transforms:
             outputs, log_det_jacobian = biject.forward(outputs)
-            log_prob += log_det_jacobian
+            log_prob -= log_det_jacobian
 
         return outputs, log_prob
 
