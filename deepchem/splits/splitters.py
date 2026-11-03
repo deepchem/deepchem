@@ -759,9 +759,9 @@ class SingletaskStratifiedSplitter(Splitter):
         train_cutoff = int(np.round(frac_train * split_cd))
         valid_cutoff = int(np.round(frac_valid * split_cd)) + train_cutoff
 
-        train_idx: np.ndarray = np.array([])
-        valid_idx: np.ndarray = np.array([])
-        test_idx: np.ndarray = np.array([])
+        train_idx: np.ndarray = np.array([], dtype=int)
+        valid_idx: np.ndarray = np.array([], dtype=int)
+        test_idx: np.ndarray = np.array([], dtype=int)
 
         while sortidx.shape[0] >= split_cd:
             sortidx_split, sortidx = np.split(sortidx, [split_cd])
@@ -775,7 +775,7 @@ class SingletaskStratifiedSplitter(Splitter):
 
         # Append remaining examples to train
         if sortidx.shape[0] > 0:
-            np.hstack([train_idx, sortidx])
+                train_idx = np.hstack([train_idx, sortidx])
 
         return (train_idx, valid_idx, test_idx)
 
