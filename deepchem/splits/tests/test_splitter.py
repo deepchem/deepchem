@@ -185,7 +185,24 @@ class TestSplitter(unittest.TestCase):
         merged_dataset = dc.data.NumpyDataset.merge(
             [train_data, valid_data, test_data])
         assert sorted(merged_dataset.ids) == (sorted(solubility_dataset.ids))
-
+    
+    def test_singletask_stratified_splitter_keeps_all_samples(self):
+        """
+        SingletaskStratifiedSplitter must return integer indices and must not
+        drop the leftover samples when n_samples is not a multiple of 10.
+        """
+        for n_samples in [5, 10, 15, 25]:
+            X = np.random.rand(n_samples, 3)
+            y = np.random.rand(n_samples, 1)
+            dataset = dc.data.NumpyDataset(X, y)
+            splitter = dc.splits.SingletaskStratifiedSplitter()
+            train_idx, valid_idx, test_idx = splitter.split(dataset)
+            assert np.issubdtype(train_idx.dtype, np.integer)
+            all_idx = np.concatenate([train_idx, valid_idx, test_idx])
+            assert sorted(all_idx.tolist()) == list(range(n_samples))
+            train, valid, test = splitter.train_valid_test_split(dataset)
+            assert len(train) + len(valid) + len(test) == n_samples
+            
     def test_singletask_maxmin_split(self):
         """
         Test singletask MaxMinSplitter class.
