@@ -108,14 +108,16 @@ def prc_auc_score(y: np.ndarray, y_pred: np.ndarray) -> float:
     y: np.ndarray
         A numpy array of shape `(N, n_classes)` or `(N,)` with true labels
     y_pred: np.ndarray
-        Of shape `(N, n_classes)` with class probabilities.
+        Of shape `(N, n_classes)` or `(N,)` with class probabilities.
 
     Returns
     -------
     float
         The area under the precision-recall curve. A number between 0 and 1.
     """
-    precision, recall, _ = precision_recall_curve(y[:, 1], y_pred[:, 1])
+    labels = y[:, 1] if y.ndim > 1 else y
+    probabilities = y_pred[:, 1] if y_pred.ndim > 1 else y_pred
+    precision, recall, _ = precision_recall_curve(labels, probabilities)
     return auc(recall, precision)
 
 
