@@ -929,18 +929,18 @@ class SpecifiedSplitter(Splitter):
         num_datapoints = len(dataset)
         indices = np.arange(num_datapoints).tolist()
         train_indices = []
-        if self.valid_indices is None:
-            self.valid_indices = []
-        if self.test_indices is None:
-            self.test_indices = []
-        valid_test = list(self.valid_indices)
-        valid_test.extend(self.test_indices)
+        valid_indices = list(
+            self.valid_indices) if self.valid_indices is not None else []
+        test_indices = list(
+            self.test_indices) if self.test_indices is not None else []
+        valid_test = set(valid_indices) | set(test_indices)
         for indice in indices:
             if indice not in valid_test:
                 train_indices.append(indice)
 
-        return (np.array(train_indices), np.array(self.valid_indices),
-                np.array(self.test_indices))
+        return (np.array(train_indices, dtype=int),
+                np.array(valid_indices, dtype=int),
+                np.array(test_indices, dtype=int))
 
 
 #################################################################
