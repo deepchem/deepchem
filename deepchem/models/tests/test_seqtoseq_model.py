@@ -107,6 +107,70 @@ class TestSeqToSeq(unittest.TestCase):
         assert count4 >= 12
 
     @pytest.mark.torch
+    def test_variational_loss_includes_kl(self):
+        """Test that the KL divergence term is included in the loss.
+
+        The loss closure used to read `randomizer.loss_list` while it was being
+        created, inside `__init__`, when the list is still empty. Since `sum([])`
+        returns the integer 0, the KL divergence term was silently dropped and a
+        model built with `variational=True` trained as a plain autoencoder.
+        """
+        sequence_length = 6
+        tokens = list(str(x) for x in range(10))
+        model = SeqToSeqModel(tokens,
+                              tokens,
+                              sequence_length,
+                              encoder_layers=1,
+                              decoder_layers=1,
+                              embedding_dimension=32,
+                              batch_size=4,
+                              variational=True,
+                              annealing_start_step=0,
+                              annealing_final_step=1)
+        n_tokens = len(model._output_tokens)
+        outputs = torch.rand(4, sequence_length, n_tokens)
+        outputs = outputs / outputs.sum(-1, keepdim=True)
+        labels = torch.randint(0, n_tokens, (4, sequence_length)).float()
+        log_probs = torch.log(outputs.view(-1, n_tokens))
+        targets = labels.view(-1).to(torch.int64)
+        reconstruction = torch.nn.NLLLoss()(log_probs, targets)
+
+        # A forward pass is what records the KL divergence term. Append a known
+        # value directly so the expected loss can be checked exactly.
+        kl = 2.5
+        model.model.randomizer.loss_list.append(torch.tensor(kl))
+        loss = model._loss_fn([outputs], [labels], None)
+
+        assert np.allclose(float(loss), float(reconstruction) + kl)
+        # The terms must be consumed, so that they neither accumulate across
+        # training steps nor keep the autograd graph of earlier batches alive.
+        assert len(model.model.randomizer.loss_list) == 0
+
+    @pytest.mark.torch
+    def test_nonvariational_loss_excludes_kl(self):
+        """Test that a non-variational model's loss is the reconstruction loss."""
+        sequence_length = 6
+        tokens = list(str(x) for x in range(10))
+        model = SeqToSeqModel(tokens,
+                              tokens,
+                              sequence_length,
+                              encoder_layers=1,
+                              decoder_layers=1,
+                              embedding_dimension=32,
+                              batch_size=4)
+        n_tokens = len(model._output_tokens)
+        outputs = torch.rand(4, sequence_length, n_tokens)
+        outputs = outputs / outputs.sum(-1, keepdim=True)
+        labels = torch.randint(0, n_tokens, (4, sequence_length)).float()
+        log_probs = torch.log(outputs.view(-1, n_tokens))
+        targets = labels.view(-1).to(torch.int64)
+        reconstruction = torch.nn.NLLLoss()(log_probs, targets)
+
+        loss = model._loss_fn([outputs], [labels], None)
+
+        assert np.allclose(float(loss), float(reconstruction))
+
+    @pytest.mark.torch
     def test_variational(self):
         """Test using a SeqToSeq model as a variational autoenconder."""
         sequence_length = 10

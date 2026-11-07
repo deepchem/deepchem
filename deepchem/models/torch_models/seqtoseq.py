@@ -384,18 +384,70 @@ class SeqToSeqModel(TorchModel):
                              **kwargs)
 
     def _create_loss(self):
-        """Create loss function for model."""
-        if self._variational:
-            loss = sum(self.model.randomizer.loss_list)
-        else:
-            loss = torch.tensor(0.0)
+        """Create the loss function for the model.
+
+        For a plain autoencoder the loss is the reconstruction loss, the
+        negative log likelihood of the target tokens under the predicted token
+        distributions.
+
+        When `variational` is True, the loss is that reconstruction loss plus
+        the KL divergence between the embedding distribution and a unit
+        Gaussian. `VariationalRandomizer` computes that term during the forward
+        pass and records it with `add_loss`, so it is only available once a
+        forward pass has run. It therefore has to be read while the loss is
+        being evaluated, not while this closure is being created: this method is
+        called from `__init__`, when no forward pass has happened and the
+        randomizer's `loss_list` is still empty.
+
+        Returns
+        -------
+        Callable[[List, List, List], torch.Tensor]
+            A function of (outputs, labels, weights) returning the loss.
+
+        """
 
         def loss_fn(outputs, labels, weights):
+            """Compute the loss for one batch.
+
+            Parameters
+            ----------
+            outputs: List
+                Single element list holding the predicted token probabilities,
+                of shape `(batch_size, max_output_length, n_output_tokens)`.
+            labels: List
+                Single element list holding the target token indices, of shape
+                `(batch_size, max_output_length)`.
+            weights: List
+                Sample weights. Unused, since every token contributes equally
+                to the reconstruction loss.
+
+            Returns
+            -------
+            torch.Tensor
+                Scalar loss for the batch.
+
+            """
             output = outputs[0].view(-1, outputs[0].size(-1))
             target = labels[0].view(-1)
             loss_ = nn.NLLLoss()(torch.log(output.to(torch.float32)),
                                  target.to(torch.int64))
-            return loss + loss_
+            if self._variational:
+                loss_list = self.model.randomizer.loss_list
+                if loss_list:
+                    # A forward pass evaluates the randomizer twice, once in
+                    # training mode for the embedding that is decoded and once
+                    # in inference mode for `self._embedding`. Both record the
+                    # same KL divergence, because it is computed from the
+                    # predicted mean and standard deviation only and does not
+                    # depend on the sampled noise. The most recently recorded
+                    # term is therefore the one belonging to `outputs`.
+                    loss_ = loss_ + loss_list[-1].to(loss_.device)
+                # Consume the recorded terms. Nothing else reads them, so
+                # leaving them in place would grow the list for the lifetime of
+                # the model and keep the autograd graph of every earlier batch
+                # alive along with it.
+                loss_list.clear()
+            return loss_
 
         return loss_fn
 
