@@ -74,11 +74,16 @@ class TaskSplitter(Splitter):
 
         X, y, w, ids = dataset.X, dataset.y, dataset.w, dataset.ids
 
-        train_dataset = NumpyDataset(X, y[:, :n_train], w[:, :n_train], ids)
-        valid_dataset = NumpyDataset(X, y[:, n_train:n_train + n_valid],
-                                     w[:, n_train:n_train + n_valid], ids)
-        test_dataset = NumpyDataset(X, y[:, n_train + n_valid:],
-                                    w[:, n_train + n_valid:], ids)
+        if w.ndim == 1 or w.shape[1] == 1:
+            w_train = w_valid = w_test = w
+        else:
+            w_train = w[:, :n_train]
+            w_valid = w[:, n_train:n_train + n_valid]
+            w_test = w[:, n_train + n_valid:]
+
+        train_dataset = NumpyDataset(X, y[:, :n_train], w_train, ids)
+        valid_dataset = NumpyDataset(X, y[:, n_train:n_train + n_valid], w_valid, ids)
+        test_dataset = NumpyDataset(X, y[:, n_train + n_valid:], w_test, ids)
         return train_dataset, valid_dataset, test_dataset
 
     def k_fold_split(self, dataset, K):
