@@ -1,0 +1,9 @@
+2
+Properties=species:S:1:pos:R:3:my_forces:R:3 my_energy=1.5
+H 0.0 0.0 0.0 0.1 0.0 0.0
+O 1.0 0.0 0.0 -0.1 0.0 0.0
+3
+Properties=species:S:1:pos:R:3:my_forces:R:3 my_energy=-2.0
+C 0.0 0.0 0.0 0.2 0.0 0.0
+H 0.8 0.0 0.0 0.0 0.2 0.0
+H -0.8 0.0 0.0 0.0 0.0 0.2

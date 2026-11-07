@@ -774,6 +774,12 @@ OneFormer
 .. autoclass:: deepchem.models.torch_models.oneformer.OneFormer
   :members:
 
+RFDiffusionModel
+----------------
+
+.. autoclass:: deepchem.models.torch_models.rfdiffusion.RFDiffusionModel
+  :members:
+
 Trainer
 =======
 

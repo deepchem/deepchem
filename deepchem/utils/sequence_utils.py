@@ -38,7 +38,7 @@ def hhblits(dataset_path,
         E-value cutoff.
     num_iterations: int
         Number of iterations.
-    num_threads: int
+    num_threads: int, default 4
         Number of threads.
 
     Returns

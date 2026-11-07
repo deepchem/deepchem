@@ -813,6 +813,11 @@ def _get_libxc_res(inp: Mapping[str, Union[np.ndarray, Tuple[np.ndarray, ...],
     """
     do_exc, do_vxc, do_fxc, do_kxc, do_lxc = _get_dos(deriv)
 
+    inp = {
+        k: v.detach().cpu().numpy() if isinstance(v, torch.Tensor) else v
+        for k, v in inp.items()
+    }
+
     res = libxcfcn.compute(inp,
                            do_exc=do_exc,
                            do_vxc=do_vxc,
@@ -998,7 +1003,13 @@ def _extract_returns(ret: Mapping[str, np.ndarray], deriv: int, family: int) -> 
         keys = MGGA_KEYS
     else:
         raise RuntimeError("Unknown libxc family %d" % family)
-    return tuple(a(ret[key]) for key in keys[deriv])
+
+    selected = keys[deriv]
+    missing = [key for key in selected if key not in ret]
+    if missing:
+        zero = np.zeros_like(ret[selected[0]])
+        ret = {**ret, **{key: zero for key in missing}}
+    return tuple(a(ret[key]) for key in selected)
 
 
 def _get_grad_inps(

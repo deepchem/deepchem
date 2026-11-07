@@ -173,3 +173,5 @@ except ModuleNotFoundError as e:
         f'Skipped loading some Pytorch utilities, missing a dependency. {e}')
 
 from deepchem.utils.lightning_utils import collate_dataset_fn
+
+from deepchem.utils.ProteinMPNN_utils import gather_edges, gather_nodes, cat_neighbors_nodes

@@ -52,6 +52,12 @@ from deepchem.models.torch_models.hnn import HNN, HNNModel
 from deepchem.models.torch_models.chemception import ChemCeptionLayer, ChemCeption
 from deepchem.models.torch_models.fno import FNO, FNOModel
 from deepchem.models.torch_models.lnn import LNN, LNNModel
+from deepchem.models.torch_models.layers import SinusoidalTimestepEmbedding
+from deepchem.models.torch_models.layers import ResidueEmbedding
+from deepchem.models.torch_models.layers import PositionalEncoding
+from deepchem.models.torch_models.layers import CosineSchedule
+from deepchem.models.torch_models.layers import BackboneDiffusion
+from deepchem.models.torch_models.rfdiffusion import RFDiffusionModel
 
 try:
     from deepchem.models.torch_models.dmpnn import DMPNN, DMPNNModel

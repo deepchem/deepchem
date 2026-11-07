@@ -5,6 +5,7 @@ import joblib
 import gzip
 import pickle
 import os
+import ssl
 import tempfile
 import tarfile
 import zipfile
@@ -16,6 +17,13 @@ import pandas as pd
 import numpy as np
 
 import deepchem as dc
+
+try:
+    import certifi
+    ssl._create_default_https_context = lambda: ssl.create_default_context(
+        cafile=certifi.where())
+except ImportError:
+    pass
 
 logger = logging.getLogger(__name__)
 
