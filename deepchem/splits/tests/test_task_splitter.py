@@ -117,3 +117,57 @@ class TestTaskSplitters(unittest.TestCase):
             np.testing.assert_array_equal(train_dataset.y, y[:, train_tasks])
             np.testing.assert_array_equal(train_dataset.w, w[:, train_tasks])
             np.testing.assert_array_equal(train_dataset.X, X)
+    def test_train_valid_test_split_1d_weights(self):
+        """Test task split with 1D sample weights."""
+        n_samples = 10
+        n_tasks = 4
+    
+        X = np.random.rand(n_samples, 3)
+        y = np.random.rand(n_samples, n_tasks)
+        w = np.arange(1, n_samples + 1, dtype=float)
+    
+        dataset = dc.data.NumpyDataset(X, y, w)
+        splitter = dc.splits.TaskSplitter()
+    
+        train, valid, test = splitter.train_valid_test_split(
+            dataset, frac_train=.5, frac_valid=.25, frac_test=.25)
+    
+        np.testing.assert_array_equal(train.w, w)
+        np.testing.assert_array_equal(valid.w, w)
+        np.testing.assert_array_equal(test.w, w)
+    
+        self.assertEqual(train.y.shape, (n_samples, 2))
+        self.assertEqual(valid.y.shape, (n_samples, 1))
+        self.assertEqual(test.y.shape, (n_samples, 1))
+    def test_merge_fold_datasets_1d_weights(self):
+        """Test merging task folds with 1D sample weights."""
+        n_samples = 10
+        n_tasks = 4
+    
+        X = np.random.rand(n_samples, 3)
+        y = np.random.rand(n_samples, n_tasks)
+        w = np.arange(1, n_samples + 1, dtype=float)
+    
+        dataset = dc.data.NumpyDataset(X, y, w)
+        splitter = dc.splits.TaskSplitter()
+    
+        folds = splitter.k_fold_split(dataset, K=2)
+        merged = dc.splits.merge_fold_datasets(folds)
+    
+        np.testing.assert_array_equal(merged.X, X)
+        np.testing.assert_array_equal(merged.y, y)
+        np.testing.assert_array_equal(merged.w, w)
+    def test_train_valid_test_split_single_column_weights(self):
+        n_samples = 10
+        n_tasks = 4
+    
+        X = np.random.rand(n_samples, 3)
+        y = np.random.rand(n_samples, n_tasks)
+        w = np.arange(1, n_samples + 1, dtype=float).reshape(-1, 1)
+    
+        dataset = dc.data.NumpyDataset(X, y, w)
+        train, valid, test = dc.splits.TaskSplitter().train_valid_test_split(dataset)
+    
+        np.testing.assert_array_equal(train.w, w)
+        np.testing.assert_array_equal(valid.w, w)
+        np.testing.assert_array_equal(test.w, w)
