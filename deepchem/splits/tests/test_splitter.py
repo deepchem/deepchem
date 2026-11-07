@@ -574,6 +574,38 @@ class TestSplitter(unittest.TestCase):
         assert len(valid_data) == 1
         assert len(test_data) == 1
 
+    def test_specified_split_empty_or_omitted_indices(self):
+        """Test SpecifiedSplitter when valid or test indices are empty
+        or omitted.
+        """
+        solubility_dataset = load_solubility_data()
+
+        # Omitted valid_indices
+        splitter_no_valid = dc.splits.SpecifiedSplitter(test_indices=[3, 4])
+        train, valid, test = splitter_no_valid.train_valid_test_split(
+            solubility_dataset)
+        assert len(train) == 8
+        assert len(valid) == 0
+        assert len(test) == 2
+
+        # Empty lists
+        splitter_empty = dc.splits.SpecifiedSplitter(valid_indices=[],
+                                                     test_indices=[])
+        train, valid, test = splitter_empty.train_valid_test_split(
+            solubility_dataset)
+        assert len(train) == 10
+        assert len(valid) == 0
+        assert len(test) == 0
+
+        # Empty train_indices (all samples in valid and test)
+        splitter_all = dc.splits.SpecifiedSplitter(
+            valid_indices=list(range(5)), test_indices=list(range(5, 10)))
+        train, valid, test = splitter_all.train_valid_test_split(
+            solubility_dataset)
+        assert len(train) == 0
+        assert len(valid) == 5
+        assert len(test) == 5
+
     def test_random_seed(self):
         """Test that splitters use the random seed correctly."""
         dataset = load_solubility_data()
