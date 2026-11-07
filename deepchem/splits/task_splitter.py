@@ -25,7 +25,12 @@ def merge_fold_datasets(fold_datasets):
         ys.append(fold_dataset.y)
         ws.append(fold_dataset.w)
     y = np.concatenate(ys, axis=1)
-    w = np.concatenate(ws, axis=1)
+    
+    if ws[0].ndim == 1 or ws[0].shape[1] == 1:
+        w = ws[0]
+    else:
+        w = np.concatenate(ws, axis=1)
+    
     return NumpyDataset(X, y, w, ids)
 
 
