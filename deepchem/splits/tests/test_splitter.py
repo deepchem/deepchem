@@ -614,3 +614,31 @@ class TestSplitter(unittest.TestCase):
             cv_folds[1][1])
         assert len(multitask_dataset) == len(cv_folds[2][0]) + len(
             cv_folds[2][1])
+
+    def test_log_every_n(self):
+        """Test that splitters log progress when log_every_n is set."""
+        dataset = load_solubility_data()
+
+        # Test RandomSplitter logging
+        with self.assertLogs(level='INFO') as cm:
+            random_splitter = dc.splits.RandomSplitter()
+            random_splitter.split(dataset, log_every_n=1)
+            assert any("RandomSplitter" in msg for msg in cm.output)
+
+        # Test MolecularWeightSplitter logging
+        with self.assertLogs(level='INFO') as cm:
+            mw_splitter = dc.splits.MolecularWeightSplitter()
+            mw_splitter.split(dataset, log_every_n=2)
+            assert any("molecular weight" in msg.lower() for msg in cm.output)
+
+        # Test ButinaSplitter logging
+        with self.assertLogs(level='INFO') as cm:
+            butina_splitter = dc.splits.ButinaSplitter()
+            butina_splitter.split(dataset, log_every_n=2)
+            assert any("fingerprints" in msg.lower() for msg in cm.output)
+
+        # Test FingerprintSplitter logging
+        with self.assertLogs(level='INFO') as cm:
+            fp_splitter = dc.splits.FingerprintSplitter()
+            fp_splitter.split(dataset, log_every_n=2)
+            assert any("fingerprints" in msg.lower() for msg in cm.output)

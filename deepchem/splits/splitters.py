@@ -369,7 +369,8 @@ class RandomSplitter(Splitter):
         seed: int, optional (default None)
             Random seed to use.
         log_every_n: int, optional (default None)
-            Log every n examples (not currently used).
+            Controls the logger by dictating how often logger outputs
+            will be produced.
 
         Returns
         -------
@@ -381,6 +382,9 @@ class RandomSplitter(Splitter):
         if seed is not None:
             np.random.seed(seed)
         num_datapoints = len(dataset)
+        if log_every_n is not None:
+            logger.info("Splitting %d samples with RandomSplitter" %
+                        num_datapoints)
         train_cutoff = int(frac_train * num_datapoints)
         valid_cutoff = int((frac_train + frac_valid) * num_datapoints)
         shuffled = np.random.permutation(range(num_datapoints))
@@ -734,7 +738,8 @@ class SingletaskStratifiedSplitter(Splitter):
         seed: int, optional (default None)
             Random seed to use.
         log_every_n: int, optional (default None)
-            Log every n examples (not currently used).
+            Controls the logger by dictating how often logger outputs
+            will be produced.
 
         Returns
         -------
@@ -751,6 +756,11 @@ class SingletaskStratifiedSplitter(Splitter):
 
         if seed is not None:
             np.random.seed(seed)
+
+        if log_every_n is not None:
+            logger.info(
+                "Splitting %d samples with SingletaskStratifiedSplitter "
+                "on task %d" % (len(dataset), self.task_number))
 
         y_s = dataset.y[:, self.task_number]
         sortidx = np.argsort(y_s)
@@ -1001,7 +1011,8 @@ class MolecularWeightSplitter(Splitter):
         seed: int, optional (default None)
             Random seed to use.
         log_every_n: int, optional (default None)
-            Log every n examples (not currently used).
+            Controls the logger by dictating how often logger outputs
+            will be produced.
 
         Returns
         -------
@@ -1018,8 +1029,13 @@ class MolecularWeightSplitter(Splitter):
         if seed is not None:
             np.random.seed(seed)
 
+        data_len = len(dataset)
         mws = []
-        for smiles in dataset.ids:
+        for ind, smiles in enumerate(dataset.ids):
+            if log_every_n is not None and (ind % log_every_n == 0):
+                logger.info(
+                    "Calculating molecular weight for sample %d/%d" %
+                    (ind, data_len))
             mol = Chem.MolFromSmiles(smiles)
             mw = Chem.rdMolDescriptors.CalcExactMolWt(mol)
             mws.append(mw)
@@ -1085,7 +1101,8 @@ class MaxMinSplitter(Splitter):
         seed: int, optional (default None)
             Random seed to use.
         log_every_n: int, optional (default None)
-            Log every n examples (not currently used).
+            Controls the logger by dictating how often logger outputs
+            will be produced.
 
         Returns
         -------
@@ -1115,6 +1132,9 @@ class MaxMinSplitter(Splitter):
 
         all_mols = []
         for ind, smiles in enumerate(dataset.ids):
+            if log_every_n is not None and (ind % log_every_n == 0):
+                logger.info("Computing fingerprints for sample %d/%d" %
+                            (ind, num_datapoints))
             all_mols.append(Chem.MolFromSmiles(smiles))
 
         fps = [
@@ -1221,7 +1241,8 @@ class ButinaSplitter(Splitter):
         seed: int, optional (default None)
             Random seed to use.
         log_every_n: int, optional (default None)
-            Log every n examples (not currently used).
+            Controls the logger by dictating how often logger outputs
+            will be produced.
 
         Returns
         -------
@@ -1235,9 +1256,14 @@ class ButinaSplitter(Splitter):
         except ModuleNotFoundError:
             raise ImportError("This function requires RDKit to be installed.")
 
-        logger.info("Performing butina clustering with cutoff of", self.cutoff)
+        data_len = len(dataset)
+        logger.info("Performing butina clustering with cutoff of %s" %
+                    str(self.cutoff))
         mols = []
         for ind, smiles in enumerate(dataset.ids):
+            if log_every_n is not None and (ind % log_every_n == 0):
+                logger.info("Computing fingerprints for sample %d/%d" %
+                            (ind, data_len))
             mols.append(Chem.MolFromSmiles(smiles))
         fps = [AllChem.GetMorganFingerprintAsBitVect(x, 2, 1024) for x in mols]
 
@@ -1384,7 +1410,8 @@ class FingerprintSplitter(Splitter):
         seed: int, optional (default None)
             Random seed to use (ignored since this algorithm is deterministic).
         log_every_n: int, optional (default None)
-            Log every n examples (not currently used).
+            Controls the logger by dictating how often logger outputs
+            will be produced.
 
         Returns
         -------
@@ -1398,8 +1425,13 @@ class FingerprintSplitter(Splitter):
             raise ImportError("This function requires RDKit to be installed.")
 
         # Compute fingerprints for all molecules.
-
-        mols = [Chem.MolFromSmiles(smiles) for smiles in dataset.ids]
+        data_len = len(dataset)
+        mols = []
+        for ind, smiles in enumerate(dataset.ids):
+            if log_every_n is not None and (ind % log_every_n == 0):
+                logger.info("Computing fingerprints for sample %d/%d" %
+                            (ind, data_len))
+            mols.append(Chem.MolFromSmiles(smiles))
         fps = [AllChem.GetMorganFingerprintAsBitVect(x, 2, 1024) for x in mols]
 
         # Split into two groups: training set and everything else.
