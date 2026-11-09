@@ -50,9 +50,10 @@ class Featurizer(object):
                 logger.info("Featurizing datapoint %i" % i)
             try:
                 features.append(self._featurize(point, **kwargs))
-            except:
+            except Exception:
                 logger.warning(
-                    "Failed to featurize datapoint %d. Appending empty array")
+                    "Failed to featurize datapoint %d. Appending empty array" %
+                    i)
                 features.append(np.array([]))
 
         return np.asarray(features)
