@@ -201,3 +201,18 @@ class TestTaskSplitters(unittest.TestCase):
         np.testing.assert_array_equal(merged.X, X)
         np.testing.assert_array_equal(merged.y, y)
         np.testing.assert_array_equal(merged.w, np.squeeze(w))
+
+
+    def test_merge_fold_datasets_differing_1d_weights_raises(self):
+        """Test merge_fold_datasets raises ValueError when 1D weights differ between folds."""
+        import pytest
+        n_samples = 5
+        X = np.ones((n_samples, 2))
+        y = np.ones((n_samples, 2))
+        w1 = np.ones((n_samples,))
+        w2 = np.zeros((n_samples,))
+        fold1 = dc.data.NumpyDataset(X, y[:, :1], w1)
+        fold2 = dc.data.NumpyDataset(X, y[:, 1:], w2)
+
+        with pytest.raises(ValueError, match="differ between folds"):
+            dc.splits.task_splitter.merge_fold_datasets([fold1, fold2])

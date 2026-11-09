@@ -26,6 +26,8 @@ def merge_fold_datasets(fold_datasets):
         ws.append(fold_dataset.w)
     y = np.concatenate(ys, axis=1)
     if len(ws[0].shape) == 1 or ws[0].shape[1] == 1:
+        if not all(np.array_equal(ws[0], wi) for wi in ws[1:]):
+            raise ValueError("1-D sample weights differ between folds")
         w = ws[0]
     else:
         w = np.concatenate(ws, axis=1)
