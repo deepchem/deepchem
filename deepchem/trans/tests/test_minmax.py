@@ -107,3 +107,26 @@ def test_X_minmax_transformer():
 
     # Check untransform works correctly
     np.testing.assert_allclose(minmax_transformer.untransform(X_t), X)
+
+
+def test_y_minmax_1d():
+    """Test MinMaxTransformer with 1-dimensional y array."""
+    n_samples = 20
+    n_features = 5
+    X = np.random.randn(n_samples, n_features)
+    y = np.random.randn(n_samples)
+    dataset = dc.data.NumpyDataset(X, y)
+
+    minmax_transformer = dc.trans.MinMaxTransformer(transform_y=True,
+                                                    dataset=dataset)
+    transformed_dataset = minmax_transformer.transform(dataset)
+    y_t = transformed_dataset.y
+
+    assert y_t.shape == y.shape
+    np.testing.assert_allclose(y_t.min(), 0.)
+    np.testing.assert_allclose(y_t.max(), 1.)
+
+    # Check untransform works correctly without TypeError
+    y_restored = minmax_transformer.untransform(y_t)
+    assert y_restored.shape == y.shape
+    np.testing.assert_allclose(y_restored, y)
