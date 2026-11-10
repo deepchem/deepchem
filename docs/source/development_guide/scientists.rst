@@ -1,4 +1,4 @@
-Contibuting to DeepChem as a Scientist
+Contributing to DeepChem as a Scientist
 ======================================
 
 The scientific community in many ways is quite traditional.
@@ -108,10 +108,10 @@ If you're a PI who wants to collaborate with us, please get in touch!
 
 I'm an industry researcher. Can I participate too?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Yes! The most powerful features of DeepChem is its community.
+Yes! The most powerful feature of DeepChem is its community.
 Becoming part of the DeepChem project can let you build a network that lasts across jobs and roles.
 Lifelong employment at a corporation is less and less common. Joining our community will
-let you build bonds that cross jobs and could help you do your job today better too! 
+let you build bonds that cross jobs and could help you do your job today better too!
 
 What about intellectual property?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -140,7 +140,7 @@ What if I want to release data? Can DeepChem help?
 
 If you are interested in open sourcing data, the DeepChem project
 maintains the
-[MoleculeNet](https://deepchem.readthedocs.io/en/latest/moleculenet.html)
+`MoleculeNet <https://deepchem.readthedocs.io/en/latest/api_reference/moleculenet.html>`_
 suite of datasets. Adding your dataset to MoleculeNet can be a
 powerful way to ensure that a broad community of users can access your
 released data in convenient fashion. It's important to note that
@@ -158,4 +158,4 @@ but for now, we emphasize that non-molecular datasets are welcome too.
 Does MoleculeNet allow for releasing data under different licenses?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 MoleculeNet already supports datasets released under different
-licenses. We can make work with you to use your license of choice.
+licenses. We can work with you to use your license of choice.

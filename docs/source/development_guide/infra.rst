@@ -12,7 +12,7 @@ And, we use GitHub Actions to build a continuous integration pipeline.
 
 .. _`deepchem`: https://github.com/deepchem
 
-DeepChem developers have write access to the repositories on this repo and 
+DeepChem developers have write access to the repositories on this repo and
 technical steering committee members have admin access.
 
 Conda Forge
@@ -48,13 +48,13 @@ S3
 Amazon's S3 allows for storage of data on "buckets" (Think of buckets like folders.)
 There are two core deepchem S3 buckets:
 
-  - deepchemdata: This bucket hosts the MoleculeNet datasets, pre-featurized datasets, 
+  - deepchemdata: This bucket hosts the MoleculeNet datasets, pre-featurized datasets,
     and pretrained models.
 
   - deepchemforum: This bucket hosts backups for the forums. The bucket is private for security reasons.
     The forums themselves are hosted on a digital ocean instance that only @rbharath currently has access to.
     Longer term, we should migrate the forums onto AWS so all DeepChem developers can access the forums.
-    The forums themselves are a discord instance. The forums upload their backups to this S3 bucket once a day.
+    The forums themselves are a Discourse instance. The forums upload their backups to this S3 bucket once a day.
     If the forums crash, they can be restored from the backups in this bucket.
 
 Route 53
@@ -73,7 +73,7 @@ We make use of GitHub Pages to serve our static website. GitHub Pages
 connects to the certificate in Certificate Manager. We set CNAME for
 www.deepchem.io, and an A-record for deepchem.io.
 
-The GitHub Pages repository is [deepchem/deepchem.github.io](https://github.com/deepchem/deepchem.github.io).
+The GitHub Pages repository is `deepchem/deepchem.github.io <https://github.com/deepchem/deepchem.github.io>`_.
 
 GoDaddy
 -------
