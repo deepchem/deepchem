@@ -1,12 +1,14 @@
 import os
 import tempfile
 import unittest
+from unittest.mock import patch
 import numpy as np
 
 from deepchem.feat.ProteinMPNN_featurizer import (ProteinStructureData,
                                                   _MapperProteinMPNN,
                                                   ProteinMPNNFeaturizer,
-                                                  AMINO_ACID_ALPHABET)
+                                                  AMINO_ACID_ALPHABET,
+                                                  has_biopython)
 
 
 class TestProteinMPNNFeaturizer(unittest.TestCase):
@@ -105,6 +107,7 @@ class TestProteinMPNNFeaturizer(unittest.TestCase):
         self.assertEqual(mask[1], 0.0)
         self.assertEqual(mask[2], 1.0)
 
+    @unittest.skipIf(not has_biopython, "BioPython not installed")
     def test_featurizer_default(self):
         """Test standard featurization of a PDB file."""
         featurizer = ProteinMPNNFeaturizer()
@@ -130,6 +133,7 @@ class TestProteinMPNNFeaturizer(unittest.TestCase):
         self.assertEqual(feat_dict['chain_encoding'][0], 1)
         self.assertEqual(feat_dict['chain_encoding'][1], 2)
 
+    @unittest.skipIf(not has_biopython, "BioPython not installed")
     def test_featurizer_specific_design_chains(self):
         """Test restricting the design_chains to a single chain."""
         featurizer = ProteinMPNNFeaturizer(design_chains=['A'])
@@ -141,6 +145,7 @@ class TestProteinMPNNFeaturizer(unittest.TestCase):
         self.assertEqual(feat_dict['chain_M'][0], 1.0)
         self.assertEqual(feat_dict['chain_M'][1], 0.0)
 
+    @unittest.skipIf(not has_biopython, "BioPython not installed")
     def test_featurizer_missing_atom_raises_error(self):
         """Test that the custom atom check raises a ValueError for missing backbone atoms."""
         featurizer = ProteinMPNNFeaturizer()
@@ -150,6 +155,7 @@ class TestProteinMPNNFeaturizer(unittest.TestCase):
                                     "Atom O not found in residue ALA"):
             featurizer._featurize(self.missing_atom_pdb_path)
 
+    @unittest.skipIf(not has_biopython, "BioPython not installed")
     def test_featurizer_invalid_file_path(self):
         """Test that an invalid file path properly raises an exception."""
         featurizer = ProteinMPNNFeaturizer()
@@ -157,6 +163,7 @@ class TestProteinMPNNFeaturizer(unittest.TestCase):
         with self.assertRaises(ValueError):
             featurizer._featurize("/this/path/does/not/exist.pdb")
 
+    @unittest.skipIf(not has_biopython, "BioPython not installed")
     def test_featurizer_against_original(self):
         """
         Regression test confirming parsed features align structurally and numerically
@@ -203,3 +210,9 @@ class TestProteinMPNNFeaturizer(unittest.TestCase):
                                    atol=1e-5)
         np.testing.assert_array_equal(feat_dict['mask'],
                                       np.array([1.0, 1.0], dtype=np.float32))
+
+    def test_featurizer_missing_biopython_raises_import_error(self):
+        """Verify ImportError is raised when BioPython is unavailable."""
+        with patch('deepchem.feat.ProteinMPNN_featurizer.has_biopython', False):
+            with self.assertRaisesRegex(ImportError, "BioPython"):
+                ProteinMPNNFeaturizer()
