@@ -801,23 +801,29 @@ class LogTransformer(Transformer):
             Transformed array of ids
         """
         if self.transform_X:
-            num_features = len(X[0])
             if self.features is None:
                 X = np.log(X + 1)
+            elif X.ndim == 1:
+                if 0 in self.features:
+                    X = np.log(X + 1)
             else:
+                num_features = len(X[0])
                 for j in range(num_features):
                     if j in self.features:
                         X[:, j] = np.log(X[:, j] + 1)
                     else:
                         X[:, j] = X[:, j]
         if self.transform_y:
-            if np.isscalar(y[0]):
-                num_tasks = 1
-            else:
-                num_tasks = len(y[0])
             if self.tasks is None:
                 y = np.log(y + 1)
+            elif y.ndim == 1:
+                if 0 in self.tasks:
+                    y = np.log(y + 1)
             else:
+                if np.isscalar(y[0]):
+                    num_tasks = 1
+                else:
+                    num_tasks = len(y[0])
                 for j in range(num_tasks):
                     if j in self.tasks:
                         y[:, j] = np.log(y[:, j] + 1)
@@ -839,10 +845,14 @@ class LogTransformer(Transformer):
             Array with a logarithmic transformation undone.
         """
         if self.transform_X:
-            num_features = len(z[0])
             if self.features is None:
                 return np.exp(z) - 1
+            elif np.ndim(z) <= 1:
+                if 0 in self.features:
+                    return np.exp(z) - 1
+                return z
             else:
+                num_features = len(z[0])
                 for j in range(num_features):
                     if j in self.features:
                         z[:, j] = np.exp(z[:, j]) - 1
@@ -850,13 +860,17 @@ class LogTransformer(Transformer):
                         z[:, j] = z[:, j]
                 return z
         elif self.transform_y:
-            if np.isscalar(z[0]):
-                num_tasks = 1
-            else:
-                num_tasks = len(z[0])
             if self.tasks is None:
                 return np.exp(z) - 1
+            elif np.ndim(z) <= 1:
+                if 0 in self.tasks:
+                    return np.exp(z) - 1
+                return z
             else:
+                if np.isscalar(z[0]):
+                    num_tasks = 1
+                else:
+                    num_tasks = len(z[0])
                 for j in range(num_tasks):
                     if j in self.tasks:
                         z[:, j] = np.exp(z[:, j]) - 1
