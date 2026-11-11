@@ -23,7 +23,7 @@ DeepChem has a number of "soft" requirements.
 | Package name                   | Version       | Location where this package is used               |
 |                                |               | (dc: deepchem)                                    |
 +================================+===============+===================================================+
-| `BioPython`_                   | latest        | :code:`dc.utlis.genomics_utils`                   |
+| `BioPython`_                   | latest        | :code:`dc.utils.genomics_utils`                   |
 |                                |               |                                                   |
 |                                |               |                                                   |
 +--------------------------------+---------------+---------------------------------------------------+
@@ -136,7 +136,7 @@ DeepChem has a number of "soft" requirements.
 |                                |               |                                                   |
 +--------------------------------+---------------+---------------------------------------------------+
 | `pysam`_                       | latest        | :code:`dc.feat.bio_seq_featurizer`                |
-|                                |               | :code:`dc.models.data_loader`                     |
+|                                |               | :code:`dc.data.data_loader`                       |
 |                                |               |                                                   |
 +--------------------------------+---------------+---------------------------------------------------+
 | `pylibxc`_                     | latest        | :code:`dc.utils.dft_utils.api.getxc`              |
@@ -146,7 +146,7 @@ DeepChem has a number of "soft" requirements.
 | `dqclibs`_                     | latest        | :code:`dc.utils.dft_utils.hamilton.intor.utils`   |
 |                                |               |                                                   |
 +--------------------------------+---------------+---------------------------------------------------+
-| `basis-set-exchange`_          | latest        | :code:`deepchem.utils.dft_utils.api.loadbasis`    |
+| `basis-set-exchange`_          | latest        | :code:`dc.utils.dft_utils.api.loadbasis`          |
 |                                |               |                                                   |
 +--------------------------------+---------------+---------------------------------------------------+
 
