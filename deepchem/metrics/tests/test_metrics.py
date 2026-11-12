@@ -81,6 +81,18 @@ def test_bedroc_score():
         np.concatenate([worst_pred_actives, worst_pred_inactives]))
     worst_score = dc.metrics.bedroc_score(y_true, y_pred_worst)
     np.testing.assert_almost_equal(worst_score, 0.0, 4)
+    # Metric wrapper with continuous 1D and 2D predictions
+    metric = dc.metrics.Metric(dc.metrics.bedroc_score)
+    y_true_small = np.array([1, 1, 0, 0])
+    y_pred_perfect = np.array([0.9, 0.8, 0.2, 0.1])
+    y_pred_reverse = np.array([0.1, 0.2, 0.8, 0.9])
+    np.testing.assert_almost_equal(
+        metric.compute_metric(y_true_small, y_pred_perfect), 1.0)
+    np.testing.assert_almost_equal(
+        metric.compute_metric(y_true_small, y_pred_reverse), 0.0, 4)
+    y_pred_2d = np.column_stack([1.0 - y_pred_perfect, y_pred_perfect])
+    np.testing.assert_almost_equal(
+        metric.compute_metric(y_true_small, y_pred_2d), 1.0)
 
 
 def test_concordance_index():
