@@ -9,7 +9,7 @@ import collections
 import logging
 from functools import reduce
 from operator import mul
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from deepchem.data import Dataset
 from deepchem.trans import Transformer
@@ -88,6 +88,7 @@ class GridHyperparamOpt(HyperparamOpt):
         use_max: bool = True,
         logfile: str = 'results.txt',
         logdir: Optional[str] = None,
+        n_classes: Optional[int] = None,
         **kwargs,
     ) -> Tuple[Model, Dict, Dict]:
         """Perform hyperparams search according to params_dict.
@@ -124,6 +125,10 @@ class GridHyperparamOpt(HyperparamOpt):
             Name of logfile to write results to. If specified, this is must
             be a valid file name. If not specified, results of hyperparameter
             search will be written to `logdir/results.txt`.
+        n_classes: int, optional (default None)
+            Number of classes to use when evaluating classification metrics.
+            If None, use the model's evaluation default. Ignored for regression
+            metrics.
 
         Returns
         -------
@@ -141,6 +146,10 @@ class GridHyperparamOpt(HyperparamOpt):
         changes have been made to standardize the behaviour across different
         hyperparameter optimization techniques available in DeepChem.
         """
+        evaluation_kwargs: Dict[str, Any] = {}
+        if n_classes is not None:
+            evaluation_kwargs['n_classes'] = n_classes
+
         hyperparams = params_dict.keys()
         hyperparam_vals = params_dict.values()
         for hyperparam_list in params_dict.values():
@@ -202,7 +211,8 @@ class GridHyperparamOpt(HyperparamOpt):
                 pass
 
             multitask_scores = model.evaluate(valid_dataset, [metric],
-                                              output_transformers)
+                                              output_transformers,
+                                              **evaluation_kwargs)
             valid_score = multitask_scores[metric.name]
             all_scores[hp_str] = valid_score
 
@@ -227,7 +237,8 @@ class GridHyperparamOpt(HyperparamOpt):
             best_model, best_hyperparams = model, hyperparameter_tuple  # type: ignore
             return best_model, best_hyperparams, all_scores
         multitask_scores = best_model.evaluate(train_dataset, [metric],
-                                               output_transformers)
+                                               output_transformers,
+                                               **evaluation_kwargs)
         train_score = multitask_scores[metric.name]
         logger.info("Best hyperparameters: %s" % str(best_hyperparams))
         logger.info("best train score: %f" % train_score)
