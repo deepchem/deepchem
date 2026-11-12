@@ -1687,6 +1687,19 @@ class DiskDataset(Dataset):
                 while cur_global_batch < num_global_batches:
 
                     X, y, w, ids = next_shard.get()
+                    # Legacy unlabeled shards can store flat empty arrays.
+                    # Keep an absent carried field absent through empty shards,
+                    # without changing the cached arrays or batch accounting.
+                    if y is not None and y.shape == (
+                            0,) and (X.shape[0] > 0 or
+                                     (X.shape[0] == 0 and carry is not None and
+                                      carry[1] is None)):
+                        y = None
+                    if w is not None and w.shape == (
+                            0,) and (X.shape[0] > 0 or
+                                     (X.shape[0] == 0 and carry is not None and
+                                      carry[2] is None)):
+                        w = None
                     if cur_shard < num_shards - 1:
                         next_shard = pool.apply_async(
                             dataset.get_shard,

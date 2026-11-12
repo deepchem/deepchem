@@ -118,7 +118,8 @@ class _TorchDiskDataset(torch.utils.data.IterableDataset):  # type: ignore
                 deterministic=self.deterministic):
             if self.batch_size is None:
                 for i in range(X.shape[0]):
-                    yield (X[i], y[i], w[i], ids[i])
+                    yield (X[i], None if y is None else y[i],
+                           None if w is None else w[i], ids[i])
             else:
                 yield (X, y, w, ids)
 
