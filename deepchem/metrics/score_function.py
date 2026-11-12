@@ -165,18 +165,24 @@ def bedroc_score(y_true: np.ndarray, y_pred: np.ndarray, alpha: float = 20.0):
     except ModuleNotFoundError:
         raise ImportError("This function requires RDKit to be installed.")
 
-    # validation
-    assert len(y_true) == len(y_pred), 'Number of examples do not match'
-    assert np.array_equal(np.unique(y_true).astype(int),
-                          [0, 1]), ('Class labels must be binary: %s' %
-                                    np.unique(y_true))
-
     yt = np.asarray(y_true)
     yp = np.asarray(y_pred)
 
-    yt = yt.flatten()
-    yp = yp[:, 1].flatten()  # Index 1 because one_hot predictions
+    if yt.ndim == 2 and yt.shape[1] == 2:
+        yt = yt[:, 1]
+    else:
+        yt = yt.flatten()
 
+    if yp.ndim == 2 and yp.shape[1] == 2:
+        yp = yp[:, 1]
+    else:
+        yp = yp.flatten()
+
+    # validation
+    assert len(yt) == len(yp), 'Number of examples do not match'
+    assert np.array_equal(np.unique(yt).astype(int),
+                          [0, 1]), ('Class labels must be binary: %s' %
+                                    np.unique(yt))
     scores = list(zip(yt, yp))
     scores = sorted(scores, key=lambda pair: pair[1], reverse=True)
 

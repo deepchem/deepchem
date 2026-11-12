@@ -545,11 +545,11 @@ class Metric(object):
                 ]:
                     classification_handling_mode = "threshold"
                 elif self.metric.__name__ in [
-                        "accuracy_score", "precision_score", "bedroc_score"
+                        "accuracy_score", "precision_score", "
                 ]:
                     classification_handling_mode = "threshold-one-hot"
                 elif self.metric.__name__ in [
-                        "roc_auc_score", "prc_auc_score",
+                        "roc_auc_score", "prc_auc_score", "bedroc_score",
                         "precision_recall_curve"
                 ]:
                     classification_handling_mode = "direct"
