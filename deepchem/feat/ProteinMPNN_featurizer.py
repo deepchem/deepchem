@@ -270,6 +270,9 @@ class ProteinMPNNFeaturizer(Featurizer):
     """
 
     def __init__(self, design_chains: Optional[List[str]] = None):
+        if not has_biopython:
+            raise ImportError("ProteinMPNNFeaturizer requires BioPython. "
+                              "Install it with: pip install biopython")
         self.design_chains = design_chains
         self.parser = PDBParser(QUIET=True)
         self.backbone_atoms = ['N', 'CA', 'C', 'O']
