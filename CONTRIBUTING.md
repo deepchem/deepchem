@@ -53,7 +53,7 @@ git rebase upstream/master
 2. Set up a new conda environment for DeepChem
 
 ```bash
-conda create -n deepchem python=3.8
+conda create -n deepchem python=3.10
 conda activate deepchem
 ```
 
