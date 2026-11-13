@@ -118,7 +118,6 @@ class TestTaskSplitters(unittest.TestCase):
             np.testing.assert_array_equal(train_dataset.w, w[:, train_tasks])
             np.testing.assert_array_equal(train_dataset.X, X)
 
-
     def test_train_valid_test_split_1d_weights(self):
         """Test train/valid/test split works when dataset weights w are 1D."""
         n_samples = 10
@@ -159,7 +158,6 @@ class TestTaskSplitters(unittest.TestCase):
         np.testing.assert_array_equal(merged.X, X)
         np.testing.assert_array_equal(merged.y, y)
         np.testing.assert_array_equal(merged.w, np.squeeze(w))
-
 
     def test_train_valid_test_split_single_column_weights(self):
         """Test train/valid/test split works when dataset weights w are (N, 1)."""
@@ -202,7 +200,6 @@ class TestTaskSplitters(unittest.TestCase):
         np.testing.assert_array_equal(merged.y, y)
         np.testing.assert_array_equal(merged.w, np.squeeze(w))
 
-
     def test_merge_fold_datasets_differing_1d_weights_raises(self):
         """Test merge_fold_datasets raises ValueError when 1D weights differ between folds."""
         import pytest
@@ -216,3 +213,21 @@ class TestTaskSplitters(unittest.TestCase):
 
         with pytest.raises(ValueError, match="differ between folds"):
             dc.splits.task_splitter.merge_fold_datasets([fold1, fold2])
+
+    def test_merge_fold_datasets_per_task_2d_weights_k_equals_n_tasks(self):
+        """Test splitting per-task 2D weights with K == n_tasks and merging them back."""
+        n_samples = 6
+        n_features = 3
+        n_tasks = 4
+        X = np.random.rand(n_samples, n_features)
+        y = np.random.rand(n_samples, n_tasks)
+        w = np.random.rand(n_samples, n_tasks)
+        dataset = dc.data.NumpyDataset(X, y, w)
+
+        task_splitter = dc.splits.TaskSplitter()
+        folds = task_splitter.k_fold_split(dataset, K=n_tasks)
+        merged = dc.splits.task_splitter.merge_fold_datasets(folds)
+
+        np.testing.assert_array_equal(merged.X, X)
+        np.testing.assert_array_equal(merged.y, y)
+        np.testing.assert_array_equal(merged.w, w)
