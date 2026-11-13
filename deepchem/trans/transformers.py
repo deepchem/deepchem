@@ -406,17 +406,20 @@ class MinMaxTransformer(Transformer):
         elif self.transform_y:
             y_min = self.y_min
             y_max = self.y_max
-
-            n_tasks = len(y_min)
+            # Handle 1-D y (single task): y_min/y_max are scalars, so
+            # `len()` raises TypeError. Treat as n_tasks == 1.
+            y_min_arr = np.asarray(y_min)
+            y_max_arr = np.asarray(y_max)
+            n_tasks = y_min_arr.shape[0] if y_min_arr.ndim > 0 else 1
             z_shape = list(z.shape)
             z_shape.reverse()
 
             for dim in z_shape:
                 if dim != n_tasks and dim == 1:
-                    y_min = np.expand_dims(y_min, -1)
-                    y_max = np.expand_dims(y_max, -1)
+                    y_min_arr = np.expand_dims(y_min_arr, -1)
+                    y_max_arr = np.expand_dims(y_max_arr, -1)
 
-            y = z * (y_max - y_min) + y_min
+            y = z * (y_max_arr - y_min_arr) + y_min_arr
             return y
 
         else:
@@ -818,11 +821,17 @@ class LogTransformer(Transformer):
             if self.tasks is None:
                 y = np.log(y + 1)
             else:
+                # Allow 1-D y when tasks are specified: treat as a single task.
+                y_was_1d = y.ndim == 1
+                if y_was_1d:
+                    y = y.reshape(-1, 1).copy()
                 for j in range(num_tasks):
                     if j in self.tasks:
                         y[:, j] = np.log(y[:, j] + 1)
                     else:
                         y[:, j] = y[:, j]
+                if y_was_1d:
+                    y = y.ravel()
         return (X, y, w, ids)
 
     def untransform(self, z: np.ndarray) -> np.ndarray:
@@ -857,11 +866,17 @@ class LogTransformer(Transformer):
             if self.tasks is None:
                 return np.exp(z) - 1
             else:
+                # Allow 1-D z when tasks are specified: treat as a single task.
+                z_was_1d = z.ndim == 1
+                if z_was_1d:
+                    z = z.reshape(-1, 1).copy()
                 for j in range(num_tasks):
                     if j in self.tasks:
                         z[:, j] = np.exp(z[:, j]) - 1
                     else:
                         z[:, j] = z[:, j]
+                if z_was_1d:
+                    z = z.ravel()
                 return z
         else:
             return z

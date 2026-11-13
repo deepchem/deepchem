@@ -15,6 +15,16 @@ def test_log_trans_1D():
     untrans_y = trans.untransform(log_dataset.y)
     assert np.isclose(untrans_y, y).all()
 
+def test_log_transformer_1d_y_with_tasks():
+    """Test LogTransformer with 1-D y and explicit tasks (#5279)."""
+    X = np.random.rand(10, 3)
+    y = np.array([1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0])
+    dataset = dc.data.NumpyDataset(X, y)
+    trans = dc.trans.LogTransformer(transform_y=True, tasks=[0])
+    log_dataset = trans.transform(dataset)
+    assert np.isclose(np.log(y + 1), log_dataset.y).all()
+    untrans_y = trans.untransform(log_dataset.y)
+    assert np.isclose(untrans_y, y).all()
 
 def load_feat_multitask_data():
     """Load example with numerical features, tasks."""
