@@ -81,6 +81,17 @@ def test_y_minmax_random():
     assert y_restored.shape == y.shape + (1,)
     np.testing.assert_allclose(np.squeeze(y_restored, axis=-1), y)
 
+def test_y_minmax_1d_y_untransform():
+    """Test MinMaxTransformer.untransform with 1-D y (#5273)."""
+    n_samples = 20
+    X = np.random.randn(n_samples, 3)
+    y = np.random.randn(n_samples)
+    dataset = dc.data.NumpyDataset(X, y)
+    minmax_transformer = dc.trans.MinMaxTransformer(
+        transform_y=True, dataset=dataset)
+    dataset = minmax_transformer.transform(dataset)
+    y_restored = minmax_transformer.untransform(dataset.y)
+    np.testing.assert_allclose(y_restored, y)
 
 def test_X_minmax_transformer():
     solubility_dataset = load_solubility_data()
