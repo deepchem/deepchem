@@ -2,6 +2,7 @@
 Tests for splitter objects.
 """
 import unittest
+import pytest
 import numpy as np
 import deepchem as dc
 
@@ -129,10 +130,8 @@ class TestTaskSplitters(unittest.TestCase):
         dataset = dc.data.NumpyDataset(X, y, w)
 
         task_splitter = dc.splits.TaskSplitter()
-        train, valid, test = task_splitter.train_valid_test_split(dataset,
-                                                                  frac_train=.5,
-                                                                  frac_valid=.25,
-                                                                  frac_test=.25)
+        train, valid, test = task_splitter.train_valid_test_split(
+            dataset, frac_train=.5, frac_valid=.25, frac_test=.25)
 
         assert len(train.get_task_names()) == 2
         assert len(valid.get_task_names()) == 1
@@ -170,10 +169,8 @@ class TestTaskSplitters(unittest.TestCase):
         dataset = dc.data.NumpyDataset(X, y, w)
 
         task_splitter = dc.splits.TaskSplitter()
-        train, valid, test = task_splitter.train_valid_test_split(dataset,
-                                                                  frac_train=.5,
-                                                                  frac_valid=.25,
-                                                                  frac_test=.25)
+        train, valid, test = task_splitter.train_valid_test_split(
+            dataset, frac_train=.5, frac_valid=.25, frac_test=.25)
 
         assert len(train.get_task_names()) == 2
         assert len(valid.get_task_names()) == 1
@@ -202,7 +199,6 @@ class TestTaskSplitters(unittest.TestCase):
 
     def test_merge_fold_datasets_differing_1d_weights_raises(self):
         """Test merge_fold_datasets raises ValueError when 1D weights differ between folds."""
-        import pytest
         n_samples = 5
         X = np.ones((n_samples, 2))
         y = np.ones((n_samples, 2))
