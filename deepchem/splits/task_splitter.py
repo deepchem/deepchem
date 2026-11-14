@@ -25,7 +25,13 @@ def merge_fold_datasets(fold_datasets):
         ys.append(fold_dataset.y)
         ws.append(fold_dataset.w)
     y = np.concatenate(ys, axis=1)
-    w = np.concatenate(ws, axis=1)
+    if all(wi.ndim == 2 and wi.shape[1] == yi.shape[1]
+           for wi, yi in zip(ws, ys)):
+        w = np.concatenate(ws, axis=1)
+    else:
+        if not all(np.array_equal(ws[0], wi) for wi in ws[1:]):
+            raise ValueError("Sample weights differ between folds")
+        w = ws[0]
     return NumpyDataset(X, y, w, ids)
 
 
@@ -69,11 +75,17 @@ class TaskSplitter(Splitter):
 
         X, y, w, ids = dataset.X, dataset.y, dataset.w, dataset.ids
 
-        train_dataset = NumpyDataset(X, y[:, :n_train], w[:, :n_train], ids)
+        if len(w.shape) == 1 or w.shape[1] == 1:
+            w_train, w_valid, w_test = w, w, w
+        else:
+            w_train = w[:, :n_train]
+            w_valid = w[:, n_train:n_train + n_valid]
+            w_test = w[:, n_train + n_valid:]
+
+        train_dataset = NumpyDataset(X, y[:, :n_train], w_train, ids)
         valid_dataset = NumpyDataset(X, y[:, n_train:n_train + n_valid],
-                                     w[:, n_train:n_train + n_valid], ids)
-        test_dataset = NumpyDataset(X, y[:, n_train + n_valid:],
-                                    w[:, n_train + n_valid:], ids)
+                                     w_valid, ids)
+        test_dataset = NumpyDataset(X, y[:, n_train + n_valid:], w_test, ids)
         return train_dataset, valid_dataset, test_dataset
 
     def k_fold_split(self, dataset, K):
