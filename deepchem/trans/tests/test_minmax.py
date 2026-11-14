@@ -130,3 +130,9 @@ def test_y_minmax_1d():
     y_restored = minmax_transformer.untransform(y_t)
     assert y_restored.shape == y.shape
     np.testing.assert_allclose(y_restored, y)
+
+    # Check that (N, 1)-shaped predictions also untransform correctly
+    y_2d = y_t.reshape(-1, 1)
+    y_restored_2d = minmax_transformer.untransform(y_2d)
+    assert y_restored_2d.shape == (n_samples, 1)
+    np.testing.assert_allclose(y_restored_2d, y.reshape(-1, 1))
