@@ -75,7 +75,7 @@ class TaskSplitter(Splitter):
 
         X, y, w, ids = dataset.X, dataset.y, dataset.w, dataset.ids
 
-        if len(w.shape) == 1 or w.shape[1] == 1:
+        if w.ndim == 1 or w.shape[1] != y.shape[1]:
             w_train, w_valid, w_test = w, w, w
         else:
             w_train = w[:, :n_train]

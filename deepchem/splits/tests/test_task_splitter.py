@@ -227,3 +227,24 @@ class TestTaskSplitters(unittest.TestCase):
         np.testing.assert_array_equal(merged.X, X)
         np.testing.assert_array_equal(merged.y, y)
         np.testing.assert_array_equal(merged.w, w)
+
+    def test_train_valid_test_split_single_task_2d_weights(self):
+        """Test train_valid_test_split with single-task dataset and (N, 1) weights."""
+        n_samples = 10
+        n_features = 4
+        X = np.random.rand(n_samples, n_features)
+        y = np.random.rand(n_samples, 1)
+        w = np.random.rand(n_samples, 1)
+        dataset = dc.data.NumpyDataset(X, y, w)
+
+        task_splitter = dc.splits.TaskSplitter()
+        train, valid, test = task_splitter.train_valid_test_split(
+            dataset, frac_train=1.0, frac_valid=0.0, frac_test=0.0)
+
+        assert train.y.shape == (n_samples, 1)
+        assert train.w.shape == (n_samples, 1)
+        assert valid.y.shape == (n_samples, 0)
+        assert valid.w.shape == (n_samples, 0)
+        assert test.y.shape == (n_samples, 0)
+        assert test.w.shape == (n_samples, 0)
+        np.testing.assert_array_equal(train.w, w)
