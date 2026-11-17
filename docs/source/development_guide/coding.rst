@@ -79,7 +79,11 @@ ensure that the code examples in the docstrings are working as expected, run
 
 .. code-block:: bash
 
-  python -m doctest <modified file>
+  python -m pytest --doctest-modules <modified file>
+
+Using pytest preserves package imports. Running ``python -m doctest`` directly on
+a Python file adds its directory to the import path, which can cause local
+modules to shadow installed dependencies.
 
 Unit Tests
 ----------
