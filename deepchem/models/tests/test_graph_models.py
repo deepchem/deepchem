@@ -6,7 +6,7 @@ from scipy import io as scipy_io
 from deepchem.data import NumpyDataset, CSVLoader
 from deepchem.trans import DAGTransformer
 from deepchem.molnet import load_bace_classification, load_delaney
-from deepchem.feat import ConvMolFeaturizer
+from deepchem.feat import CircularFingerprint, ConvMolFeaturizer
 from deepchem.metrics import Metric, roc_auc_score, mean_absolute_error
 from deepchem.utils.data_utils import download_url, get_data_dir
 
@@ -60,6 +60,21 @@ def test_graph_conv_model():
     model.fit(dataset, nb_epoch=20)
     scores = model.evaluate(dataset, [metric], transformers)
     assert scores['mean-roc_auc_score'] >= 0.9
+
+
+@pytest.mark.tensorflow
+@pytest.mark.parametrize('operation', ['fit', 'predict'])
+def test_graph_conv_incorrect_featurization(operation: str) -> None:
+    """Incorrect features should identify the required graph featurizer."""
+    features = CircularFingerprint(size=16).featurize(['C', 'CC'])
+    dataset = NumpyDataset(features, np.array([[0], [1]]))
+    model = GraphConvModel(1, batch_size=2, mode='classification')
+
+    with pytest.raises(ValueError, match='GraphConvModel.*ConvMolFeaturizer'):
+        if operation == 'fit':
+            model.fit(dataset, nb_epoch=1)
+        else:
+            model.predict(dataset)
 
 
 @pytest.mark.tensorflow
