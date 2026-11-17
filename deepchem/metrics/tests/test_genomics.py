@@ -12,6 +12,12 @@ try:
 except:
     has_tensorflow = False
 
+try:
+    import simdna  # noqa: F401
+    has_simdna = True
+except ModuleNotFoundError:
+    has_simdna = False
+
 from deepchem.metrics.genomic_metrics import get_motif_scores
 from deepchem.metrics.genomic_metrics import get_pssm_scores
 from deepchem.metrics.genomic_metrics import in_silico_mutagenesis
@@ -24,6 +30,7 @@ class TestGenomicMetrics(unittest.TestCase):
     Tests that genomic metrics work as expected.
     """
 
+    @pytest.mark.skipif(not has_simdna, reason="simdna is not installed")
     def test_get_motif_scores(self):
         """Check that motif_scores have correct shape."""
         # Encode motif

@@ -109,7 +109,7 @@ DeepChem has a number of "soft" requirements.
 +--------------------------------+---------------+---------------------------------------------------+
 | `simdna`_                      | latest        | :code:`dc.metrics.genomic_metrics`,               |
 |                                |               | :code:`dc.molnet.dnasim`                          |
-|                                |               |                                                   |
+|                                |               | (not installed by default)                        |
 +--------------------------------+---------------+---------------------------------------------------+
 | `TensorFlow`_                  | 2.15          | :code:`dc.models`                                 |
 |                                |               | `deepchem>=2.4.0` depends on TensorFlow v2(2.3.x) |
