@@ -1,7 +1,15 @@
 import deepchem as dc
 import unittest
+import pytest
+
+try:
+    import simdna  # noqa: F401
+    has_simdna = True
+except ModuleNotFoundError:
+    has_simdna = False
 
 
+@pytest.mark.skipif(not has_simdna, reason="simdna is not installed")
 class TestDNASim(unittest.TestCase):
 
     def test_motif_density_localization_simulation(self):
