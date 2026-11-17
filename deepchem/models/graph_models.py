@@ -911,6 +911,9 @@ class GraphConvModel(KerasModel):
     descriptors over convolutional layers.
     following [1]_.
 
+    Input features must be `ConvMol` objects produced by `ConvMolFeaturizer`.
+    With MoleculeNet loaders, use ``featurizer='GraphConv'``.
+
 
     References
     ----------
@@ -1027,6 +1030,10 @@ class GraphConvModel(KerasModel):
                  ids_b) in dataset.iterbatches(batch_size=self.batch_size,
                                                deterministic=deterministic,
                                                pad_batches=pad_batches):
+                if any(not isinstance(mol, ConvMol) for mol in X_b):
+                    raise ValueError(
+                        "GraphConvModel requires ConvMol features. Use "
+                        "ConvMolFeaturizer to featurize the input molecules.")
                 if y_b is not None and self.mode == 'classification' and not (
                         mode == 'predict'):
                     y_b = to_one_hot(y_b.flatten(), self.n_classes).reshape(
