@@ -1076,10 +1076,10 @@ class FlatteningTransformer(Transformer):
                 "Transformer is an abstract superclass and cannot be directly instantiated. You probably want to instantiate a concrete subclass instead."
             )
         self.transform_X = True
-        self.transform_y = (dataset.get_shape()[1]
-                            != tuple())  # iff y passed, then transform it
-        self.transform_w = (dataset.get_shape()[2]
-                            != tuple())  # iff w passed, then transform it
+        self.transform_y = (dataset.get_shape()[1] != tuple()
+                           )  # iff y passed, then transform it
+        self.transform_w = (dataset.get_shape()[2] != tuple()
+                           )  # iff w passed, then transform it
         self.transform_ids = True
 
     def transform_array(
@@ -1435,8 +1435,8 @@ class CoulombFitTransformer(Transformer):
         num_atoms = X.shape[1]
         self.step = 1.0
         self.noise = 1.0
-        self.triuind = (np.arange(num_atoms)[:, np.newaxis]
-                        <= np.arange(num_atoms)[np.newaxis, :]).flatten()
+        self.triuind = (np.arange(num_atoms)[:, np.newaxis] <=
+                        np.arange(num_atoms)[np.newaxis, :]).flatten()
         self.max = 0
         for _ in range(10):
             self.max = np.maximum(self.max, self.realize(X).max(axis=0))
