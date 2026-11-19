@@ -12,7 +12,6 @@ import sys
 import pickle
 import gzip
 from functools import wraps, lru_cache
-import tempfile
 
 # OS-specific imports
 if os.name == "nt":  # Windows
@@ -867,7 +866,9 @@ def cached_dirpklgz(dirname: str = '',
     ----------
     dirname : str, optional
         Directory path where cache files will be stored.
-        If empty, a temporary directory is created.
+        If empty, a directory is created inside a temporary directory
+        private to the current user (see
+        `deepchem.utils.data_utils.get_user_temp_dir`).
     maxsize : int, optional
         Maximum number of cached items in memory (default = 128).
         When exceeded, LRU entries are removed.
@@ -915,8 +916,14 @@ def cached_dirpklgz(dirname: str = '',
     """
 
     def decorator(func):
-        cache_dir = dirname or os.path.join(tempfile.gettempdir(),
-                                            f"cached_dirpklgz_{func.__name__}")
+        if dirname:
+            cache_dir = dirname
+        else:
+            # Not the shared temporary directory: the cache is read with
+            # pickle, so other users must not be able to write to it.
+            from deepchem.utils.data_utils import get_user_temp_dir
+            cache_dir = os.path.join(get_user_temp_dir(),
+                                     f"cached_dirpklgz_{func.__name__}")
         os.makedirs(cache_dir, exist_ok=True)  # Ensure directory exists
 
         # Wrap the target function with caching behavior.

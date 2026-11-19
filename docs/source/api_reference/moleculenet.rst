@@ -50,7 +50,7 @@ Below is an example of how to load a MoleculeNet dataset and featurizer. This ap
 Note that the "w" matrix represents the weight of each sample. Some assays may have missing values, in which case the weight is 0. Otherwise, the weight is 1.
 
 
-Additionally, the environment variable ``DEEPCHEM_DATA_DIR`` can be set like ``os.environ['DEEPCHEM_DATA_DIR'] = path/to/store/featurized/dataset``. When the ``DEEPCHEM_DATA_DIR`` environment variable is set, molnet loader stores the featurized dataset in the specified directory and when the dataset has to be reloaded the next time, it will be fetched from the data directory directly rather than featurizing the raw dataset from scratch.
+Additionally, the environment variable ``DEEPCHEM_DATA_DIR`` can be set like ``os.environ['DEEPCHEM_DATA_DIR'] = path/to/store/featurized/dataset``. When the ``DEEPCHEM_DATA_DIR`` environment variable is set, molnet loader stores the featurized dataset in the specified directory and when the dataset has to be reloaded the next time, it will be fetched from the data directory directly rather than featurizing the raw dataset from scratch. If it is not set, a directory private to the current user inside the system temporary directory is used.
 
 BACE Dataset
 ------------
