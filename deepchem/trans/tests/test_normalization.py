@@ -103,3 +103,73 @@ def test_X_normalization_transformer():
     np.testing.assert_allclose(normalization_transformer.untransform(X_t),
                                X,
                                atol=1e-7)
+
+
+def test_normalization_untransform_shapes():
+    """Test untransform preserves shapes across batch_size == 1 and N > 1."""
+    np.random.seed(123)
+    n_samples = 11
+    n_features = 5
+    n_tasks = 2
+    train_dataset = dc.data.NumpyDataset(np.random.rand(n_samples, n_features),
+                                         np.random.rand(n_samples, n_tasks))
+
+    transformer = dc.trans.NormalizationTransformer(transform_y=True,
+                                                    dataset=train_dataset,
+                                                    move_mean=True)
+
+    y_stds_3d = transformer.y_stds.reshape(1, n_tasks, 1)
+    y_means_3d = transformer.y_means.reshape(1, n_tasks, 1)
+
+    # shape (1, n_tasks, 1) round-trips unchanged
+    y_raw = np.random.rand(1, n_tasks, 1)
+    y_t = (y_raw - y_means_3d) / y_stds_3d
+    out_1 = transformer.untransform(y_t)
+    assert out_1.shape == y_raw.shape
+    np.testing.assert_allclose(out_1, y_raw)
+
+    # shapes (N, n_tasks) and (N, n_tasks, 1) with N > 1 still behave exactly as before
+    batch_n_2d = np.random.rand(n_samples, n_tasks)
+    y_t_2d = (batch_n_2d - transformer.y_means) / transformer.y_stds
+    out_n_2d = transformer.untransform(y_t_2d)
+    assert out_n_2d.shape == batch_n_2d.shape
+    np.testing.assert_allclose(out_n_2d, batch_n_2d)
+
+    batch_n_3d = np.random.rand(n_samples, n_tasks, 1)
+    y_t_3d = (batch_n_3d - y_means_3d) / y_stds_3d
+    out_n_3d = transformer.untransform(y_t_3d)
+    assert out_n_3d.shape == batch_n_3d.shape
+    np.testing.assert_allclose(out_n_3d, batch_n_3d)
+
+    # n_tasks == 1 case
+    n_tasks_1 = 1
+    train_dataset_1 = dc.data.NumpyDataset(
+        np.random.rand(n_samples, n_features),
+        np.random.rand(n_samples, n_tasks_1))
+    transformer_1 = dc.trans.NormalizationTransformer(transform_y=True,
+                                                      dataset=train_dataset_1,
+                                                      move_mean=True)
+
+    y_stds_1_3d = transformer_1.y_stds.reshape(1, 1, 1)
+    y_means_1_3d = transformer_1.y_means.reshape(1, 1, 1)
+
+    # (1, 1)
+    raw_1_1 = np.random.rand(1, 1)
+    t_1_1 = (raw_1_1 - transformer_1.y_means) / transformer_1.y_stds
+    out_1_1 = transformer_1.untransform(t_1_1)
+    assert out_1_1.shape == (1, 1)
+    np.testing.assert_allclose(out_1_1, raw_1_1)
+
+    # (N, 1)
+    raw_n_1 = np.random.rand(n_samples, 1)
+    t_n_1 = (raw_n_1 - transformer_1.y_means) / transformer_1.y_stds
+    out_n_1 = transformer_1.untransform(t_n_1)
+    assert out_n_1.shape == (n_samples, 1)
+    np.testing.assert_allclose(out_n_1, raw_n_1)
+
+    # (1, 1, 1)
+    raw_1_1_1 = np.random.rand(1, 1, 1)
+    t_1_1_1 = (raw_1_1_1 - y_means_1_3d) / y_stds_1_3d
+    out_1_1_1 = transformer_1.untransform(t_1_1_1)
+    assert out_1_1_1.shape == (1, 1, 1)
+    np.testing.assert_allclose(out_1_1_1, raw_1_1_1)

@@ -564,17 +564,12 @@ class NormalizationTransformer(Transformer):
         elif self.transform_y:
             y_stds = self.y_stds
             y_means = self.y_means
-            # Handle case with 1 task correctly
-            if len(self.y_stds.shape) == 0:
-                n_tasks = 1
-            else:
-                n_tasks = self.y_stds.shape[0]
             z_shape = list(z.shape)
             # Get the reversed shape of z: (..., n_tasks, batch_size)
             z_shape.reverse()
             # Find the task dimension of z
-            for dim in z_shape:
-                if dim != n_tasks and dim == 1:
+            for ind, dim in enumerate(z_shape):
+                if ind < (len(z_shape) - 1) and dim == 1:
                     # Prevent broadcasting on wrong dimension
                     y_stds = np.expand_dims(y_stds, -1)
                     y_means = np.expand_dims(y_means, -1)
