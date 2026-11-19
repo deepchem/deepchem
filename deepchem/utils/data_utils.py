@@ -6,6 +6,7 @@ import gzip
 import pickle
 import os
 import ssl
+import stat
 import tempfile
 import tarfile
 import zipfile
@@ -70,19 +71,71 @@ def pad_array(x: np.ndarray,
     return x
 
 
+_user_temp_dir_fallback: Optional[str] = None
+
+
+def get_user_temp_dir() -> str:
+    """Get a temporary directory that only the current user can write to.
+
+    The system temporary directory (usually /tmp) is shared by all users of
+    the machine, so files found there may have been put there by someone
+    else. DeepChem loads cached datasets and transformers with pickle, so they
+    must not come from a directory other users can write to.
+
+    This returns ``deepchem-<uid>`` inside the system temporary directory,
+    created with mode 0700. If that path exists but is not a directory owned
+    by the current user that others cannot write to, a new private directory
+    from ``tempfile.mkdtemp`` is used for the rest of the process. On
+    platforms without ``os.getuid`` (Windows), the temporary directory is
+    already private to the user and is returned unchanged.
+
+    Returns
+    -------
+    str
+        Path to a temporary directory private to the current user.
+    """
+    global _user_temp_dir_fallback
+    base = tempfile.gettempdir()
+    if not hasattr(os, 'getuid'):
+        return base
+    if _user_temp_dir_fallback is not None:
+        return _user_temp_dir_fallback
+
+    uid = os.getuid()
+    path = os.path.join(base, 'deepchem-%d' % uid)
+    try:
+        os.mkdir(path, 0o700)
+    except OSError:
+        pass
+    try:
+        st = os.lstat(path)
+        if (stat.S_ISDIR(st.st_mode) and st.st_uid == uid and
+                not st.st_mode & (stat.S_IWGRP | stat.S_IWOTH)):
+            return path
+    except OSError:
+        pass
+
+    _user_temp_dir_fallback = tempfile.mkdtemp(prefix='deepchem-')
+    logger.warning(
+        "%s is not a directory owned by this user that others cannot write "
+        "to, using %s instead. Set DEEPCHEM_DATA_DIR to keep DeepChem data "
+        "in a fixed location.", path, _user_temp_dir_fallback)
+    return _user_temp_dir_fallback
+
+
 def get_data_dir() -> str:
     """Get the DeepChem data directory.
 
     Returns
     -------
     str
-        The default path to store DeepChem data. If you want to
-        change this path, please set your own path to `DEEPCHEM_DATA_DIR`
-        as an environment variable.
+        The path to store DeepChem data: the `DEEPCHEM_DATA_DIR` environment
+        variable if it is set, otherwise a directory private to the current
+        user inside the system temporary directory (see `get_user_temp_dir`).
     """
     if 'DEEPCHEM_DATA_DIR' in os.environ:
         return os.environ['DEEPCHEM_DATA_DIR']
-    return tempfile.gettempdir()
+    return get_user_temp_dir()
 
 
 def download_url(url: str,
