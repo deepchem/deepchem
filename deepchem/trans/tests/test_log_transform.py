@@ -170,7 +170,9 @@ def test_log_trans_1D_with_tasks():
     X = np.random.rand(10, 5)
     y = np.random.rand(10)
     dataset = dc.data.NumpyDataset(X, y)
-    trans = dc.trans.LogTransformer(transform_y=True, tasks=[0], dataset=dataset)
+    trans = dc.trans.LogTransformer(transform_y=True,
+                                    tasks=[0],
+                                    dataset=dataset)
     log_dataset = trans.transform(dataset)
     np.testing.assert_allclose(log_dataset.y, np.log(y + 1))
     untrans_y = trans.untransform(log_dataset.y)
@@ -178,11 +180,13 @@ def test_log_trans_1D_with_tasks():
 
 
 def test_log_trans_1D_with_unselected_task():
-    """Test 1D y case when specified task is not 0 (should leave y unchanged)."""
+    """Test 1D y case when specified task is not 0 (y stays unchanged)."""
     X = np.random.rand(10, 5)
     y = np.random.rand(10)
     dataset = dc.data.NumpyDataset(X, y)
-    trans = dc.trans.LogTransformer(transform_y=True, tasks=[1], dataset=dataset)
+    trans = dc.trans.LogTransformer(transform_y=True,
+                                    tasks=[1],
+                                    dataset=dataset)
     log_dataset = trans.transform(dataset)
     np.testing.assert_allclose(log_dataset.y, y)
     untrans_y = trans.untransform(log_dataset.y)
@@ -203,9 +207,38 @@ def test_log_trans_X_1D_with_features():
     X = np.random.rand(10)
     y = np.random.rand(10)
     dataset = dc.data.NumpyDataset(X, y)
-    trans = dc.trans.LogTransformer(transform_X=True, features=[0], dataset=dataset)
+    trans = dc.trans.LogTransformer(transform_X=True,
+                                    features=[0],
+                                    dataset=dataset)
     log_dataset = trans.transform(dataset)
     np.testing.assert_allclose(log_dataset.X, np.log(X + 1))
     untrans_X = trans.untransform(log_dataset.X)
     np.testing.assert_allclose(untrans_X, X)
 
+
+def test_log_trans_X_1D_features_none():
+    """Test 1D X case when features=None is specified."""
+    X = np.random.rand(10)
+    y = np.random.rand(10)
+    dataset = dc.data.NumpyDataset(X, y)
+    trans = dc.trans.LogTransformer(transform_X=True,
+                                    features=None,
+                                    dataset=dataset)
+    log_dataset = trans.transform(dataset)
+    np.testing.assert_allclose(log_dataset.X, np.log(X + 1))
+    untrans_X = trans.untransform(log_dataset.X)
+    np.testing.assert_allclose(untrans_X, X)
+
+
+def test_log_trans_X_1D_with_unselected_feature():
+    """Test 1D X case when specified feature is not 0 (X stays unchanged)."""
+    X = np.random.rand(10)
+    y = np.random.rand(10)
+    dataset = dc.data.NumpyDataset(X, y)
+    trans = dc.trans.LogTransformer(transform_X=True,
+                                    features=[1],
+                                    dataset=dataset)
+    log_dataset = trans.transform(dataset)
+    np.testing.assert_allclose(log_dataset.X, X)
+    untrans_X = trans.untransform(log_dataset.X)
+    np.testing.assert_allclose(untrans_X, X)

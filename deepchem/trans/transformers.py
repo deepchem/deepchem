@@ -820,10 +820,7 @@ class LogTransformer(Transformer):
                 if 0 in self.tasks:
                     y = np.log(y + 1)
             else:
-                if np.isscalar(y[0]):
-                    num_tasks = 1
-                else:
-                    num_tasks = len(y[0])
+                num_tasks = len(y[0])
                 for j in range(num_tasks):
                     if j in self.tasks:
                         y[:, j] = np.log(y[:, j] + 1)
@@ -867,10 +864,7 @@ class LogTransformer(Transformer):
                     return np.exp(z) - 1
                 return z
             else:
-                if np.isscalar(z[0]):
-                    num_tasks = 1
-                else:
-                    num_tasks = len(z[0])
+                num_tasks = len(z[0])
                 for j in range(num_tasks):
                     if j in self.tasks:
                         z[:, j] = np.exp(z[:, j]) - 1
@@ -1082,10 +1076,10 @@ class FlatteningTransformer(Transformer):
                 "Transformer is an abstract superclass and cannot be directly instantiated. You probably want to instantiate a concrete subclass instead."
             )
         self.transform_X = True
-        self.transform_y = (dataset.get_shape()[1] != tuple()
-                           )  # iff y passed, then transform it
-        self.transform_w = (dataset.get_shape()[2] != tuple()
-                           )  # iff w passed, then transform it
+        self.transform_y = (dataset.get_shape()[1]
+                            != tuple())  # iff y passed, then transform it
+        self.transform_w = (dataset.get_shape()[2]
+                            != tuple())  # iff w passed, then transform it
         self.transform_ids = True
 
     def transform_array(
@@ -1441,8 +1435,8 @@ class CoulombFitTransformer(Transformer):
         num_atoms = X.shape[1]
         self.step = 1.0
         self.noise = 1.0
-        self.triuind = (np.arange(num_atoms)[:, np.newaxis] <=
-                        np.arange(num_atoms)[np.newaxis, :]).flatten()
+        self.triuind = (np.arange(num_atoms)[:, np.newaxis]
+                        <= np.arange(num_atoms)[np.newaxis, :]).flatten()
         self.max = 0
         for _ in range(10):
             self.max = np.maximum(self.max, self.realize(X).max(axis=0))
