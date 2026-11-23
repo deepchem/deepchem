@@ -407,12 +407,11 @@ class MinMaxTransformer(Transformer):
             y_min = self.y_min
             y_max = self.y_max
 
-            n_tasks = len(y_min)
             z_shape = list(z.shape)
             z_shape.reverse()
 
-            for dim in z_shape:
-                if dim != n_tasks and dim == 1:
+            for ind, dim in enumerate(z_shape):
+                if ind < (len(z_shape) - 1) and dim == 1:
                     y_min = np.expand_dims(y_min, -1)
                     y_max = np.expand_dims(y_max, -1)
 

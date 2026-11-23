@@ -107,3 +107,49 @@ def test_X_minmax_transformer():
 
     # Check untransform works correctly
     np.testing.assert_allclose(minmax_transformer.untransform(X_t), X)
+
+
+def test_minmax_untransform_shapes():
+    """Test untransform preserves shapes across batch_size == 1 and N > 1."""
+    np.random.seed(123)
+    n_samples = 11
+    n_features = 5
+    n_tasks = 2
+    train_dataset = dc.data.NumpyDataset(np.random.rand(n_samples, n_features),
+                                         np.random.rand(n_samples, n_tasks))
+
+    transformer = dc.trans.MinMaxTransformer(transform_y=True,
+                                             dataset=train_dataset)
+
+    y_min_3d = transformer.y_min.reshape(1, n_tasks, 1)
+    y_max_3d = transformer.y_max.reshape(1, n_tasks, 1)
+
+    # shape (1, n_tasks, 1) round-trips unchanged
+    y_raw = np.random.rand(1, n_tasks, 1)
+    y_t = (y_raw - y_min_3d) / (y_max_3d - y_min_3d)
+    out_1 = transformer.untransform(y_t)
+    assert out_1.shape == y_raw.shape
+    np.testing.assert_allclose(out_1, y_raw)
+
+    # shape (N, n_tasks) with N > 1 still behaves exactly as before
+    batch_n_2d = np.random.rand(n_samples, n_tasks)
+    y_t_2d = (batch_n_2d - transformer.y_min) / (transformer.y_max -
+                                                 transformer.y_min)
+    out_n_2d = transformer.untransform(y_t_2d)
+    assert out_n_2d.shape == batch_n_2d.shape
+    np.testing.assert_allclose(out_n_2d, batch_n_2d)
+
+    # n_tasks == 1 case with shape (1, 1)
+    n_tasks_1 = 1
+    train_dataset_1 = dc.data.NumpyDataset(
+        np.random.rand(n_samples, n_features),
+        np.random.rand(n_samples, n_tasks_1))
+    transformer_1 = dc.trans.MinMaxTransformer(transform_y=True,
+                                               dataset=train_dataset_1)
+
+    raw_1_1 = np.random.rand(1, 1)
+    t_1_1 = (raw_1_1 - transformer_1.y_min) / (transformer_1.y_max -
+                                               transformer_1.y_min)
+    out_1_1 = transformer_1.untransform(t_1_1)
+    assert out_1_1.shape == (1, 1)
+    np.testing.assert_allclose(out_1_1, raw_1_1)
