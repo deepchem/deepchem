@@ -483,7 +483,10 @@ class NormalizationTransformer(Transformer):
             X_means, X_stds = dataset.get_statistics(X_stats=True,
                                                      y_stats=False)
             self.X_means = X_means
-            self.X_stds = X_stds
+            # Control for pathological case with no variance.
+            X_stds_np = np.array(X_stds)
+            X_stds_np[X_stds_np == 0] = 1.
+            self.X_stds = X_stds_np
         elif dataset is not None and transform_y:
             y_means, y_stds = dataset.get_statistics(X_stats=False,
                                                      y_stats=True)
