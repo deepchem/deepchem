@@ -116,3 +116,11 @@ def test_X_normalization_transformer_zero_std_feature():
     np.testing.assert_allclose(X_t, [[0., 1.]])
     np.testing.assert_allclose(normalization_transformer.untransform(X_t),
                                [[1., 3.]])
+
+    # Without mean centering, the constant feature is left unscaled
+    no_mean_transformer = dc.trans.NormalizationTransformer(transform_X=True,
+                                                            dataset=dataset,
+                                                            move_mean=False)
+    X_t = no_mean_transformer.transform(dataset).X
+    np.testing.assert_allclose(X_t[:, 1], [2., 2., 2.])
+    np.testing.assert_allclose(no_mean_transformer.untransform(X_t), X)
