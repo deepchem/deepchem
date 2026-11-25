@@ -103,3 +103,24 @@ def test_X_normalization_transformer():
     np.testing.assert_allclose(normalization_transformer.untransform(X_t),
                                X,
                                atol=1e-7)
+
+
+def test_X_normalization_transformer_zero_std_feature():
+    """Features constant in the fitted dataset stay finite on new data."""
+    X = np.array([[0., 2.], [1., 2.], [2., 2.]])
+    dataset = dc.data.NumpyDataset(X, np.zeros(3))
+    normalization_transformer = dc.trans.NormalizationTransformer(
+        transform_X=True, dataset=dataset)
+    new_dataset = dc.data.NumpyDataset(np.array([[1., 3.]]), np.zeros(1))
+    X_t = normalization_transformer.transform(new_dataset).X
+    np.testing.assert_allclose(X_t, [[0., 1.]])
+    np.testing.assert_allclose(normalization_transformer.untransform(X_t),
+                               [[1., 3.]])
+
+    # Without mean centering, the constant feature is left unscaled
+    no_mean_transformer = dc.trans.NormalizationTransformer(transform_X=True,
+                                                            dataset=dataset,
+                                                            move_mean=False)
+    X_t = no_mean_transformer.transform(dataset).X
+    np.testing.assert_allclose(X_t[:, 1], [2., 2., 2.])
+    np.testing.assert_allclose(no_mean_transformer.untransform(X_t), X)
