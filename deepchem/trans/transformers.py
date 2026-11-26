@@ -1700,8 +1700,8 @@ class IRVTransformer(Transformer):
         X1 and X2 are sliced into pieces with shard_size rows(columns)
         then multiplied together and concatenated to the proper size
         """
-        X1 = np.float_(X1)
-        X2 = np.float_(X2)
+        X1 = np.float64(X1)
+        X2 = np.float64(X2)
         X1_shape = X1.shape
         X2_shape = X2.shape
         assert X1_shape[1] == X2_shape[0]
