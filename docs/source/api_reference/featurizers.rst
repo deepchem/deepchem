@@ -53,12 +53,61 @@ ConvMolFeaturizer
   :members:
   :inherited-members:
 
+Chirality Handling
+^^^^^^^^^^^^^^^^^^
+In chemistry, chirality refers to molecules that are mirror images of each other but are not identical (or superimposable).
+
+The `use_chirality` parameter in `ConvMolFeaturizer` controls whether chirality information is included in the atom features.
+
+- When `use_chirality=False`, chirality is ignored.
+- When `use_chirality=True`, additional atom-level features are included to capture stereochemical differences.
+
+This adds 3 additional features to the atom feature vector: a one-hot encoding for R/S chirality (2 features) and a binary indicator for whether chirality is possible (1 feature). Therefore:
+
+- Default atom features: 75 dimensions
+- With `use_chirality=True`: 78 dimensions
+
+Example:
+
+.. code-block:: python
+
+    from deepchem.feat import ConvMolFeaturizer
+
+    featurizer = ConvMolFeaturizer(use_chirality=True)
+    features = featurizer.featurize(["C[C@H](O)Cl"])
+
 WeaveFeaturizer
 ***************
 
 .. autoclass:: deepchem.feat.WeaveFeaturizer
   :members:
   :inherited-members:
+
+Chirality Handling
+^^^^^^^^^^^^^^^^^^
+
+In chemistry, chirality refers to molecules that are mirror images of each other but are not identical (or superimposable).
+
+The `use_chirality` parameter in `WeaveFeaturizer` determines whether chirality information is included during featurization.
+
+- When `use_chirality=False`, chirality information is not considered.
+- When `use_chirality=True`, additional atom and pair-level features are included to capture stereochemical differences.
+
+This adds 3 additional features to the atom feature vector (same as `ConvMolFeaturizer`), and 4 additional features to each bond feature vector. Therefore:
+
+- Default atom features: 75 dimensions
+- With `use_chirality=True`: 78 dimensions
+- Default bond features: 6 dimensions
+- With `use_chirality=True`: 10 dimensions
+
+Example:
+
+.. code-block:: python
+
+    from deepchem.feat import WeaveFeaturizer
+
+    featurizer = WeaveFeaturizer(use_chirality=True)
+    features = featurizer.featurize(["C[C@H](O)Cl"])
 
 MolGanFeaturizer
 ****************
@@ -73,6 +122,30 @@ MolGraphConvFeaturizer
 .. autoclass:: deepchem.feat.MolGraphConvFeaturizer
   :members:
   :inherited-members:
+
+Chirality Handling
+^^^^^^^^^^^^^^^^^^
+
+The `use_chirality` parameter in `MolGraphConvFeaturizer` controls whether chirality information is included in the atom features.
+
+- When `use_chirality=False`, chirality is not included in the atom features.
+- When `use_chirality=True`, an additional R/S chirality one-hot encoding is appended to each atom feature vector.
+
+This adds 2 additional features to each atom feature vector. Therefore:
+
+- Default atom features: 30 dimensions
+- With `use_chirality=True`: 32 dimensions
+
+Note that when `use_chirality=True`, featurization may be slower due to additional RDKit operations.
+
+Example:
+
+.. code-block:: python
+
+    from deepchem.feat import MolGraphConvFeaturizer
+
+    featurizer = MolGraphConvFeaturizer(use_chirality=True)
+    features = featurizer.featurize(["C[C@H](O)Cl"])
 
 EquivariantGraphFeaturizer
 **********************
