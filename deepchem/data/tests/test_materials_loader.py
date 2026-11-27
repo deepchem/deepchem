@@ -161,3 +161,25 @@ def test_materials_loader_invalid_task_raises():
 def test_materials_loader_invalid_inputs_raise(inputs):
     with pytest.raises(ValueError, match="MaterialsLoader"):
         _make_loader([]).create_dataset(inputs)
+
+
+def test_materials_loader_standard_extxyz_default_keys(tmp_path):
+    input_file = tmp_path / "standard.extxyz"
+    input_file.write_text(
+        "2\n"
+        'Properties=species:S:1:pos:R:3:forces:R:3 energy=1.5 pbc="F F F"\n'
+        "H 0.0 0.0 0.0 0.1 0.0 0.0\n"
+        "O 1.0 0.0 0.0 -0.1 0.0 0.0\n")
+
+    featurizer = dc.feat.AtomisticRadiusGraphFeaturizer(cutoff=2.5)
+    loader = dc.data.MaterialsLoader(tasks=["energy", "forces"],
+                                     featurizer=featurizer)
+    dataset = loader.create_dataset(str(input_file))
+
+    assert len(dataset) == 1
+    assert dataset.y.shape == (1, 2)
+    assert float(dataset.y[0, 0]) == pytest.approx(1.5)
+    assert dataset.y[0, 1].shape == (2, 3)
+    np.testing.assert_allclose(
+        dataset.y[0, 1],
+        np.array([[0.1, 0.0, 0.0], [-0.1, 0.0, 0.0]], dtype=np.float32))

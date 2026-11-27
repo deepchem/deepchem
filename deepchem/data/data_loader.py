@@ -1833,8 +1833,8 @@ class MaterialsLoader(DataLoader):
     per-configuration metadata and per-atom properties.
 
     The semantic task ``"energy"`` expects one scalar value per frame at
-    ``atoms.info[energy_key]``. The semantic task ``"forces"`` expects one
-    Cartesian force vector per atom at ``atoms.arrays[forces_key]``, with shape
+    ``atoms.info[energy_key]`` (or ``atoms.calc.results[energy_key]``). The semantic task ``"forces"`` expects one
+    Cartesian force vector per atom at ``atoms.arrays[forces_key]`` (or ``atoms.calc.results[forces_key]``), with shape
     ``(num_atoms, 3)``. Since structures can have different numbers of atoms,
     force labels are stored as object-valued, ragged arrays. If a requested key
     is absent from its expected location, this loader raises ``ValueError``.
@@ -1852,9 +1852,11 @@ class MaterialsLoader(DataLoader):
     featurizer: Featurizer
         Featurizer to use for each ``ase.Atoms`` frame.
     energy_key: str, default "energy"
-        Key to read from ``atoms.info`` for energy labels.
+        Key to read from ``atoms.info`` or ``atoms.calc.results`` for energy
+        labels.
     forces_key: str, default "forces"
-        Key to read from ``atoms.arrays`` for force labels.
+        Key to read from ``atoms.arrays`` or ``atoms.calc.results`` for force
+        labels.
     log_every_n: int, default 1000
         Writes a logging statement this often.
     """
@@ -1971,20 +1973,29 @@ class MaterialsLoader(DataLoader):
         labels = np.empty((len(self.tasks),), dtype=object)
         for task_index, task in enumerate(self.tasks):
             if task == "energy":
-                if self.energy_key not in atoms.info:
+                if self.energy_key in atoms.info:
+                    labels[task_index] = atoms.info[self.energy_key]
+                elif (atoms.calc is not None and hasattr(atoms.calc, "results")
+                      and self.energy_key in atoms.calc.results):
+                    labels[task_index] = atoms.calc.results[self.energy_key]
+                else:
                     raise ValueError(
                         "Missing requested label for task 'energy' with key "
                         "'%s' in file '%s' frame %d." %
                         (self.energy_key, input_path, frame_index))
-                labels[task_index] = atoms.info[self.energy_key]
             elif task == "forces":
-                if self.forces_key not in atoms.arrays:
+                if self.forces_key in atoms.arrays:
+                    forces = np.asarray(atoms.arrays[self.forces_key],
+                                        dtype=np.float32)
+                elif (atoms.calc is not None and hasattr(atoms.calc, "results")
+                      and self.forces_key in atoms.calc.results):
+                    forces = np.asarray(atoms.calc.results[self.forces_key],
+                                        dtype=np.float32)
+                else:
                     raise ValueError(
                         "Missing requested label for task 'forces' with key "
                         "'%s' in file '%s' frame %d." %
                         (self.forces_key, input_path, frame_index))
-                forces = np.asarray(atoms.arrays[self.forces_key],
-                                    dtype=np.float32)
                 if forces.shape != (len(atoms), 3):
                     raise ValueError(
                         "Invalid forces shape %s for task 'forces' with key "
