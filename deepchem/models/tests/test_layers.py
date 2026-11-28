@@ -1494,6 +1494,40 @@ def test_torch_graph_conv():
 
 
 @pytest.mark.torch
+def test_torch_graph_conv_gradients():
+    """Test that gradients flow through GraphConv to its weights and inputs."""
+    raw_smiles = ['CCC', 'C', 'c1ccccc1O', 'CC(=O)N']
+    from rdkit import Chem
+    mols = [Chem.MolFromSmiles(s) for s in raw_smiles]
+    featurizer = dc.feat.graph_features.ConvMolFeaturizer()
+    mols = featurizer.featurize(mols)
+    multi_mol = dc.feat.mol_graphs.ConvMol.agglomerate_mols(mols)
+    atom_features = torch.from_numpy(multi_mol.get_atom_features().astype(
+        np.float32)).requires_grad_()
+    degree_slice = torch.from_numpy(multi_mol.deg_slice)
+    membership = torch.from_numpy(multi_mol.membership)
+    deg_adjs = [
+        torch.from_numpy(i) for i in multi_mol.get_deg_adjacency_lists()[1:]
+    ]
+    args = [atom_features, degree_slice, membership] + deg_adjs
+    layer = torch_layers.GraphConv(
+        2, number_input_features=atom_features.shape[-1])
+    result = layer(args)
+    assert result.requires_grad
+    result.sum().backward()
+    assert atom_features.grad is not None
+    assert torch.any(atom_features.grad != 0)
+    # The molecules above contain atoms of degree 0 to 3. W_list holds a
+    # (neighbor, self) pair for each degree from 1 to max_degree, then the
+    # degree-0 self weight last, so those weights must all get gradients.
+    W_list = list(layer.W_list)
+    used = W_list[:2 * 3] + [W_list[-1]]
+    for param in used:
+        assert param.grad is not None
+        assert torch.any(param.grad != 0)
+
+
+@pytest.mark.torch
 def test_torch_graph_pool():
     """Test invoking GraphPool."""
     n_atoms = 4  # In CCC and C, there are 4 atoms

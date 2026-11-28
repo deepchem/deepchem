@@ -6191,8 +6191,8 @@ class GraphConv(nn.Module):
         b = iter(self.b_list)
 
         # Sum all neighbors using adjacency matrix
-        deg_summed: List[np.ndarray] = self.sum_neigh(atom_features,
-                                                      deg_adj_lists)
+        deg_summed: List[torch.Tensor] = self.sum_neigh(atom_features,
+                                                        deg_adj_lists)
 
         # Get collection of modified atom features
         new_rel_atoms_collection = []
@@ -6202,7 +6202,7 @@ class GraphConv(nn.Module):
                                                  (deg_slice[:, 1]).tolist())
         for deg in range(1, self.max_degree + 1):
             # Obtain relevant atoms for this degree
-            rel_atoms: torch.Tensor = torch.from_numpy(deg_summed[deg - 1])
+            rel_atoms: torch.Tensor = deg_summed[deg - 1]
 
             # Get self atoms
             self_atoms: torch.Tensor = split_features[deg - self.min_degree]
@@ -6213,8 +6213,7 @@ class GraphConv(nn.Module):
             self_out: torch.Tensor = torch.matmul(
                 self_atoms.type(torch.float32), next(W)) + next(b)
             out: torch.Tensor = rel_out + self_out
-            new_rel_atoms_collection.append(
-                torch.from_numpy(out.detach().numpy()))
+            new_rel_atoms_collection.append(out)
 
         # Determine the min_deg=0 case
         if self.min_degree == 0:
@@ -6223,8 +6222,7 @@ class GraphConv(nn.Module):
             # Only use the self layer
             out = torch.matmul(self_atoms.type(torch.float32),
                                next(W)) + next(b)
-            new_rel_atoms_collection.insert(
-                0, torch.from_numpy(out.detach().numpy()))
+            new_rel_atoms_collection.insert(0, out)
 
         # Combine all atoms back into the list
         atom_features = torch.concat(new_rel_atoms_collection, 0)
@@ -6234,7 +6232,8 @@ class GraphConv(nn.Module):
 
         return atom_features
 
-    def sum_neigh(self, atoms: torch.Tensor, deg_adj_lists) -> List[np.ndarray]:
+    def sum_neigh(self, atoms: torch.Tensor,
+                  deg_adj_lists) -> List[torch.Tensor]:
         """Store the summed atoms by degree"""
         deg_summed = []
 
@@ -6242,7 +6241,7 @@ class GraphConv(nn.Module):
             gathered_atoms: torch.Tensor = atoms[deg_adj_lists[deg - 1]]
             # Sum along neighbors as well as self, and store
             summed_atoms: torch.Tensor = torch.sum(gathered_atoms, 1)
-            deg_summed.append(summed_atoms.detach().numpy())
+            deg_summed.append(summed_atoms)
 
         return deg_summed
 
@@ -6347,7 +6346,9 @@ class GraphPool(nn.Module):
             if deg_adj_lists[deg - 1].shape[0] == 0:
                 # There are no neighbors of this degree, so just create an empty tensor directly.
                 maxed_atoms: torch.Tensor = torch.zeros(
-                    (0, self_atoms.shape[-1]))
+                    (0, self_atoms.shape[-1]),
+                    dtype=self_atoms.dtype,
+                    device=self_atoms.device)
                 deg_maxed.append(maxed_atoms)
             else:
                 # Expand dims

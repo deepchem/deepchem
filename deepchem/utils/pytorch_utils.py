@@ -61,14 +61,14 @@ def unsorted_segment_sum(data: torch.Tensor, segment_ids: torch.Tensor,
         raise AssertionError(
             "segment_ids should be the same size as dimension 0 of input.")
 
-    s = torch.prod(torch.tensor(data.shape[1:])).long()
+    s = int(np.prod(data.shape[1:]))
     segment_ids = segment_ids.repeat_interleave(s).view(segment_ids.shape[0],
                                                         *data.shape[1:])
 
     # data.shape and segment_ids.shape should be equal
     assert data.shape == segment_ids.shape
     shape: List[int] = [num_segments] + list(data.shape[1:])
-    tensor: torch.Tensor = torch.zeros(*shape).scatter_add(
+    tensor: torch.Tensor = torch.zeros(*shape, device=data.device).scatter_add(
         0, segment_ids, data.float())
     tensor = tensor.type(data.dtype)
     return tensor
@@ -515,7 +515,10 @@ def unsorted_segment_max(data: torch.Tensor, segment_ids: torch.Tensor,
 
     # Initialize the tensor to hold the maximum values for each segment
     shape = [num_segments] + list(data.shape[1:])
-    tensor = torch.full(shape, float('-inf'), dtype=data.dtype)
+    tensor = torch.full(shape,
+                        float('-inf'),
+                        dtype=data.dtype,
+                        device=data.device)
 
     # Create an expanded segment_ids tensor to match data shape
     expanded_segment_ids = segment_ids.unsqueeze(-1).expand(-1, *data.shape[1:])
